@@ -86,7 +86,7 @@ class A100Api {
   async checkHealth(): Promise<HealthResponse | null> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
       
       const response = await fetch(this.getProxyEndpoint('/health'), {
         signal: controller.signal,
@@ -108,6 +108,11 @@ class A100Api {
       return null;
     } catch (error) {
       console.error('A100 health check failed:', error);
+      // Don't set offline on timeout - could just be slow network
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Health check timed out - keeping previous state');
+        return null;
+      }
       this._isOnline = false;
       return null;
     }
