@@ -259,7 +259,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   brushSize={10}
                   mode="dot"
                   coordinateSpace="image"
-                  canvasSize={480}
+                  canvasSize={320}
                 />
               </div>
 
@@ -329,7 +329,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto">
+            <div className="grid grid-cols-3 gap-2">
               {exampleImages.map((example) => (
                 <button
                   key={example.id}

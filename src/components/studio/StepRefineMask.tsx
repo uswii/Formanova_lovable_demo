@@ -165,7 +165,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                     brushSize={brushSize}
                     mode="brush"
                     coordinateSpace="image"
-                    canvasSize={480}
+                    canvasSize={320}
                     onBrushStrokeStart={handleStrokeStart}
                     onBrushStrokePoint={handleStrokePoint}
                     onBrushStrokeEnd={handleStrokeEnd}
@@ -184,7 +184,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             <TabsContent value="binary" className="mt-4">
               <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
                 {state.maskBinary ? (
-                  <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[480px] object-contain" />
+                  <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[320px] object-contain" />
                 ) : (
                   <div className="aspect-[4/3] bg-muted flex items-center justify-center w-full">
                     <p className="text-muted-foreground">No mask generated yet</p>
