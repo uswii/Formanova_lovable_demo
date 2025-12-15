@@ -33,18 +33,18 @@ export default function Welcome() {
     <div className="min-h-screen formanova-gradient overflow-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center">
-        {/* Video Background */}
+        {/* Video Background - Always Playing */}
         <div className="absolute inset-0 overflow-hidden">
           <video
             autoPlay
             loop
             muted
             playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-20"
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
           >
             <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/80 to-background" />
         </div>
         
         {/* Decorative elements */}
