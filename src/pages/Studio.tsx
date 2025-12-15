@@ -11,13 +11,13 @@ import {
   Upload, 
   Paintbrush, 
   Sparkles, 
-  AlertTriangle, 
   PlayCircle,
   Download,
   Info,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  Diamond
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
@@ -91,20 +91,31 @@ export default function Studio() {
   return (
     <div className="min-h-screen formanova-gradient">
       <div className="container px-4 py-8">
-        {/* Notice Banner */}
-        <div className="mb-8 flex items-center justify-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm">
-            <span className="text-lg">💎</span>
-            <span className="text-sm font-medium text-foreground">
-              Best results with necklace photography
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <Button variant="ghost" size="sm" className="h-auto py-1 px-2 text-sm" asChild>
-              <Link to="/tutorial">
-                <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
-                Tutorial
-              </Link>
-            </Button>
+        {/* Necklace Optimization Notice */}
+        <div className="mb-8">
+          <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card/80 to-primary/5 backdrop-blur-sm necklace-notice">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent" />
+            <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border border-primary/20">
+                  <Diamond className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <p className="font-medium text-foreground">
+                    Currently Optimized for Necklaces
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Best results with necklace photography • More jewelry types coming soon
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="shrink-0" asChild>
+                <Link to="/tutorial">
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Watch Tutorial
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
