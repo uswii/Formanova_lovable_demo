@@ -440,6 +440,40 @@
     text-shadow: 0 0 20px hsl(var(--formanova-glow) / 0.3);
   }
 
+  /* Necklace notice - theme adaptive */
+  .necklace-notice {
+    position: relative;
+  }
+  
+  [data-theme="neon"] .necklace-notice {
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow: 
+      0 0 15px hsl(var(--primary) / 0.2),
+      inset 0 0 30px hsl(var(--primary) / 0.05);
+  }
+  
+  [data-theme="cyberpunk"] .necklace-notice {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  
+  [data-theme="synthwave"] .necklace-notice {
+    border-color: hsl(var(--accent) / 0.4);
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
+  }
+  
+  [data-theme="retro"] .necklace-notice {
+    border: 2px solid hsl(var(--primary));
+    box-shadow: 4px 4px 0 0 hsl(var(--primary) / 0.5);
+    border-radius: 0;
+  }
+  
+  [data-theme="luxury"] .necklace-notice,
+  [data-theme="fashion"] .necklace-notice {
+    border-color: hsl(var(--primary) / 0.3);
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.05), transparent, hsl(var(--primary) / 0.05));
+  }
+
   /* Luxury divider */
   .luxury-divider {
     @apply relative;
