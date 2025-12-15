@@ -113,6 +113,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
       if (!response) throw new Error('Segmentation failed');
 
+      // Debug: Log the scaled_points received from API
+      console.log('Segmentation response received:', {
+        hasScaledPoints: !!response.scaled_points,
+        scaledPointsLength: response.scaled_points?.length,
+        scaledPoints: response.scaled_points,
+      });
+
       updateState({
         originalImage: `data:image/jpeg;base64,${response.processed_image_base64}`,
         maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
