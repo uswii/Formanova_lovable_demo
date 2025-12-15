@@ -29,26 +29,26 @@ export default function Welcome() {
             alt="Elegant jewelry showcase" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/40" />
         </div>
 
         {/* Content */}
         <div className="relative z-10 container px-8 py-20">
           <div className="max-w-2xl space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-background/80 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-black/50 backdrop-blur-sm">
               <Diamond className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium tracking-wide">Trustable AI Photography</span>
+              <span className="text-sm font-medium tracking-wide text-white">Trustable AI Photography</span>
             </div>
 
             {/* Headline */}
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-light leading-tight">
+            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-light leading-tight text-white">
               Your Jewelry,
               <span className="block text-primary italic">Perfectly Preserved</span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl md:text-2xl text-muted-foreground font-light leading-relaxed max-w-xl">
+            <p className="text-xl md:text-2xl text-white/80 font-light leading-relaxed max-w-xl">
               AI imagery you can trust. Your jewelry is always accurately shown. No hallucinations. No subtle changes.
             </p>
 
