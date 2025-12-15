@@ -270,69 +270,64 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Luxury Footer with Hero Image */}
-      <footer className="relative overflow-hidden">
-        {/* Hero Jewelry Image Background */}
-        <div className="relative h-[400px] md:h-[500px] w-full">
-          <div className="absolute inset-0">
-            <img 
-              src={heroNecklace} 
-              alt="Luxury diamond necklace"
-              className="w-full h-full object-cover object-center"
-            />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-transparent" />
-          </div>
-          
-          {/* Content overlay */}
-          <div className="absolute inset-0 flex items-end">
-            <div className="container px-6 pb-16">
-              <div className="max-w-xl">
-                <p className="text-sm text-foreground/70 mb-4 uppercase tracking-widest">
-                  Trusted by Jewelers Worldwide
+      {/* Refined Footer */}
+      <footer className="bg-card border-t border-border/50">
+        {/* Main Footer Content */}
+        <div className="px-6 py-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-12 items-center">
+              {/* Logo & Tagline */}
+              <div className="text-center md:text-left">
+                <img 
+                  src={formanovaLogo} 
+                  alt="FormaNova" 
+                  className="h-10 md:h-12 w-auto object-contain logo-adaptive mx-auto md:mx-0 mb-4"
+                />
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  The only AI built specifically for jewelry photography. Trusted by jewelers worldwide.
                 </p>
-                <h3 className="font-display text-3xl md:text-4xl text-foreground mb-6">
-                  Elevate Every Piece
-                </h3>
+              </div>
+              
+              {/* Quick Links */}
+              <div className="text-center">
+                <h4 className="font-display text-lg mb-4">Quick Links</h4>
+                <div className="flex flex-col gap-2">
+                  <Link to="/studio" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                    Studio
+                  </Link>
+                  <Link to="/tutorial" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                    Tutorial
+                  </Link>
+                  <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+              
+              {/* CTA */}
+              <div className="text-center md:text-right">
+                <h4 className="font-display text-lg mb-4">Ready to Start?</h4>
                 <Button 
-                  size="lg" 
                   className="formanova-glow"
                   onClick={handleStart}
                 >
                   <Gem className="mr-2 h-4 w-4" />
-                  Begin Your Journey
+                  Get Started
                 </Button>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Bottom bar with logo */}
-        <div className="bg-card/95 backdrop-blur-sm border-t border-border/40">
-          <div className="container px-6 py-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Large Logo */}
-              <div className="flex items-center">
-                <img 
-                  src={formanovaLogo} 
-                  alt="FormaNova" 
-                  className="h-8 md:h-10 w-auto object-contain logo-adaptive"
-                />
-              </div>
-              
-              {/* Tagline */}
-              <p className="text-sm text-muted-foreground text-center md:text-right">
-                The only AI built for jewelry photography
-              </p>
-            </div>
-            
-            {/* Copyright */}
-            <div className="mt-6 pt-6 border-t border-border/20 text-center">
-              <p className="text-xs text-muted-foreground/70">
-                © {new Date().getFullYear()} FormaNova. All rights reserved.
-              </p>
-            </div>
+        
+        {/* Bottom Bar */}
+        <div className="border-t border-border/30 px-6 py-6">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} FormaNova. All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Pixel-perfect jewelry imagery, every time.
+            </p>
           </div>
         </div>
       </footer>
