@@ -2,95 +2,279 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Press+Start+2P&family=VT323&family=Lobster&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* FormaNova Design System - 9 Switchable Themes */
 
 @layer base {
+  /* LIGHT THEME (Default) */
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 222.2 84% 4.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
-
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
+    --radius: 0.75rem;
+    
+    /* FormaNova custom tokens */
+    --formanova-glow: 210 100% 50%;
+    --formanova-success: 142 76% 36%;
+    --formanova-warning: 38 92% 50%;
+    --formanova-gradient-from: 210 40% 96.1%;
+    --formanova-gradient-to: 0 0% 100%;
+    
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Typography */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
+  /* DARK THEME */
+  .dark, [data-theme="dark"] {
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --formanova-glow: 217 91% 60%;
+    --formanova-gradient-from: 222 47% 8%;
+    --formanova-gradient-to: 217.2 32.6% 12%;
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+  }
+
+  /* CYBERPUNK THEME */
+  [data-theme="cyberpunk"] {
+    --background: 270 50% 5%;
+    --foreground: 180 100% 90%;
+    --card: 270 50% 8%;
+    --card-foreground: 180 100% 90%;
+    --popover: 270 50% 8%;
+    --popover-foreground: 180 100% 90%;
+    --primary: 320 100% 60%;
+    --primary-foreground: 270 50% 5%;
+    --secondary: 180 100% 30%;
+    --secondary-foreground: 180 100% 90%;
+    --muted: 270 30% 15%;
+    --muted-foreground: 180 50% 60%;
+    --accent: 180 100% 50%;
+    --accent-foreground: 270 50% 5%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 320 50% 30%;
+    --input: 270 30% 15%;
+    --ring: 320 100% 60%;
+    --formanova-glow: 180 100% 50%;
+    --formanova-gradient-from: 270 50% 8%;
+    --formanova-gradient-to: 320 50% 15%;
+    --font-display: 'VT323', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  /* RETRO VIDEO GAME THEME */
+  [data-theme="retro"] {
+    --background: 240 20% 10%;
+    --foreground: 120 100% 70%;
+    --card: 240 20% 15%;
+    --card-foreground: 120 100% 70%;
+    --popover: 240 20% 15%;
+    --popover-foreground: 120 100% 70%;
+    --primary: 120 100% 50%;
+    --primary-foreground: 240 20% 10%;
+    --secondary: 60 100% 50%;
+    --secondary-foreground: 240 20% 10%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 120 50% 50%;
+    --accent: 0 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 120 50% 30%;
+    --input: 240 20% 20%;
+    --ring: 120 100% 50%;
+    --formanova-glow: 120 100% 50%;
+    --formanova-gradient-from: 240 20% 15%;
+    --formanova-gradient-to: 240 20% 10%;
+    --font-display: 'Press Start 2P', cursive;
+    --font-body: 'VT323', monospace;
+  }
+
+  /* VINTAGE AMERICANA THEME */
+  [data-theme="vintage"] {
+    --background: 35 30% 92%;
+    --foreground: 25 40% 20%;
+    --card: 40 40% 95%;
+    --card-foreground: 25 40% 20%;
+    --popover: 40 40% 95%;
+    --popover-foreground: 25 40% 20%;
+    --primary: 15 80% 40%;
+    --primary-foreground: 40 40% 95%;
+    --secondary: 45 60% 80%;
+    --secondary-foreground: 25 40% 20%;
+    --muted: 35 20% 85%;
+    --muted-foreground: 25 30% 40%;
+    --accent: 200 50% 40%;
+    --accent-foreground: 40 40% 95%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 40 40% 95%;
+    --border: 35 30% 80%;
+    --input: 35 20% 85%;
+    --ring: 15 80% 40%;
+    --formanova-glow: 45 80% 50%;
+    --formanova-gradient-from: 35 30% 92%;
+    --formanova-gradient-to: 40 40% 88%;
+    --font-display: 'Lobster', cursive;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  /* HIGH FASHION THEME */
+  [data-theme="fashion"] {
+    --background: 0 0% 3%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 45 100% 50%;
+    --primary-foreground: 0 0% 3%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 3%;
+    --destructive: 0 80% 50%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 20%;
+    --input: 0 0% 12%;
+    --ring: 45 100% 50%;
+    --formanova-glow: 45 100% 50%;
+    --formanova-gradient-from: 0 0% 6%;
+    --formanova-gradient-to: 0 0% 3%;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  /* CUTE/KAWAII THEME */
+  [data-theme="kawaii"] {
+    --background: 330 100% 97%;
+    --foreground: 330 50% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 330 50% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 50% 25%;
+    --primary: 330 80% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 180 60% 85%;
+    --secondary-foreground: 180 50% 25%;
+    --muted: 330 30% 92%;
+    --muted-foreground: 330 30% 45%;
+    --accent: 45 100% 70%;
+    --accent-foreground: 45 80% 25%;
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 330 50% 88%;
+    --input: 330 30% 92%;
+    --ring: 330 80% 65%;
+    --radius: 1.5rem;
+    --formanova-glow: 330 80% 70%;
+    --formanova-gradient-from: 330 100% 97%;
+    --formanova-gradient-to: 180 60% 95%;
+    --font-display: 'Poppins', sans-serif;
+    --font-body: 'Poppins', sans-serif;
+  }
+
+  /* LUXURY THEME */
+  [data-theme="luxury"] {
+    --background: 30 10% 5%;
+    --foreground: 40 30% 90%;
+    --card: 30 10% 8%;
+    --card-foreground: 40 30% 90%;
+    --popover: 30 10% 8%;
+    --popover-foreground: 40 30% 90%;
+    --primary: 40 60% 55%;
+    --primary-foreground: 30 10% 5%;
+    --secondary: 30 15% 15%;
+    --secondary-foreground: 40 30% 90%;
+    --muted: 30 10% 12%;
+    --muted-foreground: 40 20% 55%;
+    --accent: 40 60% 55%;
+    --accent-foreground: 30 10% 5%;
+    --destructive: 0 60% 40%;
+    --destructive-foreground: 40 30% 90%;
+    --border: 30 15% 20%;
+    --input: 30 10% 12%;
+    --ring: 40 60% 55%;
+    --formanova-glow: 40 60% 55%;
+    --formanova-gradient-from: 30 10% 8%;
+    --formanova-gradient-to: 30 10% 5%;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  /* SYNTHWAVE THEME */
+  [data-theme="synthwave"] {
+    --background: 270 60% 8%;
+    --foreground: 330 100% 90%;
+    --card: 270 50% 12%;
+    --card-foreground: 330 100% 90%;
+    --popover: 270 50% 12%;
+    --popover-foreground: 330 100% 90%;
+    --primary: 320 100% 65%;
+    --primary-foreground: 270 60% 8%;
+    --secondary: 270 40% 25%;
+    --secondary-foreground: 330 100% 90%;
+    --muted: 270 40% 18%;
+    --muted-foreground: 320 50% 60%;
+    --accent: 180 100% 50%;
+    --accent-foreground: 270 60% 8%;
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 320 40% 30%;
+    --input: 270 40% 18%;
+    --ring: 320 100% 65%;
+    --formanova-glow: 320 100% 70%;
+    --formanova-gradient-from: 270 50% 12%;
+    --formanova-gradient-to: 320 50% 20%;
+    --font-display: 'VT323', monospace;
+    --font-body: 'Inter', sans-serif;
   }
 }
 
@@ -100,6 +284,74 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .formanova-glow {
+    box-shadow: 0 0 20px hsl(var(--formanova-glow) / 0.3),
+                0 0 40px hsl(var(--formanova-glow) / 0.2);
+  }
+
+  .formanova-gradient {
+    background: linear-gradient(135deg, 
+      hsl(var(--formanova-gradient-from)), 
+      hsl(var(--formanova-gradient-to)));
+  }
+
+  .formanova-text-glow {
+    text-shadow: 0 0 10px hsl(var(--formanova-glow) / 0.5);
+  }
+
+  /* Retro theme specific scanlines effect */
+  [data-theme="retro"] .retro-scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(0 0% 0% / 0.1) 2px,
+      hsl(0 0% 0% / 0.1) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Cyberpunk neon borders */
+  [data-theme="cyberpunk"] .cyber-border {
+    border: 1px solid hsl(var(--primary));
+    box-shadow: 
+      0 0 5px hsl(var(--primary) / 0.5),
+      inset 0 0 5px hsl(var(--primary) / 0.2);
+  }
+
+  /* Synthwave grid effect */
+  [data-theme="synthwave"] .synth-grid {
+    background-image: 
+      linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+@layer utilities {
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
   }
 }
