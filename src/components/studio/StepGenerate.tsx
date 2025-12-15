@@ -29,7 +29,6 @@ interface Props {
 export function StepGenerate({ state, updateState, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [progressMessage, setProgressMessage] = useState('');
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -45,27 +44,11 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
     setIsGenerating(true);
     setProgress(0);
-    setProgressMessage('Preparing image...');
     updateState({ isGenerating: true });
 
-    // Simulate progress updates
-    const messages = [
-      { at: 5, msg: 'Uploading to server...' },
-      { at: 15, msg: 'Processing mask...' },
-      { at: 25, msg: 'Generating base image...' },
-      { at: 45, msg: 'Applying jewelry...' },
-      { at: 60, msg: 'Enhancing with AI...' },
-      { at: 75, msg: 'Refining details...' },
-      { at: 90, msg: 'Finalizing...' },
-    ];
-    
+    // Progress updates without messages
     progressInterval.current = setInterval(() => {
-      setProgress(prev => {
-        const next = Math.min(prev + 1, 95);
-        const msg = messages.find(m => m.at === next);
-        if (msg) setProgressMessage(msg.msg);
-        return next;
-      });
+      setProgress(prev => Math.min(prev + 1, 95));
     }, 600);
 
     try {
@@ -140,7 +123,6 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
       setProgress(100);
-      setProgressMessage('Complete!');
       
       updateState({
         fluxResult: generatedImageUrl,
@@ -315,9 +297,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
                     <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
-                  <p className="text-muted-foreground text-base font-medium">{progressMessage}</p>
-                  <div className="mt-4 w-64 h-3 bg-muted rounded-full overflow-hidden">
+                  <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
+                  <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
                       style={{ width: `${progress}%` }} 

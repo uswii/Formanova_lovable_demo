@@ -43,6 +43,22 @@ serve(async (req) => {
     const response = await fetch(a100Url, fetchOptions);
     const data = await response.text();
     
+    // Log response for debugging (truncated for large responses)
+    if (endpoint === '/segment' || endpoint === '/generate') {
+      try {
+        const parsed = JSON.parse(data);
+        console.log(`Response from ${endpoint}:`, {
+          keys: Object.keys(parsed),
+          hasScaledPoints: 'scaled_points' in parsed,
+          scaledPointsLength: parsed.scaled_points?.length,
+          hasMetrics: 'metrics' in parsed,
+          hasFidelityViz: 'fidelity_viz_base64' in parsed,
+        });
+      } catch (e) {
+        console.log(`Response from ${endpoint}: (not JSON)`);
+      }
+    }
+    
     return new Response(data, {
       status: response.status,
       headers: { 
