@@ -10,7 +10,7 @@ export interface HealthResponse {
 }
 
 export interface SegmentRequest {
-  image: string;
+  image_base64: string;
   points: number[][];
   client_width: number;
   client_height: number;
