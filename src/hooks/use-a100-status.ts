@@ -11,7 +11,10 @@ export function useA100Status() {
     setIsChecking(true);
     const healthData = await a100Api.checkHealth();
     setHealth(healthData);
-    setIsOnline(healthData?.status === 'online' && healthData?.models_loaded === true);
+    // Only set offline if we got a definitive offline response, not on timeout
+    if (healthData !== null) {
+      setIsOnline(healthData?.status === 'online' && healthData?.models_loaded === true);
+    }
     setIsChecking(false);
   }, []);
 
