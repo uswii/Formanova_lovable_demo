@@ -313,31 +313,31 @@
     --neon-glow-intense: 195 100% 60%;
   }
 
-  /* NOSTALGIA THEME - Warm Sepia & Rose Gold */
+  /* NOSTALGIA THEME - Dusty Rose & Vintage Pink */
   [data-theme="nostalgia"] {
-    --background: 25 35% 94%;
-    --foreground: 20 25% 18%;
-    --card: 30 40% 97%;
-    --card-foreground: 20 25% 18%;
-    --popover: 30 40% 97%;
-    --popover-foreground: 20 25% 18%;
-    --primary: 350 45% 55%;
-    --primary-foreground: 30 40% 97%;
-    --secondary: 35 40% 88%;
-    --secondary-foreground: 20 25% 22%;
-    --muted: 30 25% 90%;
-    --muted-foreground: 20 15% 45%;
-    --accent: 38 55% 58%;
-    --accent-foreground: 20 25% 15%;
+    --background: 350 30% 95%;
+    --foreground: 350 20% 18%;
+    --card: 350 25% 98%;
+    --card-foreground: 350 20% 18%;
+    --popover: 350 25% 98%;
+    --popover-foreground: 350 20% 18%;
+    --primary: 340 55% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 350 35% 88%;
+    --secondary-foreground: 350 25% 25%;
+    --muted: 350 25% 92%;
+    --muted-foreground: 350 15% 45%;
+    --accent: 20 60% 65%;
+    --accent-foreground: 20 50% 18%;
     --destructive: 0 55% 48%;
-    --destructive-foreground: 30 40% 97%;
-    --border: 30 30% 82%;
-    --input: 30 25% 90%;
-    --ring: 350 45% 55%;
-    --radius: 0.375rem;
-    --formanova-glow: 350 50% 60%;
-    --formanova-gradient-from: 25 35% 94%;
-    --formanova-gradient-to: 35 35% 90%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 350 25% 85%;
+    --input: 350 25% 92%;
+    --ring: 340 55% 55%;
+    --radius: 0.5rem;
+    --formanova-glow: 340 60% 60%;
+    --formanova-gradient-from: 350 30% 95%;
+    --formanova-gradient-to: 340 35% 92%;
     --font-display: 'Cormorant Garamond', serif;
     --font-body: 'Montserrat', sans-serif;
   }
