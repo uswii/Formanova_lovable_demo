@@ -157,7 +157,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             </TabsList>
 
             <TabsContent value="overlay" className="mt-4">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-black">
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
                 {baseImage ? (
                   <MaskCanvas
                     image={baseImage}

@@ -242,7 +242,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-black">
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
                 <Button
                   variant="secondary"
                   size="icon"
