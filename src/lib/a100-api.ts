@@ -3,64 +3,72 @@ const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a100-proxy`
 
 export interface HealthResponse {
   status: string;
-  model_loaded: boolean;
+  models_loaded: boolean;
   gpu_available: boolean;
+  gpu_name?: string;
+  message: string;
 }
 
 export interface SegmentRequest {
-  image: string; // base64
-  points: { x: number; y: number }[];
-  gender: 'female' | 'male';
+  image_base64: string;
+  points: number[][];
 }
 
 export interface SegmentResponse {
-  mask_overlay: string; // base64
-  mask_binary: string; // base64
+  mask_base64: string;
+  mask_overlay_base64: string;
+  processed_image_base64: string;
+  original_mask_base64: string;
   session_id: string;
+  image_width: number;
+  image_height: number;
 }
 
 export interface RefineMaskRequest {
-  session_id: string;
-  mask: string; // base64
-  strokes: { x: number; y: number; mode: 'add' | 'remove' }[];
+  original_image_base64: string;
+  current_mask_base64: string;
+  brush_strokes: { type: 'add' | 'remove'; points: number[][]; radius: number }[];
 }
 
 export interface RefineMaskResponse {
-  mask_overlay: string;
-  mask_binary: string;
+  mask_base64: string;
+  mask_overlay_base64: string;
 }
 
 export interface GenerateRequest {
-  session_id: string;
-  original_image: string;
-  mask: string;
+  image_base64: string;
+  mask_base64: string;
+  original_mask_base64?: string;
   gender: 'female' | 'male';
+  use_gemini?: boolean;
+  scaled_points?: number[][];
 }
 
 export interface GenerateResponse {
-  flux_result: string;
-  gemini_result: string;
-  fidelity_viz: string;
-  metrics: {
+  result_base64: string;
+  result_gemini_base64?: string;
+  fidelity_viz_base64?: string;
+  metrics?: {
     precision: number;
     recall: number;
     iou: number;
     growth_ratio: number;
   };
-  status: 'good' | 'bad';
+  session_id: string;
 }
 
 export interface ExampleImage {
-  filename: string;
-  url: string;
-  label: string;
+  id: string;
+  name: string;
+  image_base64: string;
+  thumbnail_base64?: string;
 }
 
 class A100Api {
   private proxyUrl: string;
   private _isOnline: boolean = false;
   private _lastCheck: number = 0;
-  private _checkInterval: number = 30000; // 30 seconds
+  private _checkInterval: number = 30000;
 
   constructor(proxyUrl: string) {
     this.proxyUrl = proxyUrl;
@@ -89,7 +97,7 @@ class A100Api {
       
       if (response.ok) {
         const data = await response.json();
-        this._isOnline = data.status === 'ok' && data.model_loaded;
+        this._isOnline = data.status === 'online' && data.models_loaded;
         this._lastCheck = Date.now();
         return data;
       }
@@ -118,7 +126,8 @@ class A100Api {
         },
       });
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        return data.examples || [];
       }
       return [];
     } catch (error) {
