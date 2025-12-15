@@ -195,11 +195,29 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <Tabs defaultValue="enhanced" className="w-full">
+                <Tabs defaultValue="standard" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="enhanced">Enhanced Result</TabsTrigger>
-                    <TabsTrigger value="basic">Standard Result</TabsTrigger>
+                    <TabsTrigger value="standard">Standard</TabsTrigger>
+                    <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="standard" className="mt-4 space-y-4">
+                    {state.fluxResult && (
+                      <>
+                        <div className="rounded-xl overflow-hidden border border-border bg-muted/20">
+                          <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
+                        </div>
+                        <Button
+                          size="lg"
+                          className="w-full"
+                          onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Standard
+                        </Button>
+                      </>
+                    )}
+                  </TabsContent>
 
                   <TabsContent value="enhanced" className="mt-4 space-y-4">
                     {(state.geminiResult || state.fluxResult) && (
@@ -217,26 +235,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download Enhanced Result
-                        </Button>
-                      </>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="basic" className="mt-4 space-y-4">
-                    {state.fluxResult && (
-                      <>
-                        <div className="rounded-xl overflow-hidden border border-border bg-muted/20">
-                          <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Standard Result
+                          Download Enhanced
                         </Button>
                       </>
                     )}
