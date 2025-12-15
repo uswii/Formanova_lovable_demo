@@ -69,6 +69,13 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
     }, 600);
 
     try {
+      // Debug: Log scaledPoints before sending
+      console.log('Generation starting with state:', {
+        hasScaledPoints: !!state.scaledPoints,
+        scaledPointsLength: state.scaledPoints?.length,
+        scaledPoints: state.scaledPoints,
+      });
+
       let imageBase64 = state.originalImage;
       if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
 
@@ -80,14 +87,18 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         originalMaskBase64 = state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask;
       }
 
-      const response = await a100Api.generate({
+      const requestPayload = {
         image_base64: imageBase64,
         mask_base64: maskBase64,
         original_mask_base64: originalMaskBase64,
         gender: state.gender,
         use_gemini: true,
         scaled_points: state.scaledPoints || undefined,
-      });
+      };
+      
+      console.log('Sending generate request with scaled_points:', !!requestPayload.scaled_points);
+
+      const response = await a100Api.generate(requestPayload);
 
       if (!response) throw new Error('Generation failed');
 
@@ -375,8 +386,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     </div>
                     <p className="text-muted-foreground text-sm">
                       {state.scaledPoints 
-                        ? 'Generate to see accuracy' 
-                        : 'Mark jewelry with points to enable accuracy analysis'}
+                        ? 'Generate to see accuracy visualization' 
+                        : 'Jewelry coordinates not detected. Re-mark jewelry in Upload step.'}
                     </p>
                   </div>
                 </div>
@@ -404,8 +415,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
                     {state.scaledPoints
-                      ? 'Metrics appear after generation.'
-                      : 'Mark jewelry with points in Upload step to enable metrics.'}
+                      ? 'Metrics will appear after generation.'
+                      : 'Coordinates not detected. Re-mark jewelry to enable metrics.'}
                   </p>
                   
                   <div className="grid grid-cols-2 gap-2">
