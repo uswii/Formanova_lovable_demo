@@ -91,27 +91,41 @@ export default function Studio() {
   return (
     <div className="min-h-screen formanova-gradient">
       <div className="container px-4 py-8">
-        {/* Necklace Optimization Notice */}
-        <div className="mb-8">
-          <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card/80 to-primary/5 backdrop-blur-sm necklace-notice">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent" />
-            <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border border-primary/20">
-                  <Diamond className="h-5 w-5 text-primary" />
+        {/* Necklace Optimization Notice - Bold & Eye-catching */}
+        <div className="mb-10 animate-fade-in">
+          <div className="relative overflow-hidden rounded-2xl necklace-notice-premium">
+            {/* Gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
+            
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/5 rounded-full blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-foreground/5 rounded-full blur-xl" />
+            
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 px-8 py-6">
+              {/* Left: Icon + Text */}
+              <div className="flex items-center gap-5">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary-foreground/15 border-2 border-primary-foreground/30 backdrop-blur-sm">
+                  <Diamond className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <div className="text-center sm:text-left">
-                  <p className="font-medium text-foreground">
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl md:text-2xl font-display font-semibold text-primary-foreground tracking-wide">
                     Currently Optimized for Necklaces
-                  </p>
-                  <p className="text-sm text-muted-foreground">
+                  </h3>
+                  <p className="text-sm text-primary-foreground/80 mt-1">
                     Best results with necklace photography • More jewelry types coming soon
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="shrink-0" asChild>
+              
+              {/* Right: Tutorial Button */}
+              <Button 
+                size="lg" 
+                className="shrink-0 bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                asChild
+              >
                 <Link to="/tutorial">
-                  <PlayCircle className="h-4 w-4 mr-2" />
+                  <PlayCircle className="h-5 w-5 mr-2" />
                   Watch Tutorial
                 </Link>
               </Button>
