@@ -617,6 +617,264 @@
   }
 }
 
+/* Theme-specific decorative elements */
+.theme-decorations {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Light/Dark - subtle diamond shapes */
+:root .theme-decorations::before,
+.dark .theme-decorations::before,
+[data-theme="dark"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: 5%;
+  width: 100px;
+  height: 100px;
+  background: hsl(var(--primary) / 0.03);
+  transform: rotate(45deg);
+}
+
+:root .theme-decorations::after,
+.dark .theme-decorations::after,
+[data-theme="dark"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 20%;
+  left: 3%;
+  width: 60px;
+  height: 60px;
+  background: hsl(var(--primary) / 0.02);
+  transform: rotate(45deg);
+}
+
+/* Cyberpunk - grid lines and glitchy elements */
+[data-theme="cyberpunk"] .theme-decorations {
+  background: 
+    repeating-linear-gradient(0deg, transparent, transparent 100px, hsl(var(--primary) / 0.03) 100px, hsl(var(--primary) / 0.03) 101px),
+    repeating-linear-gradient(90deg, transparent, transparent 100px, hsl(var(--accent) / 0.03) 100px, hsl(var(--accent) / 0.03) 101px);
+}
+
+[data-theme="cyberpunk"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  right: 8%;
+  width: 150px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent);
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+[data-theme="cyberpunk"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 25%;
+  left: 5%;
+  width: 80px;
+  height: 80px;
+  border: 1px solid hsl(var(--accent) / 0.2);
+  transform: rotate(45deg);
+}
+
+/* Retro - pixelated corner decorations */
+[data-theme="retro"] .theme-decorations::before {
+  content: '▲';
+  position: absolute;
+  top: 10%;
+  right: 5%;
+  font-size: 3rem;
+  color: hsl(var(--primary) / 0.15);
+}
+
+[data-theme="retro"] .theme-decorations::after {
+  content: '■ ■ ■';
+  position: absolute;
+  bottom: 15%;
+  left: 3%;
+  font-size: 1rem;
+  letter-spacing: 0.5rem;
+  color: hsl(var(--secondary) / 0.3);
+}
+
+/* Vintage - decorative flourishes */
+[data-theme="vintage"] .theme-decorations::before {
+  content: '✦';
+  position: absolute;
+  top: 12%;
+  right: 8%;
+  font-size: 2rem;
+  color: hsl(var(--primary) / 0.2);
+}
+
+[data-theme="vintage"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  left: 5%;
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent);
+}
+
+/* Fashion - bold geometric */
+[data-theme="fashion"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 10%;
+  width: 1px;
+  height: 200px;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.3), transparent);
+}
+
+[data-theme="fashion"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 5%;
+  left: 8%;
+  width: 100px;
+  height: 100px;
+  border: 1px solid hsl(var(--primary) / 0.15);
+}
+
+/* Kawaii - hearts and stars */
+[data-theme="kawaii"] .theme-decorations::before {
+  content: '♡';
+  position: absolute;
+  top: 8%;
+  right: 6%;
+  font-size: 2.5rem;
+  color: hsl(var(--primary) / 0.2);
+}
+
+[data-theme="kawaii"] .theme-decorations::after {
+  content: '★';
+  position: absolute;
+  bottom: 12%;
+  left: 4%;
+  font-size: 2rem;
+  color: hsl(var(--accent) / 0.25);
+}
+
+/* Luxury - elegant corner accents */
+[data-theme="luxury"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 5%;
+  right: 5%;
+  width: 80px;
+  height: 80px;
+  border-top: 1px solid hsl(var(--primary) / 0.2);
+  border-right: 1px solid hsl(var(--primary) / 0.2);
+}
+
+[data-theme="luxury"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 5%;
+  left: 5%;
+  width: 80px;
+  height: 80px;
+  border-bottom: 1px solid hsl(var(--primary) / 0.2);
+  border-left: 1px solid hsl(var(--primary) / 0.2);
+}
+
+/* Synthwave - horizon grid and sun */
+[data-theme="synthwave"] .theme-decorations {
+  background: 
+    linear-gradient(180deg, transparent 60%, hsl(var(--primary) / 0.05) 100%);
+}
+
+[data-theme="synthwave"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.2));
+  box-shadow: 0 0 40px hsl(var(--primary) / 0.2);
+}
+
+[data-theme="synthwave"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: 
+    repeating-linear-gradient(90deg, transparent, transparent 50px, hsl(var(--primary) / 0.05) 50px, hsl(var(--primary) / 0.05) 51px);
+}
+
+/* Neon - glowing elements */
+[data-theme="neon"] .theme-decorations::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  right: 8%;
+  width: 4px;
+  height: 100px;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.8), 0 0 40px hsl(var(--primary) / 0.4);
+}
+
+[data-theme="neon"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 20%;
+  left: 5%;
+  width: 80px;
+  height: 4px;
+  background: hsl(var(--accent));
+  box-shadow: 0 0 20px hsl(var(--accent) / 0.8), 0 0 40px hsl(var(--accent) / 0.4);
+}
+
+/* Nostalgia - vintage rose decorations */
+[data-theme="nostalgia"] .theme-decorations::before {
+  content: '❀';
+  position: absolute;
+  top: 10%;
+  right: 6%;
+  font-size: 2rem;
+  color: hsl(var(--primary) / 0.2);
+}
+
+[data-theme="nostalgia"] .theme-decorations::after {
+  content: '';
+  position: absolute;
+  bottom: 15%;
+  left: 4%;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.05), transparent 70%);
+}
+
+/* Cutie - pastel shapes */
+[data-theme="cutie"] .theme-decorations::before {
+  content: '✿';
+  position: absolute;
+  top: 8%;
+  right: 5%;
+  font-size: 2.5rem;
+  color: hsl(var(--primary) / 0.2);
+}
+
+[data-theme="cutie"] .theme-decorations::after {
+  content: '◇';
+  position: absolute;
+  bottom: 10%;
+  left: 4%;
+  font-size: 2rem;
+  color: hsl(var(--accent) / 0.25);
+}
+
 @layer utilities {
   .animation-delay-100 { animation-delay: 100ms; }
   .animation-delay-200 { animation-delay: 200ms; }

@@ -89,8 +89,11 @@ export default function Studio() {
   ];
 
   return (
-    <div className="min-h-screen formanova-gradient">
-      <div className="container px-4 py-8">
+    <div className="min-h-screen formanova-gradient relative overflow-hidden">
+      {/* Theme-specific decorative elements */}
+      <div className="theme-decorations pointer-events-none" />
+      
+      <div className="px-3 py-6 relative z-10">
         {/* Necklace Optimization Notice - Bold & Eye-catching */}
         <div className="mb-10 animate-fade-in">
           <div className="relative overflow-hidden rounded-2xl necklace-notice-premium">
