@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -7,6 +7,7 @@ import { Paintbrush, Lightbulb, Loader2, ArrowLeft, ArrowRight, Undo, Redo, Spar
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+import { a100Api } from '@/lib/a100-api';
 
 interface Props {
   state: StudioState;
@@ -15,57 +16,107 @@ interface Props {
   onBack: () => void;
 }
 
+interface BrushStroke {
+  type: 'add' | 'remove';
+  points: number[][];
+  radius: number;
+}
+
 export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
   const [brushColor, setBrushColor] = useState<'green' | 'black'>('green');
   const [brushSize, setBrushSize] = useState(30);
   const [isApplying, setIsApplying] = useState(false);
-  const [canvasData, setCanvasData] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [brushStrokes, setBrushStrokes] = useState<BrushStroke[]>([]);
+  const [history, setHistory] = useState<BrushStroke[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const { toast } = useToast();
 
   const handleApplyEdits = async () => {
-    if (!canvasData) {
-      onNext();
-      return;
-    }
-
     setIsApplying(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    updateState({
-      editedMask: canvasData,
-    });
-    
-    setIsApplying(false);
-    toast({
-      title: 'Mask edits applied',
-      description: 'Your refinements have been saved.',
-    });
-    onNext();
+    try {
+      if (brushStrokes.length > 0 && state.originalImage && state.maskBinary) {
+        // Extract base64 from data URLs
+        let originalBase64 = state.originalImage;
+        if (originalBase64.includes(',')) {
+          originalBase64 = originalBase64.split(',')[1];
+        }
+        
+        let maskBase64 = state.maskBinary;
+        if (maskBase64.includes(',')) {
+          maskBase64 = maskBase64.split(',')[1];
+        }
+        
+        const response = await a100Api.refineMask({
+          original_image_base64: originalBase64,
+          current_mask_base64: maskBase64,
+          brush_strokes: brushStrokes,
+        });
+        
+        if (response) {
+          updateState({
+            maskBinary: `data:image/png;base64,${response.mask_base64}`,
+            maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
+            editedMask: `data:image/png;base64,${response.mask_base64}`,
+          });
+        }
+      }
+      
+      toast({
+        title: 'Mask edits applied',
+        description: 'Your refinements have been saved.',
+      });
+      onNext();
+    } catch (error) {
+      console.error('Refine mask error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to apply edits',
+        description: 'Please try again.',
+      });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   const handleUndo = () => {
     if (historyIndex > 0) {
       setHistoryIndex(historyIndex - 1);
-      setCanvasData(history[historyIndex - 1]);
+      setBrushStrokes(history[historyIndex - 1]);
+    } else if (historyIndex === 0) {
+      setHistoryIndex(-1);
+      setBrushStrokes([]);
     }
   };
 
   const handleRedo = () => {
     if (historyIndex < history.length - 1) {
       setHistoryIndex(historyIndex + 1);
-      setCanvasData(history[historyIndex + 1]);
+      setBrushStrokes(history[historyIndex + 1]);
     }
   };
 
-  const handleCanvasChange = (data: string) => {
+  const handleCanvasChange = useCallback((dataUrl: string) => {
+    // This is called when brush strokes are made on the canvas
+    // We'll track the strokes separately for the API
+  }, []);
+
+  const handleBrushStroke = useCallback((x: number, y: number) => {
+    const newStroke: BrushStroke = {
+      type: brushColor === 'green' ? 'add' : 'remove',
+      points: [[x, y]],
+      radius: brushSize,
+    };
+    
+    const newStrokes = [...brushStrokes, newStroke];
+    setBrushStrokes(newStrokes);
+    
+    // Update history
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(data);
+    newHistory.push(newStrokes);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
-    setCanvasData(data);
-  };
+  }, [brushColor, brushSize, brushStrokes, history, historyIndex]);
 
   const baseImage = state.maskOverlay || state.originalImage;
 
@@ -99,6 +150,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                     brushSize={brushSize}
                     mode="brush"
                     onCanvasChange={handleCanvasChange}
+                    onCanvasClick={handleBrushStroke}
                   />
                 ) : (
                   <div className="aspect-[4/3] bg-muted flex items-center justify-center">
@@ -137,7 +189,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               variant="outline" 
               size="sm"
               onClick={handleUndo}
-              disabled={historyIndex <= 0}
+              disabled={historyIndex < 0}
             >
               <Undo className="h-4 w-4 mr-1" />
               Undo

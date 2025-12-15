@@ -1,0 +1,17 @@
+[Unit]
+Description=FormaNova A100 API Server
+After=network.target
+
+[Service]
+Type=simple
+User=bilal
+WorkingDirectory=/home/bilal/viton_jewelry_model
+Environment="PATH=/home/bilal/viton_jewelry_model/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/bilal/viton_jewelry_model/.venv/bin/python api_server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
