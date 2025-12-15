@@ -33,26 +33,11 @@ export default function Welcome() {
     <div className="min-h-screen formanova-gradient overflow-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center">
-        {/* Video Background - Always Playing */}
-        <div className="absolute inset-0 overflow-hidden">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
-          >
-            <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/80 to-background" />
-        </div>
-        
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-[15%] w-3 h-3 rotate-45 border border-primary/20 animate-pulse" />
           <div className="absolute top-32 right-[20%] w-2 h-2 rotate-45 bg-primary/10" />
           <div className="absolute bottom-40 left-[10%] w-4 h-4 rotate-45 border border-primary/15" />
-          <div className="absolute top-1/3 right-[8%] w-2 h-2 rotate-45 bg-primary/20" />
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-3xl" />
         </div>
         
@@ -88,29 +73,22 @@ export default function Welcome() {
               </div>
             </div>
 
-            {/* Jewelry Showcase */}
-            <div className="animate-fade-in animation-delay-200 py-8">
-              <p className="text-xs text-muted-foreground mb-6 uppercase tracking-widest">Stunning Results</p>
-              <div className="flex items-center justify-center gap-4 md:gap-8">
-                {jewelryShowcase.map((item, index) => (
-                  <div 
-                    key={item.label}
-                    className="group relative"
-                    style={{ animationDelay: `${(index + 1) * 100}ms` }}
-                  >
-                    <div className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-lg overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:border-primary/50 group-hover:shadow-lg">
-                      <img 
-                        src={item.src} 
-                        alt={item.alt}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
+            {/* Video Showcase - Foreground */}
+            <div className="animate-fade-in animation-delay-200 py-8 w-full max-w-4xl mx-auto">
+              <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-card">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full aspect-video object-cover"
+                >
+                  <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
+                </video>
               </div>
+              <p className="text-xs text-muted-foreground mt-4 uppercase tracking-widest text-center">
+                See FormaNova in Action
+              </p>
             </div>
 
             {/* CTA Buttons */}
