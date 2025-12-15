@@ -49,8 +49,7 @@ export default function Welcome() {
 
             {/* Subheadline */}
             <p className="text-xl md:text-2xl text-muted-foreground font-light leading-relaxed max-w-xl">
-              AI you can trust. Your product stays exactly as you uploaded — 
-              and we have the math to prove it.
+              AI imagery you can trust. Your jewelry is always accurately shown. No hallucinations. No subtle changes.
             </p>
 
             {/* CTA */}
