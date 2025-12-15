@@ -241,46 +241,48 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="relative inline-block rounded-xl overflow-hidden border border-border">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 shadow-lg"
-                  onClick={clearImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <MaskCanvas
-                  image={state.originalImage}
-                  dots={redDots}
-                  onCanvasClick={handleCanvasClick}
-                  brushColor="#FF0000"
-                  brushSize={10}
-                  mode="dot"
-                  coordinateSpace="image"
-                  canvasSize={320}
-                />
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <div className="relative inline-block rounded-xl overflow-hidden border border-border">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 shadow-lg"
+                    onClick={clearImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <MaskCanvas
+                    image={state.originalImage}
+                    dots={redDots}
+                    onCanvasClick={handleCanvasClick}
+                    brushColor="#FF0000"
+                    brushSize={10}
+                    mode="dot"
+                    coordinateSpace="image"
+                    canvasSize={400}
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-                  <p className="text-sm">
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
+                  <p className="text-base">
                     <span className="font-bold text-foreground">{redDots.length}</span>
                     <span className="text-muted-foreground"> marks placed</span>
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
-                    <Undo2 className="h-4 w-4" />
+                <div className="flex gap-3">
+                  <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
+                    <Undo2 className="h-5 w-5" />
                   </Button>
-                  <Button variant="outline" size="icon" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
-                    <Redo2 className="h-4 w-4" />
+                  <Button variant="outline" size="default" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
+                    <Redo2 className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="default"
                     onClick={() => {
                       setUndoStack((prev) => [...prev, redDots]);
                       setRedoStack([]);
@@ -290,8 +292,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   >
                     Clear All
                   </Button>
-                  <Button size="sm" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow">
-                    {isGeneratingMask ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow font-semibold">
+                    {isGeneratingMask ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
                     Generate Mask
                   </Button>
                 </div>
@@ -299,10 +301,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           )}
 
-          <Alert className="border-primary/30 bg-primary/5">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-sm">
-              <strong>Pro Tip:</strong> Use high-quality inputs for best results. Sharp, well-lit images produce the most accurate masks.
+          <Alert className="border-primary/40 bg-primary/10">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            <AlertDescription className="text-base text-foreground">
+              <strong className="text-primary">Pro Tip:</strong> Use high-quality inputs for best results. Sharp, well-lit images produce the most accurate masks.
             </AlertDescription>
           </Alert>
         </CardContent>
