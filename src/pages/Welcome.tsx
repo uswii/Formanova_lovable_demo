@@ -126,56 +126,6 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Jewelry Gallery Section */}
-      <section className="py-24">
-        <div className="container px-8">
-          <div className="text-center mb-16">
-            <p className="text-primary font-medium tracking-widest uppercase text-sm mb-4">Our Work</p>
-            <h2 className="font-display text-4xl md:text-5xl font-light">
-              Stunning Results
-            </h2>
-          </div>
-
-          {/* Gallery Grid */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
-              <img 
-                src={necklaceGold} 
-                alt="Gold necklace" 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <p className="font-display text-xl">Gold Collection</p>
-              </div>
-            </div>
-
-            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
-              <img 
-                src={necklacePearl} 
-                alt="Pearl necklace" 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <p className="font-display text-xl">Pearl Elegance</p>
-              </div>
-            </div>
-
-            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
-              <img 
-                src={necklaceDiamond} 
-                alt="Diamond necklace" 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <p className="font-display text-xl">Diamond Luxury</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* How It Works */}
       <section className="py-24 bg-secondary/30">
