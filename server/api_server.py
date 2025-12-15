@@ -206,8 +206,10 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     result_base64: str  # Final Flux result image
     result_gemini_base64: Optional[str] = None  # Gemini refined result
-    fidelity_viz_base64: Optional[str] = None  # Fidelity visualization
-    metrics: Optional[Dict[str, float]] = None  # Fidelity metrics
+    fidelity_viz_base64: Optional[str] = None  # Fidelity visualization for Standard
+    fidelity_viz_gemini_base64: Optional[str] = None  # Fidelity visualization for Enhanced
+    metrics: Optional[Dict[str, float]] = None  # Fidelity metrics for Standard
+    metrics_gemini: Optional[Dict[str, float]] = None  # Fidelity metrics for Enhanced
     session_id: str
 
 # ═════════════════════════════════════════════════════════════════════
@@ -558,47 +560,88 @@ async def generate_photoshoot(request: GenerateRequest):
                 result_gemini = None
         
         # ═════════════════════════════════════════════════════════════
-        # FIDELITY ANALYSIS (optional - if points provided)
+        # FIDELITY ANALYSIS (for both Standard and Enhanced)
         # ═════════════════════════════════════════════════════════════
-        fidelity_viz = None
-        metrics = None
+        fidelity_viz_flux = None
+        fidelity_viz_gemini = None
+        metrics_flux = None
+        metrics_gemini = None
         
         if request.scaled_points:
+            # Precompute brush edit arrays
+            input_original_arr = np.array(mask_original.resize((2000, 2667), Image.Resampling.NEAREST))
+            input_edited_arr = np.array(mask_edited_2667)
+            additions = (input_edited_arr > input_original_arr)
+            removals = (input_edited_arr < input_original_arr)
+            
+            # Fidelity for Standard (Flux) result
             try:
-                result_for_metrics = result_gemini if result_gemini else result_flux
+                log.info(f"[{session_id}] Running fidelity analysis for Standard...")
+                mask_gen_flux = run_sam_on_image(result_flux, request.scaled_points, sam_predictor)
+                mask_gen_flux_dilated = adjust_mask(mask_gen_flux, DILATION_PX)
+                mask_gen_flux_arr = np.array(mask_gen_flux_dilated)
+                mask_gen_flux_arr[additions] = 255
+                mask_gen_flux_arr[removals] = 0
+                mask_gen_flux_edited = Image.fromarray(mask_gen_flux_arr.astype(np.uint8))
                 
-                # Re-run SAM on final output
-                mask_generated = run_sam_on_image(result_for_metrics, request.scaled_points, sam_predictor)
-                mask_generated_dilated = adjust_mask(mask_generated, DILATION_PX)
-                
-                # Apply same brush edits
-                input_original_arr = np.array(mask_original.resize((2000, 2667), Image.Resampling.NEAREST))
-                input_edited_arr = np.array(mask_edited_2667)
-                mask_generated_arr = np.array(mask_generated_dilated)
-                
-                additions = (input_edited_arr > input_original_arr)
-                removals = (input_edited_arr < input_original_arr)
-                mask_generated_arr[additions] = 255
-                mask_generated_arr[removals] = 0
-                
-                mask_generated_with_edits = Image.fromarray(mask_generated_arr.astype(np.uint8))
-                
-                # Compare and visualize
-                metrics = compare_masks(mask_edited_2667, mask_generated_with_edits)
-                fidelity_viz = create_fidelity_visualization(
-                    original_2667, result_for_metrics, mask_edited_2667, mask_generated_with_edits
+                metrics_flux = compare_masks(mask_edited_2667, mask_gen_flux_edited)
+                fidelity_viz_flux = create_fidelity_visualization(
+                    original_2667, result_flux, mask_edited_2667, mask_gen_flux_edited
                 )
-                
             except Exception as e:
-                log.warning(f"[{session_id}] Fidelity analysis failed: {e}")
+                log.warning(f"[{session_id}] Fidelity analysis for Standard failed: {e}")
+            
+            # Fidelity for Enhanced (Gemini) result
+            if result_gemini:
+                try:
+                    log.info(f"[{session_id}] Running fidelity analysis for Enhanced...")
+                    mask_gen_gemini = run_sam_on_image(result_gemini, request.scaled_points, sam_predictor)
+                    mask_gen_gemini_dilated = adjust_mask(mask_gen_gemini, DILATION_PX)
+                    mask_gen_gemini_arr = np.array(mask_gen_gemini_dilated)
+                    mask_gen_gemini_arr[additions] = 255
+                    mask_gen_gemini_arr[removals] = 0
+                    mask_gen_gemini_edited = Image.fromarray(mask_gen_gemini_arr.astype(np.uint8))
+                    
+                    metrics_gemini = compare_masks(mask_edited_2667, mask_gen_gemini_edited)
+                    fidelity_viz_gemini = create_fidelity_visualization(
+                        original_2667, result_gemini, mask_edited_2667, mask_gen_gemini_edited
+                    )
+                except Exception as e:
+                    log.warning(f"[{session_id}] Fidelity analysis for Enhanced failed: {e}")
+        
+        # ═════════════════════════════════════════════════════════════
+        # SAVE OUTPUTS
+        # ═════════════════════════════════════════════════════════════
+        try:
+            session_output_dir = OUTPUT_DIR / session_id
+            session_output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save inputs
+            original_2667.save(session_output_dir / "input_original.jpg", quality=95)
+            mask_edited_2667.save(session_output_dir / "input_mask.png")
+            
+            # Save outputs
+            result_flux.save(session_output_dir / "output_standard.jpg", quality=95)
+            if result_gemini:
+                result_gemini.save(session_output_dir / "output_enhanced.jpg", quality=95)
+            if fidelity_viz_flux:
+                fidelity_viz_flux.save(session_output_dir / "fidelity_standard.jpg", quality=95)
+            if fidelity_viz_gemini:
+                fidelity_viz_gemini.save(session_output_dir / "fidelity_enhanced.jpg", quality=95)
+            
+            log.info(f"[{session_id}] Saved outputs to {session_output_dir}")
+        except Exception as e:
+            log.warning(f"[{session_id}] Failed to save outputs: {e}")
         
         log.info(f"[{session_id}] Generation complete!")
         
         return GenerateResponse(
             result_base64=pil_to_base64(result_flux, "JPEG"),
             result_gemini_base64=pil_to_base64(result_gemini, "JPEG") if result_gemini else None,
-            fidelity_viz_base64=pil_to_base64(fidelity_viz, "JPEG") if fidelity_viz else None,
-            metrics=metrics,
+            fidelity_viz_base64=pil_to_base64(fidelity_viz_flux, "JPEG") if fidelity_viz_flux else None,
+            fidelity_viz_gemini_base64=pil_to_base64(fidelity_viz_gemini, "JPEG") if fidelity_viz_gemini else None,
+            metrics=metrics_flux,
+            metrics_gemini=metrics_gemini,
             session_id=session_id
         )
         
