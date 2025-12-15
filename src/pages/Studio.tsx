@@ -135,7 +135,7 @@ export default function Studio() {
 
         {/* Step Content */}
         <div className="grid lg:grid-cols-1 gap-6">
-          {!isOnline ? (
+          {isOnline === false ? (
             <ServerOffline onRetry={retry} isChecking={isChecking} />
           ) : (
             <>
