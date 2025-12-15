@@ -106,9 +106,16 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       let imageBase64 = state.originalImage;
       if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
 
+      // Get image dimensions for the API
+      const img = new Image();
+      img.src = state.originalImage;
+      await new Promise((resolve) => { img.onload = resolve; });
+
       const response = await a100Api.segment({
-        image_base64: imageBase64,
+        image: imageBase64,
         points,
+        client_width: img.naturalWidth,
+        client_height: img.naturalHeight,
       });
 
       if (!response) throw new Error('Segmentation failed');
