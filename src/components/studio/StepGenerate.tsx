@@ -229,27 +229,28 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {(state.fluxResult || state.geminiResult) ? (
-            <Card className="bg-card/50 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="font-display flex items-center gap-2">
-                  <Diamond className="h-5 w-5 text-primary" />
-                  Your Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Tabs defaultValue="standard" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="standard">Standard</TabsTrigger>
-                    <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-                  </TabsList>
+      <div className="space-y-6">
+        {(state.fluxResult || state.geminiResult) ? (
+          <Card className="bg-card/50 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <Diamond className="h-5 w-5 text-primary" />
+                Your Results
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Tabs defaultValue="standard" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="standard">Standard</TabsTrigger>
+                  <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
+                </TabsList>
 
-                  <TabsContent value="standard" className="mt-4 space-y-4">
-                    {state.fluxResult && (
-                      <>
-                        <div className="rounded-xl overflow-hidden border border-border">
+                <TabsContent value="standard" className="mt-6 space-y-6">
+                  {state.fluxResult && (
+                    <div className="grid lg:grid-cols-3 gap-6">
+                      {/* Main Result Image */}
+                      <div className="lg:col-span-2 space-y-4">
+                        <div className="rounded-xl overflow-hidden border border-border shadow-lg">
                           <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
                         </div>
                         <Button
@@ -260,14 +261,80 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                           <Download className="h-4 w-4 mr-2" />
                           Download Standard
                         </Button>
-                      </>
-                    )}
-                  </TabsContent>
+                      </div>
 
-                  <TabsContent value="enhanced" className="mt-4 space-y-4">
-                    {(state.geminiResult || state.fluxResult) && (
-                      <>
-                        <div className="rounded-xl overflow-hidden border border-border">
+                      {/* Accuracy & Metrics for Standard */}
+                      <div className="space-y-4">
+                        <Card className={`backdrop-blur ${state.fidelityViz ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                              <Diamond className="h-4 w-4 text-primary" />
+                              Jewelry Accuracy
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {state.fidelityViz ? (
+                              <div className="space-y-3">
+                                <div className="rounded-lg overflow-hidden border-2 border-primary/20 shadow-md">
+                                  <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
+                                </div>
+                                <div className="flex justify-center gap-3 text-xs">
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
+                                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                                    <span className="font-semibold">Preserved</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/30">
+                                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                    <span className="font-semibold">AI Expansion</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="h-10 w-10 rounded-full bg-muted/30 flex items-center justify-center">
+                                  <Diamond className="h-5 w-5 text-muted-foreground/40" />
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-card/50 backdrop-blur">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-primary" />
+                              Quality Metrics
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {state.metrics ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                <MetricCard label="Precision" value={state.metrics.precision} isMain />
+                                <MetricCard label="Recall" value={state.metrics.recall} />
+                                <MetricCard label="IoU Score" value={state.metrics.iou} />
+                                <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                <MetricCard label="Precision" value={0} placeholder />
+                                <MetricCard label="Recall" value={0} placeholder />
+                                <MetricCard label="IoU Score" value={0} placeholder />
+                                <MetricCard label="Growth" value={0} format="ratio" placeholder />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="enhanced" className="mt-6 space-y-6">
+                  {(state.geminiResult || state.fluxResult) && (
+                    <div className="grid lg:grid-cols-3 gap-6">
+                      {/* Main Result Image */}
+                      <div className="lg:col-span-2 space-y-4">
+                        <div className="rounded-xl overflow-hidden border border-border shadow-lg">
                           <img
                             src={state.geminiResult || state.fluxResult!}
                             alt="Enhanced result"
@@ -282,125 +349,126 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                           <Download className="h-4 w-4 mr-2" />
                           Download Enhanced
                         </Button>
-                      </>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                      </div>
 
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-card/50 backdrop-blur min-h-[400px] flex items-center justify-center relative overflow-hidden">
-              {isGenerating ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                  <div className="relative mb-6">
-                    <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                    <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
-                  <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                      style={{ width: `${progress}%` }} 
-                    />
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
-                </div>
-              ) : (
-                <div className="text-center space-y-6 p-8">
-                  <div className="relative mx-auto w-32 h-32">
-                    <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
-                    <div className="absolute inset-4 rounded-full border-2 border-primary/30 animate-pulse animation-delay-200" />
-                    <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-pulse animation-delay-300" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Diamond className="h-12 w-12 text-primary animate-pulse" />
+                      {/* Accuracy & Metrics for Enhanced */}
+                      <div className="space-y-4">
+                        <Card className={`backdrop-blur ${state.fidelityViz ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                              <Diamond className="h-4 w-4 text-primary" />
+                              Jewelry Accuracy
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {state.fidelityViz ? (
+                              <div className="space-y-3">
+                                <div className="rounded-lg overflow-hidden border-2 border-primary/20 shadow-md">
+                                  <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
+                                </div>
+                                <div className="flex justify-center gap-3 text-xs">
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
+                                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                                    <span className="font-semibold">Preserved</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/30">
+                                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                    <span className="font-semibold">AI Expansion</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="h-10 w-10 rounded-full bg-muted/30 flex items-center justify-center">
+                                  <Diamond className="h-5 w-5 text-muted-foreground/40" />
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-card/50 backdrop-blur">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-primary" />
+                              Quality Metrics
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {state.metrics ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                <MetricCard label="Precision" value={state.metrics.precision} isMain />
+                                <MetricCard label="Recall" value={state.metrics.recall} />
+                                <MetricCard label="IoU Score" value={state.metrics.iou} />
+                                <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                <MetricCard label="Precision" value={0} placeholder />
+                                <MetricCard label="Recall" value={0} placeholder />
+                                <MetricCard label="IoU Score" value={0} placeholder />
+                                <MetricCard label="Growth" value={0} format="ratio" placeholder />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="font-display text-xl mb-2 text-foreground">Ready to Generate</h3>
-                    <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                      Select your model preference and click Generate to create your professional photoshoot
-                    </p>
+                  )}
+                </TabsContent>
+              </Tabs>
+
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-card/50 backdrop-blur min-h-[400px] flex items-center justify-center relative overflow-hidden">
+            {isGenerating ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                  <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+                </div>
+                <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
+                <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                    style={{ width: `${progress}%` }} 
+                  />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
+              </div>
+            ) : (
+              <div className="text-center space-y-6 p-8">
+                <div className="relative mx-auto w-32 h-32">
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
+                  <div className="absolute inset-4 rounded-full border-2 border-primary/30 animate-pulse animation-delay-200" />
+                  <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-pulse animation-delay-300" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Diamond className="h-12 w-12 text-primary animate-pulse" />
                   </div>
                 </div>
-              )}
-            </Card>
-          )}
+                <div>
+                  <h3 className="font-display text-xl mb-2 text-foreground">Ready to Generate</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                    Select your model preference and click Generate to create your professional photoshoot
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
+        <div className="flex items-center justify-between">
           <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Refine Mask
           </Button>
-        </div>
-
-        <div className="space-y-4">
-          {/* Accuracy Visualization - prominent display */}
-          <Card className={`backdrop-blur ${state.fidelityViz ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <Diamond className="h-5 w-5 text-primary" />
-                Jewelry Accuracy
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {state.fidelityViz ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
-                    <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
-                  </div>
-                  <div className="flex justify-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/30">
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
-                      <span className="font-medium">Preserved</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30">
-                      <div className="h-3 w-3 rounded-full bg-blue-500" />
-                      <span className="font-medium">AI Expansion</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-6">
-                  <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center">
-                    <Diamond className="h-6 w-6 text-muted-foreground/40" />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quality Metrics - always show section */}
-          <Card className="bg-card/50 backdrop-blur">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                Quality Metrics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {state.metrics ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricCard label="Precision" value={state.metrics.precision} isMain />
-                  <MetricCard label="Recall" value={state.metrics.recall} />
-                  <MetricCard label="IoU Score" value={state.metrics.iou} />
-                  <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricCard label="Precision" value={0} placeholder />
-                  <MetricCard label="Recall" value={0} placeholder />
-                  <MetricCard label="IoU Score" value={0} placeholder />
-                  <MetricCard label="Growth" value={0} format="ratio" placeholder />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          
           {!state.fluxResult && (
-            <Alert className="border-primary/20 bg-primary/5">
+            <Alert className="border-primary/20 bg-primary/5 flex-1 ml-4">
               <Sparkles className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm">
-                Your jewelry will be placed on a professional model with studio-quality lighting and backgrounds.
+                Your jewelry will be placed on a professional model with studio-quality lighting.
               </AlertDescription>
             </Alert>
           )}
@@ -424,12 +492,14 @@ function MetricCard({
   placeholder?: boolean;
 }) {
   const displayValue = placeholder ? '—' : format === 'ratio' ? `${value.toFixed(2)}x` : `${(value * 100).toFixed(1)}%`;
-  const isGood = !placeholder && (format === 'percent' ? value >= 0.96 : value >= 0.95 && value <= 1.1);
+  const isGood = !placeholder && (format === 'percent' ? value >= 0.90 : value >= 0.95 && value <= 1.1);
 
   return (
     <div className={`p-3 rounded-lg border transition-all ${isMain && !placeholder ? 'border-primary bg-primary/10' : 'border-border bg-muted/30'}`}>
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className={`text-lg font-bold ${placeholder ? 'text-muted-foreground/50' : isGood ? 'text-green-600 dark:text-green-400' : 'text-foreground'}`}>{displayValue}</p>
+      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">{label}</p>
+      <p className={`text-xl font-bold tracking-tight ${placeholder ? 'text-muted-foreground/50' : isGood ? 'text-green-600 dark:text-green-400' : 'text-foreground'}`}>
+        {displayValue}
+      </p>
     </div>
   );
 }
