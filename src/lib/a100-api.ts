@@ -1,5 +1,5 @@
-// A100 Server API Integration
-const A100_BASE_URL = 'http://48.214.48.103:8000';
+// A100 Server API Integration via Edge Function Proxy
+const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a100-proxy`;
 
 export interface HealthResponse {
   status: string;
@@ -57,26 +57,33 @@ export interface ExampleImage {
 }
 
 class A100Api {
-  private baseUrl: string;
+  private proxyUrl: string;
   private _isOnline: boolean = false;
   private _lastCheck: number = 0;
   private _checkInterval: number = 30000; // 30 seconds
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  constructor(proxyUrl: string) {
+    this.proxyUrl = proxyUrl;
   }
 
   get isOnline(): boolean {
     return this._isOnline;
   }
 
+  private getProxyEndpoint(endpoint: string): string {
+    return `${this.proxyUrl}?endpoint=${encodeURIComponent(endpoint)}`;
+  }
+
   async checkHealth(): Promise<HealthResponse | null> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const response = await fetch(`${this.baseUrl}/health`, {
+      const response = await fetch(this.getProxyEndpoint('/health'), {
         signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
       });
       clearTimeout(timeoutId);
       
@@ -105,7 +112,11 @@ class A100Api {
 
   async getExamples(): Promise<ExampleImage[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/examples`);
+      const response = await fetch(this.getProxyEndpoint('/examples'), {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
       if (response.ok) {
         return await response.json();
       }
@@ -118,9 +129,12 @@ class A100Api {
 
   async segment(request: SegmentRequest): Promise<SegmentResponse | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/segment`, {
+      const response = await fetch(this.getProxyEndpoint('/segment'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
         body: JSON.stringify(request),
       });
       
@@ -137,9 +151,12 @@ class A100Api {
 
   async refineMask(request: RefineMaskRequest): Promise<RefineMaskResponse | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/refine-mask`, {
+      const response = await fetch(this.getProxyEndpoint('/refine-mask'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
         body: JSON.stringify(request),
       });
       
@@ -156,9 +173,12 @@ class A100Api {
 
   async generate(request: GenerateRequest): Promise<GenerateResponse | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/generate`, {
+      const response = await fetch(this.getProxyEndpoint('/generate'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
         body: JSON.stringify(request),
       });
       
@@ -174,4 +194,4 @@ class A100Api {
   }
 }
 
-export const a100Api = new A100Api(A100_BASE_URL);
+export const a100Api = new A100Api(PROXY_URL);
