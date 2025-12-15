@@ -67,6 +67,7 @@ export default {
           glow: "hsl(var(--formanova-glow))",
           success: "hsl(var(--formanova-success))",
           warning: "hsl(var(--formanova-warning))",
+          "hero-accent": "hsl(var(--formanova-hero-accent))",
         },
       },
       borderRadius: {
