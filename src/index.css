@@ -52,32 +52,34 @@
     --font-mono: 'Space Mono', monospace;
   }
 
-  /* DARK THEME - Sophisticated Noir */
+  /* DARK THEME - Refined Champagne & Noir */
   .dark, [data-theme="dark"] {
-    --background: 30 15% 6%;
-    --foreground: 35 20% 92%;
-    --card: 30 12% 9%;
-    --card-foreground: 35 20% 92%;
-    --popover: 30 12% 9%;
-    --popover-foreground: 35 20% 92%;
-    --primary: 38 45% 60%;
-    --primary-foreground: 30 15% 6%;
-    --secondary: 30 10% 15%;
-    --secondary-foreground: 35 20% 88%;
-    --muted: 30 10% 14%;
-    --muted-foreground: 35 10% 55%;
-    --accent: 38 35% 25%;
-    --accent-foreground: 38 45% 75%;
+    --background: 30 12% 5%;
+    --foreground: 38 30% 92%;
+    --card: 30 10% 8%;
+    --card-foreground: 38 30% 92%;
+    --popover: 30 10% 8%;
+    --popover-foreground: 38 30% 92%;
+    --primary: 38 55% 62%;
+    --primary-foreground: 30 12% 5%;
+    --secondary: 30 8% 14%;
+    --secondary-foreground: 38 25% 85%;
+    --muted: 30 8% 12%;
+    --muted-foreground: 38 15% 55%;
+    --accent: 38 40% 28%;
+    --accent-foreground: 38 55% 80%;
     --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 10% 18%;
-    --input: 30 10% 15%;
-    --ring: 38 45% 60%;
-    --formanova-glow: 38 60% 55%;
-    --formanova-gradient-from: 30 12% 9%;
-    --formanova-gradient-to: 30 15% 6%;
-    --sidebar-background: 30 15% 6%;
-    --sidebar-foreground: 35 20% 88%;
+    --border: 30 8% 18%;
+    --input: 30 8% 14%;
+    --ring: 38 55% 62%;
+    --formanova-glow: 38 65% 55%;
+    --formanova-gradient-from: 30 10% 8%;
+    --formanova-gradient-to: 30 12% 5%;
+    --sidebar-background: 30 12% 5%;
+    --sidebar-foreground: 38 25% 85%;
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'Montserrat', sans-serif;
   }
 
   /* CYBERPUNK THEME */
