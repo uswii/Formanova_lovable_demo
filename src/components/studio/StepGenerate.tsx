@@ -66,6 +66,15 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
       if (!response) throw new Error('Generation failed');
 
+      console.log('Generation response:', {
+        hasFlux: !!response.result_base64,
+        hasGemini: !!response.result_gemini_base64,
+        hasFidelityViz: !!(response as any).fidelity_viz_base64,
+        hasMetrics: !!(response as any).metrics,
+        metrics: (response as any).metrics,
+        scaledPointsSent: !!state.scaledPoints,
+      });
+
       let status: 'good' | 'bad' | null = null;
       let metricsData: StudioState['metrics'] = null;
 
