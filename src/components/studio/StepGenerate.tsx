@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +20,7 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { a100Api } from '@/lib/a100-api';
 
 interface Props {
   state: StudioState;
@@ -32,31 +33,86 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
   const { toast } = useToast();
 
   const handleGenerate = async () => {
+    if (!state.originalImage || !state.maskBinary) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing data',
+        description: 'Please complete the previous steps first.',
+      });
+      return;
+    }
+
     setIsGenerating(true);
     updateState({ isGenerating: true });
     
-    // TODO: Call API endpoint /api/generate
-    await new Promise(resolve => setTimeout(resolve, 4000));
-    
-    updateState({
-      fluxResult: state.originalImage,
-      geminiResult: state.originalImage,
-      fidelityViz: state.originalImage,
-      metrics: {
-        precision: 0.978,
-        recall: 0.965,
-        iou: 0.944,
-        growthRatio: 1.023,
-      },
-      status: 'good',
-      isGenerating: false,
-    });
-    
-    setIsGenerating(false);
-    toast({
-      title: 'Generation complete!',
-      description: 'Your photoshoot has been generated successfully.',
-    });
+    try {
+      // Extract base64 from data URLs
+      let imageBase64 = state.originalImage;
+      if (imageBase64.includes(',')) {
+        imageBase64 = imageBase64.split(',')[1];
+      }
+      
+      let maskBase64 = state.editedMask || state.maskBinary;
+      if (maskBase64.includes(',')) {
+        maskBase64 = maskBase64.split(',')[1];
+      }
+      
+      const response = await a100Api.generate({
+        image_base64: imageBase64,
+        mask_base64: maskBase64,
+        gender: state.gender,
+        use_gemini: true,
+      });
+      
+      if (response) {
+        // Determine status based on metrics
+        let status: 'good' | 'bad' | null = null;
+        let metricsData = null;
+        if (response.metrics) {
+          metricsData = {
+            precision: response.metrics.precision,
+            recall: response.metrics.recall,
+            iou: response.metrics.iou,
+            growthRatio: response.metrics.growth_ratio,
+          };
+          const isGood = metricsData.precision >= 0.95 && 
+                         metricsData.recall >= 0.90 && 
+                         metricsData.iou >= 0.85;
+          status = isGood ? 'good' : 'bad';
+        }
+        
+        updateState({
+          fluxResult: `data:image/jpeg;base64,${response.result_base64}`,
+          geminiResult: response.result_gemini_base64 
+            ? `data:image/jpeg;base64,${response.result_gemini_base64}` 
+            : null,
+          fidelityViz: response.fidelity_viz_base64
+            ? `data:image/jpeg;base64,${response.fidelity_viz_base64}` 
+            : null,
+          metrics: metricsData,
+          status: status,
+          isGenerating: false,
+          sessionId: response.session_id,
+        });
+        
+        toast({
+          title: 'Generation complete!',
+          description: 'Your photoshoot has been generated successfully.',
+        });
+      } else {
+        throw new Error('Generation failed');
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Generation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate photoshoot. Please try again.',
+      });
+      updateState({ isGenerating: false });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -118,7 +174,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
             <Button 
               size="lg"
               onClick={handleGenerate}
-              disabled={isGenerating || !state.maskOverlay}
+              disabled={isGenerating || !state.maskBinary}
               className="h-14 px-8 text-lg font-semibold formanova-glow"
             >
               {isGenerating ? (
@@ -161,11 +217,11 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   </TabsList>
                   
                   <TabsContent value="enhanced" className="mt-4 space-y-4">
-                    {state.geminiResult && (
+                    {(state.geminiResult || state.fluxResult) && (
                       <>
                         <div className="rounded-xl overflow-hidden border border-border bg-muted/20">
                           <img 
-                            src={state.geminiResult} 
+                            src={state.geminiResult || state.fluxResult!} 
                             alt="Enhanced result"
                             className="w-full h-auto"
                           />
@@ -173,7 +229,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                         <Button 
                           size="lg"
                           className="w-full"
-                          onClick={() => handleDownload(state.geminiResult!, 'enhanced_result.jpg')}
+                          onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download Enhanced Result
@@ -207,7 +263,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 </Tabs>
 
                 {/* Before/After Comparison */}
-                {state.geminiResult && state.originalImage && (
+                {(state.geminiResult || state.fluxResult) && state.originalImage && (
                   <div className="space-y-3 pt-4 border-t border-border">
                     <h4 className="font-medium flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" />
@@ -215,7 +271,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     </h4>
                     <BeforeAfterSlider 
                       before={state.originalImage}
-                      after={state.geminiResult}
+                      after={state.geminiResult || state.fluxResult!}
                     />
                   </div>
                 )}

@@ -23,6 +23,7 @@ export interface StudioState {
   markedImage: string | null;
   maskOverlay: string | null;
   maskBinary: string | null;
+  originalMask: string | null; // Original SAM mask before edits
   editedMask: string | null;
   gender: 'female' | 'male';
   fluxResult: string | null;
@@ -37,6 +38,7 @@ export interface StudioState {
   status: 'good' | 'bad' | null;
   isGenerating: boolean;
   sessionId: string | null;
+  scaledPoints: number[][] | null; // For fidelity analysis
 }
 
 export default function Studio() {
@@ -48,6 +50,7 @@ export default function Studio() {
     markedImage: null,
     maskOverlay: null,
     maskBinary: null,
+    originalMask: null,
     editedMask: null,
     gender: 'female',
     fluxResult: null,
@@ -57,6 +60,7 @@ export default function Studio() {
     status: null,
     isGenerating: false,
     sessionId: null,
+    scaledPoints: null,
   });
 
   if (loading || isOnline === null) {

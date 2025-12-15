@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -6,11 +6,7 @@ import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, P
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-
-// Import jewelry images for examples
-import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
-import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
-import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
+import { a100Api, ExampleImage } from '@/lib/a100-api';
 
 interface Props {
   state: StudioState;
@@ -24,17 +20,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
+  const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
+  const [isLoadingExamples, setIsLoadingExamples] = useState(true);
   const { toast } = useToast();
 
-  // Example images - these will be replaced with your A100 server images
-  const exampleImages = [
-    { src: necklaceGold, label: 'Gold Pendant' },
-    { src: necklacePearl, label: 'Pearl Strand' },
-    { src: necklaceDiamond, label: 'Diamond Drop' },
-    { src: necklaceGold, label: 'Chain Necklace' },
-    { src: necklacePearl, label: 'Classic Pearls' },
-    { src: necklaceDiamond, label: 'Statement Piece' },
-  ];
+  // Load examples from API
+  useEffect(() => {
+    const loadExamples = async () => {
+      setIsLoadingExamples(true);
+      const examples = await a100Api.getExamples();
+      setExampleImages(examples);
+      setIsLoadingExamples(false);
+    };
+    loadExamples();
+  }, []);
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -58,6 +57,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         geminiResult: null,
       });
       setRedDots([]);
+      setUndoStack([]);
+      setRedoStack([]);
     };
     reader.readAsDataURL(file);
   }, [updateState, toast]);
@@ -82,21 +83,58 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       return;
     }
 
+    if (!state.originalImage) {
+      toast({
+        variant: 'destructive',
+        title: 'No image',
+        description: 'Please upload an image first.',
+      });
+      return;
+    }
+
     setIsGeneratingMask(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    updateState({
-      maskOverlay: state.originalImage,
-      maskBinary: state.originalImage,
-      sessionId: `session_${Date.now()}`,
-    });
-    
-    setIsGeneratingMask(false);
-    toast({
-      title: 'Mask generated',
-      description: 'You can now refine the mask in the next step.',
-    });
-    onNext();
+    try {
+      // Convert dots to points array [[x, y], ...]
+      const points = redDots.map(dot => [dot.x, dot.y]);
+      
+      // Extract base64 data from the image (remove data:image/...;base64, prefix)
+      let imageBase64 = state.originalImage;
+      if (imageBase64.includes(',')) {
+        imageBase64 = imageBase64.split(',')[1];
+      }
+      
+      const response = await a100Api.segment({
+        image_base64: imageBase64,
+        points: points,
+      });
+      
+      if (response) {
+        updateState({
+          originalImage: `data:image/jpeg;base64,${response.processed_image_base64}`,
+          maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
+          maskBinary: `data:image/png;base64,${response.mask_base64}`,
+          sessionId: response.session_id,
+        });
+        
+        toast({
+          title: 'Mask generated',
+          description: 'You can now refine the mask in the next step.',
+        });
+        onNext();
+      } else {
+        throw new Error('Segmentation failed');
+      }
+    } catch (error) {
+      console.error('Segmentation error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Segmentation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate mask. Please try again.',
+      });
+    } finally {
+      setIsGeneratingMask(false);
+    }
   };
 
   const handleCanvasClick = (x: number, y: number) => {
@@ -129,11 +167,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       maskBinary: null,
     });
     setRedDots([]);
+    setUndoStack([]);
+    setRedoStack([]);
   };
 
-  const loadExample = (src: string) => {
+  const loadExample = (example: ExampleImage) => {
     updateState({ 
-      originalImage: src,
+      originalImage: `data:image/jpeg;base64,${example.image_base64}`,
       markedImage: null,
       maskOverlay: null,
       maskBinary: null,
@@ -141,6 +181,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       geminiResult: null,
     });
     setRedDots([]);
+    setUndoStack([]);
+    setRedoStack([]);
   };
 
   return (
@@ -293,30 +335,40 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-2">
-            {exampleImages.map((img, index) => (
-              <button
-                key={index}
-                onClick={() => loadExample(img.src)}
-                className="group relative aspect-square rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all bg-muted"
-              >
-                <img 
-                  src={img.src} 
-                  alt={img.label}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-xs font-medium">{img.label}</span>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-primary/90 text-primary-foreground rounded-full p-2">
-                    <Play className="h-4 w-4" />
+          {isLoadingExamples ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : exampleImages.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No examples available
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {exampleImages.map((example) => (
+                <button
+                  key={example.id}
+                  onClick={() => loadExample(example)}
+                  className="group relative aspect-square rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all bg-muted"
+                >
+                  <img 
+                    src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
+                    alt={example.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-medium">{example.name}</span>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-primary/90 text-primary-foreground rounded-full p-2">
+                      <Play className="h-4 w-4" />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
