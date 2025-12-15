@@ -379,16 +379,9 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-2">
-                    <div className="h-16 w-16 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
-                      <Diamond className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {state.scaledPoints 
-                        ? 'Generate to see accuracy visualization' 
-                        : 'Jewelry coordinates not detected. Re-mark jewelry in Upload step.'}
-                    </p>
+                <div className="flex items-center justify-center py-6">
+                  <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center">
+                    <Diamond className="h-6 w-6 text-muted-foreground/40" />
                   </div>
                 </div>
               )}
@@ -412,19 +405,11 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    {state.scaledPoints
-                      ? 'Metrics will appear after generation.'
-                      : 'Coordinates not detected. Re-mark jewelry to enable metrics.'}
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <MetricCard label="Precision" value={0} placeholder />
-                    <MetricCard label="Recall" value={0} placeholder />
-                    <MetricCard label="IoU Score" value={0} placeholder />
-                    <MetricCard label="Growth" value={0} format="ratio" placeholder />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCard label="Precision" value={0} placeholder />
+                  <MetricCard label="Recall" value={0} placeholder />
+                  <MetricCard label="IoU Score" value={0} placeholder />
+                  <MetricCard label="Growth" value={0} format="ratio" placeholder />
                 </div>
               )}
             </CardContent>
