@@ -62,38 +62,48 @@ export function MaskCanvas({
       // Set canvas dimensions to match image aspect ratio
       const containerWidth = containerRef.current?.clientWidth || 600;
       const aspectRatio = img.height / img.width;
-      let height = containerWidth * aspectRatio;
-      let width = containerWidth;
+      let displayHeight = containerWidth * aspectRatio;
+      let displayWidth = containerWidth;
 
       // If maxHeight is set and calculated height exceeds it, scale down
-      if (maxHeight && height > maxHeight) {
-        height = maxHeight;
-        width = height / aspectRatio;
+      if (maxHeight && displayHeight > maxHeight) {
+        displayHeight = maxHeight;
+        displayWidth = displayHeight / aspectRatio;
       }
 
-      canvas.width = width;
-      canvas.height = height;
+      // Use device pixel ratio for sharper rendering
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = displayWidth * dpr;
+      canvas.height = displayHeight * dpr;
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
 
       if (overlayCanvasRef.current) {
-        overlayCanvasRef.current.width = width;
-        overlayCanvasRef.current.height = height;
+        overlayCanvasRef.current.width = displayWidth * dpr;
+        overlayCanvasRef.current.height = displayHeight * dpr;
+        overlayCanvasRef.current.style.width = `${displayWidth}px`;
+        overlayCanvasRef.current.style.height = `${displayHeight}px`;
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
       imageRef.current = img;
       setImageLoaded(true);
     };
     img.src = image;
   }, [image, maxHeight]);
 
-  const toImageSpace = useCallback((xCanvas: number, yCanvas: number) => {
+  const toImageSpace = useCallback((xDisplay: number, yDisplay: number) => {
     const overlay = overlayCanvasRef.current;
     const nat = getNaturalSize();
-    if (!overlay || !nat) return { x: xCanvas, y: yCanvas };
+    if (!overlay || !nat) return { x: xDisplay, y: yDisplay };
+    // Use display size (from style), not canvas buffer size
+    const displayWidth = parseFloat(overlay.style.width) || overlay.width;
+    const displayHeight = parseFloat(overlay.style.height) || overlay.height;
     return {
-      x: (xCanvas / overlay.width) * nat.w,
-      y: (yCanvas / overlay.height) * nat.h,
+      x: (xDisplay / displayWidth) * nat.w,
+      y: (yDisplay / displayHeight) * nat.h,
     };
   }, []);
 
@@ -101,9 +111,12 @@ export function MaskCanvas({
     const overlay = overlayCanvasRef.current;
     const nat = getNaturalSize();
     if (!overlay || !nat) return { x: xImage, y: yImage };
+    // Use display size (from style), not canvas buffer size
+    const displayWidth = parseFloat(overlay.style.width) || overlay.width;
+    const displayHeight = parseFloat(overlay.style.height) || overlay.height;
     return {
-      x: (xImage / nat.w) * overlay.width,
-      y: (yImage / nat.h) * overlay.height,
+      x: (xImage / nat.w) * displayWidth,
+      y: (yImage / nat.h) * displayHeight,
     };
   }, []);
 
@@ -115,8 +128,14 @@ export function MaskCanvas({
     const ctx = overlay?.getContext('2d');
     if (!overlay || !ctx) return;
 
-    // Clear overlay
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = parseFloat(overlay.style.width) || overlay.width / dpr;
+    const displayHeight = parseFloat(overlay.style.height) || overlay.height / dpr;
+
+    // Reset transform and clear
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.scale(dpr, dpr);
 
     // Draw dots
     dots.forEach((dot) => {
@@ -136,8 +155,6 @@ export function MaskCanvas({
     if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
 
     let clientX: number, clientY: number;
 
@@ -149,14 +166,15 @@ export function MaskCanvas({
       clientY = e.clientY;
     }
 
-    const xCanvas = (clientX - rect.left) * scaleX;
-    const yCanvas = (clientY - rect.top) * scaleY;
+    // Use display coordinates (CSS size), not buffer size
+    const xDisplay = clientX - rect.left;
+    const yDisplay = clientY - rect.top;
 
     if (coordinateSpace === 'image') {
-      return toImageSpace(xCanvas, yCanvas);
+      return toImageSpace(xDisplay, yDisplay);
     }
 
-    return { x: xCanvas, y: yCanvas };
+    return { x: xDisplay, y: yDisplay };
   }, [coordinateSpace, toImageSpace]);
 
   const draw = useCallback((x: number, y: number) => {
@@ -164,8 +182,11 @@ export function MaskCanvas({
     const ctx = overlay?.getContext('2d');
     if (!overlay || !ctx) return;
 
+    const dpr = window.devicePixelRatio || 1;
     const canvasPt = coordinateSpace === 'image' ? toCanvasSpace(x, y) : { x, y };
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
     ctx.beginPath();
     ctx.arc(canvasPt.x, canvasPt.y, brushSize / 2, 0, Math.PI * 2);
     ctx.fillStyle = brushColor;
