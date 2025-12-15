@@ -157,42 +157,46 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             </TabsList>
 
             <TabsContent value="overlay" className="mt-4">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
-                {baseImage ? (
-                  <MaskCanvas
-                    image={baseImage}
-                    brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
-                    brushSize={brushSize}
-                    mode="brush"
-                    coordinateSpace="image"
-                    canvasSize={320}
-                    onBrushStrokeStart={handleStrokeStart}
-                    onBrushStrokePoint={handleStrokePoint}
-                    onBrushStrokeEnd={handleStrokeEnd}
-                  />
-                ) : (
-                  <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                    <p className="text-muted-foreground">No mask generated yet</p>
-                  </div>
-                )}
+              <div className="flex justify-center">
+                <div className="relative inline-block rounded-xl overflow-hidden border border-border">
+                  {baseImage ? (
+                    <MaskCanvas
+                      image={baseImage}
+                      brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                      brushSize={brushSize}
+                      mode="brush"
+                      coordinateSpace="image"
+                      canvasSize={400}
+                      onBrushStrokeStart={handleStrokeStart}
+                      onBrushStrokePoint={handleStrokePoint}
+                      onBrushStrokeEnd={handleStrokeEnd}
+                    />
+                  ) : (
+                    <div className="aspect-[4/3] bg-muted flex items-center justify-center">
+                      <p className="text-muted-foreground">No mask generated yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                <span className="text-green-500 font-medium">Green</span> = Preserved jewelry • <span className="font-medium">Black</span> = AI-generated areas
+              <p className="text-base text-foreground text-center mt-3">
+                <span className="text-green-500 font-semibold">Green</span> = Preserved jewelry • <span className="font-semibold">Black</span> = AI-generated areas
               </p>
             </TabsContent>
 
             <TabsContent value="binary" className="mt-4">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
-                {state.maskBinary ? (
-                  <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[320px] object-contain" />
-                ) : (
-                  <div className="aspect-[4/3] bg-muted flex items-center justify-center w-full">
-                    <p className="text-muted-foreground">No mask generated yet</p>
-                  </div>
-                )}
+              <div className="flex justify-center">
+                <div className="relative inline-block rounded-xl overflow-hidden border border-border">
+                  {state.maskBinary ? (
+                    <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain" />
+                  ) : (
+                    <div className="aspect-[4/3] bg-muted flex items-center justify-center">
+                      <p className="text-muted-foreground">No mask generated yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                <span className="font-medium">White</span> = Preserved • <span className="font-medium">Black</span> = Generated
+              <p className="text-base text-foreground text-center mt-3">
+                <span className="font-semibold">White</span> = Preserved • <span className="font-semibold">Black</span> = Generated
               </p>
             </TabsContent>
           </Tabs>
@@ -291,10 +295,10 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             </ul>
           </div>
 
-          <Alert className="border-primary/30 bg-primary/5">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-xs">
-              <strong>Tip:</strong> If hair or clothing covers the jewelry, paint green over those areas to include them in the preservation mask.
+          <Alert className="border-primary/40 bg-primary/10">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            <AlertDescription className="text-base text-foreground">
+              <strong className="text-primary">Tip:</strong> If hair or clothing covers the jewelry, paint green over those areas to include them in the preservation mask.
             </AlertDescription>
           </Alert>
         </CardContent>
