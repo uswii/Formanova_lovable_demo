@@ -103,11 +103,13 @@ log = logging.getLogger(__name__)
 # CONSTANTS
 # ═════════════════════════════════════════════════════════════════════
 DILATION_PX = 1
-APP_ROOT = Path("/home/bilal/uswa/viton_jewelry_model").resolve()
+
+# Use the directory containing this file as the app root so paths are stable
+APP_ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = APP_ROOT / "api_outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Example gallery path - update this to your actual examples folder
+# Example gallery path
 EXAMPLES_DIR = APP_ROOT / "examples"
 
 # ═════════════════════════════════════════════════════════════════════
@@ -179,6 +181,7 @@ class SegmentResponse(BaseModel):
     mask_overlay_base64: str
     processed_image_base64: str
     original_mask_base64: str  # Before dilation
+    scaled_points: List[List[float]]  # Points transformed into 2000x2667 space
     session_id: str
     image_width: int
     image_height: int
@@ -407,6 +410,7 @@ async def segment_jewelry(request: SegmentRequest):
             mask_overlay_base64=pil_to_base64(overlay, "JPEG"),
             processed_image_base64=pil_to_base64(image_highres_original, "JPEG"),
             original_mask_base64=pil_to_base64(mask_pil_original, "PNG"),
+            scaled_points=scaled_points,
             session_id=session_id,
             image_width=2000,
             image_height=2667
