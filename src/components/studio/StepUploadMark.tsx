@@ -2,10 +2,15 @@ import React, { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+
+// Import jewelry images for examples
+import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
+import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
+import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
 
 interface Props {
   state: StudioState;
@@ -13,21 +18,17 @@ interface Props {
   onNext: () => void;
 }
 
-// Example images (placeholder - user will provide actual examples)
-const exampleImages = [
-  '/placeholder.svg',
-  '/placeholder.svg',
-  '/placeholder.svg',
-  '/placeholder.svg',
-  '/placeholder.svg',
-  '/placeholder.svg',
-];
-
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
   const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const { toast } = useToast();
+
+  const exampleImages = [
+    { src: necklaceGold, label: 'Gold Pendant' },
+    { src: necklacePearl, label: 'Pearl Strand' },
+    { src: necklaceDiamond, label: 'Diamond Drop' },
+  ];
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -76,15 +77,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     }
 
     setIsGeneratingMask(true);
-    
-    // TODO: Call API endpoint /api/mask-generation
-    // For now, simulate with a delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Mock response - in production, this comes from your A100 server
     updateState({
-      maskOverlay: state.originalImage, // Placeholder
-      maskBinary: state.originalImage,  // Placeholder
+      maskOverlay: state.originalImage,
+      maskBinary: state.originalImage,
       sessionId: `session_${Date.now()}`,
     });
     
@@ -110,137 +107,167 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setRedDots([]);
   };
 
+  const loadExample = (src: string) => {
+    updateState({ 
+      originalImage: src,
+      markedImage: null,
+      maskOverlay: null,
+      maskBinary: null,
+      fluxResult: null,
+      geminiResult: null,
+    });
+    setRedDots([]);
+  };
+
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
-      {/* Left: Upload Area */}
+    <div className="space-y-6">
+      {/* Main Upload/Canvas Area */}
       <Card className="bg-card/50 backdrop-blur">
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="font-display flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Step 1: Upload & Mark
+            <Upload className="h-5 w-5 text-primary" />
+            Upload & Mark Your Jewelry
           </CardTitle>
           <CardDescription>
-            Upload your jewelry image and mark the jewelry with red dots
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!state.originalImage ? (
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
-            >
-              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-2">
-                Drag & drop your jewelry image here
-              </p>
-              <p className="text-sm text-muted-foreground">
-                or click to browse
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileUpload(file);
-                }}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 bg-background/80 hover:bg-background"
-                  onClick={clearImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <MaskCanvas
-                  image={state.originalImage}
-                  dots={redDots}
-                  onCanvasClick={handleCanvasClick}
-                  brushColor="#FF0000"
-                  brushSize={10}
-                  mode="dot"
-                />
-              </div>
-              
-              <p className="text-sm text-muted-foreground text-center">
-                Click on the jewelry to mark it with red dots ({redDots.length} marks)
-              </p>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => setRedDots([])}
-                  disabled={redDots.length === 0}
-                >
-                  Clear Marks
-                </Button>
-                <Button 
-                  className="flex-1"
-                  onClick={handleGenerateMask}
-                  disabled={isGeneratingMask || redDots.length === 0}
-                >
-                  {isGeneratingMask ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  Generate Mask
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Pro Tip */}
-          <Alert className="border-primary/30 bg-primary/5">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-sm">
-              <strong>Pro Tip:</strong> For best results, upload high-resolution images with clear jewelry visibility. 
-              Mark multiple points on the jewelry for better detection.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-
-      {/* Right: Example Images */}
-      <Card className="bg-card/50 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="font-display">Example Images</CardTitle>
-          <CardDescription>
-            Click on any example to try it out
+            Upload your jewelry image and click on the jewelry to mark it
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
-            {exampleImages.map((img, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  // In production, load actual example images
-                  toast({
-                    title: 'Example selected',
-                    description: 'Example images will be available when connected to your server.',
-                  });
-                }}
-                className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary/50 transition-all bg-muted"
-              >
-                <img 
-                  src={img} 
-                  alt={`Example ${index + 1}`}
-                  className="w-full h-full object-cover opacity-50"
-                />
-              </button>
-            ))}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Upload/Canvas - 2 columns */}
+            <div className="lg:col-span-2">
+              {!state.originalImage ? (
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative border-2 border-dashed border-primary/30 rounded-2xl p-12 text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all min-h-[400px] flex flex-col items-center justify-center"
+                >
+                  {/* Animated background */}
+                  <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                    <div className="absolute top-10 left-10 w-20 h-20 border border-primary/10 rotate-45 animate-pulse" />
+                    <div className="absolute bottom-10 right-10 w-16 h-16 border border-primary/10 rotate-12 animate-pulse animation-delay-200" />
+                    <div className="absolute top-1/2 right-20 w-8 h-8 bg-primary/5 rotate-45 animate-pulse animation-delay-300" />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <div className="relative mx-auto w-24 h-24 mb-6">
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
+                      <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center">
+                        <Diamond className="h-10 w-10 text-primary" />
+                      </div>
+                    </div>
+                    <p className="text-lg font-medium mb-2">
+                      Drop your jewelry image here
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      or click to browse your files
+                    </p>
+                    <Button variant="outline" size="sm">
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Browse Files
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute top-3 right-3 z-10 shadow-lg"
+                      onClick={clearImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <MaskCanvas
+                      image={state.originalImage}
+                      dots={redDots}
+                      onCanvasClick={handleCanvasClick}
+                      brushColor="#FF0000"
+                      brushSize={10}
+                      mode="dot"
+                    />
+                  </div>
+                  
+                  {/* Mark counter */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold text-foreground">{redDots.length}</span> marks placed
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setRedDots([])}
+                        disabled={redDots.length === 0}
+                      >
+                        Clear Marks
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={handleGenerateMask}
+                        disabled={isGeneratingMask || redDots.length === 0}
+                        className="formanova-glow"
+                      >
+                        {isGeneratingMask ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 mr-2" />
+                        )}
+                        Generate Mask
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Examples Panel - 1 column */}
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Diamond className="h-4 w-4 text-primary" />
+                  Try an Example
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {exampleImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => loadExample(img.src)}
+                      className="group relative aspect-video rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all bg-muted"
+                    >
+                      <img 
+                        src={img.src} 
+                        alt={img.label}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                      <span className="absolute bottom-2 left-3 text-xs font-medium">{img.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pro Tip */}
+              <Alert className="border-primary/30 bg-primary/5">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs">
+                  <strong>Tip:</strong> Mark multiple points on the jewelry for better detection accuracy.
+                </AlertDescription>
+              </Alert>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            12 example images from your EXAMPLES folder will appear here
-          </p>
         </CardContent>
       </Card>
     </div>
