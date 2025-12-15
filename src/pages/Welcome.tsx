@@ -31,17 +31,19 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen formanova-gradient overflow-hidden">
-      {/* Full-Width Video at Top */}
-      <section className="w-full">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-auto"
-        >
-          <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
-        </video>
+      {/* Full-Width Video at Top - cropped from top */}
+      <section className="w-full overflow-hidden">
+        <div className="mt-[-2rem]">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-auto"
+          >
+            <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
+          </video>
+        </div>
       </section>
 
       {/* Hero Section */}
