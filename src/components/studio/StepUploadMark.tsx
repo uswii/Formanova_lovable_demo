@@ -260,7 +260,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     brushSize={10}
                     mode="dot"
                     coordinateSpace="image"
-                    canvasSize={400}
+                    canvasSize={450}
                   />
                 </div>
               </div>
