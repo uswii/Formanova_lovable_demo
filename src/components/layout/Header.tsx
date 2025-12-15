@@ -24,18 +24,21 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-6">
-        {/* Left: Theme Switcher + Logo */}
+      <div className="container flex h-18 items-center justify-between px-6 py-3">
+        {/* Left: Logo (prominent) */}
         <div className="flex items-center gap-6">
-          <ThemeSwitcher />
-          
           <Link to="/" className="flex items-center gap-2 group">
             <img 
               src={formanovaLogo} 
               alt="FormaNova - The Only AI Built for Jewellery" 
-              className="h-6 w-auto object-contain logo-adaptive"
+              className="h-8 md:h-10 w-auto object-contain logo-adaptive transition-transform group-hover:scale-105"
             />
           </Link>
+        </div>
+
+        {/* Center: Theme Switcher (prominent) */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <ThemeSwitcher />
         </div>
 
         {/* Right: Navigation + Auth */}

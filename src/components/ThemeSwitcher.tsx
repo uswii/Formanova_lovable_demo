@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Check, Palette } from 'lucide-react';
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -17,37 +17,43 @@ export function ThemeSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="sm" 
-          className="h-9 px-3 gap-2 hover:bg-secondary/60 transition-colors"
+          className="h-10 px-4 gap-2.5 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
         >
-          <span className="text-base">{currentTheme?.icon}</span>
-          <span className="hidden md:inline text-sm font-medium tracking-wide">
+          <Palette className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+          <span className="text-lg">{currentTheme?.icon}</span>
+          <span className="hidden sm:inline text-sm font-medium">
             {currentTheme?.label}
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="start" 
-        className="w-52 bg-popover border-border z-50 p-1"
+        className="w-64 bg-popover/95 backdrop-blur-md border-border shadow-xl z-50 p-2"
       >
-        {themes.map((t) => (
-          <DropdownMenuItem
-            key={t.name}
-            onClick={() => setTheme(t.name)}
-            className={`flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-sm ${
-              theme === t.name ? 'bg-secondary/80' : ''
-            }`}
-          >
-            <span className="text-base w-6 text-center">{t.icon}</span>
-            <div className="flex-1">
-              <span className="font-medium text-sm">{t.label}</span>
-            </div>
-            {theme === t.name && (
-              <Check className="h-4 w-4 text-primary" />
-            )}
-          </DropdownMenuItem>
-        ))}
+        <div className="px-3 py-2 mb-2 border-b border-border/50">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Select Theme</p>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {themes.map((t) => (
+            <DropdownMenuItem
+              key={t.name}
+              onClick={() => setTheme(t.name)}
+              className={`flex flex-col items-center gap-1 cursor-pointer p-3 rounded-lg text-center ${
+                theme === t.name 
+                  ? 'bg-primary/15 border border-primary/30' 
+                  : 'hover:bg-secondary/60 border border-transparent'
+              }`}
+            >
+              <span className="text-2xl">{t.icon}</span>
+              <span className="font-medium text-xs">{t.label}</span>
+              {theme === t.name && (
+                <Check className="h-3 w-3 text-primary absolute top-1 right-1" />
+              )}
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
