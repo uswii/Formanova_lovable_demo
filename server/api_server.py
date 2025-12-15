@@ -104,13 +104,13 @@ log = logging.getLogger(__name__)
 # ═════════════════════════════════════════════════════════════════════
 DILATION_PX = 1
 
-# Use the directory containing this file as the app root so paths are stable
-APP_ROOT = Path(__file__).resolve().parent
+# Use the viton_jewelry_model directory as root (not the script location)
+APP_ROOT = Path("/home/bilal/viton_jewelry_model")
 OUTPUT_DIR = APP_ROOT / "api_outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Example gallery path
-EXAMPLES_DIR = APP_ROOT / "examples"
+# Example gallery path - use the actual path on the A100 server
+EXAMPLES_DIR = Path("/home/bilal/viton_jewelry_model/examples")
 
 # ═════════════════════════════════════════════════════════════════════
 # GLOBAL MODELS (loaded once at startup)
