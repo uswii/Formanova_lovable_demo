@@ -11,7 +11,8 @@ export type ThemeName =
   | 'luxury' 
   | 'synthwave'
   | 'neon'
-  | 'cutie';
+  | 'cutie'
+  | 'nostalgia';
 
 interface ThemeConfig {
   name: ThemeName;
@@ -23,7 +24,8 @@ interface ThemeConfig {
 export const themes: ThemeConfig[] = [
   { name: 'light', label: 'Light', icon: '☀️', description: 'Clean & Professional' },
   { name: 'dark', label: 'Dark', icon: '🌙', description: 'Deep Slate Blues' },
-  { name: 'neon', label: 'Neon', icon: '⚡', description: 'Electric Blue' },
+  { name: 'neon', label: 'Neon', icon: '⚡', description: 'Electric Blue Glow' },
+  { name: 'nostalgia', label: 'Nostalgia', icon: '📻', description: 'Warm Vintage Memories' },
   { name: 'cutie', label: 'Cutie', icon: '💜', description: 'Soft Pastel' },
   { name: 'cyberpunk', label: 'Cyberpunk', icon: '🌆', description: 'Neon Pink & Cyan' },
   { name: 'retro', label: 'Retro Game', icon: '🎮', description: '8-bit Arcade' },

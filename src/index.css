@@ -283,7 +283,7 @@
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* NEON THEME - Electric Blue */
+  /* NEON THEME - Electric Blue with Glow */
   [data-theme="neon"] {
     --background: 220 60% 4%;
     --foreground: 200 100% 95%;
@@ -301,7 +301,7 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 195 50% 20%;
+    --border: 195 50% 25%;
     --input: 220 35% 12%;
     --ring: 195 100% 50%;
     --radius: 0.25rem;
@@ -309,6 +309,36 @@
     --formanova-gradient-from: 220 50% 8%;
     --formanova-gradient-to: 280 40% 10%;
     --font-display: 'Space Mono', monospace;
+    --font-body: 'Montserrat', sans-serif;
+    --neon-glow-intense: 195 100% 60%;
+  }
+
+  /* NOSTALGIA THEME - Warm Sepia & Rose Gold */
+  [data-theme="nostalgia"] {
+    --background: 25 35% 94%;
+    --foreground: 20 25% 18%;
+    --card: 30 40% 97%;
+    --card-foreground: 20 25% 18%;
+    --popover: 30 40% 97%;
+    --popover-foreground: 20 25% 18%;
+    --primary: 350 45% 55%;
+    --primary-foreground: 30 40% 97%;
+    --secondary: 35 40% 88%;
+    --secondary-foreground: 20 25% 22%;
+    --muted: 30 25% 90%;
+    --muted-foreground: 20 15% 45%;
+    --accent: 38 55% 58%;
+    --accent-foreground: 20 25% 15%;
+    --destructive: 0 55% 48%;
+    --destructive-foreground: 30 40% 97%;
+    --border: 30 30% 82%;
+    --input: 30 25% 90%;
+    --ring: 350 45% 55%;
+    --radius: 0.375rem;
+    --formanova-glow: 350 50% 60%;
+    --formanova-gradient-from: 25 35% 94%;
+    --formanova-gradient-to: 35 35% 90%;
+    --font-display: 'Cormorant Garamond', serif;
     --font-body: 'Montserrat', sans-serif;
   }
 
@@ -479,6 +509,57 @@
     box-shadow: 
       4px 4px 0 0 hsl(var(--primary)),
       -4px -4px 0 0 hsl(var(--secondary));
+  }
+
+  /* Neon glow effects */
+  [data-theme="neon"] .neon-glow {
+    box-shadow: 
+      0 0 10px hsl(var(--primary) / 0.5),
+      0 0 30px hsl(var(--primary) / 0.3),
+      0 0 60px hsl(var(--primary) / 0.15);
+  }
+
+  [data-theme="neon"] .neon-text-glow {
+    text-shadow: 
+      0 0 10px hsl(var(--primary) / 0.8),
+      0 0 30px hsl(var(--primary) / 0.5),
+      0 0 50px hsl(var(--primary) / 0.3);
+  }
+
+  [data-theme="neon"] .neon-border-glow {
+    border-color: hsl(var(--primary));
+    box-shadow: 
+      0 0 8px hsl(var(--primary) / 0.6),
+      inset 0 0 8px hsl(var(--primary) / 0.2);
+  }
+
+  /* Nostalgia vintage effects */
+  [data-theme="nostalgia"] .nostalgia-vignette::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, hsl(20 25% 18% / 0.08) 100%);
+    pointer-events: none;
+  }
+
+  /* Logo adaptive colors for all themes */
+  .logo-adaptive {
+    filter: brightness(0) saturate(100%);
+  }
+  
+  .dark .logo-adaptive,
+  [data-theme="dark"] .logo-adaptive,
+  [data-theme="cyberpunk"] .logo-adaptive,
+  [data-theme="retro"] .logo-adaptive,
+  [data-theme="fashion"] .logo-adaptive,
+  [data-theme="luxury"] .logo-adaptive,
+  [data-theme="synthwave"] .logo-adaptive,
+  [data-theme="neon"] .logo-adaptive {
+    filter: brightness(0) invert(1);
+  }
+  
+  [data-theme="neon"] .logo-adaptive {
+    filter: brightness(0) invert(1) drop-shadow(0 0 8px hsl(195 100% 50% / 0.8));
   }
 }
 
