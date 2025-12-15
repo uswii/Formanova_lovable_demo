@@ -328,26 +328,22 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto">
               {exampleImages.map((example) => (
                 <button
                   key={example.id}
                   onClick={() => loadExample(example)}
-                  className="group relative aspect-square rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all bg-muted"
+                  className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all bg-muted"
                 >
                   <img
                     src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
                     alt={example.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-xs font-medium">{example.name}</span>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-primary/90 text-primary-foreground rounded-full p-2">
-                      <Play className="h-4 w-4" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                    <div className="bg-primary/90 text-primary-foreground rounded-full p-1.5">
+                      <Play className="h-3 w-3" />
                     </div>
                   </div>
                 </button>

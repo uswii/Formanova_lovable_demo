@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Upload, 
@@ -42,7 +40,6 @@ export interface StudioState {
 }
 
 export default function Studio() {
-  const { user, loading } = useAuth();
   const { isOnline, isChecking, retry } = useA100Status();
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
   const [state, setState] = useState<StudioState>({
@@ -63,16 +60,12 @@ export default function Studio() {
     scaledPoints: null,
   });
 
-  if (loading || isOnline === null) {
+  if (isOnline === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
   }
 
   const updateState = (updates: Partial<StudioState>) => {

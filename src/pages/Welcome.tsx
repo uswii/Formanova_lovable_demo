@@ -1,46 +1,30 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, Shield, Gem, Sparkles, Diamond } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { ArrowRight, Play, Shield, Gem, Sparkles, Diamond, Calculator } from 'lucide-react';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
-import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
-import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
-import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
-import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
 import resultsBanner from '@/assets/jewelry/results-banner.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const handleStart = () => {
-    if (user) {
-      navigate('/studio');
-    } else {
-      navigate('/auth');
-    }
+    navigate('/studio');
   };
-
-  const jewelryShowcase = [
-    { src: necklaceGold, alt: 'Gold pendant necklace', label: 'Gold Collection' },
-    { src: necklacePearl, alt: 'Pearl necklace', label: 'Pearl Elegance' },
-    { src: necklaceDiamond, alt: 'Diamond pendant', label: 'Diamond Luxury' },
-  ];
 
   return (
     <div className="min-h-screen formanova-gradient overflow-hidden">
-      {/* Full-Width Video at Top - cropped from top */}
+      {/* Compact Video Section */}
       <section className="w-full overflow-hidden">
-        <div className="mt-[-6rem]">
+        <div className="max-h-[300px] overflow-hidden">
           <video
             autoPlay
             loop
             muted
             playsInline
-            className="w-full h-auto"
+            className="w-full h-auto object-cover"
           >
             <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
           </video>
@@ -48,7 +32,7 @@ export default function Welcome() {
       </section>
 
       {/* Hero Section */}
-      <section className="relative py-20">
+      <section className="relative py-16">
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-[15%] w-3 h-3 rotate-45 border border-primary/20 animate-pulse" />
@@ -57,7 +41,7 @@ export default function Welcome() {
         </div>
         
         <div className="px-6 relative z-10">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
             {/* Jewelry indicator */}
             <div className="animate-fade-in flex items-center justify-center gap-3">
               <Diamond className="h-4 w-4 text-primary" />
@@ -66,24 +50,24 @@ export default function Welcome() {
             </div>
 
             {/* Main Headline */}
-            <div className="space-y-6 animate-fade-in animation-delay-100">
+            <div className="space-y-4 animate-fade-in animation-delay-100">
               <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-wide text-balance">
                 Your Jewelry
                 <span className="block italic text-primary formanova-text-glow">Perfectly Showcased</span>
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-                AI imagery you can trust. Your jewelry is always accurately shown. 
-                No hallucinations. No subtle changes.
+                Trustable AI that keeps your product exactly as uploaded. 
+                Your jewelry never changes — and we have the math to prove it.
               </p>
             </div>
 
             {/* Trust Badge */}
             <div className="animate-fade-in animation-delay-200">
               <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-primary/30 bg-card/50 backdrop-blur-sm formanova-glow">
-                <Shield className="h-4 w-4 text-primary" />
+                <Calculator className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">
-                  Pixel-perfect preservation guaranteed
+                  Mathematically verified preservation
                 </span>
               </div>
             </div>
@@ -112,21 +96,16 @@ export default function Welcome() {
             </div>
           </div>
         </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-500">
-          <div className="w-px h-16 bg-gradient-to-b from-primary/40 to-transparent" />
-        </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-32 relative">
+      {/* Features Section - Simplified */}
+      <section className="py-20 relative">
         <div className="container px-6">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-20 space-y-4">
-              <span className="editorial-caps">Why Jewelers Trust Us</span>
+            <div className="text-center mb-16 space-y-4">
+              <span className="editorial-caps">Why Choose FormaNova</span>
               <h2 className="font-display text-3xl md:text-4xl font-light">
-                Results You Can Rely On
+                AI You Can Trust
               </h2>
             </div>
 
@@ -134,18 +113,18 @@ export default function Welcome() {
               {[
                 {
                   icon: Shield,
-                  title: 'Your Jewelry, Untouched',
-                  description: 'No hallucinations. No subtle changes. Your product appears exactly as photographed, every single time.',
+                  title: 'Zero Alterations',
+                  description: 'Your product stays exactly as you uploaded it. No AI hallucinations. No subtle changes. Ever.',
                 },
                 {
-                  icon: Gem,
-                  title: 'Effortless Precision',
-                  description: 'Simply mark your jewelry and let our AI handle the rest. Professional results without the learning curve.',
+                  icon: Calculator,
+                  title: 'Mathematically Proven',
+                  description: 'See precision metrics that verify your jewelry is preserved perfectly in every generation.',
                 },
                 {
                   icon: Sparkles,
-                  title: 'Studio-Quality Results',
-                  description: 'Get beautiful, professional imagery ready for your website, catalog, or social media in minutes.',
+                  title: 'Choose Your Model',
+                  description: 'Select model gender and get professional photoshoot imagery ready in seconds.',
                 },
               ].map((feature, index) => (
                 <div 
@@ -170,17 +149,17 @@ export default function Welcome() {
       </section>
 
       {/* Process Section */}
-      <section className="py-32 bg-secondary/30">
+      <section className="py-20 bg-secondary/30">
         <div className="container px-6">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-20 space-y-4">
+            <div className="text-center mb-16 space-y-4">
               <span className="editorial-caps">How It Works</span>
               <h2 className="font-display text-3xl md:text-4xl font-light">
                 Three Simple Steps
               </h2>
             </div>
 
-            <div className="space-y-16">
+            <div className="space-y-12">
               {[
                 {
                   step: '01',
@@ -189,13 +168,13 @@ export default function Welcome() {
                 },
                 {
                   step: '02',
-                  title: 'Segment the Jewelry',
-                  description: 'AI automatically masks your jewelry with precision. Refine with simple brush tools.',
+                  title: 'Refine the Mask',
+                  description: 'AI automatically detects your jewelry. Fine-tune with simple brush tools if needed.',
                 },
                 {
                   step: '03',
-                  title: 'Generate Photoshoot',
-                  description: 'Choose your model and generate professional photoshoot imagery in seconds.',
+                  title: 'Generate & Verify',
+                  description: 'Choose model gender, generate your photoshoot, and see the accuracy metrics.',
                 },
               ].map((item, index) => (
                 <div 
@@ -227,9 +206,9 @@ export default function Welcome() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-32">
+      <section className="py-20">
         <div className="container px-6 text-center">
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="max-w-2xl mx-auto space-y-6">
             
             <div className="flex items-center justify-center gap-3">
               <Diamond className="h-5 w-5 text-primary" />
@@ -240,7 +219,7 @@ export default function Welcome() {
               Ready to Elevate Your Jewelry Photography?
             </h2>
             <p className="text-muted-foreground">
-              Join jewelers who trust FormaNova for accurate, beautiful product imagery.
+              Trustable AI with verifiable accuracy. Your jewelry, unchanged.
             </p>
             <Button 
               size="lg" 
@@ -258,20 +237,20 @@ export default function Welcome() {
       {/* Footer */}
       <footer className="bg-card border-t border-border/50">
         {/* Featured In Section */}
-        <div className="px-6 py-16 text-center">
-          <p className="text-sm text-muted-foreground mb-10 uppercase tracking-[0.2em]">
+        <div className="px-6 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-8 uppercase tracking-[0.2em]">
             Featured In
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16 mb-10">
             <span className="text-2xl md:text-3xl font-bold text-foreground/70">CNN</span>
             <span className="text-xl md:text-2xl font-semibold text-foreground/70">TechCrunch</span>
             <span className="text-lg md:text-xl font-medium text-foreground/70 uppercase tracking-wider">The Telegraph</span>
             <span className="text-xl md:text-2xl font-bold text-foreground/70">HuffPost</span>
           </div>
           
-          <div className="w-32 h-px bg-border mx-auto mb-12" />
+          <div className="w-32 h-px bg-border mx-auto mb-10" />
           
-          <p className="font-display text-2xl text-foreground mb-10">
+          <p className="font-display text-2xl text-foreground mb-8">
             Trusted By <span className="text-primary font-semibold">70+</span> Brands
           </p>
           
@@ -284,9 +263,9 @@ export default function Welcome() {
         </div>
         
         {/* Bottom Footer */}
-        <div className="border-t border-border/30 px-6 py-8">
+        <div className="border-t border-border/30 px-6 py-6">
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               {/* Logo */}
               <img 
                 src={formanovaLogo} 
