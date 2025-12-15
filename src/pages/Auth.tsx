@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Mail, Lock, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -23,7 +22,6 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/studio');
@@ -66,14 +64,11 @@ export default function Auth() {
         variant: 'destructive',
         title: 'Sign in failed',
         description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password. Please try again.'
+          ? 'Invalid email or password.'
           : error.message,
       });
     } else {
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully signed in.',
-      });
+      toast({ title: 'Welcome back' });
       navigate('/studio');
     }
   };
@@ -89,7 +84,7 @@ export default function Auth() {
     if (error) {
       let message = error.message;
       if (error.message.includes('already registered')) {
-        message = 'This email is already registered. Please sign in instead.';
+        message = 'This email is already registered. Please sign in.';
       }
       toast({
         variant: 'destructive',
@@ -97,75 +92,76 @@ export default function Auth() {
         description: message,
       });
     } else {
-      toast({
-        title: 'Account created!',
-        description: 'You can now start using FormaNova.',
-      });
+      toast({ title: 'Account created successfully' });
       navigate('/studio');
     }
   };
 
   return (
-    <div className="min-h-screen formanova-gradient flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur animate-scale-in">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <CardTitle className="font-display text-2xl">FormaNova</CardTitle>
+    <div className="min-h-screen formanova-gradient flex items-center justify-center p-6">
+      <div className="w-full max-w-sm space-y-8 animate-fade-in">
+        {/* Back link */}
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2.5">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <span className="font-display text-2xl tracking-wide">FormaNova</span>
           </div>
-          <CardDescription>
-            Sign in or create an account to start creating stunning jewelry photoshoots
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          <p className="text-muted-foreground text-sm">
+            Sign in to start creating
+          </p>
+        </div>
+
+        {/* Auth Form */}
+        <div className="bg-card/60 backdrop-blur-sm border border-border/60 rounded-lg p-6">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-10">
+              <TabsTrigger value="signin" className="text-sm">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+                  <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    className="h-11"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                   {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
+                    <p className="text-xs text-destructive">{errors.email}</p>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
+                  <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="h-11"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                   {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
+                    <p className="text-xs text-destructive">{errors.password}</p>
                   )}
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
+                <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                  {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Sign In
                 </Button>
               </form>
@@ -174,52 +170,44 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+                  <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    className="h-11"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                   {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
+                    <p className="text-xs text-destructive">{errors.email}</p>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
+                  <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="h-11"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                   {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
+                    <p className="text-xs text-destructive">{errors.password}</p>
                   )}
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
+                <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                  {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Create Account
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

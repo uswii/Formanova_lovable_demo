@@ -1,8 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, PlayCircle, BookOpen, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Play, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Tutorial() {
@@ -19,117 +18,130 @@ export default function Tutorial() {
 
   const steps = [
     {
-      step: 1,
+      step: '01',
       title: 'Upload & Mark',
-      description: 'Upload your jewelry image and mark the jewelry with red dots to identify it.',
+      description: 'Upload your jewelry image and mark the product with point selections to identify it.',
     },
     {
-      step: 2,
+      step: '02',
       title: 'Refine Mask',
-      description: 'Use green brush to add areas and black brush to remove areas from the mask.',
+      description: 'Use green brush to add areas and black brush to remove areas from the detection mask.',
     },
     {
-      step: 3,
+      step: '03',
       title: 'Generate',
-      description: 'Choose gender and generate stunning professional photoshoots.',
+      description: 'Choose model gender and generate professional photoshoots with your preserved jewelry.',
     },
   ];
 
+  const features = [
+    'Non-composite mode ensures pixel-perfect preservation',
+    'BiRefNet automatic background removal',
+    'SAM-powered intelligent masking',
+    'Green/black brush for precise mask editing',
+    'Dual output: Basic (Flux) and Enhanced (Gemini)',
+    'Fidelity visualization with precision metrics',
+    'Before/after comparison slider',
+  ];
+
   return (
-    <div className="min-h-screen formanova-gradient py-12">
-      <div className="container px-4 max-w-4xl">
+    <div className="min-h-screen formanova-gradient py-16">
+      <div className="container px-6 max-w-4xl">
+        {/* Back link */}
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-12"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+
         {/* Header */}
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="font-display text-4xl font-bold">Tutorial</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
+        <div className="text-center mb-16 space-y-4 animate-fade-in">
+          <span className="editorial-caps">Getting Started</span>
+          <h1 className="font-display text-4xl md:text-5xl font-light">
+            How It Works
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             Learn how to create stunning jewelry photoshoots in minutes
           </p>
         </div>
 
         {/* Video Embed */}
-        <Card className="mb-12 overflow-hidden animate-scale-in">
-          <CardContent className="p-0">
-            <div className="aspect-video bg-muted">
-              <iframe
-                src="https://www.youtube.com/embed/0iS8ypFCSU0"
-                title="FormaNova Tutorial"
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-20 animate-fade-in animation-delay-100">
+          <div className="aspect-video rounded-lg overflow-hidden border border-border/60 bg-card/40">
+            <iframe
+              src="https://www.youtube.com/embed/0iS8ypFCSU0"
+              title="FormaNova Tutorial"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
 
         {/* Quick Steps */}
-        <div className="mb-12">
-          <h2 className="font-display text-2xl font-semibold text-center mb-8">
-            Quick Overview
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+        <div className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-2xl md:text-3xl font-light">
+              The Process
+            </h2>
+          </div>
+          
+          <div className="space-y-12">
             {steps.map((item, index) => (
-              <Card 
-                key={item.step} 
-                className="bg-card/50 backdrop-blur animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+              <div 
+                key={item.step}
+                className="flex items-start gap-8 animate-fade-in"
+                style={{ animationDelay: `${(index + 2) * 100}ms` }}
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                      {item.step}
-                    </div>
-                    <CardTitle className="font-display text-lg">{item.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm">{item.description}</p>
-                </CardContent>
-              </Card>
+                <span className="font-display text-4xl md:text-5xl text-primary/20 font-light leading-none shrink-0">
+                  {item.step}
+                </span>
+                <div className="pt-1 space-y-2">
+                  <h3 className="font-display text-xl md:text-2xl">{item.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{item.description}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Key Features */}
-        <Card className="mb-12 bg-card/50 backdrop-blur animate-fade-in">
-          <CardHeader>
-            <CardTitle className="font-display text-xl">Key Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {[
-                'Non-composite mode ensures your jewelry is never modified',
-                'BiRefNet automatic background removal',
-                'SAM-powered intelligent masking',
-                'Green/Black brush for precise mask editing',
-                'Dual output: Basic (Flux) and Enhanced (Gemini)',
-                'Fidelity visualization with precision metrics',
-                'Before/After comparison slider',
-              ].map((feature, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="mb-20 animate-fade-in animation-delay-500">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-2xl md:text-3xl font-light">
+              Key Features
+            </h2>
+          </div>
+          
+          <div className="bg-card/40 backdrop-blur-sm border border-border/60 rounded-lg p-8">
+            <ul className="space-y-4">
+              {features.map((feature, index) => (
+                <li key={index} className="flex items-start gap-4">
+                  <div className="mt-1 h-5 w-5 rounded-full border border-primary/30 flex items-center justify-center shrink-0">
+                    <Check className="h-3 w-3 text-primary" />
+                  </div>
                   <span className="text-muted-foreground">{feature}</span>
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* CTA */}
-        <div className="text-center animate-fade-in-up">
-          <p className="text-muted-foreground mb-4">
-            You can always access the tutorial later from the app
+        <div className="text-center space-y-4 animate-fade-in animation-delay-700">
+          <p className="text-sm text-muted-foreground">
+            You can access this tutorial anytime from the main navigation
           </p>
           <Button 
             size="lg" 
-            className="text-lg px-8"
+            className="h-14 px-10 font-medium tracking-wide"
             onClick={handleStart}
           >
-            <PlayCircle className="h-5 w-5 mr-2" />
-            Start Using FormaNova
-            <ArrowRight className="h-5 w-5 ml-2" />
+            <Play className="h-4 w-4 mr-2" />
+            Start Creating
+            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </div>

@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["var(--font-display)", "serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+        body: ["var(--font-body)", "Helvetica Neue", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
         body: ["var(--font-body)", "sans-serif"],
       },
       colors: {
