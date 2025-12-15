@@ -251,7 +251,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 >
                   <X className="h-4 w-4" />
                 </Button>
-                <div className="max-h-[350px] overflow-hidden flex items-center justify-center bg-muted/20">
+                <div className="flex items-center justify-center bg-muted/20">
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
@@ -260,6 +260,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     brushSize={10}
                     mode="dot"
                     coordinateSpace="image"
+                    maxHeight={300}
                   />
                 </div>
               </div>
