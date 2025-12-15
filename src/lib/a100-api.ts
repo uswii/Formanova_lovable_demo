@@ -86,7 +86,7 @@ class A100Api {
   async checkHealth(): Promise<HealthResponse | null> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(this.getProxyEndpoint('/health'), {
         signal: controller.signal,
@@ -98,10 +98,12 @@ class A100Api {
       
       if (response.ok) {
         const data = await response.json();
-        this._isOnline = data.status === 'online' && data.models_loaded;
+        this._isOnline = data.status === 'online' && data.models_loaded === true;
         this._lastCheck = Date.now();
+        console.log('Health check result:', data, 'isOnline:', this._isOnline);
         return data;
       }
+      console.log('Health check failed - response not ok');
       this._isOnline = false;
       return null;
     } catch (error) {
