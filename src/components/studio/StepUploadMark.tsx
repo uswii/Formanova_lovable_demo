@@ -208,7 +208,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           </CardTitle>
           <CardDescription>Upload your jewelry image and click to mark the jewelry pieces</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 h-full flex flex-col">
+        <CardContent className="space-y-4">
           {!state.originalImage ? (
             <div
               onDrop={handleDrop}
@@ -242,7 +242,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
+              <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                 <Button
                   variant="secondary"
                   size="icon"
