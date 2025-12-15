@@ -275,10 +275,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               </button>
             ))}
           </div>
-          
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            Your own example images will appear here once connected to your A100 server
-          </p>
         </CardContent>
       </Card>
     </div>
