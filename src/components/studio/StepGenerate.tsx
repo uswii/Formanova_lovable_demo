@@ -312,7 +312,9 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                       <Diamond className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                     <p className="text-muted-foreground text-sm">
-                      {state.scaledPoints ? 'Generate to see accuracy' : 'Create mask first'}
+                      {state.scaledPoints 
+                        ? 'Generate to see accuracy' 
+                        : 'Mark jewelry with points to enable accuracy analysis'}
                     </p>
                   </div>
                 </div>
@@ -340,8 +342,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
                     {state.scaledPoints
-                      ? 'Metrics will appear after generation (if fidelity analysis succeeds).'
-                      : 'Metrics require generating a mask from the Upload step.'}
+                      ? 'Metrics appear after generation.'
+                      : 'Mark jewelry with points in Upload step to enable metrics.'}
                   </p>
                   
                   <div className="grid grid-cols-2 gap-2">
