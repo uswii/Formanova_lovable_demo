@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FormaNova API Server
+FormaNova API Server (Complete Version)
 Run on A100 server to expose jewelry generation endpoints.
 
 Usage:
@@ -8,9 +8,11 @@ Usage:
     /home/bilal/viton_jewelry_model/.venv/bin/python api_server.py
 
 Endpoints:
-    GET  /health          - Check if server is online
-    POST /segment         - Run SAM segmentation on image with click points
-    POST /generate        - Generate photoshoot from image + mask
+    GET  /health              - Check if server is online
+    GET  /examples            - Get example gallery images
+    POST /segment             - Run SAM segmentation on image with click points
+    POST /refine-mask         - Apply brush edits to mask
+    POST /generate            - Generate photoshoot from image + mask
 """
 
 import os
@@ -21,7 +23,8 @@ import io
 import logging
 import time
 import uuid
-from typing import List, Optional
+import glob
+from typing import List, Optional, Dict, Any
 
 # ═════════════════════════════════════════════════════════════════════
 # VENV ISOLATION (same as your app_nb.py)
@@ -39,24 +42,32 @@ os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 # Now import everything
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 import numpy as np
 from PIL import Image
 import torch
+import cv2
 
 # Import your existing modules
 from models_init import get_flux_pipeline, get_sam_predictor, get_birefnet_model, upscale_with_external_script
 from utils import (
+    TransformTracker,
+    segment_image_on_transparent_background,
     segment_image_on_white_background,
     process_mask,
     resize_to_fixed_dimensions,
     remove_background_birefnet,
     downscale_for_flux,
+    extract_masked_region,
     paste_masked_region_on_upscaled,
     binarize_mask,
     adjust_mask,
     composite_zero_transformation_improved,
+    get_jewelry_only_mask,
+    compare_masks,
+    run_sam_on_image,
 )
 from gemini_refinement import refine_with_gemini
 
@@ -76,6 +87,9 @@ DILATION_PX = 1
 APP_ROOT = Path("/home/bilal/uswa/viton_jewelry_model").resolve()
 OUTPUT_DIR = APP_ROOT / "api_outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Example gallery path - update this to your actual examples folder
+EXAMPLES_DIR = APP_ROOT / "examples"
 
 # ═════════════════════════════════════════════════════════════════════
 # GLOBAL MODELS (loaded once at startup)
@@ -125,7 +139,17 @@ class HealthResponse(BaseModel):
     status: str
     models_loaded: bool
     gpu_available: bool
+    gpu_name: Optional[str] = None
     message: str
+
+class ExampleImage(BaseModel):
+    id: str
+    name: str
+    image_base64: str
+    thumbnail_base64: Optional[str] = None
+
+class ExamplesResponse(BaseModel):
+    examples: List[ExampleImage]
 
 class SegmentRequest(BaseModel):
     image_base64: str  # Base64 encoded image
@@ -135,17 +159,33 @@ class SegmentResponse(BaseModel):
     mask_base64: str
     mask_overlay_base64: str
     processed_image_base64: str
+    original_mask_base64: str  # Before dilation
     session_id: str
+    image_width: int
+    image_height: int
+
+class RefineMaskRequest(BaseModel):
+    original_image_base64: str
+    current_mask_base64: str
+    brush_strokes: List[Dict[str, Any]]  # [{type: "add"|"remove", points: [[x,y]...], radius: int}]
+
+class RefineMaskResponse(BaseModel):
+    mask_base64: str
+    mask_overlay_base64: str
 
 class GenerateRequest(BaseModel):
-    image_base64: str  # Original image (base64)
-    mask_base64: str   # Mask image (base64)
+    image_base64: str  # Original image (base64) - 2000x2667
+    mask_base64: str   # Edited mask image (base64)
+    original_mask_base64: Optional[str] = None  # Original SAM mask before edits
     gender: str = "female"  # "male" or "female"
     use_gemini: bool = True  # Whether to use Gemini refinement
+    scaled_points: Optional[List[List[float]]] = None  # For remask analysis
 
 class GenerateResponse(BaseModel):
-    result_base64: str  # Final result image
+    result_base64: str  # Final Flux result image
     result_gemini_base64: Optional[str] = None  # Gemini refined result
+    fidelity_viz_base64: Optional[str] = None  # Fidelity visualization
+    metrics: Optional[Dict[str, float]] = None  # Fidelity metrics
     session_id: str
 
 # ═════════════════════════════════════════════════════════════════════
@@ -160,8 +200,12 @@ def base64_to_pil(base64_str: str) -> Image.Image:
 
 def pil_to_base64(image: Image.Image, format: str = "PNG") -> str:
     """Convert PIL Image to base64 string"""
+    if image is None:
+        return None
     buffered = io.BytesIO()
-    image.save(buffered, format=format, quality=95 if format == "JPEG" else None)
+    if format.upper() == "JPEG" and image.mode == "RGBA":
+        image = image.convert("RGB")
+    image.save(buffered, format=format, quality=95 if format.upper() == "JPEG" else None)
     return base64.b64encode(buffered.getvalue()).decode()
 
 def should_remove_background(image: Image.Image) -> bool:
@@ -186,7 +230,6 @@ def should_remove_background(image: Image.Image) -> bool:
 
 def create_overlay_visualization(image: Image.Image, mask: Image.Image) -> Image.Image:
     """Create green overlay visualization"""
-    import cv2
     img_rgb = image.convert("RGB")
     bin_mask = binarize_mask(mask, 128)
     overlay = img_rgb.copy()
@@ -199,6 +242,39 @@ def create_overlay_visualization(image: Image.Image, mask: Image.Image) -> Image
     
     return Image.fromarray(arr)
 
+def create_binary_mask_display(mask: Image.Image) -> Image.Image:
+    """Create binary black/white mask display"""
+    binary = binarize_mask(mask, 128)
+    display = Image.new("RGB", binary.size, (0, 0, 0))
+    white_pixels = np.array(binary) == 255
+    arr = np.array(display)
+    arr[white_pixels] = [255, 255, 255]
+    return Image.fromarray(arr)
+
+def create_fidelity_visualization(original, generated, mask_input, mask_generated):
+    """Create overlay showing correct (green) and expansion (blue) areas"""
+    mask_input_arr = np.array(mask_input.convert("L")) > 128
+    mask_generated_arr = np.array(mask_generated.convert("L")) > 128
+    
+    generated_rgb = np.array(generated.convert("RGB"))
+    overlay = generated_rgb.copy()
+    
+    # GREEN: Correct regions
+    correct = mask_input_arr & mask_generated_arr
+    overlay[correct] = cv2.addWeighted(
+        overlay[correct], 0.7,
+        np.full_like(overlay[correct], [0, 255, 0]), 0.3, 0
+    )
+    
+    # BLUE: Expansion
+    expansion = (~mask_input_arr) & mask_generated_arr
+    overlay[expansion] = cv2.addWeighted(
+        overlay[expansion], 0.5,
+        np.full_like(overlay[expansion], [0, 191, 255]), 0.5, 0
+    )
+    
+    return Image.fromarray(overlay)
+
 # ═════════════════════════════════════════════════════════════════════
 # ENDPOINTS
 # ═════════════════════════════════════════════════════════════════════
@@ -206,12 +282,40 @@ def create_overlay_visualization(image: Image.Image, mask: Image.Image) -> Image
 async def health_check():
     """Check if the API server is running and models are loaded"""
     gpu_available = torch.cuda.is_available()
+    gpu_name = torch.cuda.get_device_name(0) if gpu_available else None
+    
     return HealthResponse(
         status="online",
         models_loaded=models_loaded,
         gpu_available=gpu_available,
-        message="FormaNova API is running" if models_loaded else "Models not loaded yet"
+        gpu_name=gpu_name,
+        message="FormaNova API is ready" if models_loaded else "Models loading..."
     )
+
+@app.get("/examples", response_model=ExamplesResponse)
+async def get_examples():
+    """Get example gallery images"""
+    examples = []
+    
+    if EXAMPLES_DIR.exists():
+        for i, img_path in enumerate(sorted(EXAMPLES_DIR.glob("*.jpg")) + sorted(EXAMPLES_DIR.glob("*.png"))):
+            try:
+                img = Image.open(img_path)
+                
+                # Create thumbnail
+                thumb = img.copy()
+                thumb.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                
+                examples.append(ExampleImage(
+                    id=f"example_{i}",
+                    name=img_path.stem,
+                    image_base64=pil_to_base64(img, "JPEG"),
+                    thumbnail_base64=pil_to_base64(thumb, "JPEG")
+                ))
+            except Exception as e:
+                log.warning(f"Failed to load example {img_path}: {e}")
+    
+    return ExamplesResponse(examples=examples)
 
 @app.post("/segment", response_model=SegmentResponse)
 async def segment_jewelry(request: SegmentRequest):
@@ -220,7 +324,7 @@ async def segment_jewelry(request: SegmentRequest):
     Returns the mask and overlay visualization.
     """
     if not models_loaded:
-        raise HTTPException(status_code=503, detail="Models not loaded yet")
+        raise HTTPException(status_code=503, detail="Models not loaded yet. Please wait.")
     
     session_id = f"api_{uuid.uuid4().hex[:8]}"
     log.info(f"[{session_id}] Starting segmentation with {len(request.points)} points")
@@ -240,13 +344,14 @@ async def segment_jewelry(request: SegmentRequest):
             log.info(f"[{session_id}] Removing background...")
             image_no_bg = remove_background_birefnet(image_pil, birefnet_model, bg_color=(250, 250, 250))
         else:
+            log.info(f"[{session_id}] Skipping background removal (close-up detected)")
             image_no_bg = image_pil.copy()
         
-        # Resize to fixed dimensions
+        # Resize to fixed dimensions (2000x2667)
         image_highres_nobg, tracker = resize_to_fixed_dimensions(image_no_bg, 2000, 2667)
         image_highres_original, _ = resize_to_fixed_dimensions(original_image, 2000, 2667)
         
-        # Transform points
+        # Transform points to new coordinates
         scaled_points = tracker.transform_points(points)
         log.info(f"[{session_id}] Transformed points: {scaled_points}")
         
@@ -267,13 +372,13 @@ async def segment_jewelry(request: SegmentRequest):
         
         # Process mask
         mask_array = (masks[0] * 255).astype(np.uint8)
-        mask_pil = Image.fromarray(mask_array).convert("L")
-        mask_pil = process_mask(mask_pil, invert=False)
+        mask_pil_original = Image.fromarray(mask_array).convert("L")
+        mask_pil_original = process_mask(mask_pil_original, invert=False)
         
         # Dilate mask
-        mask_dilated = adjust_mask(mask_pil, DILATION_PX)
+        mask_dilated = adjust_mask(mask_pil_original, DILATION_PX)
         
-        # Create overlay
+        # Create overlay visualization
         overlay = create_overlay_visualization(image_highres_original, mask_dilated)
         
         log.info(f"[{session_id}] Segmentation complete!")
@@ -282,11 +387,53 @@ async def segment_jewelry(request: SegmentRequest):
             mask_base64=pil_to_base64(mask_dilated, "PNG"),
             mask_overlay_base64=pil_to_base64(overlay, "JPEG"),
             processed_image_base64=pil_to_base64(image_highres_original, "JPEG"),
-            session_id=session_id
+            original_mask_base64=pil_to_base64(mask_pil_original, "PNG"),
+            session_id=session_id,
+            image_width=2000,
+            image_height=2667
         )
         
     except Exception as e:
         log.error(f"[{session_id}] Segmentation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/refine-mask", response_model=RefineMaskResponse)
+async def refine_mask(request: RefineMaskRequest):
+    """
+    Apply brush edits to the mask.
+    Brush strokes: add (green) or remove (black) regions.
+    """
+    try:
+        original_image = base64_to_pil(request.original_image_base64).convert("RGB")
+        current_mask = base64_to_pil(request.current_mask_base64).convert("L")
+        
+        mask_arr = np.array(current_mask)
+        
+        for stroke in request.brush_strokes:
+            stroke_type = stroke.get("type", "add")
+            points = stroke.get("points", [])
+            radius = stroke.get("radius", 10)
+            
+            for point in points:
+                x, y = int(point[0]), int(point[1])
+                cv2.circle(
+                    mask_arr,
+                    (x, y),
+                    radius,
+                    255 if stroke_type == "add" else 0,
+                    -1  # Filled
+                )
+        
+        refined_mask = Image.fromarray(mask_arr)
+        overlay = create_overlay_visualization(original_image, refined_mask)
+        
+        return RefineMaskResponse(
+            mask_base64=pil_to_base64(refined_mask, "PNG"),
+            mask_overlay_base64=pil_to_base64(overlay, "JPEG")
+        )
+        
+    except Exception as e:
+        log.error(f"Mask refinement failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate", response_model=GenerateResponse)
@@ -296,7 +443,7 @@ async def generate_photoshoot(request: GenerateRequest):
     Returns the final result with jewelry composited.
     """
     if not models_loaded:
-        raise HTTPException(status_code=503, detail="Models not loaded yet")
+        raise HTTPException(status_code=503, detail="Models not loaded yet. Please wait.")
     
     session_id = f"gen_{uuid.uuid4().hex[:8]}"
     log.info(f"[{session_id}] Starting generation (gender={request.gender}, gemini={request.use_gemini})")
@@ -306,13 +453,19 @@ async def generate_photoshoot(request: GenerateRequest):
         original_2667 = base64_to_pil(request.image_base64).convert("RGB")
         mask_edited_2667 = base64_to_pil(request.mask_base64).convert("L")
         
+        # Get original mask if provided
+        if request.original_mask_base64:
+            mask_original = base64_to_pil(request.original_mask_base64).convert("L")
+        else:
+            mask_original = mask_edited_2667.copy()
+        
         # Ensure correct size
         if original_2667.size != (2000, 2667):
             original_2667 = original_2667.resize((2000, 2667), Image.Resampling.LANCZOS)
         if mask_edited_2667.size != (2000, 2667):
             mask_edited_2667 = mask_edited_2667.resize((2000, 2667), Image.Resampling.LANCZOS)
         
-        # Expand mask for Flux
+        # Expand mask for Flux (11px dilation for blend region)
         log.info(f"[{session_id}] Expanding mask for Flux...")
         mask_dilated_expanded = adjust_mask(mask_edited_2667, 11)
         
@@ -337,7 +490,7 @@ async def generate_photoshoot(request: GenerateRequest):
             num_inference_steps=40
         ).images[0]
         
-        # Upscale
+        # Upscale to 2000x2667
         log.info(f"[{session_id}] Upscaling...")
         flux_enhanced_2667 = upscale_with_external_script(flux_output_768, 2000, 2667)
         
@@ -381,11 +534,48 @@ async def generate_photoshoot(request: GenerateRequest):
                 log.warning(f"[{session_id}] Gemini failed: {e}")
                 result_gemini = None
         
+        # ═════════════════════════════════════════════════════════════
+        # FIDELITY ANALYSIS (optional - if points provided)
+        # ═════════════════════════════════════════════════════════════
+        fidelity_viz = None
+        metrics = None
+        
+        if request.scaled_points:
+            try:
+                result_for_metrics = result_gemini if result_gemini else result_flux
+                
+                # Re-run SAM on final output
+                mask_generated = run_sam_on_image(result_for_metrics, request.scaled_points, sam_predictor)
+                mask_generated_dilated = adjust_mask(mask_generated, DILATION_PX)
+                
+                # Apply same brush edits
+                input_original_arr = np.array(mask_original.resize((2000, 2667), Image.Resampling.NEAREST))
+                input_edited_arr = np.array(mask_edited_2667)
+                mask_generated_arr = np.array(mask_generated_dilated)
+                
+                additions = (input_edited_arr > input_original_arr)
+                removals = (input_edited_arr < input_original_arr)
+                mask_generated_arr[additions] = 255
+                mask_generated_arr[removals] = 0
+                
+                mask_generated_with_edits = Image.fromarray(mask_generated_arr.astype(np.uint8))
+                
+                # Compare and visualize
+                metrics = compare_masks(mask_edited_2667, mask_generated_with_edits)
+                fidelity_viz = create_fidelity_visualization(
+                    original_2667, result_for_metrics, mask_edited_2667, mask_generated_with_edits
+                )
+                
+            except Exception as e:
+                log.warning(f"[{session_id}] Fidelity analysis failed: {e}")
+        
         log.info(f"[{session_id}] Generation complete!")
         
         return GenerateResponse(
             result_base64=pil_to_base64(result_flux, "JPEG"),
             result_gemini_base64=pil_to_base64(result_gemini, "JPEG") if result_gemini else None,
+            fidelity_viz_base64=pil_to_base64(fidelity_viz, "JPEG") if fidelity_viz else None,
+            metrics=metrics,
             session_id=session_id
         )
         
@@ -399,8 +589,18 @@ async def generate_photoshoot(request: GenerateRequest):
 @app.on_event("startup")
 async def startup_event():
     """Load models on startup"""
-    log.info("FormaNova API starting up...")
+    log.info("=" * 60)
+    log.info("FormaNova API Server Starting...")
+    log.info("=" * 60)
     load_models()
+    log.info("=" * 60)
+    log.info("Server ready! Endpoints available:")
+    log.info("  GET  /health     - Health check")
+    log.info("  GET  /examples   - Example gallery")
+    log.info("  POST /segment    - SAM segmentation")
+    log.info("  POST /refine-mask - Brush mask editing")
+    log.info("  POST /generate   - Generate photoshoot")
+    log.info("=" * 60)
 
 if __name__ == "__main__":
     # Run with: python api_server.py
