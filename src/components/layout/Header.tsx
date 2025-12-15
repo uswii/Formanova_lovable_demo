@@ -24,7 +24,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-18 items-center justify-between px-6 py-3">
+      <div className="container flex h-18 items-center justify-between px-3 md:px-4 py-3">
         {/* Left: Logo + Theme Switcher */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center group">
