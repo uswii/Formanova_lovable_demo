@@ -33,6 +33,7 @@
     --formanova-success: 145 60% 40%;
     --formanova-warning: 38 90% 55%;
     --formanova-gold: 38 50% 55%;
+    --formanova-hero-accent: 38 55% 62%;
     --formanova-gradient-from: 40 20% 98%;
     --formanova-gradient-to: 35 15% 95%;
     
@@ -74,6 +75,7 @@
     --input: 30 8% 14%;
     --ring: 38 55% 62%;
     --formanova-glow: 38 65% 55%;
+    --formanova-hero-accent: 38 55% 62%;
     --formanova-gradient-from: 30 10% 8%;
     --formanova-gradient-to: 30 12% 5%;
     --sidebar-background: 30 12% 5%;
@@ -105,6 +107,7 @@
     --ring: 320 100% 60%;
     --radius: 0;
     --formanova-glow: 180 100% 50%;
+    --formanova-hero-accent: 320 100% 60%;
     --formanova-gradient-from: 270 45% 7%;
     --formanova-gradient-to: 320 40% 10%;
     --font-display: 'Space Mono', monospace;
@@ -134,6 +137,7 @@
     --ring: 120 100% 50%;
     --radius: 0;
     --formanova-glow: 120 100% 50%;
+    --formanova-hero-accent: 120 100% 50%;
     --formanova-gradient-from: 240 20% 12%;
     --formanova-gradient-to: 240 20% 8%;
     --font-display: 'Space Mono', monospace;
@@ -163,6 +167,7 @@
     --ring: 15 70% 38%;
     --radius: 0.125rem;
     --formanova-glow: 42 70% 52%;
+    --formanova-hero-accent: 42 70% 55%;
     --formanova-gradient-from: 35 30% 92%;
     --formanova-gradient-to: 38 35% 88%;
     --font-display: 'Cormorant Garamond', serif;
@@ -192,6 +197,7 @@
     --ring: 42 85% 55%;
     --radius: 0;
     --formanova-glow: 42 85% 55%;
+    --formanova-hero-accent: 42 85% 55%;
     --formanova-gradient-from: 0 0% 5%;
     --formanova-gradient-to: 0 0% 2%;
     --font-display: 'Cormorant Garamond', serif;
