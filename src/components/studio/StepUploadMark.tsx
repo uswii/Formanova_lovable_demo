@@ -142,41 +142,24 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
-              className="relative border-2 border-dashed border-primary/30 rounded-2xl text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all overflow-hidden"
+              className="relative border-2 border-dashed border-primary/30 rounded-2xl text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all p-12 min-h-[400px] flex flex-col items-center justify-center"
             >
-              {/* Video Background */}
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover opacity-30"
-              >
-                <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
-              </video>
-              
-              {/* Overlay gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/60" />
-              
-              {/* Content */}
-              <div className="relative z-10 p-12 min-h-[400px] flex flex-col items-center justify-center">
-                <div className="relative mx-auto w-24 h-24 mb-6">
-                  <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
-                  <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
-                    <Diamond className="h-10 w-10 text-primary" />
-                  </div>
+              <div className="relative mx-auto w-24 h-24 mb-6">
+                <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                  <Diamond className="h-10 w-10 text-primary" />
                 </div>
-                <p className="text-xl font-display font-medium mb-2">
-                  Drop your jewelry image here
-                </p>
-                <p className="text-sm text-muted-foreground mb-6">
-                  or click to browse your files
-                </p>
-                <Button variant="outline" size="lg" className="gap-2">
-                  <ImageIcon className="h-4 w-4" />
-                  Browse Files
-                </Button>
               </div>
+              <p className="text-xl font-display font-medium mb-2">
+                Drop your jewelry image here
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                or click to browse your files
+              </p>
+              <Button variant="outline" size="lg" className="gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Browse Files
+              </Button>
               
               <input
                 ref={fileInputRef}
