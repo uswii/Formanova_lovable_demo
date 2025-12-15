@@ -70,22 +70,32 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       let status: 'good' | 'bad' | null = null;
       let metricsData: StudioState['metrics'] = null;
 
-      if (response.metrics) {
-        metricsData = {
-          precision: response.metrics.precision,
-          recall: response.metrics.recall,
-          iou: response.metrics.iou,
-          growthRatio: response.metrics.growth_ratio,
-        };
+      const rawMetrics = (response as any).metrics as any;
+      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-        const isGood = metricsData.precision >= 0.95 && metricsData.recall >= 0.9 && metricsData.iou >= 0.85;
-        status = isGood ? 'good' : 'bad';
+      if (rawMetrics && typeof rawMetrics === 'object') {
+        const precision = safeNumber(rawMetrics.precision);
+        const recall = safeNumber(rawMetrics.recall);
+        const iou = safeNumber(rawMetrics.iou);
+        const growthRatio = safeNumber(rawMetrics.growth_ratio ?? rawMetrics.growthRatio);
+
+        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
+          metricsData = { precision, recall, iou, growthRatio };
+          const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
+          status = isGood ? 'good' : 'bad';
+        }
       }
+
+      const fidelityVizBase64 =
+        (response as any).fidelity_viz_base64 ?? (response as any).fidelity_viz ?? null;
+      const fidelityVizDataUrl = fidelityVizBase64
+        ? `data:image/jpeg;base64,${fidelityVizBase64}`
+        : null;
 
       updateState({
         fluxResult: `data:image/jpeg;base64,${response.result_base64}`,
         geminiResult: response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null,
-        fidelityViz: response.fidelity_viz_base64 ? `data:image/jpeg;base64,${response.fidelity_viz_base64}` : null,
+        fidelityViz: fidelityVizDataUrl,
         metrics: metricsData,
         status,
         isGenerating: false,
@@ -307,7 +317,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground text-sm">
-                  Generate results to see accuracy visualization
+                  {state.scaledPoints ? 'Generate results to see accuracy visualization' : 'Create a mask (Upload step) to enable accuracy visualization'}
                 </div>
               )}
             </CardContent>
@@ -330,11 +340,19 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <MetricCard label="Precision" value={0} placeholder />
-                  <MetricCard label="Recall" value={0} placeholder />
-                  <MetricCard label="IoU Score" value={0} placeholder />
-                  <MetricCard label="Growth" value={0} format="ratio" placeholder />
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    {state.scaledPoints
+                      ? 'Metrics will appear after generation (if fidelity analysis succeeds).'
+                      : 'Metrics require generating a mask from the Upload step.'}
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <MetricCard label="Precision" value={0} placeholder />
+                    <MetricCard label="Recall" value={0} placeholder />
+                    <MetricCard label="IoU Score" value={0} placeholder />
+                    <MetricCard label="Growth" value={0} format="ratio" placeholder />
+                  </div>
                 </div>
               )}
             </CardContent>
