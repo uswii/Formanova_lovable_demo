@@ -31,18 +31,30 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen formanova-gradient overflow-hidden">
+      {/* Full-Width Video at Top */}
+      <section className="w-full">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-auto"
+        >
+          <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
+        </video>
+      </section>
+
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center">
+      <section className="relative py-20">
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-[15%] w-3 h-3 rotate-45 border border-primary/20 animate-pulse" />
           <div className="absolute top-32 right-[20%] w-2 h-2 rotate-45 bg-primary/10" />
-          <div className="absolute bottom-40 left-[10%] w-4 h-4 rotate-45 border border-primary/15" />
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-3xl" />
         </div>
         
-        <div className="container px-6 py-20 relative z-10">
-          <div className="max-w-4xl mx-auto text-center space-y-10">
+        <div className="px-6 relative z-10">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
             {/* Jewelry indicator */}
             <div className="animate-fade-in flex items-center justify-center gap-3">
               <Diamond className="h-4 w-4 text-primary" />
@@ -71,24 +83,6 @@ export default function Welcome() {
                   Pixel-perfect preservation guaranteed
                 </span>
               </div>
-            </div>
-
-            {/* Video Showcase - Foreground */}
-            <div className="animate-fade-in animation-delay-200 py-8 w-full max-w-4xl mx-auto">
-              <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-card">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full aspect-video object-cover"
-                >
-                  <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
-                </video>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4 uppercase tracking-widest text-center">
-                See FormaNova in Action
-              </p>
             </div>
 
             {/* CTA Buttons */}
@@ -250,25 +244,46 @@ export default function Welcome() {
 
       {/* Refined Footer */}
       <footer className="bg-card border-t border-border/50">
+        {/* Trusted By Section */}
+        <div className="px-6 py-16 border-b border-border/30">
+          <div className="max-w-4xl mx-auto text-center">
+            <p className="text-sm text-muted-foreground mb-8 uppercase tracking-widest">
+              Trusted by Jewelry Brands
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide">Cartier</span>
+              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide italic">Tiffany</span>
+              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide">Bulgari</span>
+              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide italic">Chopard</span>
+            </div>
+            
+            <div className="w-24 h-px bg-border mx-auto my-10" />
+            
+            <p className="font-display text-xl text-foreground">
+              Trusted By <span className="text-primary">50+</span> Jewelry Brands
+            </p>
+          </div>
+        </div>
+        
         {/* Main Footer Content */}
-        <div className="px-6 py-16">
+        <div className="px-6 py-12">
           <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-12 items-center">
+            <div className="grid md:grid-cols-3 gap-10 items-start">
               {/* Logo & Tagline */}
               <div className="text-center md:text-left">
                 <img 
                   src={formanovaLogo} 
                   alt="FormaNova" 
-                  className="h-10 md:h-12 w-auto object-contain logo-adaptive mx-auto md:mx-0 mb-4"
+                  className="h-10 w-auto object-contain logo-adaptive mx-auto md:mx-0 mb-4"
                 />
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  The only AI built specifically for jewelry photography. Trusted by jewelers worldwide.
+                  The only AI built for jewelry photography.
                 </p>
               </div>
               
               {/* Quick Links */}
               <div className="text-center">
-                <h4 className="font-display text-lg mb-4">Quick Links</h4>
+                <h4 className="font-display text-base mb-4">Quick Links</h4>
                 <div className="flex flex-col gap-2">
                   <Link to="/studio" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                     Studio
@@ -284,7 +299,7 @@ export default function Welcome() {
               
               {/* CTA */}
               <div className="text-center md:text-right">
-                <h4 className="font-display text-lg mb-4">Ready to Start?</h4>
+                <h4 className="font-display text-base mb-4">Ready to Start?</h4>
                 <Button 
                   className="formanova-glow"
                   onClick={handleStart}
@@ -298,8 +313,8 @@ export default function Welcome() {
         </div>
         
         {/* Bottom Bar */}
-        <div className="border-t border-border/30 px-6 py-6">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-border/30 px-6 py-5">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} FormaNova. All rights reserved.
             </p>
