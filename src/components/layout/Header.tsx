@@ -23,8 +23,8 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-18 items-center justify-between pl-0 pr-4 py-3">
+    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-md">
+      <div className="flex h-16 items-center justify-between pl-2 pr-4 py-2">
         {/* Left: Logo + Theme Switcher - flush to corner */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center group pl-2">

@@ -94,41 +94,26 @@ export default function Studio() {
       <div className="theme-decorations pointer-events-none" />
       
       <div className="px-3 py-6 relative z-10">
-        {/* Necklace Optimization Notice - Bold & Eye-catching */}
-        <div className="mb-10 animate-fade-in">
-          <div className="relative overflow-hidden rounded-2xl necklace-notice-premium">
-            {/* Gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
-            
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/5 rounded-full blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-foreground/5 rounded-full blur-xl" />
-            
-            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 px-8 py-6">
-              {/* Left: Icon + Text */}
-              <div className="flex items-center gap-5">
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary-foreground/15 border-2 border-primary-foreground/30 backdrop-blur-sm">
-                  <Diamond className="h-7 w-7 text-primary-foreground" />
-                </div>
-                <div className="text-center md:text-left">
-                  <h3 className="text-xl md:text-2xl font-display font-semibold text-primary-foreground tracking-wide">
-                    Currently Optimized for Necklaces
-                  </h3>
-                  <p className="text-sm text-primary-foreground/80 mt-1">
-                    Best results with necklace photography • More jewelry types coming soon
-                  </p>
-                </div>
+        {/* Necklace Optimization Notice */}
+        <div className="mb-8 animate-fade-in">
+          <div className="relative overflow-hidden rounded-xl bg-primary">
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-5">
+              <div className="text-center md:text-left">
+                <h3 className="text-lg md:text-xl font-display font-medium text-primary-foreground">
+                  Currently Optimized for Necklaces
+                </h3>
+                <p className="text-sm text-primary-foreground/90 mt-1 font-medium">
+                  Best results with necklace photography — More jewelry types coming soon
+                </p>
               </div>
               
-              {/* Right: Tutorial Button */}
               <Button 
-                size="lg" 
-                className="shrink-0 bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                size="default" 
+                className="shrink-0 bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-medium px-5"
                 asChild
               >
                 <Link to="/tutorial">
-                  <PlayCircle className="h-5 w-5 mr-2" />
+                  <PlayCircle className="h-4 w-4 mr-2" />
                   Watch Tutorial
                 </Link>
               </Button>
@@ -137,7 +122,7 @@ export default function Studio() {
         </div>
 
         {/* Step Progress */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-6">
           {stepConfig.map((step, index) => (
             <React.Fragment key={step.id}>
               <button
