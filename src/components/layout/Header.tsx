@@ -32,8 +32,8 @@ export function Header() {
           <Link to="/" className="flex items-center gap-2 group">
             <img 
               src={formanovaLogo} 
-              alt="FormaNova" 
-              className="h-8 w-auto object-contain"
+              alt="FormaNova - The Only AI Built for Jewellery" 
+              className="h-6 w-auto object-contain dark:invert"
             />
           </Link>
         </div>
