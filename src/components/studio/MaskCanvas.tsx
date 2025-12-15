@@ -267,11 +267,11 @@ export function MaskCanvas({
   }, [mode, isDrawing, getCanvasCoords, onBrushStrokePoint, draw]);
 
   return (
-    <div ref={containerRef} className="relative inline-flex cursor-crosshair">
+    <div ref={containerRef} className="relative inline-block cursor-crosshair leading-[0]">
       <canvas ref={canvasRef} className="block" />
       <canvas
         ref={overlayCanvasRef}
-        className="absolute top-0 left-0"
+        className="absolute top-0 left-0 block"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={finishStroke}
