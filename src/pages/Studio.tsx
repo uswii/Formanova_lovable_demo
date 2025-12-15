@@ -1,28 +1,20 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Upload, 
   Paintbrush, 
   Sparkles, 
   PlayCircle,
-  Download,
-  Info,
-  CheckCircle2,
-  XCircle,
   Loader2,
-  Diamond
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
 import { StepRefineMask } from '@/components/studio/StepRefineMask';
 import { StepGenerate } from '@/components/studio/StepGenerate';
+import { ServerOffline } from '@/components/studio/ServerOffline';
+import { useA100Status } from '@/hooks/use-a100-status';
 
 export type StudioStep = 'upload' | 'refine' | 'generate';
 
@@ -49,6 +41,7 @@ export interface StudioState {
 
 export default function Studio() {
   const { user, loading } = useAuth();
+  const { isOnline, isChecking, retry } = useA100Status();
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
   const [state, setState] = useState<StudioState>({
     originalImage: null,
@@ -66,7 +59,7 @@ export default function Studio() {
     sessionId: null,
   });
 
-  if (loading) {
+  if (loading || isOnline === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -159,29 +152,35 @@ export default function Studio() {
 
         {/* Step Content */}
         <div className="grid lg:grid-cols-1 gap-6">
-          {currentStep === 'upload' && (
-            <StepUploadMark 
-              state={state} 
-              updateState={updateState}
-              onNext={() => setCurrentStep('refine')}
-            />
-          )}
-          
-          {currentStep === 'refine' && (
-            <StepRefineMask 
-              state={state} 
-              updateState={updateState}
-              onNext={() => setCurrentStep('generate')}
-              onBack={() => setCurrentStep('upload')}
-            />
-          )}
-          
-          {currentStep === 'generate' && (
-            <StepGenerate 
-              state={state} 
-              updateState={updateState}
-              onBack={() => setCurrentStep('refine')}
-            />
+          {!isOnline ? (
+            <ServerOffline onRetry={retry} isChecking={isChecking} />
+          ) : (
+            <>
+              {currentStep === 'upload' && (
+                <StepUploadMark 
+                  state={state} 
+                  updateState={updateState}
+                  onNext={() => setCurrentStep('refine')}
+                />
+              )}
+              
+              {currentStep === 'refine' && (
+                <StepRefineMask 
+                  state={state} 
+                  updateState={updateState}
+                  onNext={() => setCurrentStep('generate')}
+                  onBack={() => setCurrentStep('upload')}
+                />
+              )}
+              
+              {currentStep === 'generate' && (
+                <StepGenerate 
+                  state={state} 
+                  updateState={updateState}
+                  onBack={() => setCurrentStep('refine')}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
