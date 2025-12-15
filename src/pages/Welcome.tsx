@@ -182,17 +182,17 @@ export default function Welcome() {
                 {
                   step: '01',
                   title: 'Upload Your Photo',
-                  description: 'Upload your jewelry image and tap to mark the product you want to showcase.',
+                  description: 'Upload your jewelry image and mark the product you want to showcase.',
                 },
                 {
                   step: '02',
-                  title: 'Perfect the Selection',
-                  description: 'Use simple brush tools to refine exactly what should be included.',
+                  title: 'Segment the Jewelry',
+                  description: 'AI automatically masks your jewelry with precision. Refine with simple brush tools.',
                 },
                 {
                   step: '03',
-                  title: 'Get Your Images',
-                  description: 'Choose your model and receive professional results in seconds.',
+                  title: 'Generate Photoshoot',
+                  description: 'Choose your model and generate professional photoshoot imagery in seconds.',
                 },
               ].map((item, index) => (
                 <div 
@@ -242,85 +242,68 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Refined Footer */}
+      {/* Footer */}
       <footer className="bg-card border-t border-border/50">
-        {/* Trusted By Section */}
-        <div className="px-6 py-16 border-b border-border/30">
-          <div className="max-w-4xl mx-auto text-center">
-            <p className="text-sm text-muted-foreground mb-8 uppercase tracking-widest">
-              Trusted by Jewelry Brands
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide">Cartier</span>
-              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide italic">Tiffany</span>
-              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide">Bulgari</span>
-              <span className="font-display text-2xl md:text-3xl text-muted-foreground/60 tracking-wide italic">Chopard</span>
-            </div>
-            
-            <div className="w-24 h-px bg-border mx-auto my-10" />
-            
-            <p className="font-display text-xl text-foreground">
-              Trusted By <span className="text-primary">50+</span> Jewelry Brands
-            </p>
+        {/* Featured In Section */}
+        <div className="px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground mb-10 uppercase tracking-[0.2em]">
+            Featured In
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16 mb-12">
+            <span className="text-2xl md:text-3xl font-bold text-foreground/70">CNN</span>
+            <span className="text-xl md:text-2xl font-semibold text-foreground/70">TechCrunch</span>
+            <span className="text-lg md:text-xl font-medium text-foreground/70 uppercase tracking-wider">The Telegraph</span>
+            <span className="text-xl md:text-2xl font-bold text-foreground/70">HuffPost</span>
+          </div>
+          
+          <div className="w-32 h-px bg-border mx-auto mb-12" />
+          
+          <p className="font-display text-2xl text-foreground mb-10">
+            Trusted By <span className="text-primary font-semibold">70+</span> Brands
+          </p>
+          
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+            <span className="text-xl md:text-2xl font-bold tracking-wider text-foreground/60">HUGO BOSS</span>
+            <span className="text-xl md:text-2xl font-light tracking-widest text-foreground/60">ATOIR</span>
+            <span className="text-xl md:text-2xl italic font-light text-foreground/60">Tulleen</span>
+            <span className="text-xl md:text-2xl font-bold tracking-wide text-foreground/60">MANGO</span>
           </div>
         </div>
         
-        {/* Main Footer Content */}
-        <div className="px-6 py-12">
+        {/* Bottom Footer */}
+        <div className="border-t border-border/30 px-6 py-8">
           <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-10 items-start">
-              {/* Logo & Tagline */}
-              <div className="text-center md:text-left">
-                <img 
-                  src={formanovaLogo} 
-                  alt="FormaNova" 
-                  className="h-10 w-auto object-contain logo-adaptive mx-auto md:mx-0 mb-4"
-                />
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  The only AI built for jewelry photography.
-                </p>
-              </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Logo */}
+              <img 
+                src={formanovaLogo} 
+                alt="FormaNova" 
+                className="h-8 w-auto object-contain logo-adaptive"
+              />
               
-              {/* Quick Links */}
-              <div className="text-center">
-                <h4 className="font-display text-base mb-4">Quick Links</h4>
-                <div className="flex flex-col gap-2">
-                  <Link to="/studio" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                    Studio
-                  </Link>
-                  <Link to="/tutorial" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                    Tutorial
-                  </Link>
-                  <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                    Sign In
-                  </Link>
-                </div>
-              </div>
-              
-              {/* CTA */}
-              <div className="text-center md:text-right">
-                <h4 className="font-display text-base mb-4">Ready to Start?</h4>
-                <Button 
-                  className="formanova-glow"
-                  onClick={handleStart}
+              {/* Links */}
+              <div className="flex items-center gap-6">
+                <Link to="/studio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Studio
+                </Link>
+                <Link to="/tutorial" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Tutorial
+                </Link>
+                <a 
+                  href="https://linkedin.com/company/rare-sense-inc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Gem className="mr-2 h-4 w-4" />
-                  Get Started
-                </Button>
+                  LinkedIn
+                </a>
               </div>
+              
+              {/* Copyright */}
+              <p className="text-xs text-muted-foreground">
+                © {new Date().getFullYear()} FormaNova
+              </p>
             </div>
-          </div>
-        </div>
-        
-        {/* Bottom Bar */}
-        <div className="border-t border-border/30 px-6 py-5">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} FormaNova. All rights reserved.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Pixel-perfect jewelry imagery, every time.
-            </p>
           </div>
         </div>
       </footer>
