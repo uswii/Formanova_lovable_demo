@@ -60,14 +60,6 @@ export default function Studio() {
     scaledPoints: null,
   });
 
-  if (isOnline === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const updateState = (updates: Partial<StudioState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
@@ -77,6 +69,15 @@ export default function Studio() {
     { id: 'refine' as const, label: 'Refine Mask', icon: Paintbrush, step: 2 },
     { id: 'generate' as const, label: 'Generate', icon: Sparkles, step: 3 },
   ];
+
+  // Show loading while checking server status
+  if (isOnline === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen formanova-gradient relative overflow-hidden">
