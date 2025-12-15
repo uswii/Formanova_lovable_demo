@@ -33,7 +33,7 @@ export default function Welcome() {
     <div className="min-h-screen formanova-gradient overflow-hidden">
       {/* Full-Width Video at Top - cropped from top */}
       <section className="w-full overflow-hidden">
-        <div className="mt-[-8rem]">
+        <div className="mt-[-6rem]">
           <video
             autoPlay
             loop
