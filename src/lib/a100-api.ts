@@ -19,6 +19,7 @@ export interface SegmentResponse {
   mask_overlay_base64: string;
   processed_image_base64: string;
   original_mask_base64: string;
+  scaled_points: number[][];
   session_id: string;
   image_width: number;
   image_height: number;

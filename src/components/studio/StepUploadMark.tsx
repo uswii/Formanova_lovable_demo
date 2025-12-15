@@ -17,14 +17,13 @@ interface Props {
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
-  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
+  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]); // image pixel space
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
   const [isLoadingExamples, setIsLoadingExamples] = useState(true);
   const { toast } = useToast();
 
-  // Load examples from API
   useEffect(() => {
     const loadExamples = async () => {
       setIsLoadingExamples(true);
@@ -48,13 +47,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      updateState({ 
+      updateState({
         originalImage: result,
         markedImage: null,
         maskOverlay: null,
         maskBinary: null,
+        originalMask: null,
+        editedMask: null,
         fluxResult: null,
         geminiResult: null,
+        fidelityViz: null,
+        metrics: null,
+        status: null,
+        sessionId: null,
+        scaledPoints: null,
       });
       setRedDots([]);
       setUndoStack([]);
@@ -93,38 +99,34 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     }
 
     setIsGeneratingMask(true);
-    
+
     try {
-      // Convert dots to points array [[x, y], ...]
-      const points = redDots.map(dot => [dot.x, dot.y]);
-      
-      // Extract base64 data from the image (remove data:image/...;base64, prefix)
+      const points = redDots.map((dot) => [dot.x, dot.y]);
+
       let imageBase64 = state.originalImage;
-      if (imageBase64.includes(',')) {
-        imageBase64 = imageBase64.split(',')[1];
-      }
-      
+      if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
+
       const response = await a100Api.segment({
         image_base64: imageBase64,
-        points: points,
+        points,
       });
-      
-      if (response) {
-        updateState({
-          originalImage: `data:image/jpeg;base64,${response.processed_image_base64}`,
-          maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
-          maskBinary: `data:image/png;base64,${response.mask_base64}`,
-          sessionId: response.session_id,
-        });
-        
-        toast({
-          title: 'Mask generated',
-          description: 'You can now refine the mask in the next step.',
-        });
-        onNext();
-      } else {
-        throw new Error('Segmentation failed');
-      }
+
+      if (!response) throw new Error('Segmentation failed');
+
+      updateState({
+        originalImage: `data:image/jpeg;base64,${response.processed_image_base64}`,
+        maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
+        maskBinary: `data:image/png;base64,${response.mask_base64}`,
+        originalMask: `data:image/png;base64,${response.original_mask_base64}`,
+        sessionId: response.session_id,
+        scaledPoints: response.scaled_points ?? null,
+      });
+
+      toast({
+        title: 'Mask generated',
+        description: 'You can now refine the mask in the next step.',
+      });
+      onNext();
     } catch (error) {
       console.error('Segmentation error:', error);
       toast({
@@ -138,33 +140,37 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   };
 
   const handleCanvasClick = (x: number, y: number) => {
-    setUndoStack(prev => [...prev, redDots]);
+    setUndoStack((prev) => [...prev, redDots]);
     setRedoStack([]);
-    setRedDots(prev => [...prev, { x, y }]);
+    setRedDots((prev) => [...prev, { x, y }]);
   };
 
   const handleUndo = () => {
     if (undoStack.length === 0) return;
     const previousState = undoStack[undoStack.length - 1];
-    setUndoStack(prev => prev.slice(0, -1));
-    setRedoStack(prev => [...prev, redDots]);
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, redDots]);
     setRedDots(previousState);
   };
 
   const handleRedo = () => {
     if (redoStack.length === 0) return;
     const nextState = redoStack[redoStack.length - 1];
-    setRedoStack(prev => prev.slice(0, -1));
-    setUndoStack(prev => [...prev, redDots]);
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, redDots]);
     setRedDots(nextState);
   };
 
   const clearImage = () => {
-    updateState({ 
+    updateState({
       originalImage: null,
       markedImage: null,
       maskOverlay: null,
       maskBinary: null,
+      originalMask: null,
+      editedMask: null,
+      sessionId: null,
+      scaledPoints: null,
     });
     setRedDots([]);
     setUndoStack([]);
@@ -172,13 +178,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   };
 
   const loadExample = (example: ExampleImage) => {
-    updateState({ 
+    updateState({
       originalImage: `data:image/jpeg;base64,${example.image_base64}`,
       markedImage: null,
       maskOverlay: null,
       maskBinary: null,
+      originalMask: null,
+      editedMask: null,
       fluxResult: null,
       geminiResult: null,
+      fidelityViz: null,
+      metrics: null,
+      status: null,
+      sessionId: null,
+      scaledPoints: null,
     });
     setRedDots([]);
     setUndoStack([]);
@@ -187,16 +200,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      {/* Main Upload/Canvas Area - 2 columns */}
       <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
         <CardHeader>
           <CardTitle className="font-display flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
             Upload & Mark Your Jewelry
           </CardTitle>
-          <CardDescription>
-            Upload your jewelry image and click to mark the jewelry pieces
-          </CardDescription>
+          <CardDescription>Upload your jewelry image and click to mark the jewelry pieces</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 h-full flex flex-col">
           {!state.originalImage ? (
@@ -212,17 +222,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <Diamond className="h-10 w-10 text-primary" />
                 </div>
               </div>
-              <p className="text-xl font-display font-medium mb-2">
-                Drop your jewelry image here
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                or click to browse your files
-              </p>
+              <p className="text-xl font-display font-medium mb-2">Drop your jewelry image here</p>
+              <p className="text-sm text-muted-foreground mb-6">or click to browse your files</p>
               <Button variant="outline" size="lg" className="gap-2">
                 <ImageIcon className="h-4 w-4" />
                 Browse Files
               </Button>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -252,10 +258,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   brushColor="#FF0000"
                   brushSize={10}
                   mode="dot"
+                  coordinateSpace="image"
                 />
               </div>
-              
-              {/* Mark counter and actions */}
+
               <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
@@ -265,29 +271,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleUndo}
-                    disabled={undoStack.length === 0}
-                    title="Undo"
-                  >
+                  <Button variant="outline" size="icon" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
                     <Undo2 className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleRedo}
-                    disabled={redoStack.length === 0}
-                    title="Redo"
-                  >
+                  <Button variant="outline" size="icon" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
                     <Redo2 className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
-                      setUndoStack(prev => [...prev, redDots]);
+                      setUndoStack((prev) => [...prev, redDots]);
                       setRedoStack([]);
                       setRedDots([]);
                     }}
@@ -295,17 +289,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   >
                     Clear All
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleGenerateMask}
-                    disabled={isGeneratingMask || redDots.length === 0}
-                    className="formanova-glow"
-                  >
-                    {isGeneratingMask ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
+                  <Button size="sm" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow">
+                    {isGeneratingMask ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
                     Generate Mask
                   </Button>
                 </div>
@@ -313,7 +298,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           )}
 
-          {/* Pro Tip */}
           <Alert className="border-primary/30 bg-primary/5">
             <Lightbulb className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
@@ -323,16 +307,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </CardContent>
       </Card>
 
-      {/* Example Images Panel - 1 column */}
       <Card className="bg-card/50 backdrop-blur">
         <CardHeader>
           <CardTitle className="font-display text-lg flex items-center gap-2">
             <Diamond className="h-5 w-5 text-primary" />
             Example Gallery
           </CardTitle>
-          <CardDescription>
-            Click any example to try it out
-          </CardDescription>
+          <CardDescription>Click any example to try it out</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingExamples ? (
@@ -340,9 +321,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : exampleImages.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No examples available
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center">No server examples found.</p>
+              <p className="text-xs text-muted-foreground text-center">
+                Add images to <span className="font-mono">/home/bilal/viton_jewelry_model/examples</span> on the A100.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {exampleImages.map((example) => (
@@ -351,10 +335,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   onClick={() => loadExample(example)}
                   className="group relative aspect-square rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all bg-muted"
                 >
-                  <img 
+                  <img
                     src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
                     alt={example.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
