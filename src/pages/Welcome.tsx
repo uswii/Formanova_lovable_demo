@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Shield, Gem, Sparkles, Diamond } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Jewelry images
+// Assets
+import formanovaLogo from '@/assets/formanova-logo.png';
 import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
 import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
 import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
+import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -254,57 +256,69 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 bg-card/30 backdrop-blur-sm">
-        <div className="container px-6">
-          {/* Main Footer */}
-          <div className="py-12 grid md:grid-cols-3 gap-8 items-center">
-            {/* Brand */}
-            <div className="text-center md:text-left">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Diamond className="h-5 w-5 text-primary" />
-                <span className="font-display text-xl tracking-wide">FormaNova</span>
+      {/* Luxury Footer with Hero Image */}
+      <footer className="relative overflow-hidden">
+        {/* Hero Jewelry Image Background */}
+        <div className="relative h-[400px] md:h-[500px] w-full">
+          <div className="absolute inset-0">
+            <img 
+              src={heroNecklace} 
+              alt="Luxury diamond necklace"
+              className="w-full h-full object-cover object-center"
+            />
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-transparent" />
+          </div>
+          
+          {/* Content overlay */}
+          <div className="absolute inset-0 flex items-end">
+            <div className="container px-6 pb-16">
+              <div className="max-w-xl">
+                <p className="text-sm text-foreground/70 mb-4 uppercase tracking-widest">
+                  Trusted by Jewelers Worldwide
+                </p>
+                <h3 className="font-display text-3xl md:text-4xl text-foreground mb-6">
+                  Elevate Every Piece
+                </h3>
+                <Button 
+                  size="lg" 
+                  className="formanova-glow"
+                  onClick={handleStart}
+                >
+                  <Gem className="mr-2 h-4 w-4" />
+                  Begin Your Journey
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom bar with logo */}
+        <div className="bg-card/95 backdrop-blur-sm border-t border-border/40">
+          <div className="container px-6 py-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Large Logo */}
+              <div className="flex items-center">
+                <img 
+                  src={formanovaLogo} 
+                  alt="FormaNova" 
+                  className="h-8 md:h-10 w-auto object-contain logo-adaptive"
+                />
+              </div>
+              
+              {/* Tagline */}
+              <p className="text-sm text-muted-foreground text-center md:text-right">
                 The only AI built for jewelry photography
               </p>
             </div>
-
-            {/* Jewelry Images */}
-            <div className="flex items-center justify-center gap-3">
-              {jewelryShowcase.map((item, index) => (
-                <div 
-                  key={index}
-                  className="w-12 h-12 rounded-full overflow-hidden border border-border/50 hover:border-primary/50 transition-colors"
-                >
-                  <img 
-                    src={item.src} 
-                    alt={item.alt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+            
+            {/* Copyright */}
+            <div className="mt-6 pt-6 border-t border-border/20 text-center">
+              <p className="text-xs text-muted-foreground/70">
+                © {new Date().getFullYear()} FormaNova. All rights reserved.
+              </p>
             </div>
-
-            {/* Links */}
-            <div className="flex items-center justify-center md:justify-end gap-6 text-sm">
-              <Link to="/tutorial" className="text-muted-foreground hover:text-foreground transition-colors">
-                Tutorial
-              </Link>
-              <Link to="/studio" className="text-muted-foreground hover:text-foreground transition-colors">
-                Studio
-              </Link>
-              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
-                Sign In
-              </Link>
-            </div>
-          </div>
-
-          {/* Copyright */}
-          <div className="py-4 border-t border-border/20 text-center">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} FormaNova. Trustworthy AI for jewelry professionals.
-            </p>
           </div>
         </div>
       </footer>
