@@ -427,15 +427,6 @@
 }
 
 @layer components {
-  /* Hero accent - gold on light theme only */
-  .hero-accent {
-    color: hsl(38 55% 62%);
-  }
-  .dark .hero-accent,
-  [data-theme]:not(:root) .hero-accent {
-    color: hsl(var(--primary));
-  }
-
   .formanova-glow {
     box-shadow: 0 0 30px hsl(var(--formanova-glow) / 0.15),
                 0 0 60px hsl(var(--formanova-glow) / 0.08);
