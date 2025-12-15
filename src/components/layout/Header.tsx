@@ -24,14 +24,14 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-18 items-center justify-between px-3 md:px-4 py-3">
-        {/* Left: Logo + Theme Switcher */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center group">
+      <div className="flex h-18 items-center justify-between pl-0 pr-4 py-3">
+        {/* Left: Logo + Theme Switcher - flush to corner */}
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center group pl-2">
             <img 
               src={formanovaLogo} 
               alt="FormaNova" 
-              className="h-7 md:h-9 w-auto object-contain logo-adaptive transition-transform group-hover:scale-105"
+              className="h-10 md:h-12 w-auto object-contain logo-adaptive transition-transform group-hover:scale-105"
             />
           </Link>
           <div className="h-6 w-px bg-border/50" />
