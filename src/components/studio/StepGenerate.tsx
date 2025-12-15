@@ -249,8 +249,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   <TabsContent value="standard" className="mt-4 space-y-4">
                     {state.fluxResult && (
                       <>
-                        <div className="rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
-                          <img src={state.fluxResult} alt="Standard result" className="max-w-full h-auto max-h-[500px] object-contain" />
+                        <div className="rounded-xl overflow-hidden border border-border">
+                          <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
                         </div>
                         <Button
                           size="lg"
@@ -267,11 +267,11 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   <TabsContent value="enhanced" className="mt-4 space-y-4">
                     {(state.geminiResult || state.fluxResult) && (
                       <>
-                        <div className="rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
+                        <div className="rounded-xl overflow-hidden border border-border">
                           <img
                             src={state.geminiResult || state.fluxResult!}
                             alt="Enhanced result"
-                            className="max-w-full h-auto max-h-[500px] object-contain"
+                            className="w-full h-auto"
                           />
                         </div>
                         <Button
