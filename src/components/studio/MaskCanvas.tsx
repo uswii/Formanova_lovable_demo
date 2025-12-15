@@ -267,19 +267,21 @@ export function MaskCanvas({
   }, [mode, isDrawing, getCanvasCoords, onBrushStrokePoint, draw]);
 
   return (
-    <div ref={containerRef} className="relative w-full cursor-crosshair">
-      <canvas ref={canvasRef} className="w-full h-auto block" />
-      <canvas
-        ref={overlayCanvasRef}
-        className="absolute top-0 left-0 w-full h-auto"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={finishStroke}
-        onMouseLeave={finishStroke}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={finishStroke}
-      />
+    <div ref={containerRef} className="relative flex items-center justify-center cursor-crosshair" style={{ minHeight: canvasSize }}>
+      <div className="relative inline-block">
+        <canvas ref={canvasRef} className="block" />
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute top-0 left-0"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={finishStroke}
+          onMouseLeave={finishStroke}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={finishStroke}
+        />
+      </div>
     </div>
   );
 }
