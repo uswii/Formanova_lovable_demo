@@ -44,7 +44,7 @@ export default function Welcome() {
             {/* Headline */}
             <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-light leading-tight text-white">
               Your Jewelry,
-              <span className="block text-primary italic">Perfectly Preserved</span>
+              <span className="block text-[hsl(38,55%,62%)] italic">Perfectly Preserved</span>
             </h1>
 
             {/* Subheadline */}
