@@ -4,6 +4,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Shield, Gem, Sparkles, Diamond } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Jewelry images
+import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
+import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
+import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
+
 export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -16,21 +21,23 @@ export default function Welcome() {
     }
   };
 
+  const jewelryShowcase = [
+    { src: necklaceGold, alt: 'Gold pendant necklace', label: 'Gold Collection' },
+    { src: necklacePearl, alt: 'Pearl necklace', label: 'Pearl Elegance' },
+    { src: necklaceDiamond, alt: 'Diamond pendant', label: 'Diamond Luxury' },
+  ];
+
   return (
     <div className="min-h-screen formanova-gradient overflow-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center">
-        {/* Decorative jewelry-inspired elements */}
+        {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Floating diamond shapes */}
           <div className="absolute top-20 left-[15%] w-3 h-3 rotate-45 border border-primary/20 animate-pulse" />
           <div className="absolute top-32 right-[20%] w-2 h-2 rotate-45 bg-primary/10" />
           <div className="absolute bottom-40 left-[10%] w-4 h-4 rotate-45 border border-primary/15" />
           <div className="absolute top-1/3 right-[8%] w-2 h-2 rotate-45 bg-primary/20" />
-          
-          {/* Elegant gradient orbs */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-3xl" />
         </div>
         
         <div className="container px-6 py-20 relative z-10">
@@ -65,30 +72,28 @@ export default function Welcome() {
               </div>
             </div>
 
-            {/* Visual showcase - jewelry silhouettes */}
+            {/* Jewelry Showcase */}
             <div className="animate-fade-in animation-delay-200 py-8">
-              <div className="flex items-center justify-center gap-8 md:gap-16 opacity-60">
-                <div className="text-center">
-                  <div className="w-16 h-20 md:w-20 md:h-24 mx-auto border border-primary/30 rounded-full relative">
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-10 border border-primary/30 rounded-full" />
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-primary/40" />
+              <p className="text-xs text-muted-foreground mb-6 uppercase tracking-widest">Stunning Results</p>
+              <div className="flex items-center justify-center gap-4 md:gap-8">
+                {jewelryShowcase.map((item, index) => (
+                  <div 
+                    key={item.label}
+                    className="group relative"
+                    style={{ animationDelay: `${(index + 1) * 100}ms` }}
+                  >
+                    <div className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-lg overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:border-primary/50 group-hover:shadow-lg">
+                      <img 
+                        src={item.src} 
+                        alt={item.alt}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {item.label}
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground mt-2 block">Necklaces</span>
-                </div>
-                <div className="text-center opacity-40">
-                  <div className="w-12 h-12 md:w-14 md:h-14 mx-auto border border-muted-foreground/30 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 border border-muted-foreground/30 rounded-full" />
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-2 block">Rings</span>
-                  <span className="text-[10px] text-muted-foreground/60">Coming soon</span>
-                </div>
-                <div className="text-center opacity-40">
-                  <div className="w-10 h-14 md:w-12 md:h-16 mx-auto border border-muted-foreground/30 rounded-lg relative">
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-2 border border-muted-foreground/30 rounded-full" />
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-2 block">Earrings</span>
-                  <span className="text-[10px] text-muted-foreground/60">Coming soon</span>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -127,7 +132,6 @@ export default function Welcome() {
       <section className="py-32 relative">
         <div className="container px-6">
           <div className="max-w-5xl mx-auto">
-            {/* Section Header */}
             <div className="text-center mb-20 space-y-4">
               <span className="editorial-caps">Why Jewelers Trust Us</span>
               <h2 className="font-display text-3xl md:text-4xl font-light">
@@ -135,7 +139,6 @@ export default function Welcome() {
               </h2>
             </div>
 
-            {/* Feature Grid */}
             <div className="grid md:grid-cols-3 gap-12 md:gap-8">
               {[
                 {
@@ -252,14 +255,56 @@ export default function Welcome() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 border-t border-border/40">
+      <footer className="border-t border-border/40 bg-card/30 backdrop-blur-sm">
         <div className="container px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Diamond className="h-4 w-4 text-primary" />
-              <span className="font-display tracking-wide">FormaNova</span>
+          {/* Main Footer */}
+          <div className="py-12 grid md:grid-cols-3 gap-8 items-center">
+            {/* Brand */}
+            <div className="text-center md:text-left">
+              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
+                <Diamond className="h-5 w-5 text-primary" />
+                <span className="font-display text-xl tracking-wide">FormaNova</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                The only AI built for jewelry photography
+              </p>
             </div>
-            <p className="text-center md:text-right">The only AI built for jewelry photography</p>
+
+            {/* Jewelry Images */}
+            <div className="flex items-center justify-center gap-3">
+              {jewelryShowcase.map((item, index) => (
+                <div 
+                  key={index}
+                  className="w-12 h-12 rounded-full overflow-hidden border border-border/50 hover:border-primary/50 transition-colors"
+                >
+                  <img 
+                    src={item.src} 
+                    alt={item.alt}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Links */}
+            <div className="flex items-center justify-center md:justify-end gap-6 text-sm">
+              <Link to="/tutorial" className="text-muted-foreground hover:text-foreground transition-colors">
+                Tutorial
+              </Link>
+              <Link to="/studio" className="text-muted-foreground hover:text-foreground transition-colors">
+                Studio
+              </Link>
+              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
+                Sign In
+              </Link>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="py-4 border-t border-border/20 text-center">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} FormaNova. Trustworthy AI for jewelry professionals.
+            </p>
           </div>
         </div>
       </footer>
