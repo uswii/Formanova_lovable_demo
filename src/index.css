@@ -282,6 +282,64 @@
     --font-display: 'Space Mono', monospace;
     --font-body: 'Montserrat', sans-serif;
   }
+
+  /* NEON THEME - Electric Blue */
+  [data-theme="neon"] {
+    --background: 220 60% 4%;
+    --foreground: 200 100% 95%;
+    --card: 220 50% 8%;
+    --card-foreground: 200 100% 95%;
+    --popover: 220 50% 8%;
+    --popover-foreground: 200 100% 95%;
+    --primary: 195 100% 50%;
+    --primary-foreground: 220 60% 4%;
+    --secondary: 220 40% 15%;
+    --secondary-foreground: 195 100% 85%;
+    --muted: 220 35% 12%;
+    --muted-foreground: 195 50% 55%;
+    --accent: 280 100% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 195 50% 20%;
+    --input: 220 35% 12%;
+    --ring: 195 100% 50%;
+    --radius: 0.25rem;
+    --formanova-glow: 195 100% 55%;
+    --formanova-gradient-from: 220 50% 8%;
+    --formanova-gradient-to: 280 40% 10%;
+    --font-display: 'Space Mono', monospace;
+    --font-body: 'Montserrat', sans-serif;
+  }
+
+  /* CUTIE THEME - Soft Pastel */
+  [data-theme="cutie"] {
+    --background: 280 40% 97%;
+    --foreground: 280 30% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 280 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 280 30% 20%;
+    --primary: 280 65% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 180 45% 90%;
+    --secondary-foreground: 180 40% 25%;
+    --muted: 280 20% 94%;
+    --muted-foreground: 280 20% 45%;
+    --accent: 340 75% 70%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 280 30% 88%;
+    --input: 280 20% 94%;
+    --ring: 280 65% 65%;
+    --radius: 1.25rem;
+    --formanova-glow: 280 65% 70%;
+    --formanova-gradient-from: 280 40% 97%;
+    --formanova-gradient-to: 340 40% 96%;
+    --font-display: 'Montserrat', sans-serif;
+    --font-body: 'Montserrat', sans-serif;
+  }
 }
 
 @layer base {
