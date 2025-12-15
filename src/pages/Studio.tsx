@@ -26,8 +26,15 @@ export interface StudioState {
   gender: 'female' | 'male';
   fluxResult: string | null;
   geminiResult: string | null;
-  fidelityViz: string | null;
+  fidelityViz: string | null; // Standard fidelity visualization
+  fidelityVizGemini: string | null; // Enhanced fidelity visualization
   metrics: {
+    precision: number;
+    recall: number;
+    iou: number;
+    growthRatio: number;
+  } | null;
+  metricsGemini: {
     precision: number;
     recall: number;
     iou: number;
@@ -53,7 +60,9 @@ export default function Studio() {
     fluxResult: null,
     geminiResult: null,
     fidelityViz: null,
+    fidelityVizGemini: null,
     metrics: null,
+    metricsGemini: null,
     status: null,
     isGenerating: false,
     sessionId: null,

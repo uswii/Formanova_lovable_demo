@@ -89,23 +89,23 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         hasFlux: !!response.result_base64,
         hasGemini: !!response.result_gemini_base64,
         hasFidelityViz: !!(response as any).fidelity_viz_base64,
+        hasFidelityVizGemini: !!(response as any).fidelity_viz_gemini_base64,
         hasMetrics: !!(response as any).metrics,
-        metrics: (response as any).metrics,
+        hasMetricsGemini: !!(response as any).metrics_gemini,
         scaledPointsSent: !!state.scaledPoints,
       });
 
+      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+      
+      // Parse Standard metrics
       let status: 'good' | 'bad' | null = null;
       let metricsData: StudioState['metrics'] = null;
-
       const rawMetrics = (response as any).metrics as any;
-      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-
       if (rawMetrics && typeof rawMetrics === 'object') {
         const precision = safeNumber(rawMetrics.precision);
         const recall = safeNumber(rawMetrics.recall);
         const iou = safeNumber(rawMetrics.iou);
         const growthRatio = safeNumber(rawMetrics.growth_ratio ?? rawMetrics.growthRatio);
-
         if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
           metricsData = { precision, recall, iou, growthRatio };
           const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
@@ -113,11 +113,25 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         }
       }
 
-      const fidelityVizBase64 =
-        (response as any).fidelity_viz_base64 ?? (response as any).fidelity_viz ?? null;
-      const fidelityVizDataUrl = fidelityVizBase64
-        ? `data:image/jpeg;base64,${fidelityVizBase64}`
-        : null;
+      // Parse Enhanced metrics
+      let metricsGeminiData: StudioState['metricsGemini'] = null;
+      const rawMetricsGemini = (response as any).metrics_gemini as any;
+      if (rawMetricsGemini && typeof rawMetricsGemini === 'object') {
+        const precision = safeNumber(rawMetricsGemini.precision);
+        const recall = safeNumber(rawMetricsGemini.recall);
+        const iou = safeNumber(rawMetricsGemini.iou);
+        const growthRatio = safeNumber(rawMetricsGemini.growth_ratio ?? rawMetricsGemini.growthRatio);
+        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
+          metricsGeminiData = { precision, recall, iou, growthRatio };
+        }
+      }
+
+      // Fidelity visualizations
+      const fidelityVizBase64 = (response as any).fidelity_viz_base64 ?? null;
+      const fidelityVizDataUrl = fidelityVizBase64 ? `data:image/jpeg;base64,${fidelityVizBase64}` : null;
+      
+      const fidelityVizGeminiBase64 = (response as any).fidelity_viz_gemini_base64 ?? null;
+      const fidelityVizGeminiDataUrl = fidelityVizGeminiBase64 ? `data:image/jpeg;base64,${fidelityVizGeminiBase64}` : null;
 
       const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
@@ -128,7 +142,9 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         fluxResult: generatedImageUrl,
         geminiResult: geminiImageUrl,
         fidelityViz: fidelityVizDataUrl,
+        fidelityVizGemini: fidelityVizGeminiDataUrl,
         metrics: metricsData,
+        metricsGemini: metricsGeminiData,
         status,
         isGenerating: false,
         sessionId: response.session_id,
@@ -370,7 +386,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
                       {/* Accuracy & Metrics for Enhanced */}
                       <div className="space-y-4">
-                        <Card className={`backdrop-blur ${state.fidelityViz ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
+                        <Card className={`backdrop-blur ${state.fidelityVizGemini ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold flex items-center gap-2">
                               <Diamond className="h-4 w-4 text-primary" />
@@ -378,10 +394,10 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            {state.fidelityViz ? (
+                            {state.fidelityVizGemini ? (
                               <div className="space-y-3">
                                 <div className="rounded-lg overflow-hidden border-2 border-primary/20 shadow-md">
-                                  <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
+                                  <img src={state.fidelityVizGemini} alt="Accuracy visualization" className="w-full h-auto" />
                                 </div>
                                 <div className="flex justify-center gap-3 text-xs">
                                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
@@ -412,12 +428,12 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            {state.metrics ? (
+                            {state.metricsGemini ? (
                               <div className="grid grid-cols-2 gap-2">
-                                <MetricCard label="Precision" value={state.metrics.precision} isMain />
-                                <MetricCard label="Recall" value={state.metrics.recall} />
-                                <MetricCard label="IoU Score" value={state.metrics.iou} />
-                                <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                                <MetricCard label="Precision" value={state.metricsGemini.precision} isMain />
+                                <MetricCard label="Recall" value={state.metricsGemini.recall} />
+                                <MetricCard label="IoU Score" value={state.metricsGemini.iou} />
+                                <MetricCard label="Growth" value={state.metricsGemini.growthRatio} format="ratio" />
                               </div>
                             ) : (
                               <div className="grid grid-cols-2 gap-2">
