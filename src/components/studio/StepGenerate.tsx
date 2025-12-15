@@ -230,7 +230,24 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       </Card>
 
       <div className="space-y-6">
-        {(state.fluxResult || state.geminiResult) ? (
+        {isGenerating ? (
+          <Card className="bg-card/50 backdrop-blur min-h-[400px] flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+              <div className="relative mb-6">
+                <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+              </div>
+              <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
+              <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                  style={{ width: `${progress}%` }} 
+                />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
+            </div>
+          </Card>
+        ) : (state.fluxResult || state.geminiResult) ? (
           <Card className="bg-card/50 backdrop-blur">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
@@ -422,39 +439,22 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
           </Card>
         ) : (
           <Card className="bg-card/50 backdrop-blur min-h-[400px] flex items-center justify-center relative overflow-hidden">
-            {isGenerating ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                  <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
-                </div>
-                <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
-                <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                    style={{ width: `${progress}%` }} 
-                  />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
-              </div>
-            ) : (
-              <div className="text-center space-y-6 p-8">
-                <div className="relative mx-auto w-32 h-32">
-                  <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
-                  <div className="absolute inset-4 rounded-full border-2 border-primary/30 animate-pulse animation-delay-200" />
-                  <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-pulse animation-delay-300" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Diamond className="h-12 w-12 text-primary animate-pulse" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-display text-xl mb-2 text-foreground">Ready to Generate</h3>
-                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                    Select your model preference and click Generate to create your professional photoshoot
-                  </p>
+            <div className="text-center space-y-6 p-8">
+              <div className="relative mx-auto w-32 h-32">
+                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
+                <div className="absolute inset-4 rounded-full border-2 border-primary/30 animate-pulse animation-delay-200" />
+                <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-pulse animation-delay-300" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Diamond className="h-12 w-12 text-primary animate-pulse" />
                 </div>
               </div>
-            )}
+              <div>
+                <h3 className="font-display text-xl mb-2 text-foreground">Ready to Generate</h3>
+                <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                  Select your model preference and click Generate to create your professional photoshoot
+                </p>
+              </div>
+            </div>
           </Card>
         )}
 
