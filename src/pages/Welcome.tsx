@@ -10,6 +10,7 @@ import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
 import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
 import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
 import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
+import resultsBanner from '@/assets/jewelry/results-banner.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -219,8 +220,17 @@ export default function Welcome() {
       {/* Final CTA */}
       <section className="py-32">
         <div className="container px-6 text-center">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="max-w-5xl mx-auto space-y-12">
+            {/* Results Banner */}
+            <div className="animate-fade-in">
+              <img 
+                src={resultsBanner} 
+                alt="FormaNova AI jewelry photography results showing models wearing necklaces" 
+                className="w-full h-auto rounded-lg"
+              />
+            </div>
+            
+            <div className="flex items-center justify-center gap-3">
               <Diamond className="h-5 w-5 text-primary" />
               <Diamond className="h-3 w-3 text-primary/60" />
               <Diamond className="h-5 w-5 text-primary" />
