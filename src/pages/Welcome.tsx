@@ -116,9 +116,9 @@ export default function Welcome() {
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Sparkles className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="font-display text-2xl">Professional Models</h3>
+                <h3 className="font-display text-2xl">Realistic Visuals</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  Select male or female models and get stunning photoshoot imagery ready in seconds.
+                  Get stunning photoshoot imagery with lifelike models ready in seconds.
                 </p>
               </div>
             </div>
