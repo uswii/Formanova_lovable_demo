@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
-import { BeforeAfterSlider } from './BeforeAfterSlider';
 import { a100Api } from '@/lib/a100-api';
 
 interface Props {
@@ -251,15 +250,6 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   </TabsContent>
                 </Tabs>
 
-                {(state.geminiResult || state.fluxResult) && state.originalImage && (
-                  <div className="space-y-3 pt-4 border-t border-border">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Before / After Comparison
-                    </h4>
-                    <BeforeAfterSlider before={state.originalImage} after={state.geminiResult || state.fluxResult!} />
-                  </div>
-                )}
               </CardContent>
             </Card>
           ) : (
@@ -290,34 +280,41 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         </div>
 
         <div className="space-y-4">
-          {/* Accuracy Visualization - always show section */}
-          <Card className="bg-card/50 backdrop-blur">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
+          {/* Accuracy Visualization - prominent display */}
+          <Card className={`backdrop-blur ${state.fidelityViz ? 'bg-primary/5 border-primary/30' : 'bg-card/50'}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Diamond className="h-5 w-5 text-primary" />
                 Jewelry Accuracy
               </CardTitle>
             </CardHeader>
             <CardContent>
               {state.fidelityViz ? (
-                <div className="space-y-3">
-                  <div className="rounded-lg overflow-hidden border border-border">
+                <div className="space-y-4">
+                  <div className="rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
                     <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    <div className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/20">
-                      <div className="h-3 w-3 rounded bg-green-500" />
-                      <span>Preserved</span>
+                  <div className="flex justify-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/30">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span className="font-medium">Preserved</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 py-1 rounded bg-blue-500/20">
-                      <div className="h-3 w-3 rounded bg-blue-500" />
-                      <span>AI Expansion</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30">
+                      <div className="h-3 w-3 rounded-full bg-blue-500" />
+                      <span className="font-medium">AI Expansion</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-6 text-muted-foreground text-sm">
-                  {state.scaledPoints ? 'Generate results to see accuracy visualization' : 'Create a mask (Upload step) to enable accuracy visualization'}
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-2">
+                    <div className="h-16 w-16 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+                      <Diamond className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      {state.scaledPoints ? 'Generate to see accuracy' : 'Create mask first'}
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
