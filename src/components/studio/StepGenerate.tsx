@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Sparkles,
@@ -146,7 +145,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                   <User className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm font-medium mb-1 block text-muted-foreground">Select Model</label>
+                  <label className="text-sm font-medium mb-1 block text-muted-foreground">Select Gender</label>
                   <Select value={state.gender} onValueChange={(v) => updateState({ gender: v as 'female' | 'male' })}>
                     <SelectTrigger className="w-full bg-background border-border">
                       <SelectValue />
@@ -281,20 +280,21 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         </div>
 
         <div className="space-y-4">
-          {state.fidelityViz && (
-            <Accordion type="single" collapsible defaultValue="fidelity">
-              <AccordionItem value="fidelity" className="border rounded-xl bg-card/50 backdrop-blur overflow-hidden">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                  <span className="flex items-center gap-2 text-sm">
-                    <Info className="h-4 w-4 text-primary" />
-                    Accuracy Visualization
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
+          {/* Accuracy Visualization - always show section */}
+          <Card className="bg-card/50 backdrop-blur">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                Jewelry Accuracy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {state.fidelityViz ? (
+                <div className="space-y-3">
                   <div className="rounded-lg overflow-hidden border border-border">
-                    <img src={state.fidelityViz} alt="Fidelity visualization" className="w-full h-auto" />
+                    <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs mt-4">
+                  <div className="flex flex-wrap gap-3 text-xs">
                     <div className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/20">
                       <div className="h-3 w-3 rounded bg-green-500" />
                       <span>Preserved</span>
@@ -304,31 +304,41 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                       <span>AI Expansion</span>
                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  Generate results to see accuracy visualization
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {state.metrics && (
-            <Accordion type="single" collapsible defaultValue="metrics">
-              <AccordionItem value="metrics" className="border rounded-xl bg-card/50 backdrop-blur overflow-hidden">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                  <span className="flex items-center gap-2 text-sm">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    Quality Metrics
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <MetricCard label="Precision" value={state.metrics.precision} isMain />
-                    <MetricCard label="Recall" value={state.metrics.recall} />
-                    <MetricCard label="IoU Score" value={state.metrics.iou} />
-                    <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+          {/* Quality Metrics - always show section */}
+          <Card className="bg-card/50 backdrop-blur">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Quality Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {state.metrics ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCard label="Precision" value={state.metrics.precision} isMain />
+                  <MetricCard label="Recall" value={state.metrics.recall} />
+                  <MetricCard label="IoU Score" value={state.metrics.iou} />
+                  <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCard label="Precision" value={0} placeholder />
+                  <MetricCard label="Recall" value={0} placeholder />
+                  <MetricCard label="IoU Score" value={0} placeholder />
+                  <MetricCard label="Growth" value={0} format="ratio" placeholder />
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {!state.fluxResult && (
             <Alert className="border-primary/20 bg-primary/5">
@@ -349,19 +359,21 @@ function MetricCard({
   value,
   isMain = false,
   format = 'percent',
+  placeholder = false,
 }: {
   label: string;
   value: number;
   isMain?: boolean;
   format?: 'percent' | 'ratio';
+  placeholder?: boolean;
 }) {
-  const displayValue = format === 'ratio' ? `${value.toFixed(2)}x` : `${(value * 100).toFixed(1)}%`;
-  const isGood = format === 'percent' ? value >= 0.96 : value >= 0.95 && value <= 1.1;
+  const displayValue = placeholder ? '—' : format === 'ratio' ? `${value.toFixed(2)}x` : `${(value * 100).toFixed(1)}%`;
+  const isGood = !placeholder && (format === 'percent' ? value >= 0.96 : value >= 0.95 && value <= 1.1);
 
   return (
-    <div className={`p-3 rounded-lg border transition-all ${isMain ? 'border-primary bg-primary/10' : 'border-border bg-muted/30'}`}>
+    <div className={`p-3 rounded-lg border transition-all ${isMain && !placeholder ? 'border-primary bg-primary/10' : 'border-border bg-muted/30'}`}>
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className={`text-lg font-bold ${isGood ? 'text-green-600 dark:text-green-400' : 'text-foreground'}`}>{displayValue}</p>
+      <p className={`text-lg font-bold ${placeholder ? 'text-muted-foreground/50' : isGood ? 'text-green-600 dark:text-green-400' : 'text-foreground'}`}>{displayValue}</p>
     </div>
   );
 }
