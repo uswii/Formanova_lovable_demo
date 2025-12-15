@@ -157,7 +157,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             </TabsList>
 
             <TabsContent value="overlay" className="mt-4">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-muted/20">
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black">
                 {baseImage ? (
                   <MaskCanvas
                     image={baseImage}
@@ -165,6 +165,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                     brushSize={brushSize}
                     mode="brush"
                     coordinateSpace="image"
+                    canvasSize={480}
                     onBrushStrokeStart={handleStrokeStart}
                     onBrushStrokePoint={handleStrokePoint}
                     onBrushStrokeEnd={handleStrokeEnd}
@@ -176,21 +177,23 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                 )}
               </div>
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Green = Preserved jewelry • Black = AI-generated areas
+                <span className="text-green-500 font-medium">Green</span> = Preserved jewelry • <span className="font-medium">Black</span> = AI-generated areas
               </p>
             </TabsContent>
 
             <TabsContent value="binary" className="mt-4">
-              <div className="relative rounded-xl overflow-hidden border border-border bg-muted/20">
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black flex items-center justify-center">
                 {state.maskBinary ? (
-                  <img src={state.maskBinary} alt="Binary mask" className="w-full h-auto" />
+                  <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[480px] object-contain" />
                 ) : (
-                  <div className="aspect-[4/3] bg-muted flex items-center justify-center">
+                  <div className="aspect-[4/3] bg-muted flex items-center justify-center w-full">
                     <p className="text-muted-foreground">No mask generated yet</p>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">White = Preserved • Black = Generated</p>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                <span className="font-medium">White</span> = Preserved • <span className="font-medium">Black</span> = Generated
+              </p>
             </TabsContent>
           </Tabs>
 

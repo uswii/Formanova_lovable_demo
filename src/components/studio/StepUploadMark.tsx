@@ -241,28 +241,26 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               />
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden border border-border">
+            <div className="space-y-3">
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black">
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute top-3 right-3 z-10 shadow-lg"
+                  className="absolute top-2 right-2 z-10 shadow-lg"
                   onClick={clearImage}
                 >
                   <X className="h-4 w-4" />
                 </Button>
-                <div className="flex items-center justify-center bg-muted/20 p-4">
-                  <MaskCanvas
-                    image={state.originalImage}
-                    dots={redDots}
-                    onCanvasClick={handleCanvasClick}
-                    brushColor="#FF0000"
-                    brushSize={10}
-                    mode="dot"
-                    coordinateSpace="image"
-                    canvasSize={450}
-                  />
-                </div>
+                <MaskCanvas
+                  image={state.originalImage}
+                  dots={redDots}
+                  onCanvasClick={handleCanvasClick}
+                  brushColor="#FF0000"
+                  brushSize={10}
+                  mode="dot"
+                  coordinateSpace="image"
+                  canvasSize={480}
+                />
               </div>
 
               <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">

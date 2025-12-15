@@ -267,7 +267,7 @@ export function MaskCanvas({
   }, [mode, isDrawing, getCanvasCoords, onBrushStrokePoint, draw]);
 
   return (
-    <div ref={containerRef} className="relative flex items-center justify-center cursor-crosshair" style={{ minHeight: canvasSize }}>
+    <div ref={containerRef} className="relative flex items-center justify-center cursor-crosshair w-full">
       <div className="relative inline-block">
         <canvas ref={canvasRef} className="block" />
         <canvas
