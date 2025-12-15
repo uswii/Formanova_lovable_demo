@@ -250,7 +250,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           <Alert className="border-primary/30 bg-primary/5">
             <Lightbulb className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
-              <strong>Pro Tip:</strong> Mark multiple points across the jewelry for better detection accuracy. The more marks, the more precise the result.
+              <strong>Pro Tip:</strong> Use high-quality inputs for best results. Sharp, well-lit images produce the most accurate masks.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -268,7 +268,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {exampleImages.map((img, index) => (
               <button
                 key={index}
