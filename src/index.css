@@ -783,22 +783,22 @@
   border-left: 1px solid hsl(var(--primary) / 0.2);
 }
 
-/* Synthwave - horizon grid and sun */
+/* Synthwave - 80s neon sunset and grid */
 [data-theme="synthwave"] .theme-decorations {
   background: 
-    linear-gradient(180deg, transparent 60%, hsl(var(--primary) / 0.05) 100%);
+    linear-gradient(180deg, transparent 40%, hsl(320 100% 62% / 0.08) 70%, hsl(180 100% 48% / 0.05) 100%);
 }
 
 [data-theme="synthwave"] .theme-decorations::before {
   content: '';
   position: absolute;
-  top: 10%;
-  right: 10%;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.2));
-  box-shadow: 0 0 40px hsl(var(--primary) / 0.2);
+  top: 8%;
+  right: 8%;
+  width: 80px;
+  height: 40px;
+  border-radius: 80px 80px 0 0;
+  background: linear-gradient(180deg, hsl(320 100% 62% / 0.4), hsl(40 100% 60% / 0.2));
+  box-shadow: 0 0 60px hsl(320 100% 62% / 0.3), 0 0 100px hsl(40 100% 60% / 0.2);
 }
 
 [data-theme="synthwave"] .theme-decorations::after {
@@ -807,9 +807,12 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100px;
+  height: 150px;
   background: 
-    repeating-linear-gradient(90deg, transparent, transparent 50px, hsl(var(--primary) / 0.05) 50px, hsl(var(--primary) / 0.05) 51px);
+    repeating-linear-gradient(90deg, transparent, transparent 40px, hsl(320 100% 62% / 0.08) 40px, hsl(320 100% 62% / 0.08) 41px),
+    repeating-linear-gradient(0deg, transparent, transparent 20px, hsl(180 100% 48% / 0.06) 20px, hsl(180 100% 48% / 0.06) 21px);
+  transform: perspective(200px) rotateX(60deg);
+  transform-origin: bottom;
 }
 
 /* Neon - glowing elements */
@@ -835,44 +838,66 @@
   box-shadow: 0 0 20px hsl(var(--accent) / 0.8), 0 0 40px hsl(var(--accent) / 0.4);
 }
 
-/* Nostalgia - vintage rose decorations */
+/* Nostalgia - 80s VHS, cassette tape vibes */
+[data-theme="nostalgia"] .theme-decorations {
+  background: 
+    repeating-linear-gradient(0deg, transparent, transparent 3px, hsl(var(--foreground) / 0.01) 3px, hsl(var(--foreground) / 0.01) 4px);
+}
+
 [data-theme="nostalgia"] .theme-decorations::before {
-  content: '❀';
-  position: absolute;
-  top: 10%;
-  right: 6%;
-  font-size: 2rem;
-  color: hsl(var(--primary) / 0.2);
-}
-
-[data-theme="nostalgia"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 15%;
-  left: 4%;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: radial-gradient(circle, hsl(var(--primary) / 0.05), transparent 70%);
-}
-
-/* Cutie - pastel shapes */
-[data-theme="cutie"] .theme-decorations::before {
-  content: '✿';
+  content: '▶ REC';
   position: absolute;
   top: 8%;
   right: 5%;
-  font-size: 2.5rem;
-  color: hsl(var(--primary) / 0.2);
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: hsl(0 70% 50% / 0.4);
+  letter-spacing: 0.1em;
+  animation: blink 1.5s infinite;
+}
+
+[data-theme="nostalgia"] .theme-decorations::after {
+  content: '◉ ◉';
+  position: absolute;
+  bottom: 12%;
+  left: 4%;
+  font-size: 1.5rem;
+  letter-spacing: 0.3rem;
+  color: hsl(var(--foreground) / 0.1);
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* Cutie - floating cute elements */
+[data-theme="cutie"] .theme-decorations::before {
+  content: '♡ ✧ ♡';
+  position: absolute;
+  top: 6%;
+  right: 4%;
+  font-size: 1.2rem;
+  letter-spacing: 0.8rem;
+  color: hsl(var(--primary) / 0.25);
+  animation: float 3s ease-in-out infinite;
 }
 
 [data-theme="cutie"] .theme-decorations::after {
-  content: '◇';
+  content: '★ ☆ ★';
   position: absolute;
-  bottom: 10%;
-  left: 4%;
-  font-size: 2rem;
-  color: hsl(var(--accent) / 0.25);
+  bottom: 8%;
+  left: 3%;
+  font-size: 1rem;
+  letter-spacing: 0.6rem;
+  color: hsl(var(--accent) / 0.3);
+  animation: float 4s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 @layer utilities {
