@@ -13,18 +13,18 @@ export default function Tutorial() {
   const steps = [
     {
       step: '01',
-      title: 'Upload Your Piece',
-      description: 'Drop in any jewelry photo — we handle the rest.',
+      title: 'Upload',
+      description: 'Upload your jewelry image.',
     },
     {
       step: '02',
-      title: 'Quick Touch-Up',
-      description: 'Fine-tune the selection if needed. Most images work automatically.',
+      title: 'Modify Mask',
+      description: 'Refine the selection if needed.',
     },
     {
       step: '03',
-      title: 'Get Your Photoshoot',
-      description: 'Choose your model and receive professional imagery in seconds.',
+      title: 'Generate',
+      description: 'Get your photoshoot.',
     },
   ];
 
