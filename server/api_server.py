@@ -110,7 +110,7 @@ OUTPUT_DIR = APP_ROOT / "api_outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Example gallery path - use the actual path on the A100 server
-EXAMPLES_DIR = Path("/home/bilal/viton_jewelry_model/examples")
+EXAMPLES_DIR = Path("/home/bilal/uswa/viton_jewelry_model/EXAMPLES")
 
 # ═════════════════════════════════════════════════════════════════════
 # GLOBAL MODELS (loaded once at startup)
