@@ -19,6 +19,8 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { a100Api } from '@/lib/a100-api';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
   state: StudioState;
@@ -29,6 +31,23 @@ interface Props {
 export function StepGenerate({ state, updateState, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const saveToHistory = async (originalImage: string, generatedImage: string, maskImage?: string) => {
+    if (!user) return;
+    
+    try {
+      await supabase.from('generations').insert({
+        user_id: user.id,
+        original_image: originalImage,
+        generated_image: generatedImage,
+        mask_image: maskImage || null,
+        prompt: `${state.gender} model`,
+      });
+    } catch (error) {
+      console.error('Failed to save to history:', error);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!state.originalImage || !state.maskBinary) {
@@ -91,15 +110,25 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         ? `data:image/jpeg;base64,${fidelityVizBase64}`
         : null;
 
+      const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
+      const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
+
       updateState({
-        fluxResult: `data:image/jpeg;base64,${response.result_base64}`,
-        geminiResult: response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null,
+        fluxResult: generatedImageUrl,
+        geminiResult: geminiImageUrl,
         fidelityViz: fidelityVizDataUrl,
         metrics: metricsData,
         status,
         isGenerating: false,
         sessionId: response.session_id,
       });
+
+      // Save to history (use enhanced result if available)
+      await saveToHistory(
+        state.originalImage!,
+        geminiImageUrl || generatedImageUrl,
+        state.editedMask || state.maskBinary
+      );
 
       toast({
         title: 'Generation complete!',
