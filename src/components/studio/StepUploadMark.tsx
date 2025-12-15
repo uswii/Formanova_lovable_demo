@@ -112,7 +112,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       await new Promise((resolve) => { img.onload = resolve; });
 
       const response = await a100Api.segment({
-        image: imageBase64,
+        image_base64: imageBase64,
         points,
         client_width: img.naturalWidth,
         client_height: img.naturalHeight,
