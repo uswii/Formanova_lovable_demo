@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +28,9 @@ interface Props {
 
 export function StepGenerate({ state, updateState, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -41,7 +44,29 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
     }
 
     setIsGenerating(true);
+    setProgress(0);
+    setProgressMessage('Preparing image...');
     updateState({ isGenerating: true });
+
+    // Simulate progress updates
+    const messages = [
+      { at: 5, msg: 'Uploading to server...' },
+      { at: 15, msg: 'Processing mask...' },
+      { at: 25, msg: 'Generating base image...' },
+      { at: 45, msg: 'Applying jewelry...' },
+      { at: 60, msg: 'Enhancing with AI...' },
+      { at: 75, msg: 'Refining details...' },
+      { at: 90, msg: 'Finalizing...' },
+    ];
+    
+    progressInterval.current = setInterval(() => {
+      setProgress(prev => {
+        const next = Math.min(prev + 1, 95);
+        const msg = messages.find(m => m.at === next);
+        if (msg) setProgressMessage(msg.msg);
+        return next;
+      });
+    }, 600);
 
     try {
       let imageBase64 = state.originalImage;
@@ -103,6 +128,9 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
+      setProgress(100);
+      setProgressMessage('Complete!');
+      
       updateState({
         fluxResult: generatedImageUrl,
         geminiResult: geminiImageUrl,
@@ -126,6 +154,10 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       });
       updateState({ isGenerating: false });
     } finally {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
       setIsGenerating(false);
     }
   };
@@ -273,10 +305,14 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
                   </div>
                   <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
-                  <p className="text-muted-foreground text-sm">This may take 30-60 seconds...</p>
-                  <div className="mt-4 w-48 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+                  <p className="text-muted-foreground text-base font-medium">{progressMessage}</p>
+                  <div className="mt-4 w-64 h-3 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${progress}%` }} 
+                    />
                   </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
                 </div>
               ) : (
                 <div className="text-center space-y-6 p-8">
