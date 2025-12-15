@@ -17,7 +17,26 @@ Endpoints:
 
 import os
 import sys
+import subprocess
 from pathlib import Path
+
+# ═════════════════════════════════════════════════════════════════════
+# AUTO-INSTALL DEPENDENCIES
+# ═════════════════════════════════════════════════════════════════════
+def auto_install():
+    """Auto-install required packages if missing"""
+    required = ["fastapi", "uvicorn", "python-multipart"]
+    pip_path = Path("/home/bilal/viton_jewelry_model/.venv/bin/pip")
+    
+    for pkg in required:
+        try:
+            __import__(pkg.replace("-", "_"))
+        except ImportError:
+            print(f"Installing {pkg}...")
+            subprocess.check_call([str(pip_path), "install", "-q", pkg])
+
+auto_install()
+
 import base64
 import io
 import logging
