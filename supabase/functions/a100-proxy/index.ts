@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const A100_BASE_URL = "http://48.214.48.103:8001";
+const A100_BASE_URL = "http://48.214.48.103:8000";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
