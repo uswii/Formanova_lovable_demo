@@ -16,15 +16,15 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen formanova-gradient overflow-hidden">
-      {/* Compact Video Section */}
-      <section className="w-full overflow-hidden">
-        <div className="max-h-[300px] overflow-hidden">
+      {/* Video Section - cropped from top */}
+      <section className="w-full overflow-hidden max-h-[400px]">
+        <div className="mt-[-3.5rem]">
           <video
             autoPlay
             loop
             muted
             playsInline
-            className="w-full h-auto object-cover"
+            className="w-full h-auto"
           >
             <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
           </video>
@@ -123,8 +123,8 @@ export default function Welcome() {
                 },
                 {
                   icon: Sparkles,
-                  title: 'Choose Your Model',
-                  description: 'Select model gender and get professional photoshoot imagery ready in seconds.',
+                  title: 'Professional Models',
+                  description: 'Select male or female models and get stunning photoshoot imagery ready in seconds.',
                 },
               ].map((feature, index) => (
                 <div 
