@@ -33,7 +33,7 @@ export function Header() {
             <img 
               src={formanovaLogo} 
               alt="FormaNova - The Only AI Built for Jewellery" 
-              className="h-6 w-auto object-contain dark:invert"
+              className="h-6 w-auto object-contain logo-adaptive"
             />
           </Link>
         </div>
