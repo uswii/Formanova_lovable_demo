@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Palette } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -19,34 +19,32 @@ export function ThemeSwitcher() {
         <Button 
           variant="ghost" 
           size="sm" 
-          className="gap-2 h-9 px-3 hover:bg-secondary/80 transition-all"
+          className="h-9 px-3 gap-2 hover:bg-secondary/60 transition-colors"
         >
-          <span className="text-lg">{currentTheme?.icon}</span>
-          <span className="hidden sm:inline text-sm font-medium">
+          <span className="text-base">{currentTheme?.icon}</span>
+          <span className="hidden md:inline text-sm font-medium tracking-wide">
             {currentTheme?.label}
           </span>
-          <Palette className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="start" 
-        className="w-56 bg-popover border-border z-50"
+        className="w-52 bg-popover border-border z-50 p-1"
       >
         {themes.map((t) => (
           <DropdownMenuItem
             key={t.name}
             onClick={() => setTheme(t.name)}
-            className={`flex items-center gap-3 cursor-pointer ${
-              theme === t.name ? 'bg-secondary' : ''
+            className={`flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-sm ${
+              theme === t.name ? 'bg-secondary/80' : ''
             }`}
           >
-            <span className="text-lg">{t.icon}</span>
-            <div className="flex flex-col">
-              <span className="font-medium">{t.label}</span>
-              <span className="text-xs text-muted-foreground">{t.description}</span>
+            <span className="text-base w-6 text-center">{t.icon}</span>
+            <div className="flex-1">
+              <span className="font-medium text-sm">{t.label}</span>
             </div>
             {theme === t.name && (
-              <span className="ml-auto text-primary">✓</span>
+              <Check className="h-4 w-4 text-primary" />
             )}
           </DropdownMenuItem>
         ))}
