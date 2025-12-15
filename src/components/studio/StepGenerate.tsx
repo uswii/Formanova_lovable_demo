@@ -214,12 +214,12 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
               {isGenerating ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-3" />
-                  Generating...
+                  {state.fluxResult ? 'Regenerating...' : 'Generating...'}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-5 w-5 mr-3" />
-                  Generate Photoshoot
+                  {state.fluxResult ? 'Regenerate' : 'Generate Photoshoot'}
                 </>
               )}
             </Button>
