@@ -1,10 +1,14 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, Shield, Gem, Sparkles, Diamond, Calculator } from 'lucide-react';
+import { ArrowRight, Play, Shield, Calculator, Sparkles, Diamond } from 'lucide-react';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
+import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
+import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
+import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
+import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
 import resultsBanner from '@/assets/jewelry/results-banner.png';
 
 export default function Welcome() {
@@ -15,82 +19,58 @@ export default function Welcome() {
   };
 
   return (
-    <div className="min-h-screen formanova-gradient overflow-hidden">
-      {/* Video Section - cropped from top */}
-      <section className="w-full overflow-hidden max-h-[400px]">
-        <div className="mt-[-3.5rem]">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto"
-          >
-            <source src="/videos/jewelry-showcase.mp4" type="video/mp4" />
-          </video>
-        </div>
-      </section>
-
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative py-16">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-[15%] w-3 h-3 rotate-45 border border-primary/20 animate-pulse" />
-          <div className="absolute top-32 right-[20%] w-2 h-2 rotate-45 bg-primary/10" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-3xl" />
+      <section className="relative min-h-[90vh] flex items-center">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={heroNecklace} 
+            alt="Elegant jewelry showcase" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
         </div>
-        
-        <div className="px-6 relative z-10">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            {/* Jewelry indicator */}
-            <div className="animate-fade-in flex items-center justify-center gap-3">
+
+        {/* Content */}
+        <div className="relative z-10 container px-8 py-20">
+          <div className="max-w-2xl space-y-8">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-background/80 backdrop-blur-sm">
               <Diamond className="h-4 w-4 text-primary" />
-              <span className="editorial-caps">Professional Jewelry Photography</span>
-              <Diamond className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium tracking-wide">Professional AI Photography</span>
             </div>
 
-            {/* Main Headline */}
-            <div className="space-y-4 animate-fade-in animation-delay-100">
-              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-wide text-balance">
-                Your Jewelry
-                <span className="block italic text-primary formanova-text-glow">Perfectly Showcased</span>
-              </h1>
-              
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-                Trustable AI that keeps your product exactly as uploaded. 
-                Your jewelry never changes — and we have the math to prove it.
-              </p>
-            </div>
+            {/* Headline */}
+            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-light leading-tight">
+              Your Jewelry,
+              <span className="block text-primary italic">Perfectly Preserved</span>
+            </h1>
 
-            {/* Trust Badge */}
-            <div className="animate-fade-in animation-delay-200">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-primary/30 bg-card/50 backdrop-blur-sm formanova-glow">
-                <Calculator className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">
-                  Mathematically verified preservation
-                </span>
-              </div>
-            </div>
+            {/* Subheadline */}
+            <p className="text-xl md:text-2xl text-muted-foreground font-light leading-relaxed max-w-xl">
+              AI you can trust. Your product stays exactly as you uploaded — 
+              and we have the math to prove it.
+            </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in animation-delay-300">
+            {/* CTA */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button 
                 size="lg" 
-                className="h-14 px-8 text-base font-medium tracking-wide formanova-glow"
+                className="h-14 px-8 text-lg font-medium formanova-glow"
                 onClick={handleStart}
               >
-                <Gem className="mr-2 h-4 w-4" />
-                Start Your Photoshoot
-                <ArrowRight className="ml-2 h-4 w-4" />
+                Start Creating
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
               <Button 
                 variant="outline" 
                 size="lg"
-                className="h-14 px-8 text-base font-medium tracking-wide group"
+                className="h-14 px-8 text-lg font-medium"
                 onClick={() => navigate('/tutorial')}
               >
-                <Play className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                <Play className="mr-2 h-5 w-5" />
                 Watch Tutorial
               </Button>
             </div>
@@ -98,63 +78,112 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Features Section - Simplified */}
-      <section className="py-20 relative">
-        <div className="container px-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16 space-y-4">
-              <span className="editorial-caps">Why Choose FormaNova</span>
-              <h2 className="font-display text-3xl md:text-4xl font-light">
-                AI You Can Trust
+      {/* Trust Section */}
+      <section className="py-24 bg-secondary/30">
+        <div className="container px-8">
+          <div className="max-w-4xl mx-auto">
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <p className="text-primary font-medium tracking-widest uppercase text-sm mb-4">Why FormaNova</p>
+              <h2 className="font-display text-4xl md:text-5xl font-light">
+                AI You Can Actually Trust
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-12 md:gap-8">
-              {[
-                {
-                  icon: Shield,
-                  title: 'Zero Alterations',
-                  description: 'Your product stays exactly as you uploaded it. No AI hallucinations. No subtle changes. Ever.',
-                },
-                {
-                  icon: Calculator,
-                  title: 'Mathematically Proven',
-                  description: 'See precision metrics that verify your jewelry is preserved perfectly in every generation.',
-                },
-                {
-                  icon: Sparkles,
-                  title: 'Professional Models',
-                  description: 'Select male or female models and get stunning photoshoot imagery ready in seconds.',
-                },
-              ].map((feature, index) => (
-                <div 
-                  key={feature.title}
-                  className="text-center space-y-6 animate-fade-in group"
-                  style={{ animationDelay: `${(index + 1) * 100}ms` }}
-                >
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-primary/30 bg-card/50 group-hover:formanova-glow transition-all duration-300">
-                    <feature.icon className="h-7 w-7 text-primary" />
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="font-display text-xl font-medium">{feature.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
+            {/* Features */}
+            <div className="grid md:grid-cols-3 gap-12">
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Shield className="h-8 w-8 text-primary" />
                 </div>
-              ))}
+                <h3 className="font-display text-2xl">Zero Alterations</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Your jewelry stays exactly as uploaded. No AI hallucinations. No subtle changes. Ever.
+                </p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Calculator className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-display text-2xl">Mathematically Proven</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  See precision metrics that verify your jewelry is preserved perfectly in every generation.
+                </p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-display text-2xl">Professional Models</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Select male or female models and get stunning photoshoot imagery ready in seconds.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Process Section */}
-      <section className="py-20 bg-secondary/30">
-        <div className="container px-6">
+      {/* Jewelry Gallery Section */}
+      <section className="py-24">
+        <div className="container px-8">
+          <div className="text-center mb-16">
+            <p className="text-primary font-medium tracking-widest uppercase text-sm mb-4">Our Work</p>
+            <h2 className="font-display text-4xl md:text-5xl font-light">
+              Stunning Results
+            </h2>
+          </div>
+
+          {/* Gallery Grid */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
+              <img 
+                src={necklaceGold} 
+                alt="Gold necklace" 
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <p className="font-display text-xl">Gold Collection</p>
+              </div>
+            </div>
+
+            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
+              <img 
+                src={necklacePearl} 
+                alt="Pearl necklace" 
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <p className="font-display text-xl">Pearl Elegance</p>
+              </div>
+            </div>
+
+            <div className="group relative aspect-[3/4] overflow-hidden rounded-lg">
+              <img 
+                src={necklaceDiamond} 
+                alt="Diamond necklace" 
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <p className="font-display text-xl">Diamond Luxury</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-24 bg-secondary/30">
+        <div className="container px-8">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16 space-y-4">
-              <span className="editorial-caps">How It Works</span>
-              <h2 className="font-display text-3xl md:text-4xl font-light">
+            <div className="text-center mb-16">
+              <p className="text-primary font-medium tracking-widest uppercase text-sm mb-4">Process</p>
+              <h2 className="font-display text-4xl md:text-5xl font-light">
                 Three Simple Steps
               </h2>
             </div>
@@ -176,18 +205,14 @@ export default function Welcome() {
                   title: 'Generate & Verify',
                   description: 'Choose model gender, generate your photoshoot, and see the accuracy metrics.',
                 },
-              ].map((item, index) => (
-                <div 
-                  key={item.step}
-                  className="flex items-start gap-8 animate-fade-in"
-                  style={{ animationDelay: `${(index + 1) * 100}ms` }}
-                >
-                  <span className="font-display text-5xl md:text-6xl text-primary/30 font-light leading-none formanova-text-glow">
+              ].map((item) => (
+                <div key={item.step} className="flex items-start gap-8">
+                  <span className="font-display text-6xl md:text-7xl text-primary/20 font-light leading-none">
                     {item.step}
                   </span>
-                  <div className="pt-2 space-y-2">
-                    <h3 className="font-display text-xl md:text-2xl">{item.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{item.description}</p>
+                  <div className="pt-3 space-y-2">
+                    <h3 className="font-display text-2xl md:text-3xl">{item.title}</h3>
+                    <p className="text-muted-foreground text-lg leading-relaxed">{item.description}</p>
                   </div>
                 </div>
               ))}
@@ -196,106 +221,100 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Results Banner - Full Width */}
-      <section className="w-full animate-fade-in">
+      {/* Results Banner */}
+      <section className="w-full">
         <img 
           src={resultsBanner} 
-          alt="FormaNova AI jewelry photography results showing models wearing necklaces" 
+          alt="FormaNova AI jewelry photography results" 
           className="w-full h-auto"
         />
       </section>
 
       {/* Final CTA */}
-      <section className="py-20">
-        <div className="container px-6 text-center">
-          <div className="max-w-2xl mx-auto space-y-6">
-            
+      <section className="py-24">
+        <div className="container px-8 text-center">
+          <div className="max-w-2xl mx-auto space-y-8">
             <div className="flex items-center justify-center gap-3">
-              <Diamond className="h-5 w-5 text-primary" />
-              <Diamond className="h-3 w-3 text-primary/60" />
-              <Diamond className="h-5 w-5 text-primary" />
+              <Diamond className="h-6 w-6 text-primary" />
+              <Diamond className="h-4 w-4 text-primary/60" />
+              <Diamond className="h-6 w-6 text-primary" />
             </div>
-            <h2 className="font-display text-3xl md:text-4xl font-light">
-              Ready to Elevate Your Jewelry Photography?
+            
+            <h2 className="font-display text-4xl md:text-5xl font-light">
+              Ready to Create?
             </h2>
-            <p className="text-muted-foreground">
-              Trustable AI with verifiable accuracy. Your jewelry, unchanged.
+            
+            <p className="text-xl text-muted-foreground">
+              Professional photoshoots with mathematically verified accuracy.
             </p>
+            
             <Button 
               size="lg" 
-              className="h-14 px-10 text-base font-medium tracking-wide formanova-glow"
+              className="h-14 px-10 text-lg font-medium formanova-glow"
               onClick={handleStart}
             >
-              <Gem className="mr-2 h-4 w-4" />
-              Start Creating
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Start Your Photoshoot
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t border-border/50">
-        {/* Featured In Section */}
-        <div className="px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground mb-8 uppercase tracking-[0.2em]">
-            Featured In
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16 mb-10">
-            <span className="text-2xl md:text-3xl font-bold text-foreground/70">CNN</span>
-            <span className="text-xl md:text-2xl font-semibold text-foreground/70">TechCrunch</span>
-            <span className="text-lg md:text-xl font-medium text-foreground/70 uppercase tracking-wider">The Telegraph</span>
-            <span className="text-xl md:text-2xl font-bold text-foreground/70">HuffPost</span>
+      <footer className="bg-card border-t border-border">
+        {/* Featured In */}
+        <div className="px-8 py-16 text-center">
+          <p className="text-sm text-muted-foreground mb-10 uppercase tracking-widest">Featured In</p>
+          <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16 mb-12">
+            <span className="text-2xl md:text-3xl font-bold text-foreground/60">CNN</span>
+            <span className="text-xl md:text-2xl font-semibold text-foreground/60">TechCrunch</span>
+            <span className="text-lg md:text-xl font-medium text-foreground/60 uppercase tracking-wider">The Telegraph</span>
+            <span className="text-xl md:text-2xl font-bold text-foreground/60">HuffPost</span>
           </div>
           
-          <div className="w-32 h-px bg-border mx-auto mb-10" />
+          <div className="w-32 h-px bg-border mx-auto mb-12" />
           
-          <p className="font-display text-2xl text-foreground mb-8">
+          <p className="font-display text-2xl mb-10">
             Trusted By <span className="text-primary font-semibold">70+</span> Brands
           </p>
           
-          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
-            <span className="text-xl md:text-2xl font-bold tracking-wider text-foreground/60">HUGO BOSS</span>
-            <span className="text-xl md:text-2xl font-light tracking-widest text-foreground/60">ATOIR</span>
-            <span className="text-xl md:text-2xl italic font-light text-foreground/60">Tulleen</span>
-            <span className="text-xl md:text-2xl font-bold tracking-wide text-foreground/60">MANGO</span>
+          <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
+            <span className="text-xl md:text-2xl font-bold tracking-wider text-foreground/50">HUGO BOSS</span>
+            <span className="text-xl md:text-2xl font-light tracking-widest text-foreground/50">ATOIR</span>
+            <span className="text-xl md:text-2xl italic font-light text-foreground/50">Tulleen</span>
+            <span className="text-xl md:text-2xl font-bold tracking-wide text-foreground/50">MANGO</span>
           </div>
         </div>
         
-        {/* Bottom Footer */}
-        <div className="border-t border-border/30 px-6 py-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              {/* Logo */}
-              <img 
-                src={formanovaLogo} 
-                alt="FormaNova" 
-                className="h-8 w-auto object-contain logo-adaptive"
-              />
-              
-              {/* Links */}
-              <div className="flex items-center gap-6">
-                <Link to="/studio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Studio
-                </Link>
-                <Link to="/tutorial" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Tutorial
-                </Link>
-                <a 
-                  href="https://linkedin.com/company/rare-sense-inc" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  LinkedIn
-                </a>
-              </div>
-              
-              {/* Copyright */}
-              <p className="text-xs text-muted-foreground">
-                © {new Date().getFullYear()} FormaNova
-              </p>
+        {/* Bottom */}
+        <div className="border-t border-border/50 px-8 py-6">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <img 
+              src={formanovaLogo} 
+              alt="FormaNova" 
+              className="h-8 w-auto object-contain logo-adaptive"
+            />
+            
+            <div className="flex items-center gap-8">
+              <Link to="/studio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Studio
+              </Link>
+              <Link to="/tutorial" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Tutorial
+              </Link>
+              <a 
+                href="https://linkedin.com/company/rare-sense-inc" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                LinkedIn
+              </a>
             </div>
+            
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} FormaNova
+            </p>
           </div>
         </div>
       </footer>
