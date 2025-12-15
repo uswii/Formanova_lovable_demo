@@ -11,6 +11,10 @@ interface Props {
    * When "canvas": callbacks + dot coords are in the rendered canvas pixel space.
    */
   coordinateSpace?: 'image' | 'canvas';
+  /**
+   * Maximum height for the canvas container in pixels. Image will be scaled down to fit.
+   */
+  maxHeight?: number;
   onCanvasClick?: (x: number, y: number) => void;
   onCanvasChange?: (dataUrl: string) => void;
   onBrushStrokeStart?: () => void;
@@ -25,6 +29,7 @@ export function MaskCanvas({
   brushSize = 10,
   mode,
   coordinateSpace = 'canvas',
+  maxHeight,
   onCanvasClick,
   onCanvasChange,
   onBrushStrokeStart,
@@ -57,23 +62,30 @@ export function MaskCanvas({
       // Set canvas dimensions to match image aspect ratio
       const containerWidth = containerRef.current?.clientWidth || 600;
       const aspectRatio = img.height / img.width;
-      const height = containerWidth * aspectRatio;
+      let height = containerWidth * aspectRatio;
+      let width = containerWidth;
 
-      canvas.width = containerWidth;
+      // If maxHeight is set and calculated height exceeds it, scale down
+      if (maxHeight && height > maxHeight) {
+        height = maxHeight;
+        width = height / aspectRatio;
+      }
+
+      canvas.width = width;
       canvas.height = height;
 
       if (overlayCanvasRef.current) {
-        overlayCanvasRef.current.width = containerWidth;
+        overlayCanvasRef.current.width = width;
         overlayCanvasRef.current.height = height;
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, containerWidth, height);
+      ctx.drawImage(img, 0, 0, width, height);
       imageRef.current = img;
       setImageLoaded(true);
     };
     img.src = image;
-  }, [image]);
+  }, [image, maxHeight]);
 
   const toImageSpace = useCallback((xCanvas: number, yCanvas: number) => {
     const overlay = overlayCanvasRef.current;
