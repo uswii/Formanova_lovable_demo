@@ -91,30 +91,23 @@ export default function Studio() {
       <div className="theme-decorations pointer-events-none" />
       
       <div className="px-3 py-6 relative z-10">
-        {/* Necklace Optimization Notice */}
-        <div className="mb-8 animate-fade-in">
-          <div className="relative overflow-hidden rounded-xl bg-primary">
-            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-5">
-              <div className="text-center md:text-left">
-                <h3 className="text-lg md:text-xl font-display font-medium text-primary-foreground">
-                  Currently Optimized for Necklaces
-                </h3>
-                <p className="text-sm text-primary-foreground/90 mt-1 font-medium">
-                  Best results with necklace photography — More jewelry types coming soon
-                </p>
-              </div>
-              
-              <Button 
-                size="default" 
-                className="shrink-0 bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-medium px-5"
-                asChild
-              >
-                <Link to="/tutorial">
-                  <PlayCircle className="h-4 w-4 mr-2" />
-                  Watch Tutorial
-                </Link>
-              </Button>
-            </div>
+        {/* Step Progress with integrated notice */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+          {/* Compact Necklace Notice */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
+            <span className="text-primary font-medium">💎 Necklaces Only</span>
+            <span className="text-muted-foreground hidden sm:inline">•</span>
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="h-auto p-0 text-primary hover:text-primary/80"
+              asChild
+            >
+              <Link to="/tutorial">
+                <PlayCircle className="h-3.5 w-3.5 mr-1" />
+                Tutorial
+              </Link>
+            </Button>
           </div>
         </div>
 
