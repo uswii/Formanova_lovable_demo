@@ -12,9 +12,9 @@ interface Props {
    */
   coordinateSpace?: 'image' | 'canvas';
   /**
-   * Maximum height for the canvas container in pixels. Image will be scaled down to fit.
+   * Fixed canvas display size in pixels. Image will be scaled to fit within this size while maintaining aspect ratio.
    */
-  maxHeight?: number;
+  canvasSize?: number;
   onCanvasClick?: (x: number, y: number) => void;
   onCanvasChange?: (dataUrl: string) => void;
   onBrushStrokeStart?: () => void;
@@ -29,7 +29,7 @@ export function MaskCanvas({
   brushSize = 10,
   mode,
   coordinateSpace = 'canvas',
-  maxHeight,
+  canvasSize = 400,
   onCanvasClick,
   onCanvasChange,
   onBrushStrokeStart,
@@ -59,16 +59,19 @@ export function MaskCanvas({
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Set canvas dimensions to match image aspect ratio
-      const containerWidth = containerRef.current?.clientWidth || 600;
-      const aspectRatio = img.height / img.width;
-      let displayHeight = containerWidth * aspectRatio;
-      let displayWidth = containerWidth;
+      // Calculate display size to fit within canvasSize while maintaining aspect ratio
+      const aspectRatio = img.width / img.height;
+      let displayWidth: number;
+      let displayHeight: number;
 
-      // If maxHeight is set and calculated height exceeds it, scale down
-      if (maxHeight && displayHeight > maxHeight) {
-        displayHeight = maxHeight;
-        displayWidth = displayHeight / aspectRatio;
+      if (aspectRatio > 1) {
+        // Landscape: width is the limiting factor
+        displayWidth = canvasSize;
+        displayHeight = canvasSize / aspectRatio;
+      } else {
+        // Portrait or square: height is the limiting factor
+        displayHeight = canvasSize;
+        displayWidth = canvasSize * aspectRatio;
       }
 
       // Use device pixel ratio for sharper rendering
@@ -92,7 +95,7 @@ export function MaskCanvas({
       setImageLoaded(true);
     };
     img.src = image;
-  }, [image, maxHeight]);
+  }, [image, canvasSize]);
 
   const toImageSpace = useCallback((xDisplay: number, yDisplay: number) => {
     const overlay = overlayCanvasRef.current;
