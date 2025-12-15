@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, History, Play, Sparkles } from 'lucide-react';
+import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -28,11 +29,12 @@ export function Header() {
         <div className="flex items-center gap-6">
           <ThemeSwitcher />
           
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <Sparkles className="h-5 w-5 text-primary transition-transform duration-300 group-hover:rotate-12" />
-            <span className="font-display text-xl tracking-wide">
-              FormaNova
-            </span>
+          <Link to="/" className="flex items-center gap-2 group">
+            <img 
+              src={formanovaLogo} 
+              alt="FormaNova" 
+              className="h-8 w-auto object-contain"
+            />
           </Link>
         </div>
 
