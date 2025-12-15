@@ -48,7 +48,7 @@ export default function Welcome() {
               <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-border/60 bg-card/40 backdrop-blur-sm">
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">
-                  Non-composite technology — your jewelry is never modified
+                  AI imagery you can trust — your jewelry, always accurate
                 </span>
               </div>
             </div>
@@ -100,18 +100,18 @@ export default function Welcome() {
               {[
                 {
                   icon: Shield,
-                  title: 'Pixel-Perfect Preservation',
-                  description: 'Non-composite mode ensures your jewelry remains exactly as photographed. No AI modifications to your product—ever.',
+                  title: 'Your Jewelry, Untouched',
+                  description: 'No hallucinations. No subtle changes. Your product appears exactly as photographed, every single time.',
                 },
                 {
                   icon: Gem,
-                  title: 'Intelligent Masking',
-                  description: 'Advanced SAM technology with BiRefNet background removal. Precision metrics verify every generation.',
+                  title: 'Effortless Precision',
+                  description: 'Simply mark your jewelry and let our AI handle the rest. Professional results without the learning curve.',
                 },
                 {
                   icon: Sparkles,
-                  title: 'Dual Output Quality',
-                  description: 'Receive both standard and enhanced results. Gemini-refined backgrounds with perfect alignment.',
+                  title: 'Studio-Quality Results',
+                  description: 'Get beautiful, professional imagery ready for your website, catalog, or social media in minutes.',
                 },
               ].map((feature, index) => (
                 <div 
@@ -150,18 +150,18 @@ export default function Welcome() {
               {[
                 {
                   step: '01',
-                  title: 'Upload & Mark',
-                  description: 'Upload your jewelry image and mark the product with simple point selections.',
+                  title: 'Upload Your Photo',
+                  description: 'Upload your jewelry image and tap to mark the product you want to showcase.',
                 },
                 {
                   step: '02',
-                  title: 'Refine Mask',
-                  description: 'Fine-tune the detection with intuitive brush tools. Green to add, black to remove.',
+                  title: 'Perfect the Selection',
+                  description: 'Use simple brush tools to refine exactly what should be included.',
                 },
                 {
                   step: '03',
-                  title: 'Generate',
-                  description: 'Select model gender and generate. Receive both basic and enhanced results instantly.',
+                  title: 'Get Your Images',
+                  description: 'Choose your model and receive professional results in seconds.',
                 },
               ].map((item, index) => (
                 <div 

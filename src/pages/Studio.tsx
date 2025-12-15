@@ -92,18 +92,21 @@ export default function Studio() {
     <div className="min-h-screen formanova-gradient">
       <div className="container px-4 py-8">
         {/* Notice Banner */}
-        <Alert className="mb-6 border-destructive/50 bg-destructive/10">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>💎 Currently Optimized for Necklaces Only</span>
-            <Button variant="ghost" size="sm" asChild>
+        <div className="mb-8 flex items-center justify-center">
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm">
+            <span className="text-lg">💎</span>
+            <span className="text-sm font-medium text-foreground">
+              Best results with necklace photography
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <Button variant="ghost" size="sm" className="h-auto py-1 px-2 text-sm" asChild>
               <Link to="/tutorial">
-                <PlayCircle className="h-4 w-4 mr-2" />
-                Watch Tutorial
+                <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+                Tutorial
               </Link>
             </Button>
-          </AlertDescription>
-        </Alert>
+          </div>
+        </div>
 
         {/* Step Progress */}
         <div className="flex items-center justify-center mb-8">
