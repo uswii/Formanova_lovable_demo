@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play } from 'lucide-react';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -22,6 +22,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
   const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
+  const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
+  const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const { toast } = useToast();
 
   // Example images - these will be replaced with your A100 server images
@@ -98,7 +100,25 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   };
 
   const handleCanvasClick = (x: number, y: number) => {
+    setUndoStack(prev => [...prev, redDots]);
+    setRedoStack([]);
     setRedDots(prev => [...prev, { x, y }]);
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const previousState = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+    setRedoStack(prev => [...prev, redDots]);
+    setRedDots(previousState);
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack(prev => prev.slice(0, -1));
+    setUndoStack(prev => [...prev, redDots]);
+    setRedDots(nextState);
   };
 
   const clearImage = () => {
@@ -136,13 +156,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             Upload your jewelry image and click to mark the jewelry pieces
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 h-full flex flex-col">
           {!state.originalImage ? (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
-              className="relative border-2 border-dashed border-primary/30 rounded-2xl text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all p-12 min-h-[400px] flex flex-col items-center justify-center"
+              className="relative border-2 border-dashed border-primary/30 rounded-2xl text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all p-12 flex-1 flex flex-col items-center justify-center"
             >
               <div className="relative mx-auto w-24 h-24 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
@@ -173,8 +193,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               />
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden border border-border">
+            <div className="space-y-4 flex-1 flex flex-col">
+              <div className="relative rounded-xl overflow-hidden border border-border flex-1">
                 <Button
                   variant="secondary"
                   size="icon"
@@ -205,13 +225,35 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
+                    size="icon"
+                    onClick={handleUndo}
+                    disabled={undoStack.length === 0}
+                    title="Undo"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={handleRedo}
+                    disabled={redoStack.length === 0}
+                    title="Redo"
+                  >
+                    <Redo2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
                     size="sm"
-                    onClick={() => setRedDots([])}
+                    onClick={() => {
+                      setUndoStack(prev => [...prev, redDots]);
+                      setRedoStack([]);
+                      setRedDots([]);
+                    }}
                     disabled={redDots.length === 0}
                   >
                     Clear All
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={handleGenerateMask}
                     disabled={isGeneratingMask || redDots.length === 0}
