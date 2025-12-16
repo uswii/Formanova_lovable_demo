@@ -2,7 +2,8 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -22,6 +23,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
   const [isLoadingExamples, setIsLoadingExamples] = useState(true);
+  const [markerSize, setMarkerSize] = useState(10);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -271,7 +273,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     dots={redDots}
                     onCanvasClick={handleCanvasClick}
                     brushColor="#FF0000"
-                    brushSize={10}
+                    brushSize={markerSize}
                     mode="dot"
                     coordinateSpace="image"
                     canvasSize={400}
@@ -279,37 +281,52 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
-                  <p className="text-base">
-                    <span className="font-bold text-foreground">{redDots.length}</span>
-                    <span className="text-muted-foreground"> marks placed</span>
-                  </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
+                  <Circle className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Marker Size</span>
+                  <Slider
+                    value={[markerSize]}
+                    onValueChange={([v]) => setMarkerSize(v)}
+                    min={4}
+                    max={24}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium w-8 text-right">{markerSize}px</span>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
-                    <Undo2 className="h-5 w-5" />
-                  </Button>
-                  <Button variant="outline" size="default" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
-                    <Redo2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => {
-                      setUndoStack((prev) => [...prev, redDots]);
-                      setRedoStack([]);
-                      setRedDots([]);
-                    }}
-                    disabled={redDots.length === 0}
-                  >
-                    Clear All
-                  </Button>
-                  <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow font-semibold">
-                    {isGeneratingMask ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
-                    Generate Mask
-                  </Button>
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
+                    <p className="text-base">
+                      <span className="font-bold text-foreground">{redDots.length}</span>
+                      <span className="text-muted-foreground"> marks placed</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
+                      <Undo2 className="h-5 w-5" />
+                    </Button>
+                    <Button variant="outline" size="default" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
+                      <Redo2 className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={() => {
+                        setUndoStack((prev) => [...prev, redDots]);
+                        setRedoStack([]);
+                        setRedDots([]);
+                      }}
+                      disabled={redDots.length === 0}
+                    >
+                      Clear All
+                    </Button>
+                    <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow font-semibold">
+                      {isGeneratingMask ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
+                      Generate Mask
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
