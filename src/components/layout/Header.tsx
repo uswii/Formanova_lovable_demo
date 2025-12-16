@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Sparkles, Home } from 'lucide-react';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
@@ -26,6 +26,18 @@ export function Header() {
 
         {/* Right: Navigation */}
         <nav className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild
+            className="h-9 px-4 font-medium tracking-wide"
+          >
+            <Link to="/">
+              <Home className="h-3.5 w-3.5 mr-1.5" />
+              Home
+            </Link>
+          </Button>
+
           <Button 
             variant="ghost" 
             size="sm" 
