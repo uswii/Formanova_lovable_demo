@@ -363,24 +363,61 @@ function LuxuryDecorations() {
 function FashionDecorations() {
   return (
     <>
-      {/* Bold geometric gold lines */}
-      <div className="absolute top-0 left-[20%] w-[3px] h-48 bg-gradient-to-b from-yellow-500/60 to-transparent" />
-      <div className="absolute top-0 left-[40%] w-[2px] h-64 bg-gradient-to-b from-yellow-500/40 to-transparent" />
-      <div className="absolute top-0 right-[25%] w-[3px] h-56 bg-gradient-to-b from-yellow-500/50 to-transparent" />
-      <div className="absolute bottom-0 left-[30%] w-[2px] h-48 bg-gradient-to-t from-yellow-500/50 to-transparent" />
-      <div className="absolute bottom-0 right-[35%] w-[3px] h-40 bg-gradient-to-t from-yellow-500/60 to-transparent" />
+      {/* Runway center spotlight */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-full bg-gradient-to-b from-white/10 via-white/5 to-transparent" 
+        style={{ clipPath: 'polygon(40% 0, 60% 0, 70% 100%, 30% 100%)' }}
+      />
       
-      {/* Gold accent corners - larger */}
-      <div className="absolute top-6 left-6 w-24 h-24 border-l-4 border-t-4 border-yellow-500/60" />
-      <div className="absolute top-6 right-6 w-24 h-24 border-r-4 border-t-4 border-yellow-500/60" />
-      <div className="absolute bottom-6 left-6 w-24 h-24 border-l-4 border-b-4 border-yellow-500/60" />
-      <div className="absolute bottom-6 right-6 w-24 h-24 border-r-4 border-b-4 border-yellow-500/60" />
+      {/* Camera flash bursts */}
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-2 h-2 bg-white rounded-full animate-pulse"
+          style={{
+            top: `${20 + i * 15}%`,
+            left: i % 2 === 0 ? `${10 + i * 5}%` : 'auto',
+            right: i % 2 === 1 ? `${10 + i * 5}%` : 'auto',
+            animationDelay: `${i * 0.4}s`,
+            boxShadow: '0 0 20px 10px rgba(255,255,255,0.3)'
+          }}
+        />
+      ))}
       
-      {/* Spotlight effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full blur-3xl" />
+      {/* Dramatic side lighting */}
+      <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-yellow-500/15 to-transparent" />
+      <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-yellow-500/15 to-transparent" />
       
-      {/* Horizontal gold accent */}
-      <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
+      {/* Editorial frame lines */}
+      <div className="absolute top-8 left-8 right-8 h-[1px] bg-white/20" />
+      <div className="absolute bottom-8 left-8 right-8 h-[1px] bg-white/20" />
+      <div className="absolute top-8 bottom-8 left-8 w-[1px] bg-white/20" />
+      <div className="absolute top-8 bottom-8 right-8 w-[1px] bg-white/20" />
+      
+      {/* Diagonal fashion accent */}
+      <div className="absolute top-0 right-0 w-64 h-64 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[2px] bg-gradient-to-l from-yellow-500/60 to-transparent origin-top-right rotate-[-45deg]" />
+      </div>
+      <div className="absolute bottom-0 left-0 w-64 h-64 overflow-hidden">
+        <div className="absolute bottom-0 left-0 w-[400px] h-[2px] bg-gradient-to-r from-yellow-500/60 to-transparent origin-bottom-left rotate-[-45deg]" />
+      </div>
+      
+      {/* Elegant typography-style vertical text placeholder */}
+      <div className="absolute top-1/2 -translate-y-1/2 left-4 flex flex-col gap-2 opacity-20">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="w-1 bg-white/60" style={{ height: `${20 + (i % 3) * 15}px` }} />
+        ))}
+      </div>
+      <div className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col gap-2 opacity-20">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="w-1 bg-white/60" style={{ height: `${20 + (i % 3) * 15}px` }} />
+        ))}
+      </div>
+      
+      {/* Top spotlight glow */}
+      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-yellow-500/10 rounded-full blur-3xl" />
+      
+      {/* Model silhouette hint - abstract shape */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[2px] h-48 bg-gradient-to-t from-white/30 to-transparent" />
     </>
   );
 }
