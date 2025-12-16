@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Header } from "@/components/layout/Header";
+import { ThemeDecorations } from "@/components/ThemeDecorations";
 
 // Pages
 import Welcome from "./pages/Welcome";
@@ -21,7 +22,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen flex flex-col">
+          <ThemeDecorations />
+          <div className="min-h-screen flex flex-col relative z-10">
             <Header />
             <main className="flex-1">
               <Routes>
