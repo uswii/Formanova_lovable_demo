@@ -51,7 +51,14 @@ export interface GenerateResponse {
   result_base64: string;
   result_gemini_base64?: string;
   fidelity_viz_base64?: string;
+  fidelity_viz_gemini_base64?: string;
   metrics?: {
+    precision: number;
+    recall: number;
+    iou: number;
+    growth_ratio: number;
+  };
+  metrics_gemini?: {
     precision: number;
     recall: number;
     iou: number;
