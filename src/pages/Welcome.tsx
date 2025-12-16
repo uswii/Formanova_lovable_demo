@@ -147,7 +147,7 @@ export default function Welcome() {
                 {
                   step: '02',
                   title: 'Refine the Mask',
-                  description: 'AI automatically detects your jewelry. Fine-tune with simple brush tools if needed.',
+                  description: 'AI detects your jewelry. Edit with simple brush tools if needed.',
                 },
                 {
                   step: '03',

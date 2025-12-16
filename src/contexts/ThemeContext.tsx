@@ -25,15 +25,15 @@ export const themes: ThemeConfig[] = [
   { name: 'light', label: 'Light', icon: '☀️', description: 'Clean & Professional' },
   { name: 'dark', label: 'Dark', icon: '🌙', description: 'Deep Slate Blues' },
   { name: 'neon', label: 'Neon', icon: '⚡', description: 'Electric Blue Glow' },
-  { name: 'nostalgia', label: 'Nostalgia', icon: '📻', description: 'Warm Vintage Memories' },
-  { name: 'cutie', label: 'Cutie', icon: '💜', description: 'Soft Pastel' },
+  { name: 'nostalgia', label: 'Nostalgia', icon: '📻', description: 'Warm Sepia Tones' },
+  { name: 'cutie', label: 'Cutie', icon: '💜', description: 'Dreamy Lavender Pink' },
   { name: 'cyberpunk', label: 'Cyberpunk', icon: '🌆', description: 'Neon Pink & Cyan' },
   { name: 'retro', label: 'Retro Game', icon: '🎮', description: '8-bit Arcade' },
   { name: 'vintage', label: 'Vintage', icon: '📷', description: 'Warm Americana' },
-  { name: 'fashion', label: 'High Fashion', icon: '✨', description: 'Black & Gold' },
-  { name: 'kawaii', label: 'Kawaii', icon: '🌸', description: 'Cute & Playful' },
-  { name: 'luxury', label: 'Luxury', icon: '👑', description: 'Champagne Elegance' },
-  { name: 'synthwave', label: 'Synthwave', icon: '🌃', description: 'Retro-Futuristic' },
+  { name: 'fashion', label: 'High Fashion', icon: '✨', description: 'Stark Black & Gold' },
+  { name: 'kawaii', label: 'Kawaii', icon: '🌸', description: 'Sakura Pink & Mint' },
+  { name: 'luxury', label: 'Luxury', icon: '👑', description: 'Burgundy & Rose Gold' },
+  { name: 'synthwave', label: 'Synthwave', icon: '🌃', description: 'Purple Sunset Grid' },
 ];
 
 interface ThemeContextType {

@@ -204,89 +204,92 @@
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* KAWAII THEME */
+  /* KAWAII THEME - Bright Sakura Pink & Mint */
   [data-theme="kawaii"] {
-    --background: 330 60% 97%;
-    --foreground: 330 40% 22%;
+    --background: 340 80% 96%;
+    --foreground: 340 50% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 330 40% 22%;
+    --card-foreground: 340 50% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 330 40% 22%;
-    --primary: 330 70% 60%;
+    --popover-foreground: 340 50% 18%;
+    --primary: 340 85% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 180 50% 88%;
-    --secondary-foreground: 180 45% 25%;
-    --muted: 330 25% 93%;
-    --muted-foreground: 330 25% 42%;
-    --accent: 45 90% 68%;
-    --accent-foreground: 45 70% 22%;
-    --destructive: 0 70% 55%;
+    --secondary: 160 60% 85%;
+    --secondary-foreground: 160 55% 22%;
+    --muted: 340 30% 92%;
+    --muted-foreground: 340 30% 40%;
+    --accent: 50 100% 65%;
+    --accent-foreground: 50 80% 18%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 330 40% 88%;
-    --input: 330 25% 93%;
-    --ring: 330 70% 60%;
-    --radius: 1rem;
-    --formanova-glow: 330 70% 65%;
-    --formanova-gradient-from: 330 60% 97%;
-    --formanova-gradient-to: 180 50% 95%;
+    --border: 340 50% 85%;
+    --input: 340 30% 92%;
+    --ring: 340 85% 65%;
+    --radius: 1.5rem;
+    --formanova-glow: 340 85% 70%;
+    --formanova-hero-accent: 340 85% 65%;
+    --formanova-gradient-from: 340 80% 96%;
+    --formanova-gradient-to: 160 50% 94%;
     --font-display: 'Montserrat', sans-serif;
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* LUXURY THEME - Champagne & Noir */
+  /* LUXURY THEME - Deep Burgundy & Rose Gold */
   [data-theme="luxury"] {
-    --background: 30 8% 4%;
-    --foreground: 38 25% 88%;
-    --card: 30 8% 7%;
-    --card-foreground: 38 25% 88%;
-    --popover: 30 8% 7%;
-    --popover-foreground: 38 25% 88%;
-    --primary: 38 50% 58%;
-    --primary-foreground: 30 8% 4%;
-    --secondary: 30 10% 12%;
-    --secondary-foreground: 38 25% 85%;
-    --muted: 30 8% 10%;
-    --muted-foreground: 38 15% 50%;
-    --accent: 38 50% 58%;
-    --accent-foreground: 30 8% 4%;
-    --destructive: 0 50% 40%;
-    --destructive-foreground: 38 25% 88%;
-    --border: 30 10% 16%;
-    --input: 30 8% 10%;
-    --ring: 38 50% 58%;
+    --background: 350 25% 6%;
+    --foreground: 30 30% 90%;
+    --card: 350 20% 10%;
+    --card-foreground: 30 30% 90%;
+    --popover: 350 20% 10%;
+    --popover-foreground: 30 30% 90%;
+    --primary: 15 60% 58%;
+    --primary-foreground: 350 25% 6%;
+    --secondary: 350 18% 15%;
+    --secondary-foreground: 30 25% 85%;
+    --muted: 350 15% 12%;
+    --muted-foreground: 30 15% 52%;
+    --accent: 15 60% 58%;
+    --accent-foreground: 350 25% 6%;
+    --destructive: 0 55% 42%;
+    --destructive-foreground: 30 30% 90%;
+    --border: 350 15% 20%;
+    --input: 350 15% 12%;
+    --ring: 15 60% 58%;
     --radius: 0.125rem;
-    --formanova-glow: 38 50% 58%;
-    --formanova-gradient-from: 30 8% 7%;
-    --formanova-gradient-to: 30 8% 4%;
+    --formanova-glow: 15 60% 62%;
+    --formanova-hero-accent: 15 60% 58%;
+    --formanova-gradient-from: 350 20% 10%;
+    --formanova-gradient-to: 350 25% 6%;
     --font-display: 'Cormorant Garamond', serif;
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* SYNTHWAVE THEME */
+  /* SYNTHWAVE THEME - Purple Sunset Grid */
   [data-theme="synthwave"] {
-    --background: 270 55% 6%;
-    --foreground: 330 100% 92%;
-    --card: 270 45% 10%;
-    --card-foreground: 330 100% 92%;
-    --popover: 270 45% 10%;
-    --popover-foreground: 330 100% 92%;
+    --background: 280 60% 5%;
+    --foreground: 50 100% 90%;
+    --card: 280 50% 9%;
+    --card-foreground: 50 100% 90%;
+    --popover: 280 50% 9%;
+    --popover-foreground: 50 100% 90%;
     --primary: 320 100% 62%;
-    --primary-foreground: 270 55% 6%;
-    --secondary: 270 35% 18%;
-    --secondary-foreground: 330 100% 90%;
-    --muted: 270 30% 15%;
-    --muted-foreground: 320 45% 58%;
-    --accent: 180 100% 48%;
-    --accent-foreground: 270 55% 6%;
+    --primary-foreground: 280 60% 5%;
+    --secondary: 280 40% 16%;
+    --secondary-foreground: 50 100% 88%;
+    --muted: 280 35% 13%;
+    --muted-foreground: 320 50% 60%;
+    --accent: 50 100% 55%;
+    --accent-foreground: 280 60% 5%;
     --destructive: 0 100% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 320 35% 22%;
-    --input: 270 30% 15%;
+    --border: 320 40% 22%;
+    --input: 280 35% 13%;
     --ring: 320 100% 62%;
     --radius: 0.125rem;
     --formanova-glow: 320 100% 68%;
-    --formanova-gradient-from: 270 45% 10%;
-    --formanova-gradient-to: 320 45% 15%;
+    --formanova-hero-accent: 50 100% 55%;
+    --formanova-gradient-from: 280 50% 9%;
+    --formanova-gradient-to: 320 50% 12%;
     --font-display: 'Space Mono', monospace;
     --font-body: 'Montserrat', sans-serif;
   }
@@ -314,6 +317,7 @@
     --ring: 195 100% 50%;
     --radius: 0.25rem;
     --formanova-glow: 195 100% 55%;
+    --formanova-hero-accent: 195 100% 50%;
     --formanova-gradient-from: 220 50% 8%;
     --formanova-gradient-to: 280 40% 10%;
     --font-display: 'Space Mono', monospace;
@@ -321,60 +325,62 @@
     --neon-glow-intense: 195 100% 60%;
   }
 
-  /* NOSTALGIA THEME - Dusty Rose & Vintage Pink */
+  /* NOSTALGIA THEME - Sepia Toned Warm Brown */
   [data-theme="nostalgia"] {
-    --background: 350 30% 95%;
-    --foreground: 350 20% 18%;
-    --card: 350 25% 98%;
-    --card-foreground: 350 20% 18%;
-    --popover: 350 25% 98%;
-    --popover-foreground: 350 20% 18%;
-    --primary: 340 55% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 350 35% 88%;
-    --secondary-foreground: 350 25% 25%;
-    --muted: 350 25% 92%;
-    --muted-foreground: 350 15% 45%;
-    --accent: 20 60% 65%;
-    --accent-foreground: 20 50% 18%;
+    --background: 35 35% 90%;
+    --foreground: 30 30% 18%;
+    --card: 38 30% 94%;
+    --card-foreground: 30 30% 18%;
+    --popover: 38 30% 94%;
+    --popover-foreground: 30 30% 18%;
+    --primary: 25 60% 45%;
+    --primary-foreground: 38 30% 95%;
+    --secondary: 40 30% 82%;
+    --secondary-foreground: 30 30% 22%;
+    --muted: 35 25% 86%;
+    --muted-foreground: 30 20% 42%;
+    --accent: 180 35% 42%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 350 25% 85%;
-    --input: 350 25% 92%;
-    --ring: 340 55% 55%;
-    --radius: 0.5rem;
-    --formanova-glow: 340 60% 60%;
-    --formanova-gradient-from: 350 30% 95%;
-    --formanova-gradient-to: 340 35% 92%;
+    --border: 35 25% 78%;
+    --input: 35 25% 86%;
+    --ring: 25 60% 45%;
+    --radius: 0.25rem;
+    --formanova-glow: 25 65% 50%;
+    --formanova-hero-accent: 25 60% 45%;
+    --formanova-gradient-from: 35 35% 90%;
+    --formanova-gradient-to: 40 30% 85%;
     --font-display: 'Cormorant Garamond', serif;
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* CUTIE THEME - Soft Pastel */
+  /* CUTIE THEME - Dreamy Lavender & Baby Pink */
   [data-theme="cutie"] {
-    --background: 280 40% 97%;
-    --foreground: 280 30% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 280 30% 20%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 280 30% 20%;
-    --primary: 280 65% 65%;
+    --background: 270 50% 96%;
+    --foreground: 270 35% 22%;
+    --card: 290 40% 98%;
+    --card-foreground: 270 35% 22%;
+    --popover: 290 40% 98%;
+    --popover-foreground: 270 35% 22%;
+    --primary: 300 70% 68%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 180 45% 90%;
-    --secondary-foreground: 180 40% 25%;
-    --muted: 280 20% 94%;
-    --muted-foreground: 280 20% 45%;
-    --accent: 340 75% 70%;
+    --secondary: 200 60% 88%;
+    --secondary-foreground: 200 50% 25%;
+    --muted: 270 30% 92%;
+    --muted-foreground: 270 25% 45%;
+    --accent: 330 80% 72%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 280 30% 88%;
-    --input: 280 20% 94%;
-    --ring: 280 65% 65%;
-    --radius: 1.25rem;
-    --formanova-glow: 280 65% 70%;
-    --formanova-gradient-from: 280 40% 97%;
-    --formanova-gradient-to: 340 40% 96%;
+    --border: 270 40% 85%;
+    --input: 270 30% 92%;
+    --ring: 300 70% 68%;
+    --radius: 1.5rem;
+    --formanova-glow: 300 70% 72%;
+    --formanova-hero-accent: 330 80% 72%;
+    --formanova-gradient-from: 270 50% 96%;
+    --formanova-gradient-to: 330 50% 95%;
     --font-display: 'Montserrat', sans-serif;
     --font-body: 'Montserrat', sans-serif;
   }
