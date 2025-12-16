@@ -150,10 +150,6 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         sessionId: response.session_id,
       });
 
-      toast({
-        title: 'Generation complete!',
-        description: 'Your photoshoot has been generated successfully.',
-      });
     } catch (error) {
       console.error('Generation error:', error);
       toast({

@@ -123,10 +123,6 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
         editedMask: `data:image/png;base64,${response.mask_base64}`,
       });
 
-      toast({
-        title: 'Mask edits applied',
-        description: 'Your refinements have been saved.',
-      });
       onNext();
     } catch (error) {
       console.error('Refine mask error:', error);

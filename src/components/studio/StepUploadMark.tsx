@@ -138,10 +138,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         scaledPoints: response.scaled_points ?? null,
       });
 
-      toast({
-        title: 'Mask generated',
-        description: 'You can now refine the mask in the next step.',
-      });
       onNext();
     } catch (error) {
       console.error('Segmentation error:', error);
