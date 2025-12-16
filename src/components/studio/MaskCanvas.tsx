@@ -1,5 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
+interface BrushStroke {
+  type: 'add' | 'remove';
+  points: number[][];
+  radius: number;
+}
+
 interface Props {
   image: string;
   dots?: { x: number; y: number }[];
@@ -15,6 +21,10 @@ interface Props {
    * Fixed canvas display size in pixels. Image will be scaled to fit within this size while maintaining aspect ratio.
    */
   canvasSize?: number;
+  /**
+   * Initial strokes to render on the canvas (for undo/redo support)
+   */
+  initialStrokes?: BrushStroke[];
   onCanvasClick?: (x: number, y: number) => void;
   onCanvasChange?: (dataUrl: string) => void;
   onBrushStrokeStart?: () => void;
@@ -30,6 +40,7 @@ export function MaskCanvas({
   mode,
   coordinateSpace = 'canvas',
   canvasSize = 400,
+  initialStrokes = [],
   onCanvasClick,
   onCanvasChange,
   onBrushStrokeStart,
@@ -122,6 +133,34 @@ export function MaskCanvas({
       y: (yImage / nat.h) * displayHeight,
     };
   }, []);
+
+  // Draw initial strokes when image loads or initialStrokes changes (for undo/redo)
+  useEffect(() => {
+    if (!imageLoaded || mode !== 'brush') return;
+
+    const overlay = overlayCanvasRef.current;
+    const ctx = overlay?.getContext('2d');
+    if (!overlay || !ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Clear and reset
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.scale(dpr, dpr);
+
+    // Redraw all initial strokes
+    initialStrokes.forEach((stroke) => {
+      const color = stroke.type === 'add' ? '#00FF00' : '#000000';
+      stroke.points.forEach((point) => {
+        const canvasPt = coordinateSpace === 'image' ? toCanvasSpace(point[0], point[1]) : { x: point[0], y: point[1] };
+        ctx.beginPath();
+        ctx.arc(canvasPt.x, canvasPt.y, stroke.radius / 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    });
+  }, [imageLoaded, initialStrokes, mode, coordinateSpace, toCanvasSpace]);
 
   // Draw dots for marking mode
   useEffect(() => {

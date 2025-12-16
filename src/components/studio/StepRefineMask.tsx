@@ -34,11 +34,14 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
   const { toast } = useToast();
 
   const effectiveStrokes = useMemo(() => {
-    if (historyIndex < 0) return currentStrokes;
-    return history[historyIndex] ?? currentStrokes;
-  }, [history, historyIndex, currentStrokes]);
+    if (historyIndex < 0) return [];
+    return history[historyIndex] ?? [];
+  }, [history, historyIndex]);
 
   const [activeStroke, setActiveStroke] = useState<BrushStroke | null>(null);
+  
+  // Key to force MaskCanvas re-render when undo/redo changes strokes
+  const canvasKey = useMemo(() => `canvas-${historyIndex}-${history.length}`, [historyIndex, history.length]);
 
   const pushHistory = useCallback((next: BrushStroke[]) => {
     const trimmed = history.slice(0, historyIndex + 1);
@@ -161,12 +164,14 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   {baseImage ? (
                     <MaskCanvas
+                      key={canvasKey}
                       image={baseImage}
                       brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
                       brushSize={brushSize}
                       mode="brush"
                       coordinateSpace="image"
                       canvasSize={400}
+                      initialStrokes={effectiveStrokes}
                       onBrushStrokeStart={handleStrokeStart}
                       onBrushStrokePoint={handleStrokePoint}
                       onBrushStrokeEnd={handleStrokeEnd}
