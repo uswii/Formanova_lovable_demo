@@ -23,22 +23,40 @@ export function ThemeDecorations() {
 function NeonDecorations() {
   return (
     <>
-      {/* Glowing horizontal lines */}
-      <div className="absolute top-20 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-      <div className="absolute top-40 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
-      <div className="absolute bottom-32 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+      {/* Animated glowing lines */}
+      <div className="absolute top-24 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
+      <div className="absolute top-48 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <div className="absolute bottom-24 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80 animate-pulse" style={{ animationDelay: '1s' }} />
       
-      {/* Corner glow effects */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+      {/* Large corner glow orbs */}
+      <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute -bottom-20 -left-20 w-[350px] h-[350px] bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/2 -right-10 w-[200px] h-[200px] bg-blue-500/15 rounded-full blur-2xl animate-float" />
       
-      {/* Electric sparks */}
-      <svg className="absolute top-32 right-20 w-6 h-6 text-cyan-400 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
-      </svg>
-      <svg className="absolute bottom-48 left-16 w-4 h-4 text-cyan-400/60 animate-pulse" style={{ animationDelay: '0.5s' }} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
-      </svg>
+      {/* Electric sparks scattered */}
+      {[...Array(6)].map((_, i) => (
+        <svg 
+          key={i}
+          className="absolute text-cyan-400 animate-pulse"
+          style={{
+            top: `${15 + i * 15}%`,
+            left: i % 2 === 0 ? `${5 + i * 5}%` : 'auto',
+            right: i % 2 === 1 ? `${5 + i * 5}%` : 'auto',
+            width: `${20 + (i % 3) * 8}px`,
+            height: `${20 + (i % 3) * 8}px`,
+            animationDelay: `${i * 0.3}s`,
+            filter: 'drop-shadow(0 0 8px currentColor)'
+          }}
+          viewBox="0 0 24 24" 
+          fill="currentColor"
+        >
+          <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+        </svg>
+      ))}
+      
+      {/* Vertical glow bars */}
+      <div className="absolute top-0 left-[15%] w-[3px] h-full bg-gradient-to-b from-cyan-400/40 via-transparent to-cyan-400/40 animate-pulse" />
+      <div className="absolute top-0 right-[20%] w-[2px] h-full bg-gradient-to-b from-purple-500/30 via-transparent to-purple-500/30 animate-pulse" style={{ animationDelay: '0.7s' }} />
     </>
   );
 }
@@ -46,31 +64,48 @@ function NeonDecorations() {
 function SynthwaveDecorations() {
   return (
     <>
-      {/* Sunset gradient bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-pink-500/20 via-purple-500/10 to-transparent" />
+      {/* Sunset gradient - more prominent */}
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-pink-500/30 via-orange-500/15 to-transparent" />
       
-      {/* Retro grid */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 opacity-20"
+      {/* Large retro sun */}
+      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[300px] h-[150px] bg-gradient-to-t from-orange-500/40 via-pink-500/30 to-purple-500/20 rounded-t-full blur-sm" />
+      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[280px] h-[140px] overflow-hidden">
+        {/* Sun lines */}
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="absolute left-0 right-0 h-[4px] bg-purple-900/60" style={{ bottom: `${i * 20}px` }} />
+        ))}
+      </div>
+      
+      {/* Perspective grid - more visible */}
+      <div className="absolute bottom-0 left-0 right-0 h-72 opacity-40"
         style={{
           backgroundImage: `
-            linear-gradient(to right, hsl(320 100% 62% / 0.3) 1px, transparent 1px),
-            linear-gradient(to bottom, hsl(320 100% 62% / 0.3) 1px, transparent 1px)
+            linear-gradient(to right, hsl(320 100% 62%) 2px, transparent 2px),
+            linear-gradient(to bottom, hsl(320 100% 62%) 2px, transparent 2px)
           `,
-          backgroundSize: '40px 40px',
-          transform: 'perspective(500px) rotateX(60deg)',
+          backgroundSize: '60px 30px',
+          transform: 'perspective(400px) rotateX(65deg)',
           transformOrigin: 'bottom'
         }}
       />
       
-      {/* Sun glow */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-32 bg-gradient-to-b from-yellow-400/20 via-orange-500/15 to-pink-500/10 rounded-full blur-2xl" />
+      {/* Floating stars */}
+      {[...Array(5)].map((_, i) => (
+        <div 
+          key={i}
+          className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+          style={{
+            top: `${10 + i * 12}%`,
+            left: `${10 + i * 20}%`,
+            animationDelay: `${i * 0.5}s`,
+            boxShadow: '0 0 10px white'
+          }}
+        />
+      ))}
       
-      {/* Horizontal scan lines */}
-      <div className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
-        }}
-      />
+      {/* Side glow */}
+      <div className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-purple-500/20 to-transparent" />
+      <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-pink-500/20 to-transparent" />
     </>
   );
 }
@@ -78,23 +113,29 @@ function SynthwaveDecorations() {
 function CyberpunkDecorations() {
   return (
     <>
-      {/* Circuit lines */}
-      <svg className="absolute top-0 left-0 w-full h-full opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path d="M0,20 L30,20 L35,25 L60,25 L65,20 L100,20" stroke="currentColor" strokeWidth="0.2" fill="none" className="text-cyan-400" />
-        <path d="M0,80 L20,80 L25,75 L40,75 L45,80 L100,80" stroke="currentColor" strokeWidth="0.2" fill="none" className="text-pink-500" />
-        <circle cx="35" cy="25" r="1" fill="currentColor" className="text-cyan-400" />
-        <circle cx="65" cy="20" r="1" fill="currentColor" className="text-cyan-400" />
+      {/* Glitch corners - larger */}
+      <div className="absolute top-4 left-4 w-32 h-32 border-l-4 border-t-4 border-pink-500/60 animate-pulse" />
+      <div className="absolute top-4 right-4 w-32 h-32 border-r-4 border-t-4 border-cyan-400/60 animate-pulse" style={{ animationDelay: '0.3s' }} />
+      <div className="absolute bottom-4 left-4 w-32 h-32 border-l-4 border-b-4 border-cyan-400/60 animate-pulse" style={{ animationDelay: '0.6s' }} />
+      <div className="absolute bottom-4 right-4 w-32 h-32 border-r-4 border-b-4 border-pink-500/60 animate-pulse" style={{ animationDelay: '0.9s' }} />
+      
+      {/* Circuit lines - animated */}
+      <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M0,15 L25,15 L30,20 L70,20 L75,15 L100,15" stroke="#00FFFF" strokeWidth="0.5" fill="none" className="animate-pulse" />
+        <path d="M0,85 L15,85 L20,80 L50,80 L55,85 L100,85" stroke="#FF00FF" strokeWidth="0.5" fill="none" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <circle cx="30" cy="20" r="2" fill="#00FFFF" className="animate-pulse" />
+        <circle cx="75" cy="15" r="2" fill="#00FFFF" className="animate-pulse" />
+        <circle cx="20" cy="80" r="2" fill="#FF00FF" className="animate-pulse" />
+        <circle cx="55" cy="85" r="2" fill="#FF00FF" className="animate-pulse" />
       </svg>
       
-      {/* Glitch corners */}
-      <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-pink-500/40" />
-      <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-cyan-400/40" />
-      <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-cyan-400/40" />
-      <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-pink-500/40" />
+      {/* Large neon glow blobs */}
+      <div className="absolute top-[20%] right-0 w-[300px] h-[300px] bg-pink-500/25 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-[20%] left-0 w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
       
-      {/* Neon glow blobs */}
-      <div className="absolute top-1/4 right-10 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 left-10 w-48 h-48 bg-cyan-400/10 rounded-full blur-3xl" />
+      {/* Glitch text effect bars */}
+      <div className="absolute top-[30%] left-0 right-0 h-1 bg-pink-500/40 animate-pulse" style={{ clipPath: 'inset(0 70% 0 0)' }} />
+      <div className="absolute top-[70%] left-0 right-0 h-1 bg-cyan-400/40 animate-pulse" style={{ clipPath: 'inset(0 0 0 60%)' }} />
     </>
   );
 }
@@ -102,17 +143,20 @@ function CyberpunkDecorations() {
 function KawaiiDecorations() {
   return (
     <>
-      {/* Sparkles */}
-      {[...Array(8)].map((_, i) => (
+      {/* Large sparkles with glow */}
+      {[...Array(12)].map((_, i) => (
         <svg
           key={i}
-          className="absolute text-pink-400/60 animate-pulse"
+          className="absolute text-pink-400/70 animate-float"
           style={{
-            top: `${10 + (i * 12)}%`,
-            left: `${5 + (i % 4) * 25}%`,
-            width: `${12 + (i % 3) * 6}px`,
-            height: `${12 + (i % 3) * 6}px`,
-            animationDelay: `${i * 0.3}s`
+            top: `${5 + (i * 8)}%`,
+            left: i % 2 === 0 ? `${3 + (i % 5) * 20}%` : 'auto',
+            right: i % 2 === 1 ? `${3 + (i % 5) * 20}%` : 'auto',
+            width: `${20 + (i % 4) * 10}px`,
+            height: `${20 + (i % 4) * 10}px`,
+            animationDelay: `${i * 0.2}s`,
+            animationDuration: `${2 + (i % 3)}s`,
+            filter: 'drop-shadow(0 0 6px currentColor)'
           }}
           viewBox="0 0 24 24"
           fill="currentColor"
@@ -122,16 +166,32 @@ function KawaiiDecorations() {
       ))}
       
       {/* Floating hearts */}
-      <svg className="absolute top-20 right-16 w-5 h-5 text-pink-300/50 animate-float" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-      </svg>
-      <svg className="absolute bottom-32 left-20 w-4 h-4 text-yellow-300/50 animate-float" style={{ animationDelay: '1s' }} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-      </svg>
+      {[...Array(6)].map((_, i) => (
+        <svg 
+          key={`heart-${i}`}
+          className="absolute text-pink-400/60 animate-float"
+          style={{
+            top: `${15 + i * 14}%`,
+            left: i % 2 === 0 ? `${80 + (i % 3) * 5}%` : `${5 + (i % 3) * 5}%`,
+            width: `${24 + (i % 3) * 8}px`,
+            animationDelay: `${i * 0.4}s`,
+            animationDuration: `${3 + i % 2}s`,
+            filter: 'drop-shadow(0 0 4px currentColor)'
+          }}
+          viewBox="0 0 24 24" 
+          fill="currentColor"
+        >
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      ))}
       
-      {/* Soft gradient blobs */}
-      <div className="absolute top-10 right-20 w-64 h-64 bg-pink-300/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-10 w-48 h-48 bg-mint-300/10 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(152, 245, 225, 0.1)' }} />
+      {/* Soft gradient blobs - bigger */}
+      <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-pink-300/25 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute -bottom-20 -left-20 w-[350px] h-[350px] bg-green-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-200/10 rounded-full blur-3xl" />
+      
+      {/* Rainbow stripe */}
+      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-400 via-yellow-300 to-green-300 opacity-40" />
     </>
   );
 }
@@ -139,31 +199,33 @@ function KawaiiDecorations() {
 function CutieDecorations() {
   return (
     <>
-      {/* Soft bubbles */}
-      {[...Array(6)].map((_, i) => (
+      {/* Floating bubbles - larger and animated */}
+      {[...Array(10)].map((_, i) => (
         <div
           key={i}
-          className="absolute rounded-full bg-gradient-to-br from-purple-300/20 to-pink-300/20 animate-float"
+          className="absolute rounded-full bg-gradient-to-br from-purple-300/30 to-pink-300/30 animate-float border border-white/20"
           style={{
-            width: `${30 + i * 15}px`,
-            height: `${30 + i * 15}px`,
-            top: `${15 + i * 14}%`,
-            left: `${8 + (i % 3) * 35}%`,
-            animationDelay: `${i * 0.5}s`
+            width: `${40 + i * 20}px`,
+            height: `${40 + i * 20}px`,
+            top: `${10 + (i % 5) * 18}%`,
+            left: `${5 + (i % 4) * 25}%`,
+            animationDelay: `${i * 0.3}s`,
+            animationDuration: `${3 + (i % 3)}s`
           }}
         />
       ))}
       
-      {/* Stars */}
-      {[...Array(5)].map((_, i) => (
+      {/* Stars with glow */}
+      {[...Array(8)].map((_, i) => (
         <svg
           key={i}
-          className="absolute text-purple-400/40 animate-pulse"
+          className="absolute text-purple-400/60 animate-pulse"
           style={{
-            top: `${20 + i * 18}%`,
-            right: `${10 + (i % 3) * 12}%`,
-            width: `${10 + (i % 2) * 6}px`,
-            animationDelay: `${i * 0.4}s`
+            top: `${10 + i * 11}%`,
+            right: `${5 + (i % 4) * 10}%`,
+            width: `${16 + (i % 3) * 10}px`,
+            animationDelay: `${i * 0.2}s`,
+            filter: 'drop-shadow(0 0 5px currentColor)'
           }}
           viewBox="0 0 24 24"
           fill="currentColor"
@@ -172,8 +234,14 @@ function CutieDecorations() {
         </svg>
       ))}
       
-      {/* Dreamy gradient */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-lavender-400/10 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(196, 181, 253, 0.1)' }} />
+      {/* Dreamy gradient overlays */}
+      <div className="absolute -top-32 left-1/4 w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute -bottom-32 right-1/4 w-[400px] h-[400px] bg-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+      
+      {/* Cloud shapes */}
+      <div className="absolute top-20 left-10 w-32 h-12 bg-white/10 rounded-full blur-md animate-float" />
+      <div className="absolute top-16 left-20 w-24 h-10 bg-white/10 rounded-full blur-md animate-float" style={{ animationDelay: '0.5s' }} />
+      <div className="absolute bottom-32 right-16 w-28 h-10 bg-white/10 rounded-full blur-md animate-float" style={{ animationDelay: '1s' }} />
     </>
   );
 }
@@ -181,35 +249,48 @@ function CutieDecorations() {
 function RetroDecorations() {
   return (
     <>
-      {/* Pixel corner borders */}
-      <div className="absolute top-4 left-4 w-24 h-24">
-        <div className="absolute top-0 left-0 w-full h-2 bg-green-500/40" style={{ imageRendering: 'pixelated' }} />
-        <div className="absolute top-0 left-0 w-2 h-full bg-green-500/40" />
+      {/* Large pixel corner borders */}
+      <div className="absolute top-4 left-4 w-40 h-40">
+        <div className="absolute top-0 left-0 w-full h-4 bg-green-500/60" />
+        <div className="absolute top-0 left-0 w-4 h-full bg-green-500/60" />
       </div>
-      <div className="absolute top-4 right-4 w-24 h-24">
-        <div className="absolute top-0 right-0 w-full h-2 bg-yellow-500/40" />
-        <div className="absolute top-0 right-0 w-2 h-full bg-yellow-500/40" />
+      <div className="absolute top-4 right-4 w-40 h-40">
+        <div className="absolute top-0 right-0 w-full h-4 bg-yellow-500/60" />
+        <div className="absolute top-0 right-0 w-4 h-full bg-yellow-500/60" />
       </div>
-      <div className="absolute bottom-4 left-4 w-24 h-24">
-        <div className="absolute bottom-0 left-0 w-full h-2 bg-yellow-500/40" />
-        <div className="absolute bottom-0 left-0 w-2 h-full bg-yellow-500/40" />
+      <div className="absolute bottom-4 left-4 w-40 h-40">
+        <div className="absolute bottom-0 left-0 w-full h-4 bg-yellow-500/60" />
+        <div className="absolute bottom-0 left-0 w-4 h-full bg-yellow-500/60" />
       </div>
-      <div className="absolute bottom-4 right-4 w-24 h-24">
-        <div className="absolute bottom-0 right-0 w-full h-2 bg-green-500/40" />
-        <div className="absolute bottom-0 right-0 w-2 h-full bg-green-500/40" />
+      <div className="absolute bottom-4 right-4 w-40 h-40">
+        <div className="absolute bottom-0 right-0 w-full h-4 bg-green-500/60" />
+        <div className="absolute bottom-0 right-0 w-4 h-full bg-green-500/60" />
       </div>
       
-      {/* Scanlines */}
-      <div className="absolute inset-0 opacity-10"
+      {/* Scanlines overlay */}
+      <div className="absolute inset-0 opacity-20"
         style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.1) 2px, rgba(0,255,0,0.1) 4px)'
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.15) 2px, rgba(0,255,0,0.15) 4px)'
         }}
       />
       
-      {/* Pixel art stars */}
-      <div className="absolute top-16 right-24 w-3 h-3 bg-green-400/60" />
-      <div className="absolute top-32 left-20 w-2 h-2 bg-yellow-400/60" />
-      <div className="absolute bottom-40 right-32 w-2 h-2 bg-red-400/60" />
+      {/* Pixel art elements scattered */}
+      {[...Array(8)].map((_, i) => (
+        <div 
+          key={i}
+          className={`absolute w-4 h-4 animate-pulse ${i % 3 === 0 ? 'bg-green-400/80' : i % 3 === 1 ? 'bg-yellow-400/80' : 'bg-red-400/80'}`}
+          style={{
+            top: `${20 + i * 10}%`,
+            left: i % 2 === 0 ? `${15 + i * 5}%` : 'auto',
+            right: i % 2 === 1 ? `${15 + i * 5}%` : 'auto',
+            animationDelay: `${i * 0.2}s`,
+            boxShadow: '0 0 10px currentColor'
+          }}
+        />
+      ))}
+      
+      {/* CRT glow effect */}
+      <div className="absolute inset-0 bg-gradient-radial from-green-500/5 to-transparent" style={{ background: 'radial-gradient(ellipse at center, rgba(0,255,0,0.08) 0%, transparent 70%)' }} />
     </>
   );
 }
@@ -217,21 +298,34 @@ function RetroDecorations() {
 function NostalgiaDecorations() {
   return (
     <>
-      {/* Film grain overlay */}
-      <div className="absolute inset-0 opacity-[0.03]"
+      {/* Film grain overlay - more visible */}
+      <div className="absolute inset-0 opacity-[0.08] animate-pulse"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
         }}
       />
       
-      {/* Sepia vignette */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-amber-900/20" 
-        style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(120, 80, 40, 0.15) 100%)' }}
+      {/* Strong sepia vignette */}
+      <div className="absolute inset-0" 
+        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(120, 80, 40, 0.3) 100%)' }}
       />
       
-      {/* Warm light leak */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-400/10 rounded-full blur-3xl" />
+      {/* Warm light leaks */}
+      <div className="absolute -top-20 -right-20 w-[500px] h-[500px] bg-amber-500/25 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-orange-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/3 left-0 w-32 h-96 bg-gradient-to-r from-amber-400/20 to-transparent blur-xl" />
+      
+      {/* Film sprocket holes effect on sides */}
+      <div className="absolute top-0 bottom-0 left-2 w-6 flex flex-col justify-around opacity-20">
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className="w-4 h-6 rounded-sm bg-black/40" />
+        ))}
+      </div>
+      <div className="absolute top-0 bottom-0 right-2 w-6 flex flex-col justify-around opacity-20">
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className="w-4 h-6 rounded-sm bg-black/40" />
+        ))}
+      </div>
     </>
   );
 }
@@ -239,24 +333,29 @@ function NostalgiaDecorations() {
 function LuxuryDecorations() {
   return (
     <>
-      {/* Subtle diamond pattern */}
-      <div className="absolute inset-0 opacity-[0.03]"
+      {/* Diamond pattern - more visible */}
+      <div className="absolute inset-0 opacity-[0.08]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L40 20L20 40L0 20z' fill='none' stroke='%23C9A96E' stroke-width='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: '40px 40px'
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='none' stroke='%23C9A96E' stroke-width='1'/%3E%3C/svg%3E")`,
+          backgroundSize: '60px 60px'
         }}
       />
       
       {/* Rose gold accent lines */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-400/30 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-400/30 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-400/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-400/50 to-transparent" />
+      <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-gradient-to-b from-transparent via-rose-400/30 to-transparent" />
+      <div className="absolute top-0 bottom-0 right-0 w-[2px] bg-gradient-to-b from-transparent via-rose-400/30 to-transparent" />
       
       {/* Elegant corner accents */}
-      <div className="absolute top-8 left-8 w-20 h-20 border-l border-t border-rose-400/20" />
-      <div className="absolute bottom-8 right-8 w-20 h-20 border-r border-b border-rose-400/20" />
+      <div className="absolute top-8 left-8 w-32 h-32 border-l-2 border-t-2 border-rose-400/40" />
+      <div className="absolute top-8 right-8 w-32 h-32 border-r-2 border-t-2 border-rose-400/40" />
+      <div className="absolute bottom-8 left-8 w-32 h-32 border-l-2 border-b-2 border-rose-400/40" />
+      <div className="absolute bottom-8 right-8 w-32 h-32 border-r-2 border-b-2 border-rose-400/40" />
       
       {/* Warm ambient glow */}
-      <div className="absolute top-1/3 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-rose-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-rose-500/10 rounded-full blur-3xl" />
     </>
   );
 }
@@ -264,17 +363,24 @@ function LuxuryDecorations() {
 function FashionDecorations() {
   return (
     <>
-      {/* Bold geometric lines */}
-      <div className="absolute top-0 left-1/4 w-px h-32 bg-gradient-to-b from-yellow-500/40 to-transparent" />
-      <div className="absolute top-0 right-1/3 w-px h-48 bg-gradient-to-b from-yellow-500/30 to-transparent" />
-      <div className="absolute bottom-0 left-1/3 w-px h-40 bg-gradient-to-t from-yellow-500/30 to-transparent" />
+      {/* Bold geometric gold lines */}
+      <div className="absolute top-0 left-[20%] w-[3px] h-48 bg-gradient-to-b from-yellow-500/60 to-transparent" />
+      <div className="absolute top-0 left-[40%] w-[2px] h-64 bg-gradient-to-b from-yellow-500/40 to-transparent" />
+      <div className="absolute top-0 right-[25%] w-[3px] h-56 bg-gradient-to-b from-yellow-500/50 to-transparent" />
+      <div className="absolute bottom-0 left-[30%] w-[2px] h-48 bg-gradient-to-t from-yellow-500/50 to-transparent" />
+      <div className="absolute bottom-0 right-[35%] w-[3px] h-40 bg-gradient-to-t from-yellow-500/60 to-transparent" />
       
-      {/* Gold accent corners */}
-      <div className="absolute top-6 left-6 w-12 h-12 border-l-2 border-t-2 border-yellow-500/40" />
-      <div className="absolute bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 border-yellow-500/40" />
+      {/* Gold accent corners - larger */}
+      <div className="absolute top-6 left-6 w-24 h-24 border-l-4 border-t-4 border-yellow-500/60" />
+      <div className="absolute top-6 right-6 w-24 h-24 border-r-4 border-t-4 border-yellow-500/60" />
+      <div className="absolute bottom-6 left-6 w-24 h-24 border-l-4 border-b-4 border-yellow-500/60" />
+      <div className="absolute bottom-6 right-6 w-24 h-24 border-r-4 border-b-4 border-yellow-500/60" />
       
       {/* Spotlight effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full blur-3xl" />
+      
+      {/* Horizontal gold accent */}
+      <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
     </>
   );
 }
@@ -282,19 +388,28 @@ function FashionDecorations() {
 function VintageDecorations() {
   return (
     <>
-      {/* Aged paper texture */}
-      <div className="absolute inset-0 opacity-[0.02]"
+      {/* Aged paper texture - more visible */}
+      <div className="absolute inset-0 opacity-[0.06]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
         }}
       />
       
-      {/* Warm corners */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-amber-600/10 to-transparent" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-amber-600/10 to-transparent" />
+      {/* Warm corner gradients */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-amber-600/20 to-transparent" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-amber-600/15 to-transparent" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-amber-600/15 to-transparent" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-amber-600/20 to-transparent" />
       
-      {/* Subtle frame lines */}
-      <div className="absolute inset-8 border border-amber-700/10 rounded-sm" />
+      {/* Decorative frame */}
+      <div className="absolute inset-12 border-2 border-amber-700/20 rounded-sm" />
+      <div className="absolute inset-14 border border-amber-700/10 rounded-sm" />
+      
+      {/* Corner ornaments */}
+      <div className="absolute top-10 left-10 w-8 h-8 border-t-2 border-l-2 border-amber-700/30 rounded-tl-lg" />
+      <div className="absolute top-10 right-10 w-8 h-8 border-t-2 border-r-2 border-amber-700/30 rounded-tr-lg" />
+      <div className="absolute bottom-10 left-10 w-8 h-8 border-b-2 border-l-2 border-amber-700/30 rounded-bl-lg" />
+      <div className="absolute bottom-10 right-10 w-8 h-8 border-b-2 border-r-2 border-amber-700/30 rounded-br-lg" />
     </>
   );
 }
