@@ -454,35 +454,18 @@
     text-shadow: 0 0 20px hsl(var(--formanova-glow) / 0.3);
   }
 
-  /* Hero accent text with theme-specific glow */
+  /* Hero accent text with theme-specific styling */
   .hero-accent-text {
     color: hsl(var(--formanova-hero-accent));
   }
   
+  /* Neon theme gets electric glow effect */
   [data-theme="neon"] .hero-accent-text {
     text-shadow: 
       0 0 10px hsl(var(--formanova-hero-accent) / 0.8),
       0 0 20px hsl(var(--formanova-hero-accent) / 0.6),
       0 0 40px hsl(var(--formanova-hero-accent) / 0.4),
       0 0 80px hsl(var(--formanova-hero-accent) / 0.2);
-  }
-  
-  [data-theme="cyberpunk"] .hero-accent-text {
-    text-shadow: 
-      0 0 10px hsl(var(--formanova-hero-accent) / 0.7),
-      0 0 30px hsl(var(--formanova-hero-accent) / 0.5);
-  }
-  
-  [data-theme="synthwave"] .hero-accent-text {
-    text-shadow: 
-      0 0 15px hsl(var(--formanova-hero-accent) / 0.6),
-      0 0 35px hsl(var(--formanova-hero-accent) / 0.4);
-  }
-  
-  [data-theme="retro"] .hero-accent-text {
-    text-shadow: 
-      3px 3px 0 hsl(var(--secondary)),
-      0 0 20px hsl(var(--formanova-hero-accent) / 0.5);
   }
 
   /* Premium necklace notice - bold & eye-catching */
