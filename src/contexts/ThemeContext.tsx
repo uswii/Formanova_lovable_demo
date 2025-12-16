@@ -33,7 +33,7 @@ export const themes: ThemeConfig[] = [
   { name: 'fashion', label: 'High Fashion', icon: '✨', description: 'Stark Black & Gold' },
   { name: 'kawaii', label: 'Kawaii', icon: '🌸', description: 'Sakura Pink & Mint' },
   { name: 'luxury', label: 'Luxury', icon: '👑', description: 'Burgundy & Rose Gold' },
-  { name: 'synthwave', label: 'Synthwave', icon: '🌃', description: 'Purple Sunset Grid' },
+  { name: 'synthwave', label: 'Synthwave', icon: '🌃', description: 'Retro-Futuristic' },
 ];
 
 interface ThemeContextType {

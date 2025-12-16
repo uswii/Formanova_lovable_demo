@@ -33,7 +33,7 @@
     --formanova-success: 145 60% 40%;
     --formanova-warning: 38 90% 55%;
     --formanova-gold: 38 50% 55%;
-    --formanova-hero-accent: 38 55% 62%;
+    --formanova-hero-accent: 38 40% 75%;
     --formanova-gradient-from: 40 20% 98%;
     --formanova-gradient-to: 35 15% 95%;
     
@@ -264,32 +264,32 @@
     --font-body: 'Montserrat', sans-serif;
   }
 
-  /* SYNTHWAVE THEME - Purple Sunset Grid */
+  /* SYNTHWAVE THEME - Retro-Futuristic */
   [data-theme="synthwave"] {
-    --background: 280 60% 5%;
-    --foreground: 50 100% 90%;
-    --card: 280 50% 9%;
-    --card-foreground: 50 100% 90%;
-    --popover: 280 50% 9%;
-    --popover-foreground: 50 100% 90%;
+    --background: 270 55% 6%;
+    --foreground: 330 100% 92%;
+    --card: 270 45% 10%;
+    --card-foreground: 330 100% 92%;
+    --popover: 270 45% 10%;
+    --popover-foreground: 330 100% 92%;
     --primary: 320 100% 62%;
-    --primary-foreground: 280 60% 5%;
-    --secondary: 280 40% 16%;
-    --secondary-foreground: 50 100% 88%;
-    --muted: 280 35% 13%;
-    --muted-foreground: 320 50% 60%;
-    --accent: 50 100% 55%;
-    --accent-foreground: 280 60% 5%;
+    --primary-foreground: 270 55% 6%;
+    --secondary: 270 35% 18%;
+    --secondary-foreground: 330 100% 90%;
+    --muted: 270 30% 15%;
+    --muted-foreground: 320 45% 58%;
+    --accent: 180 100% 48%;
+    --accent-foreground: 270 55% 6%;
     --destructive: 0 100% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 320 40% 22%;
-    --input: 280 35% 13%;
+    --border: 320 35% 22%;
+    --input: 270 30% 15%;
     --ring: 320 100% 62%;
     --radius: 0.125rem;
     --formanova-glow: 320 100% 68%;
-    --formanova-hero-accent: 50 100% 55%;
-    --formanova-gradient-from: 280 50% 9%;
-    --formanova-gradient-to: 320 50% 12%;
+    --formanova-hero-accent: 180 100% 48%;
+    --formanova-gradient-from: 270 45% 10%;
+    --formanova-gradient-to: 320 45% 15%;
     --font-display: 'Space Mono', monospace;
     --font-body: 'Montserrat', sans-serif;
   }
@@ -317,7 +317,7 @@
     --ring: 195 100% 50%;
     --radius: 0.25rem;
     --formanova-glow: 195 100% 55%;
-    --formanova-hero-accent: 195 100% 50%;
+    --formanova-hero-accent: 195 100% 55%;
     --formanova-gradient-from: 220 50% 8%;
     --formanova-gradient-to: 280 40% 10%;
     --font-display: 'Space Mono', monospace;
@@ -452,6 +452,37 @@
 
   .formanova-text-glow {
     text-shadow: 0 0 20px hsl(var(--formanova-glow) / 0.3);
+  }
+
+  /* Hero accent text with theme-specific glow */
+  .hero-accent-text {
+    color: hsl(var(--formanova-hero-accent));
+  }
+  
+  [data-theme="neon"] .hero-accent-text {
+    text-shadow: 
+      0 0 10px hsl(var(--formanova-hero-accent) / 0.8),
+      0 0 20px hsl(var(--formanova-hero-accent) / 0.6),
+      0 0 40px hsl(var(--formanova-hero-accent) / 0.4),
+      0 0 80px hsl(var(--formanova-hero-accent) / 0.2);
+  }
+  
+  [data-theme="cyberpunk"] .hero-accent-text {
+    text-shadow: 
+      0 0 10px hsl(var(--formanova-hero-accent) / 0.7),
+      0 0 30px hsl(var(--formanova-hero-accent) / 0.5);
+  }
+  
+  [data-theme="synthwave"] .hero-accent-text {
+    text-shadow: 
+      0 0 15px hsl(var(--formanova-hero-accent) / 0.6),
+      0 0 35px hsl(var(--formanova-hero-accent) / 0.4);
+  }
+  
+  [data-theme="retro"] .hero-accent-text {
+    text-shadow: 
+      3px 3px 0 hsl(var(--secondary)),
+      0 0 20px hsl(var(--formanova-hero-accent) / 0.5);
   }
 
   /* Premium necklace notice - bold & eye-catching */
