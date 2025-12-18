@@ -113,8 +113,8 @@ export default function Welcome() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16">
-                  <img src={modelSilhouette} alt="Model silhouette" className="w-full h-full object-contain" />
+                <div className="mx-auto w-16 h-16 rounded-full overflow-hidden">
+                  <img src={modelSilhouette} alt="Model silhouette" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="font-display text-2xl">Realistic Visuals</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
