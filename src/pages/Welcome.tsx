@@ -105,7 +105,7 @@ export default function Welcome() {
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Calculator className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="font-display text-2xl">Mathematically Proven</h3>
+                <h3 className="font-display text-2xl">Mathematically Verified</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
                   See precision metrics that verify your jewelry is preserved perfectly in every generation.
                 </p>
