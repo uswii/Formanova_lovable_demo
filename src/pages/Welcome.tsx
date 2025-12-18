@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Target, CheckCircle, Diamond } from 'lucide-react';
-import modelSilhouette from '@/assets/icons/model-silhouette.png';
+import modelSilhouette from '@/assets/icons/model-silhouette-gold.jpeg';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
