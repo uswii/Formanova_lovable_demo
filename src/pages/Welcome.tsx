@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Target, CheckCircle, Diamond } from 'lucide-react';
+import { ModelSilhouette } from '@/components/icons/ModelSilhouette';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -10,7 +11,6 @@ import necklaceGold from '@/assets/jewelry/necklace-gold.jpg';
 import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
 import necklaceDiamond from '@/assets/jewelry/necklace-diamond.jpg';
 import resultsBanner from '@/assets/jewelry/results-banner.png';
-import modelSilhouette from '@/assets/icons/model-silhouette.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -113,8 +113,8 @@ export default function Welcome() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                  <img src={modelSilhouette} alt="Model silhouette" className="h-12 w-12 object-contain" />
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ModelSilhouette className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl">Realistic Visuals</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
