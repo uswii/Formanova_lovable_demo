@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, Shield, Calculator, Sparkles, Diamond } from 'lucide-react';
+import { ArrowRight, Play, Target, CheckCircle, User, Diamond } from 'lucide-react';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -93,7 +93,7 @@ export default function Welcome() {
             <div className="grid md:grid-cols-3 gap-12">
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-8 w-8 text-primary" />
+                  <Target className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl">Zero Alterations</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
@@ -103,7 +103,7 @@ export default function Welcome() {
 
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calculator className="h-8 w-8 text-primary" />
+                  <CheckCircle className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl">Mathematically Verified</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
@@ -113,7 +113,7 @@ export default function Welcome() {
 
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-primary" />
+                  <User className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl">Realistic Visuals</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
