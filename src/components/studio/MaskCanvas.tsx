@@ -96,10 +96,10 @@ export function MaskCanvas({
     if (displayWidth === 0 || displayHeight === 0) {
       return { x: xDisplay, y: yDisplay };
     }
-    return {
-      x: (xDisplay / displayWidth) * SAM_WIDTH,
-      y: (yDisplay / displayHeight) * SAM_HEIGHT,
-    };
+    const samX = (xDisplay / displayWidth) * SAM_WIDTH;
+    const samY = (yDisplay / displayHeight) * SAM_HEIGHT;
+    console.log('toSamSpace:', { xDisplay, yDisplay, displayWidth, displayHeight, samX, samY });
+    return { x: samX, y: samY };
   }, [displayWidth, displayHeight]);
 
   // Transform SAM coordinates back to display space (for rendering dots/strokes)
