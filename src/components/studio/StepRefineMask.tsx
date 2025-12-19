@@ -165,7 +165,6 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                       brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
                       brushSize={brushSize}
                       mode="brush"
-                      coordinateSpace="image"
                       canvasSize={400}
                       initialStrokes={effectiveStrokes}
                       onBrushStrokeStart={handleStrokeStart}

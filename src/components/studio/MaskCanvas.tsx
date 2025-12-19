@@ -1,5 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
+// Fixed SAM dimensions - all coordinates are transformed to this space
+const SAM_WIDTH = 2000;
+const SAM_HEIGHT = 2667;
+
 interface BrushStroke {
   type: 'add' | 'remove';
   points: number[][];
@@ -13,12 +17,7 @@ interface Props {
   brushSize?: number;
   mode: 'dot' | 'brush';
   /**
-   * When "image": callbacks + dot coords are in the underlying image pixel space (naturalWidth/naturalHeight).
-   * When "canvas": callbacks + dot coords are in the rendered canvas pixel space.
-   */
-  coordinateSpace?: 'image' | 'canvas';
-  /**
-   * Fixed canvas display size in pixels. Image will be scaled to fit within this size while maintaining aspect ratio.
+   * Fixed canvas display size in pixels. Canvas will use 3:4 aspect ratio.
    */
   canvasSize?: number;
   /**
@@ -38,7 +37,6 @@ export function MaskCanvas({
   brushColor = '#FF0000',
   brushSize = 10,
   mode,
-  coordinateSpace = 'canvas',
   canvasSize = 400,
   initialStrokes = [],
   onCanvasClick,
@@ -52,14 +50,19 @@ export function MaskCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [displayDims, setDisplayDims] = useState({ width: 0, height: 0 });
 
-  const getNaturalSize = () => {
-    const img = imageRef.current;
-    return img ? { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height } : null;
-  };
+  // Force 3:4 aspect ratio canvas based on canvasSize
+  const getDisplayDimensions = useCallback(() => {
+    // 3:4 aspect ratio (width:height) = 0.75
+    const aspectRatio = 3 / 4;
+    // Use canvasSize as the height (the larger dimension)
+    const displayHeight = canvasSize;
+    const displayWidth = canvasSize * aspectRatio;
+    return { displayWidth, displayHeight };
+  }, [canvasSize]);
 
-  // Load and draw image
+  // Load and draw image - fitted within 3:4 canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -70,20 +73,9 @@ export function MaskCanvas({
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Calculate display size to fit within canvasSize while maintaining aspect ratio
-      const aspectRatio = img.width / img.height;
-      let displayWidth: number;
-      let displayHeight: number;
-
-      if (aspectRatio > 1) {
-        // Landscape: width is the limiting factor
-        displayWidth = canvasSize;
-        displayHeight = canvasSize / aspectRatio;
-      } else {
-        // Portrait or square: height is the limiting factor
-        displayHeight = canvasSize;
-        displayWidth = canvasSize * aspectRatio;
-      }
+      // Force 3:4 aspect ratio canvas
+      const { displayWidth, displayHeight } = getDisplayDimensions();
+      setDisplayDims({ width: displayWidth, height: displayHeight });
 
       // Use device pixel ratio for sharper rendering
       const dpr = window.devicePixelRatio || 1;
@@ -101,38 +93,33 @@ export function MaskCanvas({
 
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, displayWidth, displayHeight);
+      
+      // Draw image to fill the entire 3:4 canvas (stretch to fit)
       ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
-      imageRef.current = img;
+      
       setImageLoaded(true);
     };
     img.src = image;
-  }, [image, canvasSize]);
+  }, [image, canvasSize, getDisplayDimensions]);
 
-  const toImageSpace = useCallback((xDisplay: number, yDisplay: number) => {
-    const overlay = overlayCanvasRef.current;
-    const nat = getNaturalSize();
-    if (!overlay || !nat) return { x: xDisplay, y: yDisplay };
-    // Use display size (from style), not canvas buffer size
-    const displayWidth = parseFloat(overlay.style.width) || overlay.width;
-    const displayHeight = parseFloat(overlay.style.height) || overlay.height;
+  // Transform display coordinates directly to SAM space (2000x2667)
+  const toSamSpace = useCallback((xDisplay: number, yDisplay: number) => {
+    const { displayWidth, displayHeight } = getDisplayDimensions();
+    if (displayWidth === 0 || displayHeight === 0) return { x: xDisplay, y: yDisplay };
     return {
-      x: (xDisplay / displayWidth) * nat.w,
-      y: (yDisplay / displayHeight) * nat.h,
+      x: (xDisplay / displayWidth) * SAM_WIDTH,
+      y: (yDisplay / displayHeight) * SAM_HEIGHT,
     };
-  }, []);
+  }, [getDisplayDimensions]);
 
-  const toCanvasSpace = useCallback((xImage: number, yImage: number) => {
-    const overlay = overlayCanvasRef.current;
-    const nat = getNaturalSize();
-    if (!overlay || !nat) return { x: xImage, y: yImage };
-    // Use display size (from style), not canvas buffer size
-    const displayWidth = parseFloat(overlay.style.width) || overlay.width;
-    const displayHeight = parseFloat(overlay.style.height) || overlay.height;
+  // Transform SAM coordinates back to display space (for rendering dots/strokes)
+  const toDisplaySpace = useCallback((xSam: number, ySam: number) => {
+    const { displayWidth, displayHeight } = getDisplayDimensions();
     return {
-      x: (xImage / nat.w) * displayWidth,
-      y: (yImage / nat.h) * displayHeight,
+      x: (xSam / SAM_WIDTH) * displayWidth,
+      y: (ySam / SAM_HEIGHT) * displayHeight,
     };
-  }, []);
+  }, [getDisplayDimensions]);
 
   // Draw initial strokes when image loads or initialStrokes changes (for undo/redo)
   useEffect(() => {
@@ -149,20 +136,20 @@ export function MaskCanvas({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.scale(dpr, dpr);
 
-    // Redraw all initial strokes
+    // Redraw all initial strokes (points are in SAM space, convert to display)
     initialStrokes.forEach((stroke) => {
       const color = stroke.type === 'add' ? '#00FF00' : '#000000';
       stroke.points.forEach((point) => {
-        const canvasPt = coordinateSpace === 'image' ? toCanvasSpace(point[0], point[1]) : { x: point[0], y: point[1] };
+        const displayPt = toDisplaySpace(point[0], point[1]);
         ctx.beginPath();
-        ctx.arc(canvasPt.x, canvasPt.y, stroke.radius / 2, 0, Math.PI * 2);
+        ctx.arc(displayPt.x, displayPt.y, stroke.radius / 2, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
       });
     });
-  }, [imageLoaded, initialStrokes, mode, coordinateSpace, toCanvasSpace]);
+  }, [imageLoaded, initialStrokes, mode, toDisplaySpace]);
 
-  // Draw dots for marking mode
+  // Draw dots for marking mode (dots are in SAM space)
   useEffect(() => {
     if (mode !== 'dot' || !imageLoaded) return;
 
@@ -171,27 +158,26 @@ export function MaskCanvas({
     if (!overlay || !ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const displayWidth = parseFloat(overlay.style.width) || overlay.width / dpr;
-    const displayHeight = parseFloat(overlay.style.height) || overlay.height / dpr;
 
     // Reset transform and clear
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.scale(dpr, dpr);
 
-    // Draw dots
+    // Draw dots (convert from SAM space to display space)
     dots.forEach((dot) => {
-      const canvasPt = coordinateSpace === 'image' ? toCanvasSpace(dot.x, dot.y) : { x: dot.x, y: dot.y };
+      const displayPt = toDisplaySpace(dot.x, dot.y);
       ctx.beginPath();
-      ctx.arc(canvasPt.x, canvasPt.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
       ctx.fillStyle = brushColor;
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.stroke();
     });
-  }, [dots, brushColor, brushSize, mode, imageLoaded, coordinateSpace, toCanvasSpace]);
+  }, [dots, brushColor, brushSize, mode, imageLoaded, toDisplaySpace]);
 
+  // Get coordinates from mouse/touch event and transform to SAM space
   const getCanvasCoords = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return null;
@@ -208,32 +194,30 @@ export function MaskCanvas({
       clientY = e.clientY;
     }
 
-    // Use display coordinates (CSS size), not buffer size
+    // Get display coordinates
     const xDisplay = clientX - rect.left;
     const yDisplay = clientY - rect.top;
 
-    if (coordinateSpace === 'image') {
-      return toImageSpace(xDisplay, yDisplay);
-    }
+    // Transform directly to SAM space (2000x2667)
+    return toSamSpace(xDisplay, yDisplay);
+  }, [toSamSpace]);
 
-    return { x: xDisplay, y: yDisplay };
-  }, [coordinateSpace, toImageSpace]);
-
+  // Draw a point on the canvas (x, y are in SAM space)
   const draw = useCallback((x: number, y: number) => {
     const overlay = overlayCanvasRef.current;
     const ctx = overlay?.getContext('2d');
     if (!overlay || !ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const canvasPt = coordinateSpace === 'image' ? toCanvasSpace(x, y) : { x, y };
+    const displayPt = toDisplaySpace(x, y);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     ctx.beginPath();
-    ctx.arc(canvasPt.x, canvasPt.y, brushSize / 2, 0, Math.PI * 2);
+    ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
     ctx.fillStyle = brushColor;
     ctx.fill();
-  }, [brushColor, brushSize, coordinateSpace, toCanvasSpace]);
+  }, [brushColor, brushSize, toDisplaySpace]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const coords = getCanvasCoords(e);

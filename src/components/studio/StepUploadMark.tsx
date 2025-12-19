@@ -108,16 +108,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       let imageBase64 = state.originalImage;
       if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
 
-      // Get image dimensions for the API
-      const img = new Image();
-      img.src = state.originalImage;
-      await new Promise((resolve) => { img.onload = resolve; });
-
+      // Points are already in 2000x2667 SAM space from MaskCanvas
       const response = await a100Api.segment({
         image_base64: imageBase64,
         points,
-        client_width: img.naturalWidth,
-        client_height: img.naturalHeight,
+        // No longer need client dimensions - points are already in SAM space
       });
 
       if (!response) throw new Error('Segmentation failed');
@@ -271,7 +266,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
-                    coordinateSpace="image"
                     canvasSize={400}
                   />
                 </div>
