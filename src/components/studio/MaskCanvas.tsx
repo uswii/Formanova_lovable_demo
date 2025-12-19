@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
-// Fixed SAM dimensions - all coordinates are transformed to this space
+// Fixed SAM dimensions - backend resizes all images to this exact size
 const SAM_WIDTH = 2000;
 const SAM_HEIGHT = 2667;
 
@@ -17,7 +17,7 @@ interface Props {
   brushSize?: number;
   mode: 'dot' | 'brush';
   /**
-   * Fixed canvas display size in pixels. Canvas will use 3:4 aspect ratio.
+   * Maximum canvas display size in pixels.
    */
   canvasSize?: number;
   /**
@@ -50,19 +50,10 @@ export function MaskCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  // Store the actual display dimensions based on image aspect ratio
   const [displayDims, setDisplayDims] = useState({ width: 0, height: 0 });
 
-  // Force 3:4 aspect ratio canvas based on canvasSize
-  const getDisplayDimensions = useCallback(() => {
-    // 3:4 aspect ratio (width:height) = 0.75
-    const aspectRatio = 3 / 4;
-    // Use canvasSize as the height (the larger dimension)
-    const displayHeight = canvasSize;
-    const displayWidth = canvasSize * aspectRatio;
-    return { displayWidth, displayHeight };
-  }, [canvasSize]);
-
-  // Load and draw image - fitted within 3:4 canvas
+  // Load and draw image - preserve natural aspect ratio
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -73,8 +64,24 @@ export function MaskCanvas({
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Force 3:4 aspect ratio canvas
-      const { displayWidth, displayHeight } = getDisplayDimensions();
+      // Calculate display dimensions that preserve aspect ratio
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      const targetAspect = canvasSize / canvasSize; // 1:1 container
+      
+      let displayWidth: number;
+      let displayHeight: number;
+      
+      // Fit image within canvasSize while preserving aspect ratio
+      if (imgAspect > 1) {
+        // Wide image - width is limiting factor
+        displayWidth = canvasSize;
+        displayHeight = canvasSize / imgAspect;
+      } else {
+        // Tall or square image - height is limiting factor
+        displayHeight = canvasSize;
+        displayWidth = canvasSize * imgAspect;
+      }
+      
       setDisplayDims({ width: displayWidth, height: displayHeight });
 
       // Use device pixel ratio for sharper rendering
@@ -94,32 +101,34 @@ export function MaskCanvas({
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, displayWidth, displayHeight);
       
-      // Draw image to fill the entire 3:4 canvas (stretch to fit)
+      // Draw image to fill canvas (preserving aspect ratio)
       ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
       
       setImageLoaded(true);
     };
     img.src = image;
-  }, [image, canvasSize, getDisplayDimensions]);
+  }, [image, canvasSize]);
 
-  // Transform display coordinates directly to SAM space (2000x2667)
+  // Transform display coordinates to SAM space (2000x2667)
+  // The backend resizes ANY image to exactly 2000x2667 by stretching
+  // So we need to map our display coords directly to that fixed size
   const toSamSpace = useCallback((xDisplay: number, yDisplay: number) => {
-    const { displayWidth, displayHeight } = getDisplayDimensions();
-    if (displayWidth === 0 || displayHeight === 0) return { x: xDisplay, y: yDisplay };
+    if (displayDims.width === 0 || displayDims.height === 0) {
+      return { x: xDisplay, y: yDisplay };
+    }
     return {
-      x: (xDisplay / displayWidth) * SAM_WIDTH,
-      y: (yDisplay / displayHeight) * SAM_HEIGHT,
+      x: (xDisplay / displayDims.width) * SAM_WIDTH,
+      y: (yDisplay / displayDims.height) * SAM_HEIGHT,
     };
-  }, [getDisplayDimensions]);
+  }, [displayDims]);
 
   // Transform SAM coordinates back to display space (for rendering dots/strokes)
   const toDisplaySpace = useCallback((xSam: number, ySam: number) => {
-    const { displayWidth, displayHeight } = getDisplayDimensions();
     return {
-      x: (xSam / SAM_WIDTH) * displayWidth,
-      y: (ySam / SAM_HEIGHT) * displayHeight,
+      x: (xSam / SAM_WIDTH) * displayDims.width,
+      y: (ySam / SAM_HEIGHT) * displayDims.height,
     };
-  }, [getDisplayDimensions]);
+  }, [displayDims]);
 
   // Draw initial strokes when image loads or initialStrokes changes (for undo/redo)
   useEffect(() => {
