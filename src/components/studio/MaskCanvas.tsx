@@ -50,10 +50,12 @@ export function MaskCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  // Store the actual display dimensions based on image aspect ratio
-  const [displayDims, setDisplayDims] = useState({ width: 0, height: 0 });
+  
+  // Fixed 3:4 aspect ratio to match SAM's 2000x2667 dimensions
+  const displayWidth = canvasSize * (SAM_WIDTH / SAM_HEIGHT); // 3:4 ratio
+  const displayHeight = canvasSize;
 
-  // Load and draw image - preserve natural aspect ratio
+  // Load and draw image - stretched to 3:4 to match backend resize
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -64,26 +66,6 @@ export function MaskCanvas({
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Calculate display dimensions that preserve aspect ratio
-      const imgAspect = img.naturalWidth / img.naturalHeight;
-      const targetAspect = canvasSize / canvasSize; // 1:1 container
-      
-      let displayWidth: number;
-      let displayHeight: number;
-      
-      // Fit image within canvasSize while preserving aspect ratio
-      if (imgAspect > 1) {
-        // Wide image - width is limiting factor
-        displayWidth = canvasSize;
-        displayHeight = canvasSize / imgAspect;
-      } else {
-        // Tall or square image - height is limiting factor
-        displayHeight = canvasSize;
-        displayWidth = canvasSize * imgAspect;
-      }
-      
-      setDisplayDims({ width: displayWidth, height: displayHeight });
-
       // Use device pixel ratio for sharper rendering
       const dpr = window.devicePixelRatio || 1;
       canvas.width = displayWidth * dpr;
@@ -101,34 +83,32 @@ export function MaskCanvas({
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, displayWidth, displayHeight);
       
-      // Draw image to fill canvas (preserving aspect ratio)
+      // Draw image stretched to 3:4 (same as backend resize to 2000x2667)
       ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
       
       setImageLoaded(true);
     };
     img.src = image;
-  }, [image, canvasSize]);
+  }, [image, displayWidth, displayHeight]);
 
   // Transform display coordinates to SAM space (2000x2667)
-  // The backend resizes ANY image to exactly 2000x2667 by stretching
-  // So we need to map our display coords directly to that fixed size
   const toSamSpace = useCallback((xDisplay: number, yDisplay: number) => {
-    if (displayDims.width === 0 || displayDims.height === 0) {
+    if (displayWidth === 0 || displayHeight === 0) {
       return { x: xDisplay, y: yDisplay };
     }
     return {
-      x: (xDisplay / displayDims.width) * SAM_WIDTH,
-      y: (yDisplay / displayDims.height) * SAM_HEIGHT,
+      x: (xDisplay / displayWidth) * SAM_WIDTH,
+      y: (yDisplay / displayHeight) * SAM_HEIGHT,
     };
-  }, [displayDims]);
+  }, [displayWidth, displayHeight]);
 
   // Transform SAM coordinates back to display space (for rendering dots/strokes)
   const toDisplaySpace = useCallback((xSam: number, ySam: number) => {
     return {
-      x: (xSam / SAM_WIDTH) * displayDims.width,
-      y: (ySam / SAM_HEIGHT) * displayDims.height,
+      x: (xSam / SAM_WIDTH) * displayWidth,
+      y: (ySam / SAM_HEIGHT) * displayHeight,
     };
-  }, [displayDims]);
+  }, [displayWidth, displayHeight]);
 
   // Draw initial strokes when image loads or initialStrokes changes (for undo/redo)
   useEffect(() => {
