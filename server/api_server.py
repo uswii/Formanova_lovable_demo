@@ -375,9 +375,9 @@ async def segment_jewelry(request: SegmentRequest):
         image_highres_nobg, tracker = resize_to_fixed_dimensions(image_no_bg, 2000, 2667)
         image_highres_original, _ = resize_to_fixed_dimensions(original_image, 2000, 2667)
         
-        # Transform points to new coordinates
-        scaled_points = tracker.transform_points(points)
-        log.info(f"[{session_id}] Transformed points: {scaled_points}")
+        # Points are already in 2000x2667 space from frontend - no transformation needed
+        scaled_points = points
+        log.info(f"[{session_id}] Using points directly (already in SAM space): {scaled_points}")
         
         # Run SAM
         log.info(f"[{session_id}] Running SAM...")

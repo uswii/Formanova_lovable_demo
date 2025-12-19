@@ -12,8 +12,7 @@ export interface HealthResponse {
 export interface SegmentRequest {
   image_base64: string;
   points: number[][];
-  client_width: number;
-  client_height: number;
+  // client_width and client_height are no longer needed - points are already in 2000x2667 space
 }
 
 export interface SegmentResponse {
