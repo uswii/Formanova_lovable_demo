@@ -82,64 +82,29 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Hero Section - Marta Verba Style with Image Grid */}
+      {/* Hero Section - Clean Marta Verba Style */}
       <section className="min-h-screen relative bg-background">
-        {/* Background Image Grid - Marta Style */}
-        <div className="absolute inset-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[1px] bg-border/10 overflow-hidden">
-          {heroImages.map((image, index) => (
-            <div 
-              key={index}
-              className={`relative overflow-hidden transition-all duration-1000 ease-out ${
-                imagesLoaded 
-                  ? 'opacity-100 scale-100' 
-                  : 'opacity-0 scale-110'
-              }`}
-              style={{ 
-                transitionDelay: `${image.delay}ms`,
-              }}
-            >
-              <img 
-                src={image.src} 
-                alt={image.alt} 
-                className="w-full h-full object-cover transition-transform duration-[8000ms] ease-out hover:scale-105"
-              />
-              {/* Subtle hover glow */}
-              <div className="absolute inset-0 bg-primary/0 hover:bg-primary/5 transition-colors duration-500" />
-            </div>
-          ))}
-        </div>
-
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background/95" />
-        
-        {/* Vertical accent lines - Marta style */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute left-[20%] top-0 bottom-0 w-[1px] bg-border/10" />
-          <div className="absolute left-[40%] top-0 bottom-0 w-[1px] bg-border/10" />
-          <div className="absolute left-[60%] top-0 bottom-0 w-[1px] bg-border/10" />
-          <div className="absolute left-[80%] top-0 bottom-0 w-[1px] bg-border/10" />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 marta-container min-h-screen flex flex-col justify-center py-20 lg:py-32">
+        <div className="marta-container min-h-screen grid lg:grid-cols-2 gap-8 lg:gap-16">
+          
+          {/* Left: Text Content */}
           <div 
             ref={heroReveal.ref}
-            className={`max-w-4xl transition-all duration-1000 ${
+            className={`flex flex-col justify-center py-24 lg:py-32 transition-all duration-1000 ${
               heroReveal.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
             }`}
           >
             {/* Label */}
-            <span className="marta-label mb-8 block text-foreground/70">Trustable AI Photography</span>
+            <span className="marta-label mb-8 block text-muted-foreground">Trustable AI Photography</span>
 
-            {/* Giant Headline - Stacked with strong contrast */}
-            <div className="space-y-0 mb-8">
-              <h1 className="marta-headline text-foreground drop-shadow-sm">Your</h1>
-              <h1 className="marta-headline text-foreground drop-shadow-sm">Jewelry</h1>
-              <h1 className="marta-headline hero-accent-text drop-shadow-sm">Preserved</h1>
+            {/* Giant Headline - Stacked */}
+            <div className="mb-8">
+              <h1 className="marta-headline text-foreground leading-[0.85]">Your</h1>
+              <h1 className="marta-headline text-foreground leading-[0.85]">Jewelry</h1>
+              <h1 className="marta-headline hero-accent-text leading-[0.85]">Preserved</h1>
             </div>
 
-            {/* Subtext with background for readability */}
-            <p className="marta-body text-foreground/80 max-w-md mb-12 leading-relaxed">
+            {/* Subtext */}
+            <p className="marta-body text-muted-foreground max-w-md mb-12 leading-relaxed">
               AI imagery you can trust. Your jewelry is always accurately shown. 
               No hallucinations. No subtle changes. Ever.
             </p>
@@ -156,7 +121,7 @@ export default function Welcome() {
               
               <button 
                 onClick={() => navigate('/tutorial')}
-                className="marta-button bg-background/50 backdrop-blur-sm"
+                className="marta-button"
               >
                 <Play className="h-4 w-4" />
                 <span>Watch Tutorial</span>
@@ -164,23 +129,79 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Floating image thumbnails - Marta style positioned accents */}
-          <div className="absolute right-8 lg:right-16 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-3">
-            {heroImages.slice(0, 3).map((image, index) => (
+          {/* Right: Image Grid - Marta Style Asymmetric */}
+          <div className="relative flex items-center py-12 lg:py-24">
+            <div className="w-full grid grid-cols-6 grid-rows-6 gap-2 aspect-square max-h-[80vh]">
+              {/* Main large image - spans 4 cols, 4 rows */}
               <div 
-                key={index}
-                className={`w-20 h-20 marta-frame overflow-hidden transition-all duration-700 hover:scale-110 ${
-                  imagesLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                className={`col-span-4 row-span-4 marta-frame overflow-hidden transition-all duration-700 ${
+                  imagesLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
-                style={{ transitionDelay: `${600 + index * 150}ms` }}
+                style={{ transitionDelay: '100ms' }}
               >
                 <img 
-                  src={image.src} 
-                  alt={image.alt} 
-                  className="w-full h-full object-cover"
+                  src={heroImages[0].src} 
+                  alt={heroImages[0].alt} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
               </div>
-            ))}
+              
+              {/* Top right - 2 cols, 2 rows */}
+              <div 
+                className={`col-span-2 row-span-2 marta-frame overflow-hidden transition-all duration-700 ${
+                  imagesLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+                style={{ transitionDelay: '200ms' }}
+              >
+                <img 
+                  src={heroImages[1].src} 
+                  alt={heroImages[1].alt} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+              
+              {/* Middle right - 2 cols, 2 rows */}
+              <div 
+                className={`col-span-2 row-span-2 marta-frame overflow-hidden transition-all duration-700 ${
+                  imagesLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+                style={{ transitionDelay: '300ms' }}
+              >
+                <img 
+                  src={heroImages[2].src} 
+                  alt={heroImages[2].alt} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+              
+              {/* Bottom left - 3 cols, 2 rows */}
+              <div 
+                className={`col-span-3 row-span-2 marta-frame overflow-hidden transition-all duration-700 ${
+                  imagesLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+                style={{ transitionDelay: '400ms' }}
+              >
+                <img 
+                  src={heroImages[3].src} 
+                  alt={heroImages[3].alt} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+              
+              {/* Bottom right - 3 cols, 2 rows */}
+              <div 
+                className={`col-span-3 row-span-2 marta-frame overflow-hidden transition-all duration-700 ${
+                  imagesLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+                style={{ transitionDelay: '500ms' }}
+              >
+                <img 
+                  src={heroImages[4].src} 
+                  alt={heroImages[4].alt} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
