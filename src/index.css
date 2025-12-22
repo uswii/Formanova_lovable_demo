@@ -1020,3 +1020,26 @@
     transform: rotate(0) scale(1);
   }
 }
+
+/* 3D Scroll Text Styles */
+.text-outline {
+  -webkit-text-stroke: 2px currentColor;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-outline-thick {
+  -webkit-text-stroke: 3px currentColor;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+@media (min-width: 768px) {
+  .text-outline {
+    -webkit-text-stroke: 3px currentColor;
+  }
+  
+  .text-outline-thick {
+    -webkit-text-stroke: 4px currentColor;
+  }
+}
