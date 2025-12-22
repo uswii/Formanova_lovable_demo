@@ -5,24 +5,31 @@ import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-rev
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
-import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
-import jewelryHandsGold from '@/assets/jewelry/jewelry-hands-gold.png';
-import jewelryModelShadow from '@/assets/jewelry/jewelry-model-shadow.png';
-import jewelryRingsBlue from '@/assets/jewelry/jewelry-rings-blue.png';
-import jewelryEarringGreen from '@/assets/jewelry/jewelry-earring-green.png';
-import jewelryNecklaceDiamonds from '@/assets/jewelry/jewelry-necklace-diamonds.png';
+import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.png';
+import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.png';
+import heroChokerBack from '@/assets/jewelry/hero-choker-back.png';
+import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
+import heroHandDiamonds from '@/assets/jewelry/hero-hand-diamonds.png';
+import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
+import heroBlueBracelets from '@/assets/jewelry/hero-blue-bracelets.png';
+import heroGoldPendant from '@/assets/jewelry/hero-gold-pendant.png';
+import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Hero images for cycling background
+  // Hero images for cycling background - high-end jewelry photography
   const heroImages = [
-    { src: jewelryHandsGold, alt: 'Gold jewelry on hands' },
-    { src: jewelryModelShadow, alt: 'Model with jewelry' },
-    { src: jewelryRingsBlue, alt: 'Blue gemstone rings' },
-    { src: jewelryEarringGreen, alt: 'Green earring' },
-    { src: jewelryNecklaceDiamonds, alt: 'Diamond necklace' },
+    { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
+    { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
+    { src: heroChokerBack, alt: 'Diamond choker from back' },
+    { src: heroHandsBracelets, alt: 'Gold bracelets on hands' },
+    { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
+    { src: heroGreenEarrings, alt: 'Green statement earrings' },
+    { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
+    { src: heroGoldPendant, alt: 'Gold pendant necklace' },
+    { src: heroModelRings, alt: 'Model with colorful rings' },
   ];
 
   // Cycle through images
