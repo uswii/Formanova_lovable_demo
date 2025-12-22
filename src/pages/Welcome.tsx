@@ -43,9 +43,9 @@ export default function Welcome() {
   ];
 
   const steps = [
-    { number: '01', title: 'Upload', description: 'Upload your jewelry image and mark the product you want to showcase.', icon: '↑' },
-    { number: '02', title: 'Refine', description: 'AI detects your jewelry. Edit with simple brush tools if needed.', icon: '✦' },
-    { number: '03', title: 'Generate', description: 'Choose model gender, generate your photoshoot, and verify accuracy.', icon: '→' },
+    { number: '01', title: 'Upload', description: 'Upload your jewelry image and mark the product you want to showcase.' },
+    { number: '02', title: 'Refine', description: 'AI detects your jewelry. Edit with simple brush tools if needed.' },
+    { number: '03', title: 'Generate', description: 'Choose model gender, generate your photoshoot, and verify accuracy.' },
   ];
 
   return (
@@ -60,8 +60,8 @@ export default function Welcome() {
         {/* Content */}
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
           <ScrollRevealSection animation="fade-left" className="max-w-2xl">
-            <span className="marta-label mb-8 block text-white/80 drop-shadow-lg">
-              <KineticText animation="typewriter">Trustable AI Photography</KineticText>
+            <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium drop-shadow-lg">
+              Trustable AI Photography
             </span>
 
             <div className="mb-8">
@@ -156,7 +156,6 @@ export default function Welcome() {
                     <div className="w-16 h-16 border border-border/30 flex items-center justify-center bg-background">
                       <span className="font-display text-2xl">{step.number}</span>
                     </div>
-                    <span className="text-4xl">{step.icon}</span>
                   </div>
                   <h3 className="font-display text-4xl md:text-5xl lg:text-6xl mb-6">{step.title}</h3>
                   <p className="marta-body text-muted-foreground max-w-sm text-lg">{step.description}</p>
