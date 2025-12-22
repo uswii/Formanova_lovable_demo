@@ -98,7 +98,7 @@ export default function Welcome() {
             <img 
               src={image.src} 
               alt={image.alt} 
-              className="w-full h-full object-cover scale-105"
+              className="w-full h-full object-contain"
             />
           </div>
         ))}
