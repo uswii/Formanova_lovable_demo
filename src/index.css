@@ -535,8 +535,122 @@
   /* Editorial text styling */
   .editorial-caps {
     font-family: var(--font-body);
-    @apply uppercase tracking-[0.2em] text-xs font-medium text-muted-foreground;
+    @apply uppercase tracking-[0.25em] text-xs font-medium text-muted-foreground;
   }
+
+  /* Editorial headline styling - Marta Verba inspired */
+  .editorial-headline {
+    font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+
+  .editorial-headline-light {
+    font-weight: 400;
+  }
+
+  .editorial-headline-bold {
+    font-weight: 700;
+  }
+
+  .editorial-headline-italic {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* Editorial accent line */
+  .editorial-accent-line {
+    @apply relative;
+  }
+
+  .editorial-accent-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 40px;
+    height: 1px;
+    background: hsl(var(--primary));
+    transform: translateY(-50%);
+  }
+
+  /* Grain texture overlay */
+  .grain-overlay {
+    @apply relative;
+  }
+
+  .grain-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Editorial dramatic shadow */
+  .editorial-shadow {
+    box-shadow: 
+      20px 20px 60px hsl(var(--foreground) / 0.08),
+      0 0 0 1px hsl(var(--border) / 0.3);
+  }
+
+  /* Editorial card hover */
+  .editorial-card {
+    @apply transition-all duration-500 ease-out;
+  }
+
+  .editorial-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 20px 40px hsl(var(--foreground) / 0.1),
+      0 0 0 1px hsl(var(--primary) / 0.1);
+  }
+
+  /* Editorial link with underline animation */
+  .editorial-link {
+    @apply relative inline-block;
+  }
+
+  .editorial-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: hsl(var(--foreground));
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .editorial-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Large step number styling */
+  .step-number-huge {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 300;
+    line-height: 0.8;
+    letter-spacing: -0.05em;
+  }
+
+  /* Staggered reveal animations */
+  .reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+  .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+  .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+  .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+  .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
 
   /* Premium card styling */
   .premium-card {
@@ -553,6 +667,26 @@
   .gold-underline::after {
     content: '';
     @apply absolute left-0 bottom-0 w-full h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent;
+  }
+
+  /* Vertical text for editorial effect */
+  .text-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* Oversized background text */
+  .bg-text {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 300;
+    color: hsl(var(--foreground) / 0.03);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  /* Editorial horizontal rule */
+  .editorial-hr {
+    @apply w-full h-px bg-gradient-to-r from-transparent via-border to-transparent;
   }
 
   /* Cyberpunk scanlines */
@@ -642,6 +776,56 @@
   
   [data-theme="neon"] .logo-adaptive {
     filter: brightness(0) invert(1) drop-shadow(0 0 8px hsl(195 100% 50% / 0.8));
+  }
+
+  /* Image hover effects */
+  .image-zoom {
+    @apply overflow-hidden;
+  }
+
+  .image-zoom img {
+    @apply transition-transform duration-700 ease-out;
+  }
+
+  .image-zoom:hover img {
+    transform: scale(1.05);
+  }
+
+  /* Split text animation helper */
+  .split-text span {
+    @apply inline-block opacity-0;
+    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Parallax container */
+  .parallax-container {
+    @apply relative overflow-hidden;
+  }
+
+  /* Editorial button */
+  .btn-editorial {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .btn-editorial::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--foreground));
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-editorial:hover::before {
+    transform: translateY(0);
+  }
+
+  .btn-editorial span {
+    @apply relative z-10 transition-colors duration-300;
+  }
+
+  .btn-editorial:hover span {
+    color: hsl(var(--background));
   }
 }
 
