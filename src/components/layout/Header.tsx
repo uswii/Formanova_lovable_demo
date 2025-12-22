@@ -1,68 +1,131 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Play, Sparkles, Home } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const navLinks = [
+    { path: '/', label: 'Home' },
+    { path: '/studio', label: 'Studio' },
+    { path: '/tutorial', label: 'Tutorial' },
+  ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between pl-2 pr-4 py-2">
-        {/* Left: Logo + Theme Switcher - flush to corner */}
-        <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center group pl-2">
+    <>
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          isScrolled 
+            ? 'bg-background/95 backdrop-blur-md border-b border-border/50' 
+            : 'bg-transparent'
+        }`}
+      >
+        <div className="flex h-16 md:h-20 items-center justify-between px-6 md:px-12 lg:px-20">
+          {/* Logo */}
+          <Link 
+            to="/" 
+            className="flex items-center group relative z-10"
+          >
             <img 
               src={formanovaLogo} 
               alt="FormaNova" 
-              className="h-10 md:h-12 w-auto object-contain logo-adaptive transition-transform group-hover:scale-105"
+              className="h-8 md:h-10 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
-          <div className="h-6 w-px bg-border/50" />
-          <ThemeSwitcher />
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.path}
+                to={link.path}
+                className={`relative px-5 py-2 text-sm font-medium tracking-wide transition-colors duration-300 ${
+                  location.pathname === link.path 
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {link.label}
+                {/* Active indicator */}
+                <span 
+                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary transition-all duration-300 ${
+                    location.pathname === link.path ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              </Link>
+            ))}
+            
+            <div className="ml-4 pl-4 border-l border-border/50">
+              <ThemeSwitcher />
+            </div>
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-3">
+            <ThemeSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="relative z-10"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
+      </header>
 
-        {/* Right: Navigation */}
-        <nav className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            asChild
-            className="h-9 px-4 font-medium tracking-wide"
-          >
-            <Link to="/">
-              <Home className="h-3.5 w-3.5 mr-1.5" />
-              Home
+      {/* Mobile Menu Overlay */}
+      <div 
+        className={`fixed inset-0 z-40 bg-background/98 backdrop-blur-lg transition-all duration-500 md:hidden ${
+          isMobileMenuOpen 
+            ? 'opacity-100 pointer-events-auto' 
+            : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <nav className="flex flex-col items-center justify-center h-full gap-8">
+          {navLinks.map((link, index) => (
+            <Link 
+              key={link.path}
+              to={link.path}
+              className={`text-3xl font-editorial font-light tracking-wide transition-all duration-500 ${
+                location.pathname === link.path 
+                  ? 'text-primary' 
+                  : 'text-foreground hover:text-primary'
+              } ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${index * 100 + 200}ms` : '0ms' }}
+            >
+              {link.label}
             </Link>
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            asChild
-            className="h-9 px-4 font-medium tracking-wide"
-          >
-            <Link to="/studio">
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              Studio
-            </Link>
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            asChild
-            className="h-9 px-4 font-medium tracking-wide hidden sm:inline-flex"
-          >
-            <Link to="/tutorial">
-              <Play className="h-3.5 w-3.5 mr-1.5" />
-              Tutorial
-            </Link>
-          </Button>
+          ))}
         </nav>
       </div>
-    </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-16 md:h-20" />
+    </>
   );
 }
