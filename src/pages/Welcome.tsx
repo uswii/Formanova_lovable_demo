@@ -200,7 +200,7 @@ export default function Welcome() {
             <p className="marta-label">© {new Date().getFullYear()} FormaNova</p>
           </div>
         </div>
-      </ScrollRevealSection>
+      </footer>
     </div>
   );
 }
