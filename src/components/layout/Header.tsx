@@ -19,7 +19,6 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
@@ -33,9 +32,9 @@ export function Header() {
   return (
     <>
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
-            ? 'bg-background/95 backdrop-blur-md border-b border-border/50' 
+            ? 'bg-background/95 backdrop-blur-sm border-b border-border/20' 
             : 'bg-transparent'
         }`}
       >
@@ -48,33 +47,27 @@ export function Header() {
             <img 
               src={formanovaLogo} 
               alt="FormaNova" 
-              className="h-8 md:h-10 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
+              className="h-6 md:h-8 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Desktop Navigation - Marta Style */}
+          <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link 
                 key={link.path}
                 to={link.path}
-                className={`relative px-5 py-2 text-sm font-medium tracking-wide transition-colors duration-300 ${
+                className={`marta-label marta-link transition-colors duration-300 ${
                   location.pathname === link.path 
                     ? 'text-foreground' 
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {link.label}
-                {/* Active indicator */}
-                <span 
-                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary transition-all duration-300 ${
-                    location.pathname === link.path ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
               </Link>
             ))}
             
-            <div className="ml-4 pl-4 border-l border-border/50">
+            <div className="ml-4 pl-4 border-l border-border/20">
               <ThemeSwitcher />
             </div>
           </nav>
@@ -98,9 +91,9 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Marta Style */}
       <div 
-        className={`fixed inset-0 z-40 bg-background/98 backdrop-blur-lg transition-all duration-500 md:hidden ${
+        className={`fixed inset-0 z-40 bg-background transition-all duration-500 md:hidden ${
           isMobileMenuOpen 
             ? 'opacity-100 pointer-events-auto' 
             : 'opacity-0 pointer-events-none'
@@ -111,10 +104,10 @@ export function Header() {
             <Link 
               key={link.path}
               to={link.path}
-              className={`text-3xl font-editorial font-light tracking-wide transition-all duration-500 ${
+              className={`font-display text-4xl tracking-wide transition-all duration-500 ${
                 location.pathname === link.path 
-                  ? 'text-primary' 
-                  : 'text-foreground hover:text-primary'
+                  ? 'text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
               } ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${index * 100 + 200}ms` : '0ms' }}
             >

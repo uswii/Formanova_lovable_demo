@@ -14,10 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
-        editorial: ["'Playfair Display'", "Georgia", "serif"],
-        body: ["var(--font-body)", "Helvetica Neue", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        display: ["'Bebas Neue'", "sans-serif"],
+        marta: ["'Bebas Neue'", "sans-serif"],
+        body: ["'Inter'", "system-ui", "sans-serif"],
+        mono: ["'Space Mono'", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
