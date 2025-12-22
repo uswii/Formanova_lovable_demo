@@ -54,8 +54,8 @@ export default function Welcome() {
       <section className="min-h-screen relative overflow-hidden bg-background">
         <CinematicHero images={heroImages} className="absolute inset-0" />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-background/95 z-10" />
+        {/* Gradient overlay - theme neutral */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/80 z-10" />
         
         {/* Content */}
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
@@ -223,7 +223,7 @@ export default function Welcome() {
         
         <div className="marta-container py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <img src={formanovaLogo} alt="FormaNova" className="h-8 w-auto object-contain logo-adaptive" />
+            <img src={formanovaLogo} alt="FormaNova" className="h-8 w-auto object-contain" />
             <nav className="flex items-center gap-8">
               <Link to="/studio" className="marta-label marta-link hover:text-foreground">Studio</Link>
               <Link to="/tutorial" className="marta-label marta-link hover:text-foreground">Tutorial</Link>

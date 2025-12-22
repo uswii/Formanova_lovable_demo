@@ -38,15 +38,10 @@ export function Header() {
             : 'bg-transparent'
         }`}
       >
-        <div className="flex h-20 md:h-24 items-center justify-between px-6 md:px-12 lg:px-20">
-          {/* Left side: Theme Switcher + Logo */}
-          <div className="flex items-center gap-4 md:gap-6">
-            {/* Theme Switcher - Left side */}
-            <div className="hidden md:block">
-              <ThemeSwitcher />
-            </div>
-            
-            {/* Logo - Bigger and prominent */}
+        <div className="flex h-16 md:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
+          {/* Left side: Logo first, then Theme Switcher */}
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Logo - First at corner */}
             <Link 
               to="/" 
               className="flex items-center group relative z-10"
@@ -54,9 +49,14 @@ export function Header() {
               <img 
                 src={formanovaLogo} 
                 alt="FormaNova" 
-                className="h-10 md:h-14 lg:h-16 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
+                className="h-8 md:h-10 lg:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
+            
+            {/* Theme Switcher - After logo */}
+            <div className="hidden md:block">
+              <ThemeSwitcher />
+            </div>
           </div>
 
           {/* Desktop Navigation - Marta Style */}
@@ -122,7 +122,7 @@ export function Header() {
       </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-20 md:h-24" />
+      <div className="h-16 md:h-20" />
     </>
   );
 }
