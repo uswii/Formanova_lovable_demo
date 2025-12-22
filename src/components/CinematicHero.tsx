@@ -82,52 +82,27 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
     <div 
       ref={containerRef}
       className={cn('relative overflow-hidden', className)}
-      style={{ perspective: '1500px' }}
     >
       {images.map((image, index) => {
         const isActive = index === currentIndex;
-        const isPrev = index === (currentIndex - 1 + images.length) % images.length;
-        const isNext = index === (currentIndex + 1) % images.length;
-        
-        // 3D transforms based on position
-        let transform = 'translateZ(-1000px) scale(0.5)';
-        let opacity = 0;
-        let zIndex = 0;
-        
-        if (isActive) {
-          const parallaxY = scrollProgress * 100;
-          const scale = 1 - scrollProgress * 0.1;
-          transform = `translateY(${parallaxY}px) translateZ(0) scale(${scale}) rotateX(${scrollProgress * 5}deg)`;
-          opacity = 1 - scrollProgress * 0.3;
-          zIndex = 10;
-        } else if (isPrev) {
-          transform = 'translateX(-100%) translateZ(-200px) rotateY(25deg) scale(0.8)';
-          opacity = 0.3;
-          zIndex = 5;
-        } else if (isNext) {
-          transform = 'translateX(100%) translateZ(-200px) rotateY(-25deg) scale(0.8)';
-          opacity = 0.3;
-          zIndex = 5;
-        }
         
         return (
           <div
             key={index}
-            className="absolute inset-0 flex items-center justify-center transition-all duration-[1200ms] ease-out"
-            style={{
-              transform,
-              opacity,
-              zIndex,
-              transformStyle: 'preserve-3d',
-            }}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+              isActive ? "opacity-100 z-10" : "opacity-0 z-0"
+            )}
           >
-            <div className="relative w-full h-full flex items-center justify-center p-8 md:p-16 lg:p-24">
-              <img 
-                src={image.src} 
-                alt={image.alt} 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
+            <img 
+              src={image.src} 
+              alt={image.alt} 
+              className="w-full h-full object-cover"
+              style={{
+                transform: isActive ? `scale(${1 + scrollProgress * 0.05})` : 'scale(1)',
+                transition: 'transform 0.3s ease-out'
+              }}
+            />
           </div>
         );
       })}
