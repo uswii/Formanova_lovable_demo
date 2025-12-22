@@ -5,6 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
+import { Scroll3DText } from '@/components/Scroll3DText';
 
 
 // Assets
@@ -119,10 +120,17 @@ export default function Welcome() {
           </StaggerContainer>
         </div>
       </section>
-      {/* Large Marquee Text */}
-      <MarqueeText speed="slow">
-        AI You Can Trust • Jewelry Preserved •
-      </MarqueeText>
+      {/* 3D Scroll Text Animation */}
+      <Scroll3DText 
+        items={[
+          'AI PHOTOGRAPHY',
+          'JEWELRY PRESERVED',
+          'MATHEMATICALLY',
+          'VERIFIED',
+          'TRUSTED'
+        ]}
+        outlined={true}
+      />
 
       {/* CTA Section */}
       <section className="marta-section">
