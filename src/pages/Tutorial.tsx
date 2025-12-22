@@ -55,7 +55,7 @@ export default function Tutorial() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-12"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          Back to Home
         </Link>
 
         {/* Header */}
@@ -137,7 +137,7 @@ export default function Tutorial() {
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
           <p className="text-xs text-muted-foreground">
-            Access this guide anytime from the menu
+            Access this guide anytime from the menu.
           </p>
         </div>
       </div>
