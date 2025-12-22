@@ -115,33 +115,6 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
         }}
       />
       
-      {/* Progress indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
-        {images.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={cn(
-              'h-[2px] transition-all duration-500',
-              index === currentIndex 
-                ? 'w-12 bg-foreground' 
-                : 'w-6 bg-foreground/30 hover:bg-foreground/50'
-            )}
-            aria-label={`View image ${index + 1}`}
-          />
-        ))}
-      </div>
-      
-      {/* Scroll hint */}
-      <div 
-        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 transition-opacity duration-500"
-        style={{ opacity: scrollProgress > 0.2 ? 0 : 1 }}
-      >
-        <span className="text-xs uppercase tracking-[0.3em] text-foreground/50">Scroll to explore</span>
-        <div className="w-6 h-10 border border-foreground/30 rounded-full flex justify-center pt-2">
-          <div className="w-1 h-2 bg-foreground/50 rounded-full animate-bounce" />
-        </div>
-      </div>
     </div>
   );
 }
