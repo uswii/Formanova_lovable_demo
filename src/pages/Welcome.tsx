@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
-import { PremiumHero } from '@/components/PremiumHero';
+import { CinematicHero } from '@/components/CinematicHero';
 import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
 
 
@@ -45,40 +45,48 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden scroll-smooth">
-      {/* Hero Section - Premium Split Layout */}
-      <PremiumHero images={heroImages}>
-        <ScrollRevealSection animation="fade-left" className="max-w-xl">
-          <span className="marta-label mb-8 block text-base tracking-[0.3em] uppercase font-medium">
-            Trustable AI Photography
-          </span>
+      {/* Hero Section with Cinematic 3D Parallax */}
+      <section className="min-h-screen relative overflow-hidden bg-background">
+        <CinematicHero images={heroImages} className="absolute inset-0" />
+        
+        {/* Gradient overlay - theme neutral */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/80 z-10" />
+        
+        {/* Content */}
+        <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
+          <ScrollRevealSection animation="fade-left" className="max-w-2xl">
+            <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium drop-shadow-lg">
+              Trustable AI Photography
+            </span>
 
-          <div className="mb-8">
-            <KineticText as="h1" animation="split" className="marta-headline leading-[0.85]">Your</KineticText>
-            <KineticText as="h1" animation="split" delay={200} className="marta-headline leading-[0.85]">Jewelry</KineticText>
-            <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85]">Preserved</KineticText>
-          </div>
-
-          <ScrollRevealSection animation="fade-up" delay={300}>
-            <p className="marta-body text-muted-foreground max-w-md mb-12 leading-relaxed">
-              AI imagery you can trust. Your jewelry is always accurately shown. 
-              No hallucinations. No subtle changes. Ever.
-            </p>
-          </ScrollRevealSection>
-
-          <ScrollRevealSection animation="fade-up" delay={500}>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button onClick={handleStart} className="marta-button-filled magnetic-button">
-                <span>Start Creating</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <button onClick={() => navigate('/tutorial')} className="marta-button glass-effect magnetic-button">
-                <Play className="h-4 w-4" />
-                <span>Watch Tutorial</span>
-              </button>
+            <div className="mb-8">
+              <KineticText as="h1" animation="split" className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Your</KineticText>
+              <KineticText as="h1" animation="split" delay={200} className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Jewelry</KineticText>
+              <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Preserved</KineticText>
             </div>
+
+            <ScrollRevealSection animation="fade-up" delay={300}>
+              <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed drop-shadow-lg">
+                AI imagery you can trust. Your jewelry is always accurately shown. 
+                No hallucinations. No subtle changes. Ever.
+              </p>
+            </ScrollRevealSection>
+
+            <ScrollRevealSection animation="fade-up" delay={500}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button onClick={handleStart} className="marta-button-filled magnetic-button">
+                  <span>Start Creating</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button onClick={() => navigate('/tutorial')} className="marta-button glass-effect magnetic-button">
+                  <Play className="h-4 w-4" />
+                  <span>Watch Tutorial</span>
+                </button>
+              </div>
+            </ScrollRevealSection>
           </ScrollRevealSection>
-        </ScrollRevealSection>
-      </PremiumHero>
+        </div>
+      </section>
 
       {/* Marquee Divider */}
       <MarqueeDivider 
