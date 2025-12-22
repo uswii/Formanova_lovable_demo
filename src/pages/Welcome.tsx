@@ -4,6 +4,8 @@ import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
+import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
+import { HorizontalScroll, HorizontalScrollItem } from '@/components/HorizontalScroll';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -41,9 +43,9 @@ export default function Welcome() {
   ];
 
   const steps = [
-    { number: '01', title: 'Upload', description: 'Upload your jewelry image and mark the product you want to showcase.' },
-    { number: '02', title: 'Refine', description: 'AI detects your jewelry. Edit with simple brush tools if needed.' },
-    { number: '03', title: 'Generate', description: 'Choose model gender, generate your photoshoot, and verify accuracy.' },
+    { number: '01', title: 'Upload', description: 'Upload your jewelry image and mark the product you want to showcase.', icon: '↑' },
+    { number: '02', title: 'Refine', description: 'AI detects your jewelry. Edit with simple brush tools if needed.', icon: '✦' },
+    { number: '03', title: 'Generate', description: 'Choose model gender, generate your photoshoot, and verify accuracy.', icon: '→' },
   ];
 
   return (
@@ -53,11 +55,11 @@ export default function Welcome() {
         <CinematicHero images={heroImages} className="absolute inset-0" />
         
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-background/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-background/95 z-10" />
         
         {/* Content */}
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
-          <ScrollRevealSection animation="fade-up" className="max-w-2xl">
+          <ScrollRevealSection animation="fade-left" className="max-w-2xl">
             <span className="marta-label mb-8 block text-foreground/60">
               <KineticText animation="typewriter">Trustable AI Photography</KineticText>
             </span>
@@ -91,6 +93,12 @@ export default function Welcome() {
         </div>
       </section>
 
+      {/* Marquee Divider */}
+      <MarqueeDivider 
+        words={['AI PHOTOGRAPHY', 'JEWELRY', 'PRESERVED', 'ACCURATE', 'TRUSTED']} 
+        speed="normal"
+      />
+
       {/* Features Section */}
       <section className="marta-section">
         <div className="marta-container">
@@ -103,12 +111,15 @@ export default function Welcome() {
 
           <StaggerContainer className="grid md:grid-cols-3 border-t border-l border-border/20" staggerDelay={150}>
             {features.map((feature, index) => (
-              <div key={index} className="marta-block border-r border-b border-border/20 relative group">
-                <span className="marta-number absolute top-0 right-4 transition-all duration-500 group-hover:scale-110">
+              <div key={index} className="marta-block border-r border-b border-border/20 relative group overflow-hidden">
+                {/* Background hover effect */}
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <span className="marta-number absolute top-0 right-4 transition-all duration-500 group-hover:scale-110 group-hover:text-primary">
                   {feature.number}
                 </span>
                 <div className="relative z-10 pt-16">
-                  <h3 className="font-display text-2xl md:text-3xl mb-4">{feature.title}</h3>
+                  <h3 className="font-display text-2xl md:text-3xl mb-4 transition-transform duration-300 group-hover:translate-x-2">{feature.title}</h3>
                   <p className="marta-body text-muted-foreground">{feature.description}</p>
                 </div>
               </div>
@@ -117,37 +128,58 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Process Section */}
-      <section className="marta-section">
-        <div className="marta-container">
-          <ScrollRevealSection animation="fade-up" className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16 md:mb-24">
+      {/* Horizontal Scroll Process Section */}
+      <section className="relative">
+        <div className="marta-container py-16">
+          <ScrollRevealSection animation="fade-up" className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-8">
             <div>
               <span className="marta-label mb-6 block">Process</span>
-              <h2 className="marta-headline-sm">Three Simple<br />Steps</h2>
-            </div>
-            <div className="hidden md:block">
-              <button onClick={handleStart} className="marta-button magnetic-button">
-                <span>Get Started</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              <h2 className="marta-headline-sm">Three Simple Steps</h2>
             </div>
           </ScrollRevealSection>
+        </div>
 
-          <StaggerContainer className="grid lg:grid-cols-3 gap-8 lg:gap-0" staggerDelay={200}>
-            {steps.map((step) => (
-              <div key={step.number} className="marta-block lg:border-l-0 lg:border-r lg:border-y-0 border-border/20">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 marta-frame flex items-center justify-center bg-background">
-                    <span className="font-display text-xl">{step.number}</span>
+        <HorizontalScroll>
+          {steps.map((step, index) => (
+            <HorizontalScrollItem key={step.number} index={index}>
+              <div className="h-[60vh] flex flex-col justify-center p-8 lg:p-12 border border-border/20 bg-card/50 backdrop-blur-sm relative group overflow-hidden">
+                {/* Decorative background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                
+                {/* Large number background */}
+                <span className="absolute -right-8 -bottom-16 font-display text-[20rem] leading-none text-foreground/[0.02] select-none">
+                  {step.number}
+                </span>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="w-16 h-16 border border-border/30 flex items-center justify-center bg-background">
+                      <span className="font-display text-2xl">{step.number}</span>
+                    </div>
+                    <span className="text-4xl">{step.icon}</span>
                   </div>
+                  <h3 className="font-display text-4xl md:text-5xl lg:text-6xl mb-6">{step.title}</h3>
+                  <p className="marta-body text-muted-foreground max-w-sm text-lg">{step.description}</p>
                 </div>
-                <h3 className="font-display text-3xl md:text-4xl mb-4">{step.title}</h3>
-                <p className="marta-body text-muted-foreground max-w-xs">{step.description}</p>
               </div>
-            ))}
-          </StaggerContainer>
+            </HorizontalScrollItem>
+          ))}
+        </HorizontalScroll>
+
+        <div className="marta-container py-16">
+          <ScrollRevealSection animation="fade-up" className="text-center">
+            <button onClick={handleStart} className="marta-button magnetic-button">
+              <span>Get Started</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </ScrollRevealSection>
         </div>
       </section>
+
+      {/* Large Marquee Text */}
+      <MarqueeText speed="slow">
+        AI You Can Trust • Jewelry Preserved •
+      </MarqueeText>
 
       {/* CTA Section */}
       <section className="marta-section">
@@ -175,7 +207,7 @@ export default function Welcome() {
             <span className="marta-label">Featured In</span>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mt-12 mb-16">
               {['CNN', 'TECHCRUNCH', 'THE TELEGRAPH', 'HUFFPOST'].map((brand) => (
-                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/30">{brand}</span>
+                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/30 hover:text-foreground/60 transition-colors duration-300">{brand}</span>
               ))}
             </div>
             <p className="font-display text-3xl md:text-4xl mb-12">
@@ -183,7 +215,7 @@ export default function Welcome() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
               {['HUGO BOSS', 'ATOIR', 'TULLEEN', 'MANGO'].map((brand) => (
-                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/20">{brand}</span>
+                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/20 hover:text-foreground/50 transition-colors duration-300">{brand}</span>
               ))}
             </div>
           </div>

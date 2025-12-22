@@ -976,4 +976,44 @@
     backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--foreground) / 0.1);
   }
+
+  /* Marquee animation */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Enhanced scroll reveal animations */
+  .reveal-slide-left {
+    opacity: 0;
+    transform: translateX(-60px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-slide-right {
+    opacity: 0;
+    transform: translateX(60px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-slide-left.is-visible,
+  .reveal-slide-right.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-rotate {
+    opacity: 0;
+    transform: rotate(-5deg) scale(0.95);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-rotate.is-visible {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
 }
