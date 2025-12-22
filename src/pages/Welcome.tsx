@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Target, CheckCircle, Diamond, User } from 'lucide-react';
 import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-reveal';
+import { useParallax } from '@/hooks/use-parallax';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -15,6 +16,9 @@ export default function Welcome() {
   const handleStart = () => {
     navigate('/studio');
   };
+
+  // Parallax effect for hero
+  const heroParallax = useParallax({ speed: 0.4, fadeOut: true, scaleEffect: true });
 
   // Scroll reveal hooks
   const heroReveal = useScrollReveal();
@@ -123,9 +127,16 @@ export default function Welcome() {
           </div>
         </div>
 
-        {/* Right Side - Image */}
-        <div className="hidden lg:block absolute right-0 top-0 w-[50%] h-full">
-          <div className="relative h-full image-zoom">
+        {/* Right Side - Image with Parallax */}
+        <div className="hidden lg:block absolute right-0 top-0 w-[50%] h-full overflow-hidden">
+          <div 
+            className="relative h-[120%] -top-[10%] image-zoom"
+            style={{
+              transform: `translateY(${heroParallax.y}px) scale(${heroParallax.scale})`,
+              opacity: heroParallax.opacity,
+              transition: 'transform 0.1s ease-out, opacity 0.2s ease-out'
+            }}
+          >
             <img 
               src={heroNecklace} 
               alt="Elegant jewelry showcase" 
@@ -134,19 +145,33 @@ export default function Welcome() {
             {/* Overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-background via-background/30 to-transparent" />
             
-            {/* Floating accent elements */}
-            <div className="absolute bottom-20 left-8 w-20 h-20 border border-primary/20" />
-            <div className="absolute top-32 right-16 w-12 h-12 border border-primary/10" />
+            {/* Floating accent elements with counter-parallax */}
+            <div 
+              className="absolute bottom-20 left-8 w-20 h-20 border border-primary/20"
+              style={{ transform: `translateY(${-heroParallax.y * 0.3}px)` }}
+            />
+            <div 
+              className="absolute top-32 right-16 w-12 h-12 border border-primary/10"
+              style={{ transform: `translateY(${-heroParallax.y * 0.5}px)` }}
+            />
           </div>
         </div>
 
-        {/* Mobile Background */}
-        <div className="absolute inset-0 lg:hidden -z-10">
-          <img 
-            src={heroNecklace} 
-            alt="Elegant jewelry showcase" 
-            className="w-full h-full object-cover"
-          />
+        {/* Mobile Background with Parallax */}
+        <div className="absolute inset-0 lg:hidden -z-10 overflow-hidden">
+          <div
+            className="h-[120%] -mt-[10%]"
+            style={{
+              transform: `translateY(${heroParallax.y * 0.5}px)`,
+              opacity: heroParallax.opacity,
+            }}
+          >
+            <img 
+              src={heroNecklace} 
+              alt="Elegant jewelry showcase" 
+              className="w-full h-full object-cover"
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
         </div>
       </section>
