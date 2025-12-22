@@ -120,11 +120,6 @@ export default function Welcome() {
               </Button>
             </div>
 
-            {/* Decorative element */}
-            <div className="pt-12 flex items-center gap-4">
-              <div className="w-12 h-px bg-border" />
-              <span className="text-xs text-muted-foreground tracking-widest uppercase">Scroll to explore</span>
-            </div>
           </div>
         </div>
 
