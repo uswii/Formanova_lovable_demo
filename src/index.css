@@ -884,6 +884,18 @@
   .stagger-children > *:nth-child(5) { animation-delay: 400ms; }
   .stagger-children > *:nth-child(6) { animation-delay: 500ms; }
 
+  /* Theme-neutral images - prevent theme filters from affecting product images */
+  .theme-neutral {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+  
+  .theme-neutral img,
+  img.theme-neutral {
+    mix-blend-mode: normal !important;
+    isolation: isolate;
+  }
+
   /* Cinematic vignette */
   .cinematic-vignette::after {
     content: '';
