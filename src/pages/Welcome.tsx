@@ -5,6 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
+import { ScrollRevealWords } from '@/components/ScrollLinkedText';
 
 
 // Assets
@@ -38,7 +39,7 @@ export default function Welcome() {
 
   const features = [
     { title: 'Zero Alterations', description: 'Your jewelry stays exactly as uploaded. No AI hallucinations. No subtle changes.' },
-    { title: 'Verified Accuracy', description: 'See precision metrics that verify your jewelry is preserved perfectly.' },
+    { title: 'Mathematically Verified', description: 'See precision metrics that verify your jewelry is preserved perfectly.' },
     { title: 'Realistic Imagery', description: 'Get stunning photoshoot imagery with lifelike models ready in seconds.' },
   ];
 
@@ -119,6 +120,16 @@ export default function Welcome() {
           </StaggerContainer>
         </div>
       </section>
+
+      {/* Scroll-Linked Narrative Text */}
+      <section className="bg-background">
+        <ScrollRevealWords
+          text="We built FormaNova because we believe AI should enhance your jewelry, not alter it. Every pixel of your product remains exactly as you captured it. Mathematically verified. Perfectly preserved."
+          highlightWords={['FormaNova', 'Mathematically', 'verified', 'preserved']}
+          className="marta-container"
+        />
+      </section>
+
       {/* Large Marquee Text */}
       <MarqueeText speed="slow">
         AI You Can Trust • Jewelry Preserved •
