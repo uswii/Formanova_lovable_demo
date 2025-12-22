@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-reveal';
@@ -6,9 +6,20 @@ import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-rev
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
 import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
+import jewelryHandsGold from '@/assets/jewelry/jewelry-hands-gold.png';
+import jewelryModelShadow from '@/assets/jewelry/jewelry-model-shadow.png';
+import jewelryRingsBlue from '@/assets/jewelry/jewelry-rings-blue.png';
+import jewelryEarringGreen from '@/assets/jewelry/jewelry-earring-green.png';
+import jewelryNecklaceDiamonds from '@/assets/jewelry/jewelry-necklace-diamonds.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setImagesLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleStart = () => {
     navigate('/studio');
@@ -22,6 +33,15 @@ export default function Welcome() {
   const { setRef: setStepRef, visibleItems: stepVisible } = useMultipleScrollReveal(3);
   const ctaReveal = useScrollReveal();
   const footerReveal = useScrollReveal();
+
+  // Hero images for Marta-style grid
+  const heroImages = [
+    { src: jewelryHandsGold, alt: 'Gold jewelry on hands', delay: 0 },
+    { src: jewelryModelShadow, alt: 'Model with jewelry', delay: 100 },
+    { src: jewelryRingsBlue, alt: 'Blue gemstone rings', delay: 200 },
+    { src: jewelryEarringGreen, alt: 'Green earring', delay: 300 },
+    { src: jewelryNecklaceDiamonds, alt: 'Diamond necklace', delay: 400 },
+  ];
 
   const features = [
     {
@@ -62,28 +82,64 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Hero Section - Marta Verba Style */}
-      <section className="min-h-screen relative">
-        <div className="marta-container min-h-screen flex flex-col lg:flex-row">
-          {/* Left Content */}
+      {/* Hero Section - Marta Verba Style with Image Grid */}
+      <section className="min-h-screen relative bg-background">
+        {/* Background Image Grid - Marta Style */}
+        <div className="absolute inset-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[1px] bg-border/10 overflow-hidden">
+          {heroImages.map((image, index) => (
+            <div 
+              key={index}
+              className={`relative overflow-hidden transition-all duration-1000 ease-out ${
+                imagesLoaded 
+                  ? 'opacity-100 scale-100' 
+                  : 'opacity-0 scale-110'
+              }`}
+              style={{ 
+                transitionDelay: `${image.delay}ms`,
+              }}
+            >
+              <img 
+                src={image.src} 
+                alt={image.alt} 
+                className="w-full h-full object-cover transition-transform duration-[8000ms] ease-out hover:scale-105"
+              />
+              {/* Subtle hover glow */}
+              <div className="absolute inset-0 bg-primary/0 hover:bg-primary/5 transition-colors duration-500" />
+            </div>
+          ))}
+        </div>
+
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background/95" />
+        
+        {/* Vertical accent lines - Marta style */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-[20%] top-0 bottom-0 w-[1px] bg-border/10" />
+          <div className="absolute left-[40%] top-0 bottom-0 w-[1px] bg-border/10" />
+          <div className="absolute left-[60%] top-0 bottom-0 w-[1px] bg-border/10" />
+          <div className="absolute left-[80%] top-0 bottom-0 w-[1px] bg-border/10" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 marta-container min-h-screen flex flex-col justify-center py-20 lg:py-32">
           <div 
             ref={heroReveal.ref}
-            className={`flex-1 flex flex-col justify-center py-20 lg:py-32 z-10 transition-all duration-1000 ${
+            className={`max-w-4xl transition-all duration-1000 ${
               heroReveal.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
             }`}
           >
             {/* Label */}
-            <span className="marta-label mb-8">Trustable AI Photography</span>
+            <span className="marta-label mb-8 block text-foreground/70">Trustable AI Photography</span>
 
-            {/* Giant Headline - Stacked */}
+            {/* Giant Headline - Stacked with strong contrast */}
             <div className="space-y-0 mb-8">
-              <h1 className="marta-headline text-foreground">Your</h1>
-              <h1 className="marta-headline text-foreground">Jewelry</h1>
-              <h1 className="marta-headline hero-accent-text">Preserved</h1>
+              <h1 className="marta-headline text-foreground drop-shadow-sm">Your</h1>
+              <h1 className="marta-headline text-foreground drop-shadow-sm">Jewelry</h1>
+              <h1 className="marta-headline hero-accent-text drop-shadow-sm">Preserved</h1>
             </div>
 
-            {/* Subtext */}
-            <p className="marta-body text-muted-foreground max-w-md mb-12">
+            {/* Subtext with background for readability */}
+            <p className="marta-body text-foreground/80 max-w-md mb-12 leading-relaxed">
               AI imagery you can trust. Your jewelry is always accurately shown. 
               No hallucinations. No subtle changes. Ever.
             </p>
@@ -100,7 +156,7 @@ export default function Welcome() {
               
               <button 
                 onClick={() => navigate('/tutorial')}
-                className="marta-button"
+                className="marta-button bg-background/50 backdrop-blur-sm"
               >
                 <Play className="h-4 w-4" />
                 <span>Watch Tutorial</span>
@@ -108,19 +164,23 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Right Image */}
-          <div className="flex-1 relative min-h-[50vh] lg:min-h-0">
-            <div className="absolute inset-0 lg:inset-y-20 lg:right-0 lg:left-8">
-              <div className="marta-frame h-full relative overflow-hidden">
+          {/* Floating image thumbnails - Marta style positioned accents */}
+          <div className="absolute right-8 lg:right-16 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-3">
+            {heroImages.slice(0, 3).map((image, index) => (
+              <div 
+                key={index}
+                className={`w-20 h-20 marta-frame overflow-hidden transition-all duration-700 hover:scale-110 ${
+                  imagesLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                }`}
+                style={{ transitionDelay: `${600 + index * 150}ms` }}
+              >
                 <img 
-                  src={heroNecklace} 
-                  alt="Elegant jewelry showcase" 
+                  src={image.src} 
+                  alt={image.alt} 
                   className="w-full h-full object-cover"
                 />
-                {/* Gradient overlay for text readability on mobile */}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent lg:hidden" />
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
