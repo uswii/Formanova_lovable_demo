@@ -5,7 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
-import { HorizontalScroll, HorizontalScrollItem } from '@/components/HorizontalScroll';
+
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -42,11 +42,6 @@ export default function Welcome() {
     { number: '03', title: 'Realistic Imagery', description: 'Get stunning photoshoot imagery with lifelike models ready in seconds.' },
   ];
 
-  const steps = [
-    { number: '01', title: 'Upload', description: 'Upload your jewelry image and mark the product you want to showcase.' },
-    { number: '02', title: 'Refine', description: 'AI detects your jewelry. Edit with simple brush tools if needed.' },
-    { number: '03', title: 'Generate', description: 'Choose model gender, generate your photoshoot, and verify accuracy.' },
-  ];
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden scroll-smooth">
@@ -127,54 +122,6 @@ export default function Welcome() {
           </StaggerContainer>
         </div>
       </section>
-
-      {/* Horizontal Scroll Process Section */}
-      <section className="relative">
-        <div className="marta-container py-16">
-          <ScrollRevealSection animation="fade-up" className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-8">
-            <div>
-              <span className="marta-label mb-6 block">Process</span>
-              <h2 className="marta-headline-sm">Three Simple Steps</h2>
-            </div>
-          </ScrollRevealSection>
-        </div>
-
-        <HorizontalScroll>
-          {steps.map((step, index) => (
-            <HorizontalScrollItem key={step.number} index={index}>
-              <div className="h-[60vh] flex flex-col justify-center p-8 lg:p-12 border border-border/20 bg-card/50 backdrop-blur-sm relative group overflow-hidden">
-                {/* Decorative background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                
-                {/* Large number background */}
-                <span className="absolute -right-8 -bottom-16 font-display text-[20rem] leading-none text-foreground/[0.02] select-none">
-                  {step.number}
-                </span>
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-6 mb-8">
-                    <div className="w-16 h-16 border border-border/30 flex items-center justify-center bg-background">
-                      <span className="font-display text-2xl">{step.number}</span>
-                    </div>
-                  </div>
-                  <h3 className="font-display text-4xl md:text-5xl lg:text-6xl mb-6">{step.title}</h3>
-                  <p className="marta-body text-muted-foreground max-w-sm text-lg">{step.description}</p>
-                </div>
-              </div>
-            </HorizontalScrollItem>
-          ))}
-        </HorizontalScroll>
-
-        <div className="marta-container py-16">
-          <ScrollRevealSection animation="fade-up" className="text-center">
-            <button onClick={handleStart} className="marta-button magnetic-button">
-              <span>Get Started</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </ScrollRevealSection>
-        </div>
-      </section>
-
       {/* Large Marquee Text */}
       <MarqueeText speed="slow">
         AI You Can Trust • Jewelry Preserved •
