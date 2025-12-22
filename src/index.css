@@ -2,89 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* FormaNova Design System - Luxury High-End Brand */
+/* FormaNova Design System - Marta Verba Brutalist Style */
 
 @layer base {
-  /* LIGHT THEME (Default) - Minimal Elegance */
+  /* LIGHT THEME (Default) - Pure Black on White */
   :root {
-    --background: 40 20% 98%;
-    --foreground: 30 10% 12%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 30 10% 12%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 30 10% 12%;
-    --primary: 30 10% 12%;
-    --primary-foreground: 40 20% 98%;
-    --secondary: 35 15% 93%;
-    --secondary-foreground: 30 10% 20%;
-    --muted: 35 10% 94%;
-    --muted-foreground: 30 5% 45%;
-    --accent: 38 35% 85%;
-    --accent-foreground: 30 10% 12%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 35 15% 88%;
-    --input: 35 15% 90%;
-    --ring: 30 10% 12%;
-    --radius: 0.25rem;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 0%;
+    --radius: 0;
     
-    /* FormaNova tokens */
-    --formanova-glow: 38 50% 55%;
+    /* Marta Verba tokens */
+    --marta-border-opacity: 0.15;
+    --formanova-glow: 0 0% 50%;
     --formanova-success: 145 60% 40%;
     --formanova-warning: 38 90% 55%;
-    --formanova-gold: 38 50% 55%;
-    --formanova-hero-accent: 38 40% 75%;
-    --formanova-gradient-from: 40 20% 98%;
-    --formanova-gradient-to: 35 15% 95%;
+    --formanova-gold: 0 0% 0%;
+    --formanova-hero-accent: 0 0% 0%;
+    --formanova-gradient-from: 0 0% 100%;
+    --formanova-gradient-to: 0 0% 96%;
     
     /* Sidebar */
-    --sidebar-background: 40 20% 98%;
-    --sidebar-foreground: 30 10% 25%;
-    --sidebar-primary: 30 10% 12%;
-    --sidebar-primary-foreground: 40 20% 98%;
-    --sidebar-accent: 35 15% 93%;
-    --sidebar-accent-foreground: 30 10% 12%;
-    --sidebar-border: 35 15% 88%;
-    --sidebar-ring: 38 50% 55%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 0%;
     
     /* Typography */
-    --font-display: 'Cormorant Garamond', 'Georgia', serif;
-    --font-body: 'Montserrat', 'Helvetica Neue', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
     --font-mono: 'Space Mono', monospace;
   }
 
-  /* DARK THEME - Refined Champagne & Noir */
+  /* DARK THEME - Pure White on Black */
   .dark, [data-theme="dark"] {
-    --background: 30 12% 5%;
-    --foreground: 38 30% 92%;
-    --card: 30 10% 8%;
-    --card-foreground: 38 30% 92%;
-    --popover: 30 10% 8%;
-    --popover-foreground: 38 30% 92%;
-    --primary: 38 55% 62%;
-    --primary-foreground: 30 12% 5%;
-    --secondary: 30 8% 14%;
-    --secondary-foreground: 38 25% 85%;
-    --muted: 30 8% 12%;
-    --muted-foreground: 38 15% 55%;
-    --accent: 38 40% 28%;
-    --accent-foreground: 38 55% 80%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 8% 18%;
-    --input: 30 8% 14%;
-    --ring: 38 55% 62%;
-    --formanova-glow: 38 65% 55%;
-    --formanova-hero-accent: 38 55% 62%;
-    --formanova-gradient-from: 30 10% 8%;
-    --formanova-gradient-to: 30 12% 5%;
-    --sidebar-background: 30 12% 5%;
-    --sidebar-foreground: 38 25% 85%;
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 100%;
+    --marta-border-opacity: 0.2;
+    --formanova-glow: 0 0% 60%;
+    --formanova-hero-accent: 0 0% 100%;
+    --formanova-gradient-from: 0 0% 5%;
+    --formanova-gradient-to: 0 0% 0%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 100%;
   }
 
-  /* CYBERPUNK THEME */
+  /* CYBERPUNK THEME - Magenta & Cyan on Deep Purple */
   [data-theme="cyberpunk"] {
     --background: 270 50% 4%;
     --foreground: 180 100% 90%;
@@ -102,19 +102,20 @@
     --accent-foreground: 270 50% 4%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 320 40% 20%;
+    --border: 320 40% 25%;
     --input: 270 30% 12%;
     --ring: 320 100% 60%;
     --radius: 0;
+    --marta-border-opacity: 0.3;
     --formanova-glow: 180 100% 50%;
     --formanova-hero-accent: 320 100% 60%;
     --formanova-gradient-from: 270 45% 7%;
     --formanova-gradient-to: 320 40% 10%;
-    --font-display: 'Space Mono', monospace;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  /* RETRO VIDEO GAME THEME */
+  /* RETRO VIDEO GAME THEME - Green Terminal */
   [data-theme="retro"] {
     --background: 240 20% 8%;
     --foreground: 120 100% 70%;
@@ -136,15 +137,16 @@
     --input: 240 20% 16%;
     --ring: 120 100% 50%;
     --radius: 0;
+    --marta-border-opacity: 0.4;
     --formanova-glow: 120 100% 50%;
     --formanova-hero-accent: 120 100% 50%;
     --formanova-gradient-from: 240 20% 12%;
     --formanova-gradient-to: 240 20% 8%;
-    --font-display: 'Space Mono', monospace;
+    --font-display: 'Bebas Neue', sans-serif;
     --font-body: 'Space Mono', monospace;
   }
 
-  /* VINTAGE AMERICANA THEME */
+  /* VINTAGE AMERICANA THEME - Warm Rust & Cream */
   [data-theme="vintage"] {
     --background: 35 30% 92%;
     --foreground: 25 40% 18%;
@@ -162,19 +164,20 @@
     --accent-foreground: 38 35% 95%;
     --destructive: 0 60% 45%;
     --destructive-foreground: 38 35% 95%;
-    --border: 35 25% 80%;
+    --border: 35 25% 75%;
     --input: 35 20% 88%;
     --ring: 15 70% 38%;
-    --radius: 0.125rem;
+    --radius: 0;
+    --marta-border-opacity: 0.25;
     --formanova-glow: 42 70% 52%;
-    --formanova-hero-accent: 42 70% 55%;
+    --formanova-hero-accent: 15 70% 38%;
     --formanova-gradient-from: 35 30% 92%;
     --formanova-gradient-to: 38 35% 88%;
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  /* HIGH FASHION THEME - Editorial Black & Gold */
+  /* HIGH FASHION THEME - Black & Gold */
   [data-theme="fashion"] {
     --background: 0 0% 2%;
     --foreground: 0 0% 95%;
@@ -192,19 +195,20 @@
     --accent-foreground: 0 0% 2%;
     --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 15%;
+    --border: 0 0% 20%;
     --input: 0 0% 10%;
     --ring: 42 85% 55%;
     --radius: 0;
+    --marta-border-opacity: 0.25;
     --formanova-glow: 42 85% 55%;
     --formanova-hero-accent: 42 85% 55%;
     --formanova-gradient-from: 0 0% 5%;
     --formanova-gradient-to: 0 0% 2%;
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  /* KAWAII THEME - Bright Sakura Pink & Mint */
+  /* KAWAII THEME - Sakura Pink & Mint */
   [data-theme="kawaii"] {
     --background: 340 80% 96%;
     --foreground: 340 50% 18%;
@@ -225,16 +229,17 @@
     --border: 340 50% 85%;
     --input: 340 30% 92%;
     --ring: 340 85% 65%;
-    --radius: 1.5rem;
+    --radius: 0;
+    --marta-border-opacity: 0.3;
     --formanova-glow: 340 85% 70%;
     --formanova-hero-accent: 340 85% 65%;
     --formanova-gradient-from: 340 80% 96%;
     --formanova-gradient-to: 160 50% 94%;
-    --font-display: 'Montserrat', sans-serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  /* LUXURY THEME - Deep Burgundy & Rose Gold */
+  /* LUXURY THEME - Burgundy & Rose Gold */
   [data-theme="luxury"] {
     --background: 350 25% 6%;
     --foreground: 30 30% 90%;
@@ -252,16 +257,17 @@
     --accent-foreground: 350 25% 6%;
     --destructive: 0 55% 42%;
     --destructive-foreground: 30 30% 90%;
-    --border: 350 15% 20%;
+    --border: 350 15% 25%;
     --input: 350 15% 12%;
     --ring: 15 60% 58%;
-    --radius: 0.125rem;
+    --radius: 0;
+    --marta-border-opacity: 0.25;
     --formanova-glow: 15 60% 62%;
     --formanova-hero-accent: 15 60% 58%;
     --formanova-gradient-from: 350 20% 10%;
     --formanova-gradient-to: 350 25% 6%;
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
   /* SYNTHWAVE THEME - Retro-Futuristic */
@@ -282,16 +288,17 @@
     --accent-foreground: 270 55% 6%;
     --destructive: 0 100% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 320 35% 22%;
+    --border: 320 35% 28%;
     --input: 270 30% 15%;
     --ring: 320 100% 62%;
-    --radius: 0.125rem;
+    --radius: 0;
+    --marta-border-opacity: 0.35;
     --formanova-glow: 320 100% 68%;
     --formanova-hero-accent: 320 100% 65%;
     --formanova-gradient-from: 270 45% 10%;
     --formanova-gradient-to: 320 45% 15%;
-    --font-display: 'Space Mono', monospace;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
   /* NEON THEME - Electric Blue with Glow */
@@ -312,20 +319,21 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 195 50% 25%;
+    --border: 195 50% 30%;
     --input: 220 35% 12%;
     --ring: 195 100% 50%;
-    --radius: 0.25rem;
+    --radius: 0;
+    --marta-border-opacity: 0.4;
     --formanova-glow: 195 100% 55%;
     --formanova-hero-accent: 195 100% 55%;
     --formanova-gradient-from: 220 50% 8%;
     --formanova-gradient-to: 280 40% 10%;
-    --font-display: 'Space Mono', monospace;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
     --neon-glow-intense: 195 100% 60%;
   }
 
-  /* NOSTALGIA THEME - Sepia Toned Warm Brown */
+  /* NOSTALGIA THEME - Sepia Warm Brown */
   [data-theme="nostalgia"] {
     --background: 35 35% 90%;
     --foreground: 30 30% 18%;
@@ -343,16 +351,17 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 35 25% 78%;
+    --border: 35 25% 75%;
     --input: 35 25% 86%;
     --ring: 25 60% 45%;
-    --radius: 0.25rem;
+    --radius: 0;
+    --marta-border-opacity: 0.25;
     --formanova-glow: 25 65% 50%;
     --formanova-hero-accent: 25 60% 45%;
     --formanova-gradient-from: 35 35% 90%;
     --formanova-gradient-to: 40 30% 85%;
-    --font-display: 'Cormorant Garamond', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
   /* CUTIE THEME - Dreamy Lavender & Baby Pink */
@@ -376,13 +385,14 @@
     --border: 270 40% 85%;
     --input: 270 30% 92%;
     --ring: 300 70% 68%;
-    --radius: 1.5rem;
+    --radius: 0;
+    --marta-border-opacity: 0.3;
     --formanova-glow: 300 70% 72%;
     --formanova-hero-accent: 330 80% 72%;
     --formanova-gradient-from: 270 50% 96%;
     --formanova-gradient-to: 330 50% 95%;
-    --font-display: 'Montserrat', sans-serif;
-    --font-body: 'Montserrat', sans-serif;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 }
 
@@ -407,38 +417,208 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 400;
+    text-transform: uppercase;
     letter-spacing: 0.02em;
   }
 
   h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl;
-    font-weight: 300;
-    letter-spacing: 0.04em;
+    @apply text-6xl md:text-8xl lg:text-9xl;
+    line-height: 0.85;
   }
 
   h2 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
-    font-weight: 400;
-    letter-spacing: 0.03em;
+    @apply text-4xl md:text-5xl lg:text-6xl;
+    line-height: 0.9;
   }
 
   h3 {
-    @apply text-xl md:text-2xl;
-    font-weight: 500;
+    @apply text-2xl md:text-3xl;
+    line-height: 0.95;
   }
 
-  /* Refined link styling */
   a {
     @apply transition-colors duration-200;
   }
 
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
 }
 
 @layer components {
+  /* ========================================
+     MARTA VERBA BRUTALIST UTILITIES
+     ======================================== */
+
+  /* Marta-style thin border frame */
+  .marta-frame {
+    border: 1px solid hsl(var(--foreground) / var(--marta-border-opacity));
+  }
+
+  /* Marta-style modular block */
+  .marta-block {
+    @apply marta-frame p-6 md:p-8;
+    transition: border-color 0.3s ease;
+  }
+
+  .marta-block:hover {
+    border-color: hsl(var(--foreground) / 0.4);
+  }
+
+  /* Marta-style grid with visible borders */
+  .marta-grid {
+    @apply grid;
+    background-image: 
+      linear-gradient(hsl(var(--foreground) / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.08) 1px, transparent 1px);
+    background-size: 100% 1px, 1px 100%;
+  }
+
+  /* Marta-style horizontal divider */
+  .marta-divider {
+    @apply w-full;
+    height: 1px;
+    background: hsl(var(--foreground) / var(--marta-border-opacity));
+  }
+
+  /* Marta-style vertical divider */
+  .marta-divider-v {
+    @apply h-full;
+    width: 1px;
+    background: hsl(var(--foreground) / var(--marta-border-opacity));
+  }
+
+  /* Giant Marta-style headline - Bebas Neue */
+  .marta-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 15vw, 12rem);
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .marta-headline-sm {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  /* Marta-style label - tiny uppercase tracking */
+  .marta-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Marta-style body text */
+  .marta-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* Marta-style large number */
+  .marta-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 20vw, 15rem);
+    line-height: 0.75;
+    color: hsl(var(--foreground) / 0.05);
+    user-select: none;
+  }
+
+  /* Marta-style accent line */
+  .marta-accent-line {
+    width: 40px;
+    height: 1px;
+    background: hsl(var(--foreground));
+  }
+
+  /* Marta-style underline link animation */
+  .marta-link {
+    @apply relative inline-block;
+    text-decoration: none;
+  }
+
+  .marta-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: hsl(var(--foreground));
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .marta-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Marta-style button - minimal with border */
+  .marta-button {
+    @apply marta-frame px-8 py-4 inline-flex items-center justify-center gap-3;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: transparent;
+  }
+
+  .marta-button:hover {
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+  }
+
+  /* Marta-style filled button */
+  .marta-button-filled {
+    @apply px-8 py-4 inline-flex items-center justify-center gap-3;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+    border: 1px solid hsl(var(--foreground));
+  }
+
+  .marta-button-filled:hover {
+    background: transparent;
+    color: hsl(var(--foreground));
+  }
+
+  /* Marta-style section padding */
+  .marta-section {
+    @apply py-24 md:py-32 lg:py-40;
+  }
+
+  /* Marta-style container */
+  .marta-container {
+    @apply px-6 md:px-12 lg:px-20 max-w-[1600px] mx-auto;
+  }
+
+  /* Vertical text for editorial effect */
+  .marta-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* ========================================
+     LEGACY UTILITIES (Preserved)
+     ======================================== */
+
   .formanova-glow {
     box-shadow: 0 0 30px hsl(var(--formanova-glow) / 0.15),
                 0 0 60px hsl(var(--formanova-glow) / 0.08);
@@ -454,12 +634,10 @@
     text-shadow: 0 0 20px hsl(var(--formanova-glow) / 0.3);
   }
 
-  /* Hero accent text with theme-specific styling */
   .hero-accent-text {
     color: hsl(var(--formanova-hero-accent));
   }
   
-  /* Neon theme gets electric glow effect */
   [data-theme="neon"] .hero-accent-text {
     text-shadow: 
       0 0 10px hsl(var(--formanova-hero-accent) / 0.8),
@@ -468,81 +646,17 @@
       0 0 80px hsl(var(--formanova-hero-accent) / 0.2);
   }
 
-  /* Premium necklace notice - bold & eye-catching */
-  .necklace-notice-premium {
-    box-shadow: 
-      0 4px 20px hsl(var(--primary) / 0.3),
-      0 8px 40px hsl(var(--primary) / 0.15);
-  }
-  
-  [data-theme="neon"] .necklace-notice-premium {
-    box-shadow: 
-      0 0 20px hsl(var(--primary) / 0.5),
-      0 0 40px hsl(var(--primary) / 0.3),
-      0 0 60px hsl(var(--primary) / 0.2);
-  }
-  
-  [data-theme="cyberpunk"] .necklace-notice-premium {
-    box-shadow: 
-      0 0 25px hsl(var(--primary) / 0.6),
-      0 0 50px hsl(var(--primary) / 0.3);
-  }
-  
-  [data-theme="synthwave"] .necklace-notice-premium {
-    box-shadow: 
-      0 0 30px hsl(var(--primary) / 0.4),
-      0 0 60px hsl(var(--accent) / 0.2);
-  }
-  
-  [data-theme="retro"] .necklace-notice-premium {
-    border-radius: 0;
-    box-shadow: 
-      6px 6px 0 0 hsl(var(--secondary)),
-      -2px -2px 0 0 hsl(var(--primary) / 0.5);
-  }
-  
-  [data-theme="luxury"] .necklace-notice-premium,
-  [data-theme="fashion"] .necklace-notice-premium {
-    box-shadow: 
-      0 4px 30px hsl(var(--primary) / 0.25),
-      inset 0 1px 0 hsl(var(--primary-foreground) / 0.1);
-  }
-  
-  [data-theme="kawaii"] .necklace-notice-premium,
-  [data-theme="cutie"] .necklace-notice-premium {
-    border-radius: 1.5rem;
-    box-shadow: 
-      0 8px 30px hsl(var(--primary) / 0.3),
-      0 4px 10px hsl(var(--accent) / 0.2);
-  }
-  
-  [data-theme="nostalgia"] .necklace-notice-premium {
-    box-shadow: 
-      0 4px 20px hsl(var(--primary) / 0.2),
-      inset 0 0 40px hsl(var(--primary-foreground) / 0.05);
-  }
-
-  /* Luxury divider */
-  .luxury-divider {
-    @apply relative;
-  }
-  .luxury-divider::after {
-    content: '';
-    @apply absolute left-1/2 -translate-x-1/2 w-16 h-px bg-primary/30;
-    bottom: -1rem;
-  }
-
-  /* Editorial text styling */
+  /* Editorial styling - keeping for backward compat */
   .editorial-caps {
     font-family: var(--font-body);
     @apply uppercase tracking-[0.25em] text-xs font-medium text-muted-foreground;
   }
 
-  /* Editorial headline styling - Marta Verba inspired */
   .editorial-headline {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Bebas Neue', sans-serif;
     letter-spacing: -0.02em;
-    line-height: 0.95;
+    line-height: 0.9;
+    text-transform: uppercase;
   }
 
   .editorial-headline-light {
@@ -550,65 +664,14 @@
   }
 
   .editorial-headline-bold {
-    font-weight: 700;
+    font-weight: 400;
   }
 
   .editorial-headline-italic {
-    font-style: italic;
-    font-weight: 500;
+    font-style: normal;
+    font-weight: 400;
   }
 
-  /* Editorial accent line */
-  .editorial-accent-line {
-    @apply relative;
-  }
-
-  .editorial-accent-line::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 40px;
-    height: 1px;
-    background: hsl(var(--primary));
-    transform: translateY(-50%);
-  }
-
-  /* Grain texture overlay */
-  .grain-overlay {
-    @apply relative;
-  }
-
-  .grain-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* Editorial dramatic shadow */
-  .editorial-shadow {
-    box-shadow: 
-      20px 20px 60px hsl(var(--foreground) / 0.08),
-      0 0 0 1px hsl(var(--border) / 0.3);
-  }
-
-  /* Editorial card hover */
-  .editorial-card {
-    @apply transition-all duration-500 ease-out;
-  }
-
-  .editorial-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 
-      0 20px 40px hsl(var(--foreground) / 0.1),
-      0 0 0 1px hsl(var(--primary) / 0.1);
-  }
-
-  /* Editorial link with underline animation */
   .editorial-link {
     @apply relative inline-block;
   }
@@ -631,131 +694,51 @@
     transform-origin: left;
   }
 
-  /* Large step number styling */
-  .step-number-huge {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-weight: 300;
-    line-height: 0.8;
-    letter-spacing: -0.05em;
-  }
-
-  /* Staggered reveal animations */
-  .reveal-stagger > * {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
-  .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
-  .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
-  .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
-  .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
-
-  /* Premium card styling */
-  .premium-card {
-    @apply bg-card/60 backdrop-blur-sm border-border/50;
-    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.02),
-                0 4px 8px hsl(var(--foreground) / 0.02),
-                0 8px 16px hsl(var(--foreground) / 0.01);
-  }
-
-  /* Gold accent underline */
-  .gold-underline {
-    @apply relative inline-block;
-  }
-  .gold-underline::after {
-    content: '';
-    @apply absolute left-0 bottom-0 w-full h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent;
-  }
-
-  /* Vertical text for editorial effect */
-  .text-vertical {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-  }
-
-  /* Oversized background text */
-  .bg-text {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-weight: 300;
-    color: hsl(var(--foreground) / 0.03);
-    user-select: none;
-    pointer-events: none;
-  }
-
-  /* Editorial horizontal rule */
   .editorial-hr {
     @apply w-full h-px bg-gradient-to-r from-transparent via-border to-transparent;
   }
 
-  /* Cyberpunk scanlines */
-  [data-theme="cyberpunk"] .cyber-scanlines::after {
+  .grain-overlay {
+    @apply relative;
+  }
+
+  .grain-overlay::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      hsl(0 0% 0% / 0.08) 2px,
-      hsl(0 0% 0% / 0.08) 4px
-    );
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
     pointer-events: none;
+    z-index: 1;
   }
 
-  /* Cyberpunk neon glow */
-  [data-theme="cyberpunk"] .neon-border {
-    border: 1px solid hsl(var(--primary));
-    box-shadow: 
-      0 0 8px hsl(var(--primary) / 0.4),
-      inset 0 0 8px hsl(var(--primary) / 0.15);
+  .step-number-huge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-weight: 400;
+    line-height: 0.8;
+    letter-spacing: -0.02em;
   }
 
-  /* Synthwave grid */
-  [data-theme="synthwave"] .synth-grid {
-    background-image: 
-      linear-gradient(hsl(var(--primary) / 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--primary) / 0.08) 1px, transparent 1px);
-    background-size: 50px 50px;
+  .luxury-divider {
+    @apply relative;
   }
 
-  /* Retro pixel border */
-  [data-theme="retro"] .pixel-border {
-    box-shadow: 
-      4px 4px 0 0 hsl(var(--primary)),
-      -4px -4px 0 0 hsl(var(--secondary));
-  }
-
-  /* Neon glow effects */
-  [data-theme="neon"] .neon-glow {
-    box-shadow: 
-      0 0 10px hsl(var(--primary) / 0.5),
-      0 0 30px hsl(var(--primary) / 0.3),
-      0 0 60px hsl(var(--primary) / 0.15);
-  }
-
-  [data-theme="neon"] .neon-text-glow {
-    text-shadow: 
-      0 0 10px hsl(var(--primary) / 0.8),
-      0 0 30px hsl(var(--primary) / 0.5),
-      0 0 50px hsl(var(--primary) / 0.3);
-  }
-
-  [data-theme="neon"] .neon-border-glow {
-    border-color: hsl(var(--primary));
-    box-shadow: 
-      0 0 8px hsl(var(--primary) / 0.6),
-      inset 0 0 8px hsl(var(--primary) / 0.2);
-  }
-
-  /* Nostalgia vintage effects */
-  [data-theme="nostalgia"] .nostalgia-vignette::before {
+  .luxury-divider::after {
     content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, hsl(20 25% 18% / 0.08) 100%);
-    pointer-events: none;
+    @apply absolute left-1/2 -translate-x-1/2 w-16 h-px bg-primary/30;
+    bottom: -1rem;
+  }
+
+  .image-zoom {
+    @apply overflow-hidden;
+  }
+
+  .image-zoom img {
+    @apply transition-transform duration-700 ease-out;
+  }
+
+  .image-zoom:hover img {
+    transform: scale(1.05);
   }
 
   /* Logo adaptive colors for all themes */
@@ -778,338 +761,61 @@
     filter: brightness(0) invert(1) drop-shadow(0 0 8px hsl(195 100% 50% / 0.8));
   }
 
-  /* Image hover effects */
-  .image-zoom {
-    @apply overflow-hidden;
-  }
-
-  .image-zoom img {
-    @apply transition-transform duration-700 ease-out;
-  }
-
-  .image-zoom:hover img {
-    transform: scale(1.05);
-  }
-
-  /* Split text animation helper */
-  .split-text span {
-    @apply inline-block opacity-0;
-    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  /* Parallax container */
-  .parallax-container {
-    @apply relative overflow-hidden;
-  }
-
-  /* Editorial button */
-  .btn-editorial {
-    @apply relative overflow-hidden transition-all duration-300;
-  }
-
-  .btn-editorial::before {
+  /* Cyberpunk scanlines */
+  [data-theme="cyberpunk"] .cyber-scanlines::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: hsl(var(--foreground));
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(0 0% 0% / 0.08) 2px,
+      hsl(0 0% 0% / 0.08) 4px
+    );
+    pointer-events: none;
   }
 
-  .btn-editorial:hover::before {
-    transform: translateY(0);
+  [data-theme="cyberpunk"] .neon-border {
+    border: 1px solid hsl(var(--primary));
+    box-shadow: 
+      0 0 8px hsl(var(--primary) / 0.4),
+      inset 0 0 8px hsl(var(--primary) / 0.15);
   }
 
-  .btn-editorial span {
-    @apply relative z-10 transition-colors duration-300;
+  [data-theme="synthwave"] .synth-grid {
+    background-image: 
+      linear-gradient(hsl(var(--primary) / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.08) 1px, transparent 1px);
+    background-size: 50px 50px;
   }
 
-  .btn-editorial:hover span {
-    color: hsl(var(--background));
+  [data-theme="retro"] .pixel-border {
+    box-shadow: 
+      4px 4px 0 0 hsl(var(--primary)),
+      -4px -4px 0 0 hsl(var(--secondary));
   }
-}
 
-/* Theme-specific decorative elements */
-.theme-decorations {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
+  [data-theme="neon"] .neon-glow {
+    box-shadow: 
+      0 0 10px hsl(var(--primary) / 0.5),
+      0 0 30px hsl(var(--primary) / 0.3),
+      0 0 60px hsl(var(--primary) / 0.15);
+  }
 
-/* Light/Dark - subtle diamond shapes */
-:root .theme-decorations::before,
-.dark .theme-decorations::before,
-[data-theme="dark"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 10%;
-  right: 5%;
-  width: 100px;
-  height: 100px;
-  background: hsl(var(--primary) / 0.03);
-  transform: rotate(45deg);
-}
+  [data-theme="neon"] .neon-text-glow {
+    text-shadow: 
+      0 0 10px hsl(var(--primary) / 0.8),
+      0 0 30px hsl(var(--primary) / 0.5),
+      0 0 50px hsl(var(--primary) / 0.3);
+  }
 
-:root .theme-decorations::after,
-.dark .theme-decorations::after,
-[data-theme="dark"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 20%;
-  left: 3%;
-  width: 60px;
-  height: 60px;
-  background: hsl(var(--primary) / 0.02);
-  transform: rotate(45deg);
-}
-
-/* Cyberpunk - grid lines and glitchy elements */
-[data-theme="cyberpunk"] .theme-decorations {
-  background: 
-    repeating-linear-gradient(0deg, transparent, transparent 100px, hsl(var(--primary) / 0.03) 100px, hsl(var(--primary) / 0.03) 101px),
-    repeating-linear-gradient(90deg, transparent, transparent 100px, hsl(var(--accent) / 0.03) 100px, hsl(var(--accent) / 0.03) 101px);
-}
-
-[data-theme="cyberpunk"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 15%;
-  right: 8%;
-  width: 150px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent);
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-}
-
-[data-theme="cyberpunk"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 25%;
-  left: 5%;
-  width: 80px;
-  height: 80px;
-  border: 1px solid hsl(var(--accent) / 0.2);
-  transform: rotate(45deg);
-}
-
-/* Retro - pixelated corner decorations */
-[data-theme="retro"] .theme-decorations::before {
-  content: '▲';
-  position: absolute;
-  top: 10%;
-  right: 5%;
-  font-size: 3rem;
-  color: hsl(var(--primary) / 0.15);
-}
-
-[data-theme="retro"] .theme-decorations::after {
-  content: '■ ■ ■';
-  position: absolute;
-  bottom: 15%;
-  left: 3%;
-  font-size: 1rem;
-  letter-spacing: 0.5rem;
-  color: hsl(var(--secondary) / 0.3);
-}
-
-/* Vintage - decorative flourishes */
-[data-theme="vintage"] .theme-decorations::before {
-  content: '✦';
-  position: absolute;
-  top: 12%;
-  right: 8%;
-  font-size: 2rem;
-  color: hsl(var(--primary) / 0.2);
-}
-
-[data-theme="vintage"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 10%;
-  left: 5%;
-  width: 120px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent);
-}
-
-/* Fashion - bold geometric */
-[data-theme="fashion"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 10%;
-  width: 1px;
-  height: 200px;
-  background: linear-gradient(180deg, hsl(var(--primary) / 0.3), transparent);
-}
-
-[data-theme="fashion"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 5%;
-  left: 8%;
-  width: 100px;
-  height: 100px;
-  border: 1px solid hsl(var(--primary) / 0.15);
-}
-
-/* Kawaii - hearts and stars */
-[data-theme="kawaii"] .theme-decorations::before {
-  content: '♡';
-  position: absolute;
-  top: 8%;
-  right: 6%;
-  font-size: 2.5rem;
-  color: hsl(var(--primary) / 0.2);
-}
-
-[data-theme="kawaii"] .theme-decorations::after {
-  content: '★';
-  position: absolute;
-  bottom: 12%;
-  left: 4%;
-  font-size: 2rem;
-  color: hsl(var(--accent) / 0.25);
-}
-
-/* Luxury - elegant corner accents */
-[data-theme="luxury"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 5%;
-  right: 5%;
-  width: 80px;
-  height: 80px;
-  border-top: 1px solid hsl(var(--primary) / 0.2);
-  border-right: 1px solid hsl(var(--primary) / 0.2);
-}
-
-[data-theme="luxury"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 5%;
-  left: 5%;
-  width: 80px;
-  height: 80px;
-  border-bottom: 1px solid hsl(var(--primary) / 0.2);
-  border-left: 1px solid hsl(var(--primary) / 0.2);
-}
-
-/* Synthwave - 80s neon sunset and grid */
-[data-theme="synthwave"] .theme-decorations {
-  background: 
-    linear-gradient(180deg, transparent 40%, hsl(320 100% 62% / 0.08) 70%, hsl(180 100% 48% / 0.05) 100%);
-}
-
-[data-theme="synthwave"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 8%;
-  right: 8%;
-  width: 80px;
-  height: 40px;
-  border-radius: 80px 80px 0 0;
-  background: linear-gradient(180deg, hsl(320 100% 62% / 0.4), hsl(40 100% 60% / 0.2));
-  box-shadow: 0 0 60px hsl(320 100% 62% / 0.3), 0 0 100px hsl(40 100% 60% / 0.2);
-}
-
-[data-theme="synthwave"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 150px;
-  background: 
-    repeating-linear-gradient(90deg, transparent, transparent 40px, hsl(320 100% 62% / 0.08) 40px, hsl(320 100% 62% / 0.08) 41px),
-    repeating-linear-gradient(0deg, transparent, transparent 20px, hsl(180 100% 48% / 0.06) 20px, hsl(180 100% 48% / 0.06) 21px);
-  transform: perspective(200px) rotateX(60deg);
-  transform-origin: bottom;
-}
-
-/* Neon - glowing elements */
-[data-theme="neon"] .theme-decorations::before {
-  content: '';
-  position: absolute;
-  top: 15%;
-  right: 8%;
-  width: 4px;
-  height: 100px;
-  background: hsl(var(--primary));
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.8), 0 0 40px hsl(var(--primary) / 0.4);
-}
-
-[data-theme="neon"] .theme-decorations::after {
-  content: '';
-  position: absolute;
-  bottom: 20%;
-  left: 5%;
-  width: 80px;
-  height: 4px;
-  background: hsl(var(--accent));
-  box-shadow: 0 0 20px hsl(var(--accent) / 0.8), 0 0 40px hsl(var(--accent) / 0.4);
-}
-
-/* Nostalgia - 80s VHS, cassette tape vibes */
-[data-theme="nostalgia"] .theme-decorations {
-  background: 
-    repeating-linear-gradient(0deg, transparent, transparent 3px, hsl(var(--foreground) / 0.01) 3px, hsl(var(--foreground) / 0.01) 4px);
-}
-
-[data-theme="nostalgia"] .theme-decorations::before {
-  content: '▶ REC';
-  position: absolute;
-  top: 8%;
-  right: 5%;
-  font-family: monospace;
-  font-size: 0.75rem;
-  font-weight: bold;
-  color: hsl(0 70% 50% / 0.4);
-  letter-spacing: 0.1em;
-  animation: blink 1.5s infinite;
-}
-
-[data-theme="nostalgia"] .theme-decorations::after {
-  content: '◉ ◉';
-  position: absolute;
-  bottom: 12%;
-  left: 4%;
-  font-size: 1.5rem;
-  letter-spacing: 0.3rem;
-  color: hsl(var(--foreground) / 0.1);
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.3; }
-}
-
-/* Cutie - floating cute elements */
-[data-theme="cutie"] .theme-decorations::before {
-  content: '♡ ✧ ♡';
-  position: absolute;
-  top: 6%;
-  right: 4%;
-  font-size: 1.2rem;
-  letter-spacing: 0.8rem;
-  color: hsl(var(--primary) / 0.25);
-  animation: float 3s ease-in-out infinite;
-}
-
-[data-theme="cutie"] .theme-decorations::after {
-  content: '★ ☆ ★';
-  position: absolute;
-  bottom: 8%;
-  left: 3%;
-  font-size: 1rem;
-  letter-spacing: 0.6rem;
-  color: hsl(var(--accent) / 0.3);
-  animation: float 4s ease-in-out infinite reverse;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  [data-theme="neon"] .neon-border-glow {
+    border-color: hsl(var(--primary));
+    box-shadow: 
+      0 0 8px hsl(var(--primary) / 0.6),
+      inset 0 0 8px hsl(var(--primary) / 0.2);
+  }
 }
 
 @layer utilities {
@@ -1119,12 +825,10 @@
   .animation-delay-500 { animation-delay: 500ms; }
   .animation-delay-700 { animation-delay: 700ms; }
 
-  /* Luxury transitions */
   .transition-luxury {
     @apply transition-all duration-500 ease-out;
   }
 
-  /* Text balance for headings */
   .text-balance {
     text-wrap: balance;
   }
