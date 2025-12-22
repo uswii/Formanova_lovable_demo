@@ -125,13 +125,7 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
               <img 
                 src={image.src} 
                 alt={image.alt} 
-                className="max-w-full max-h-full object-contain transition-transform duration-[2s] ease-out"
-                style={{
-                  filter: `drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)) 
-                           brightness(${isActive ? 1 : 0.7})`,
-                  transform: isActive ? 'scale(1.02)' : 'scale(0.95)',
-                  isolation: 'isolate',
-                }}
+                className="max-w-full max-h-full object-contain"
               />
             </div>
           </div>
