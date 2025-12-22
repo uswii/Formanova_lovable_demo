@@ -6,11 +6,6 @@ import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-rev
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
 import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
-import jewelryHandsGold from '@/assets/jewelry/jewelry-hands-gold.png';
-import jewelryModelShadow from '@/assets/jewelry/jewelry-model-shadow.png';
-import jewelryRingsBlue from '@/assets/jewelry/jewelry-rings-blue.png';
-import jewelryEarringGreen from '@/assets/jewelry/jewelry-earring-green.png';
-import jewelryNecklaceDiamonds from '@/assets/jewelry/jewelry-necklace-diamonds.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -25,8 +20,6 @@ export default function Welcome() {
   const { setRef: setFeatureRef, visibleItems: featureVisible } = useMultipleScrollReveal(3);
   const processReveal = useScrollReveal();
   const { setRef: setStepRef, visibleItems: stepVisible } = useMultipleScrollReveal(3);
-  const galleryReveal = useScrollReveal();
-  const { setRef: setGalleryRef, visibleItems: galleryVisible } = useMultipleScrollReveal(5);
   const ctaReveal = useScrollReveal();
   const footerReveal = useScrollReveal();
 
@@ -66,21 +59,11 @@ export default function Welcome() {
     },
   ];
 
-  const galleryImages = [
-    { src: jewelryHandsGold, alt: 'Gold jewelry on hands' },
-    { src: jewelryModelShadow, alt: 'Model with jewelry' },
-    { src: jewelryRingsBlue, alt: 'Blue rings showcase' },
-    { src: jewelryEarringGreen, alt: 'Green earring' },
-    { src: jewelryNecklaceDiamonds, alt: 'Diamond necklace' },
-  ];
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Hero Section - Marta Verba Style */}
       <section className="min-h-screen relative">
-        {/* Grid overlay */}
-        <div className="absolute inset-0 marta-grid opacity-50 pointer-events-none" />
-        
         <div className="marta-container min-h-screen flex flex-col lg:flex-row">
           {/* Left Content */}
           <div 
@@ -90,10 +73,7 @@ export default function Welcome() {
             }`}
           >
             {/* Label */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="marta-accent-line" />
-              <span className="marta-label">Trustable AI Photography</span>
-            </div>
+            <span className="marta-label mb-8">Trustable AI Photography</span>
 
             {/* Giant Headline - Stacked */}
             <div className="space-y-0 mb-8">
@@ -141,16 +121,8 @@ export default function Welcome() {
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent lg:hidden" />
               </div>
             </div>
-            
-            {/* Vertical text decoration */}
-            <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 marta-vertical">
-              <span className="marta-label">Scroll to explore</span>
-            </div>
           </div>
         </div>
-
-        {/* Bottom border */}
-        <div className="marta-divider" />
       </section>
 
       {/* Features Section - Modular Grid */}
@@ -163,10 +135,7 @@ export default function Welcome() {
               featuresReveal.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
             }`}
           >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="marta-accent-line" />
-              <span className="marta-label">Why FormaNova</span>
-            </div>
+            <span className="marta-label mb-6 block">Why FormaNova</span>
             <h2 className="marta-headline-sm">
               AI You Can<br />Actually Trust
             </h2>
@@ -198,7 +167,6 @@ export default function Welcome() {
         </div>
       </section>
 
-      <div className="marta-divider" />
 
       {/* Process Section - Horizontal Steps */}
       <section className="marta-section">
@@ -211,10 +179,7 @@ export default function Welcome() {
             }`}
           >
             <div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="marta-accent-line" />
-                <span className="marta-label">Process</span>
-              </div>
+              <span className="marta-label mb-6 block">Process</span>
               <h2 className="marta-headline-sm">
                 Three Simple<br />Steps
               </h2>
@@ -228,10 +193,8 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Steps - Horizontal with connecting line */}
+          {/* Steps - Horizontal */}
           <div className="relative">
-            {/* Connecting line */}
-            <div className="hidden lg:block absolute top-1/2 left-0 right-0 marta-divider" />
             
             <div className="grid lg:grid-cols-3 gap-8 lg:gap-0">
               {steps.map((step, index) => (
@@ -249,7 +212,6 @@ export default function Welcome() {
                       <div className="w-12 h-12 marta-frame flex items-center justify-center bg-background relative z-10">
                         <span className="font-display text-xl">{step.number}</span>
                       </div>
-                      <div className="marta-accent-line flex-1 lg:flex hidden" />
                     </div>
                     
                     <h3 className="font-display text-3xl md:text-4xl mb-4">{step.title}</h3>
@@ -270,69 +232,6 @@ export default function Welcome() {
         </div>
       </section>
 
-      <div className="marta-divider" />
-
-      {/* Gallery Section - Asymmetric Grid */}
-      <section className="marta-section">
-        <div className="marta-container">
-          {/* Section Header */}
-          <div 
-            ref={galleryReveal.ref}
-            className={`mb-16 md:mb-24 transition-all duration-1000 ${
-              galleryReveal.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-            }`}
-          >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="marta-accent-line" />
-              <span className="marta-label">Gallery</span>
-            </div>
-            <h2 className="marta-headline-sm">
-              Beautiful<br />Results
-            </h2>
-          </div>
-
-          {/* Asymmetric Gallery Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {/* Large image - spans 2 cols */}
-            <div 
-              ref={setGalleryRef(0)}
-              className={`col-span-2 row-span-2 transition-all duration-700 ${
-                galleryVisible[0] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
-              }`}
-            >
-              <div className="marta-frame h-full overflow-hidden group">
-                <img 
-                  src={galleryImages[0].src} 
-                  alt={galleryImages[0].alt}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-            </div>
-            
-            {/* Remaining images */}
-            {galleryImages.slice(1).map((image, index) => (
-              <div 
-                key={index + 1}
-                ref={setGalleryRef(index + 1)}
-                className={`aspect-square transition-all duration-700 ${
-                  galleryVisible[index + 1] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
-                }`}
-                style={{ transitionDelay: galleryVisible[index + 1] ? `${(index + 1) * 100}ms` : '0ms' }}
-              >
-                <div className="marta-frame h-full overflow-hidden group">
-                  <img 
-                    src={image.src} 
-                    alt={image.alt}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="marta-divider" />
 
       {/* Final CTA Section */}
       <section className="marta-section">
@@ -343,12 +242,7 @@ export default function Welcome() {
           }`}
         >
           <div className="max-w-4xl mx-auto">
-            {/* Decorative line */}
-            <div className="flex items-center justify-center gap-4 mb-12">
-              <div className="marta-accent-line" />
-              <span className="marta-label">Start Now</span>
-              <div className="marta-accent-line" />
-            </div>
+            <span className="marta-label mb-12 block">Start Now</span>
             
             <h2 className="marta-headline mb-8">
               Ready To<br />Create?
@@ -386,7 +280,7 @@ export default function Welcome() {
               <span className="font-display text-2xl md:text-3xl text-foreground/30">HUFFPOST</span>
             </div>
             
-            <div className="marta-divider mb-16" />
+            <div className="mb-16" />
             
             <p className="font-display text-3xl md:text-4xl mb-12">
               Trusted by <span className="hero-accent-text">70+</span> Brands
