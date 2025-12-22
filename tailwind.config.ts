@@ -132,6 +132,10 @@ export default {
           from: { clipPath: "inset(0 100% 0 0)" },
           to: { clipPath: "inset(0 0% 0 0)" },
         },
+        "slowZoom": {
+          "0%": { transform: "scale(1)" },
+          "100%": { transform: "scale(1.05)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

@@ -86,25 +86,37 @@ export default function Welcome() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Hero Section - Full Background with Cycling Images */}
-      <section className="min-h-screen relative overflow-hidden">
-        {/* Cycling Background Images */}
-        {heroImages.map((image, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <img 
-              src={image.src} 
-              alt={image.alt} 
-              className="w-full h-full object-contain"
-            />
-          </div>
-        ))}
+      <section className="min-h-screen relative overflow-hidden bg-background">
+        {/* Cycling Background Images - Landscape Container */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {heroImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-[1.5s] ease-out ${
+                index === currentImageIndex 
+                  ? 'opacity-100 scale-100' 
+                  : 'opacity-0 scale-105'
+              }`}
+            >
+              {/* Landscape image container with Marta-style animation */}
+              <div className="relative w-full h-full flex items-center justify-center p-8 md:p-16 lg:p-24">
+                <img 
+                  src={image.src} 
+                  alt={image.alt} 
+                  className={`max-w-full max-h-full object-contain transition-transform duration-[8s] ease-out ${
+                    index === currentImageIndex ? 'animate-[slowZoom_8s_ease-out_forwards]' : ''
+                  }`}
+                  style={{
+                    filter: 'drop-shadow(0 25px 50px hsl(var(--foreground) / 0.15))'
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
         
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-background/70" />
+        {/* Subtle overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-background/80" />
         
         {/* Content */}
         <div className="relative z-10 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
