@@ -38,18 +38,26 @@ export function Header() {
             : 'bg-transparent'
         }`}
       >
-        <div className="flex h-16 md:h-20 items-center justify-between px-6 md:px-12 lg:px-20">
-          {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center group relative z-10"
-          >
-            <img 
-              src={formanovaLogo} 
-              alt="FormaNova" 
-              className="h-6 md:h-8 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
-            />
-          </Link>
+        <div className="flex h-20 md:h-24 items-center justify-between px-6 md:px-12 lg:px-20">
+          {/* Left side: Theme Switcher + Logo */}
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Theme Switcher - Left side */}
+            <div className="hidden md:block">
+              <ThemeSwitcher />
+            </div>
+            
+            {/* Logo - Bigger and prominent */}
+            <Link 
+              to="/" 
+              className="flex items-center group relative z-10"
+            >
+              <img 
+                src={formanovaLogo} 
+                alt="FormaNova" 
+                className="h-10 md:h-14 lg:h-16 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
+              />
+            </Link>
+          </div>
 
           {/* Desktop Navigation - Marta Style */}
           <nav className="hidden md:flex items-center gap-8">
@@ -66,10 +74,6 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            
-            <div className="ml-4 pl-4 border-l border-border/20">
-              <ThemeSwitcher />
-            </div>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -118,7 +122,7 @@ export function Header() {
       </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-16 md:h-20" />
+      <div className="h-20 md:h-24" />
     </>
   );
 }
