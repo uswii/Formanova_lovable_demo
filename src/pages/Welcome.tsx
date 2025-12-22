@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, Target, CheckCircle, Diamond } from 'lucide-react';
-import modelSilhouette from '@/assets/icons/model-silhouette.png';
+import { ArrowRight, Play, Target, CheckCircle, Diamond, User } from 'lucide-react';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -113,8 +112,8 @@ export default function Welcome() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 rounded-full overflow-hidden bg-muted/50 flex items-center justify-center">
-                  <img src={modelSilhouette} alt="Model silhouette" className="w-12 h-12 object-contain" />
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl">Realistic Visuals</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
