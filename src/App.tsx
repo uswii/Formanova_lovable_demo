@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Header } from "@/components/layout/Header";
 import { ThemeDecorations } from "@/components/ThemeDecorations";
+import { CinematicCursor } from "@/components/CinematicCursor";
+import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
 
 // Pages
 import Welcome from "./pages/Welcome";
@@ -22,6 +24,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CinematicCursor />
+          <ScrollProgressIndicator />
           <ThemeDecorations />
           <div className="min-h-screen flex flex-col relative z-10">
             <Header />
