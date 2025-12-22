@@ -38,7 +38,7 @@ export default function Welcome() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-black/50 backdrop-blur-sm">
               <Diamond className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium tracking-wide text-white">Trustable AI Photography</span>
+              <span className="text-sm font-medium tracking-wide text-white">Trustable AI photography</span>
             </div>
 
             {/* Headline */}
@@ -213,7 +213,7 @@ export default function Welcome() {
       <footer className="bg-card border-t border-border">
         {/* Featured In */}
         <div className="px-8 py-16 text-center">
-          <p className="text-sm text-muted-foreground mb-10 uppercase tracking-widest">Featured In</p>
+          <p className="text-sm text-muted-foreground mb-10 uppercase tracking-widest">Featured in</p>
           <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16 mb-12">
             <span className="text-2xl md:text-3xl font-bold text-foreground/60">CNN</span>
             <span className="text-xl md:text-2xl font-semibold text-foreground/60">TechCrunch</span>
@@ -224,7 +224,7 @@ export default function Welcome() {
           <div className="w-32 h-px bg-border mx-auto mb-12" />
           
           <p className="font-display text-2xl mb-10">
-            Trusted By <span className="text-primary font-semibold">70+</span> Brands
+            Trusted by <span className="text-primary font-semibold">70+</span> brands
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
