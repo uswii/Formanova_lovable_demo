@@ -127,9 +127,10 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
                 alt={image.alt} 
                 className="max-w-full max-h-full object-contain transition-transform duration-[2s] ease-out"
                 style={{
-                  filter: `drop-shadow(0 25px 50px hsl(var(--foreground) / 0.15)) 
+                  filter: `drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)) 
                            brightness(${isActive ? 1 : 0.7})`,
                   transform: isActive ? 'scale(1.02)' : 'scale(0.95)',
+                  isolation: 'isolate',
                 }}
               />
             </div>
@@ -137,11 +138,11 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
         );
       })}
       
-      {/* Cinematic vignette */}
+      {/* Cinematic vignette - theme-neutral */}
       <div 
         className="absolute inset-0 pointer-events-none z-20"
         style={{
-          background: `radial-gradient(ellipse at center, transparent 40%, hsl(var(--background) / 0.6) 100%)`,
+          background: `radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%)`,
         }}
       />
       
