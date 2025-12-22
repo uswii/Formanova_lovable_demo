@@ -37,9 +37,9 @@ export default function Welcome() {
   const handleStart = () => navigate('/studio');
 
   const features = [
-    { number: '01', title: 'Zero Alterations', description: 'Your jewelry stays exactly as uploaded. No AI hallucinations. No subtle changes.' },
-    { number: '02', title: 'Verified Accuracy', description: 'See precision metrics that verify your jewelry is preserved perfectly.' },
-    { number: '03', title: 'Realistic Imagery', description: 'Get stunning photoshoot imagery with lifelike models ready in seconds.' },
+    { title: 'Zero Alterations', description: 'Your jewelry stays exactly as uploaded. No AI hallucinations. No subtle changes.' },
+    { title: 'Verified Accuracy', description: 'See precision metrics that verify your jewelry is preserved perfectly.' },
+    { title: 'Realistic Imagery', description: 'Get stunning photoshoot imagery with lifelike models ready in seconds.' },
   ];
 
 
@@ -110,10 +110,7 @@ export default function Welcome() {
                 {/* Background hover effect */}
                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <span className="marta-number absolute top-0 right-4 transition-all duration-500 group-hover:scale-110 group-hover:text-primary">
-                  {feature.number}
-                </span>
-                <div className="relative z-10 pt-16">
+                <div className="relative z-10">
                   <h3 className="font-display text-2xl md:text-3xl mb-4 transition-transform duration-300 group-hover:translate-x-2">{feature.title}</h3>
                   <p className="marta-body text-muted-foreground">{feature.description}</p>
                 </div>
