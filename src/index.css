@@ -33,8 +33,8 @@
     --formanova-glow: 0 0% 50%;
     --formanova-success: 145 60% 40%;
     --formanova-warning: 38 90% 55%;
-    --formanova-gold: 0 0% 0%;
-    --formanova-hero-accent: 0 0% 0%;
+    --formanova-gold: 42 85% 55%;
+    --formanova-hero-accent: 42 85% 55%;
     --formanova-gradient-from: 0 0% 100%;
     --formanova-gradient-to: 0 0% 96%;
     
@@ -76,8 +76,8 @@
     --input: 0 0% 15%;
     --ring: 0 0% 100%;
     --marta-border-opacity: 0.2;
-    --formanova-glow: 0 0% 60%;
-    --formanova-hero-accent: 0 0% 100%;
+    --formanova-glow: 42 85% 60%;
+    --formanova-hero-accent: 42 85% 55%;
     --formanova-gradient-from: 0 0% 5%;
     --formanova-gradient-to: 0 0% 0%;
     --sidebar-background: 0 0% 0%;
@@ -636,6 +636,9 @@
 
   .hero-accent-text {
     color: hsl(var(--formanova-hero-accent));
+    text-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.8),
+      0 0 30px hsl(var(--formanova-hero-accent) / 0.5);
   }
   
   [data-theme="neon"] .hero-accent-text {
