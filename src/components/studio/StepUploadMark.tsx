@@ -316,10 +316,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     <button
                       className="h-6 px-2 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-xs gap-1.5 transition-colors"
                       onClick={() => setShowTutorial(true)}
-                      title="How to mark"
+                      title="Watch tutorial"
                     >
                       <HelpCircle className="h-3 w-3" />
-                      <span>How it works</span>
+                      <span>Tutorial</span>
                     </button>
                     <button
                       className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
