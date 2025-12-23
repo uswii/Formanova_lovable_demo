@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Maximize2, Download } from 'lucide-react';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, ZoomIn, Download } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -300,24 +300,23 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
-                  {/* Close button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-2 right-2 z-10 shadow-lg opacity-80 hover:opacity-100"
-                    onClick={clearImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  {/* Enlarge button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
-                    onClick={() => setFullscreenImage(state.originalImage)}
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
+                  {/* Compact control bar */}
+                  <div className="absolute top-2 right-2 z-10 flex gap-1">
+                    <button
+                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      onClick={() => setFullscreenImage(state.originalImage)}
+                      title="Fullscreen"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      onClick={clearImage}
+                      title="Remove"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
