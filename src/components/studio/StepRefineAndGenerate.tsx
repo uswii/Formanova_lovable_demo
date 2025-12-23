@@ -306,7 +306,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   // ========== RESULTS VIEW ==========
   if (currentView === 'results' && (state.fluxResult || state.geminiResult)) {
     return (
-      <div className="space-y-6">
+      <div className="h-[calc(100vh-160px)] flex flex-col overflow-hidden">
         {/* Fullscreen Image Dialog */}
         <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
@@ -335,42 +335,38 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
           </DialogContent>
         </Dialog>
 
-        {/* Header with status and regenerate */}
-        <Card className="border-border/30">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={() => setCurrentView('refine')}>
-                  <ArrowLeft className="h-4 w-4 mr-2" /> Edit Mask
-                </Button>
-                {state.status && <StatusBadge status={state.status} />}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Results */}
-        <div className="space-y-6">
-          <div>
-            <span className="marta-label mb-3 block">Results</span>
-            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Generated Photoshoot</h2>
+        {/* Header row with back button, status, title */}
+        <div className="flex items-center justify-between gap-4 mb-4 shrink-0">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => setCurrentView('refine')}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Edit Mask
+            </Button>
+            {state.status && <StatusBadge status={state.status} />}
           </div>
+          <h2 className="font-display text-xl md:text-2xl uppercase tracking-tight">Generated Photoshoot</h2>
+          <Button size="default" className="px-6" onClick={handleGenerate}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+          </Button>
+        </div>
 
-          <Tabs defaultValue="standard" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+        {/* Results content - fills remaining space */}
+        <div className="flex-1 min-h-0">
+          <Tabs defaultValue="standard" className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2 shrink-0">
               <TabsTrigger value="standard">Standard</TabsTrigger>
               <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="standard" className="mt-6">
+            <TabsContent value="standard" className="mt-4 flex-1 min-h-0">
               {state.fluxResult && (
-                <div className="grid lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 space-y-4">
+                <div className="grid lg:grid-cols-3 gap-4 h-full">
+                  {/* Main image - constrained height */}
+                  <div className="lg:col-span-2 h-full min-h-0">
                     <div 
-                      className="overflow-hidden border border-border cursor-pointer relative"
+                      className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
                       onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
                     >
-                      <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
+                      <img src={state.fluxResult} alt="Standard result" className="max-w-full max-h-full object-contain" />
                       {/* Top-right corner buttons */}
                       <div className="absolute top-3 right-3 z-10 flex gap-2">
                         <button
@@ -390,41 +386,38 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
+                  {/* Side panel - scrollable if needed */}
+                  <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityViz && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
+                      <div className="border border-border p-3 space-y-2">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <Gem className="h-3 w-3 text-primary" /> Jewelry Preservation
                         </h4>
                         <div className="overflow-hidden border border-border/50">
                           <img src={state.fidelityViz} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
                         </div>
-                        {/* Color Legend */}
-                        <div className="space-y-1.5 pt-2 border-t border-border/30">
-                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Color Guide</p>
-                          <div className="flex flex-wrap gap-3 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-green-500 border border-green-600" />
-                              <span className="text-foreground">Original Jewelry</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-blue-500 border border-blue-600" />
-                              <span className="text-foreground">Extended</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-red-500 border border-red-600" />
-                              <span className="text-foreground">Shrunk</span>
-                            </div>
+                        <div className="flex flex-wrap gap-2 text-[10px]">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500" />
+                            <span>Original</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500" />
+                            <span>Extended</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-red-500" />
+                            <span>Shrunk</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {state.metrics && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
+                      <div className="border border-border p-3 space-y-2">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-3 w-3 text-primary" /> Metrics
                         </h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metrics.precision} />
                           <MetricCard label="Recall" value={state.metrics.recall} />
                           <MetricCard label="IoU" value={state.metrics.iou} />
@@ -433,25 +426,20 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                   </div>
-                  {/* Regenerate button spanning full width */}
-                  <div className="lg:col-span-3 flex justify-center mt-4">
-                    <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
-                      <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
-                    </Button>
-                  </div>
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="enhanced" className="mt-6">
+            <TabsContent value="enhanced" className="mt-4 flex-1 min-h-0">
               {(state.geminiResult || state.fluxResult) && (
-                <div className="grid lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 space-y-4">
+                <div className="grid lg:grid-cols-3 gap-4 h-full">
+                  {/* Main image - constrained height */}
+                  <div className="lg:col-span-2 h-full min-h-0">
                     <div 
-                      className="overflow-hidden border border-border cursor-pointer relative"
+                      className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
                       onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
                     >
-                      <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
+                      <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="max-w-full max-h-full object-contain" />
                       {/* Top-right corner buttons */}
                       <div className="absolute top-3 right-3 z-10 flex gap-2">
                         <button
@@ -471,41 +459,38 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
+                  {/* Side panel - scrollable if needed */}
+                  <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityVizGemini && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
+                      <div className="border border-border p-3 space-y-2">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <Gem className="h-3 w-3 text-primary" /> Jewelry Preservation
                         </h4>
                         <div className="overflow-hidden border border-border/50">
                           <img src={state.fidelityVizGemini} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
                         </div>
-                        {/* Color Legend */}
-                        <div className="space-y-1.5 pt-2 border-t border-border/30">
-                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Color Guide</p>
-                          <div className="flex flex-wrap gap-3 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-green-500 border border-green-600" />
-                              <span className="text-foreground">Original Jewelry</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-blue-500 border border-blue-600" />
-                              <span className="text-foreground">Extended</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-3 h-3 bg-red-500 border border-red-600" />
-                              <span className="text-foreground">Shrunk</span>
-                            </div>
+                        <div className="flex flex-wrap gap-2 text-[10px]">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500" />
+                            <span>Original</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500" />
+                            <span>Extended</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-red-500" />
+                            <span>Shrunk</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {state.metricsGemini && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
+                      <div className="border border-border p-3 space-y-2">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-3 w-3 text-primary" /> Metrics
                         </h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
                           <MetricCard label="Recall" value={state.metricsGemini.recall} />
                           <MetricCard label="IoU" value={state.metricsGemini.iou} />
@@ -513,12 +498,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                         </div>
                       </div>
                     )}
-                  </div>
-                  {/* Regenerate button spanning full width */}
-                  <div className="lg:col-span-3 flex justify-center mt-4">
-                    <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
-                      <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
-                    </Button>
                   </div>
                 </div>
               )}
