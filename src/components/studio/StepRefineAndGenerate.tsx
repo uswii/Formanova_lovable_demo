@@ -433,14 +433,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                   </div>
+                  {/* Regenerate button spanning full width */}
+                  <div className="lg:col-span-3 flex justify-center mt-4">
+                    <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
+                      <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
+                    </Button>
+                  </div>
                 </div>
               )}
-              {/* Bottom button for Standard tab */}
-              <div className="flex justify-center mt-8">
-                <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
-                  <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
-                </Button>
-              </div>
             </TabsContent>
 
             <TabsContent value="enhanced" className="mt-6">
@@ -514,14 +514,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                   </div>
+                  {/* Regenerate button spanning full width */}
+                  <div className="lg:col-span-3 flex justify-center mt-4">
+                    <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
+                      <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
+                    </Button>
+                  </div>
                 </div>
               )}
-              {/* Bottom button for Enhanced tab */}
-              <div className="flex justify-center mt-8">
-                <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
-                  <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
-                </Button>
-              </div>
             </TabsContent>
           </Tabs>
         </div>
