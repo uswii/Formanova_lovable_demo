@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   Sparkles,
   Download,
@@ -14,7 +14,8 @@ import {
   Info,
   BarChart3,
   Diamond,
-  User,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +30,7 @@ interface Props {
 export function StepGenerate({ state, updateState, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -194,29 +196,41 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-card/50 backdrop-blur border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row items-center gap-6">
-            <div className="flex-1 w-full lg:w-auto">
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border/50">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 border border-primary/20">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-sm font-medium mb-1 block text-muted-foreground">Select Gender</label>
-                  <Select value={state.gender} onValueChange={(v) => updateState({ gender: v as 'female' | 'male' })}>
-                    <SelectTrigger className="w-full bg-background border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border z-50">
-                      <SelectItem value="female">Female Model</SelectItem>
-                      <SelectItem value="male">Male Model</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* Fullscreen Image Dialog */}
+      <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+          <div className="relative w-full h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
+              <div className="flex items-center gap-2">
+                {fullscreenImage && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                )}
               </div>
             </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+              {fullscreenImage && (
+                <img 
+                  src={fullscreenImage.url} 
+                  alt={fullscreenImage.title} 
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
+      <Card className="bg-card/50 backdrop-blur border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               size="lg"
               onClick={handleGenerate}
@@ -279,8 +293,14 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     <div className="grid lg:grid-cols-3 gap-6">
                       {/* Main Result Image */}
                       <div className="lg:col-span-2 space-y-4">
-                        <div className="rounded-xl overflow-hidden border border-border shadow-lg">
+                        <div 
+                          className="rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer group relative"
+                          onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
+                        >
                           <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                            <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
                         </div>
                         <Button
                           size="lg"
@@ -363,12 +383,18 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                     <div className="grid lg:grid-cols-3 gap-6">
                       {/* Main Result Image */}
                       <div className="lg:col-span-2 space-y-4">
-                        <div className="rounded-xl overflow-hidden border border-border shadow-lg">
+                        <div 
+                          className="rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer group relative"
+                          onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
+                        >
                           <img
                             src={state.geminiResult || state.fluxResult!}
                             alt="Enhanced result"
                             className="w-full h-auto"
                           />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                            <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
                         </div>
                         <Button
                           size="lg"
