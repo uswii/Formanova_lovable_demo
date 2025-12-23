@@ -281,15 +281,15 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
           <CardContent className="pt-10 pb-10">
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-6">
-                <div className="w-28 h-28 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center animate-pulse">
-                  <div className="w-20 h-20 rounded-full bg-muted-foreground/10 flex items-center justify-center">
-                    <svg className="h-10 w-10 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="6" y="6" width="12" height="12" transform="rotate(45 12 12)" />
+                <div className="w-32 h-32 rounded-full border-[3px] border-dashed border-muted-foreground/40 flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+                    <svg className="h-12 w-12 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
                     </svg>
                   </div>
                 </div>
               </div>
-              <h3 className="font-display text-2xl">Generating Photoshoot</h3>
+              <h3 className="font-display text-2xl uppercase tracking-wide" style={{ textShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3)' }}>Generating Photoshoot</h3>
               
               <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
                 <div 
