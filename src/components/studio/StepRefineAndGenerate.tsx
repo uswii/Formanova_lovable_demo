@@ -483,12 +483,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
   // ========== REFINE VIEW (Default) ==========
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Fullscreen Image Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
           <div className="relative w-full h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="flex items-center justify-between p-4 border-b border-border/20">
               <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
               <Button
                 size="sm"
@@ -504,7 +504,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 <img 
                   src={fullscreenImage.url} 
                   alt={fullscreenImage.title} 
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  className="max-w-full max-h-[80vh] object-contain"
                 />
               )}
             </div>
@@ -513,17 +513,16 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       </Dialog>
 
       {/* Main Grid: Mask Editor + Controls */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
         {/* Left: Mask Canvas */}
-        <Card className="lg:col-span-2 border-border/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-xl flex items-center gap-2">
-              <Paintbrush className="h-5 w-5 text-primary" />
-              Refine Mask
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">Paint to adjust, then generate</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="lg:col-span-2 space-y-6">
+          <div>
+            <span className="marta-label mb-3 block">Step 2</span>
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Refine & Generate</h2>
+            <p className="text-muted-foreground mt-2">Paint to adjust mask, then generate your photoshoot</p>
+          </div>
+          
+          <div className="space-y-4">
             <Tabs defaultValue="overlay">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="overlay">Overlay View</TabsTrigger>
@@ -627,18 +626,17 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 Generate
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Right: Brush Controls */}
-        <Card className="border-border/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Paintbrush className="h-5 w-5 text-primary" />
-              Controls
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
+        <div className="space-y-6">
+          <div>
+            <span className="marta-label mb-3 block">Tools</span>
+            <h3 className="font-display text-2xl uppercase tracking-tight">Controls</h3>
+          </div>
+          
+          <div className="space-y-5">
             <div className="space-y-3">
               <label className="text-sm font-medium">Brush Type</label>
               <div className="grid grid-cols-1 gap-2">
@@ -680,14 +678,16 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               />
             </div>
 
-            <Alert className="border-primary/40 bg-primary/10">
-              <Lightbulb className="h-4 w-4 text-primary" />
-              <AlertDescription className="text-sm">
-                <strong>Tip:</strong> Paint green over jewelry areas you want to preserve.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+            <div className="border border-border/20 p-4">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="h-4 w-4 text-primary mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Tip:</strong> Paint green over jewelry areas you want to preserve.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
