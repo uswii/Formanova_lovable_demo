@@ -353,130 +353,147 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         </Card>
 
         {/* Results */}
-        <Card className="border-border/30">
-          <CardHeader>
-            <CardTitle className="font-display text-xl flex items-center gap-2">
-              <Gem className="h-5 w-5 text-primary" />
-              Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Tabs defaultValue="standard" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="standard">Standard</TabsTrigger>
-                <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-              </TabsList>
+        <div className="space-y-6">
+          <div>
+            <span className="marta-label mb-3 block">Results</span>
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Generated Photoshoot</h2>
+          </div>
 
-              <TabsContent value="standard" className="mt-6">
-                {state.fluxResult && (
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-4">
-                      <div 
-                        className="rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer group relative"
-                        onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
-                      >
-                        <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Tabs defaultValue="standard" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="standard">Standard</TabsTrigger>
+              <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="standard" className="mt-6">
+              {state.fluxResult && (
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-4">
+                    <div 
+                      className="overflow-hidden border border-border cursor-pointer group relative"
+                      onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
+                    >
+                      <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                    <Button size="lg" className="w-full" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
+                      <Download className="h-4 w-4 mr-2" /> Download Standard
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {state.fidelityViz && (
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                          <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
+                        </h4>
+                        <div className="overflow-hidden border border-border/50">
+                          <img src={state.fidelityViz} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
+                        </div>
+                        {/* Color Legend */}
+                        <div className="space-y-1.5 pt-2 border-t border-border/30">
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Color Guide</p>
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-green-500 border border-green-600" />
+                              <span className="text-foreground">Original Jewelry</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-blue-500 border border-blue-600" />
+                              <span className="text-foreground">Extended</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-red-500 border border-red-600" />
+                              <span className="text-foreground">Shrunk</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <Button size="lg" className="w-full" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
-                        <Download className="h-4 w-4 mr-2" /> Download Standard
-                      </Button>
-                    </div>
-                    <div className="space-y-4">
-                      {state.fidelityViz && (
-                        <Card className="bg-primary/5 border-primary/30">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <Gem className="h-4 w-4 text-primary" /> Accuracy
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="rounded-lg overflow-hidden border-2 border-primary/20">
-                              <img src={state.fidelityViz} alt="Accuracy" className="w-full h-auto" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                      {state.metrics && (
-                        <Card className="bg-card/50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-primary" /> Metrics
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-2 gap-2">
-                              <MetricCard label="Precision" value={state.metrics.precision} />
-                              <MetricCard label="Recall" value={state.metrics.recall} />
-                              <MetricCard label="IoU" value={state.metrics.iou} />
-                              <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="enhanced" className="mt-6">
-                {(state.geminiResult || state.fluxResult) && (
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-4">
-                      <div 
-                        className="rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer group relative"
-                        onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
-                      >
-                        <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                    {state.metrics && (
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" /> Metrics
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <MetricCard label="Precision" value={state.metrics.precision} />
+                          <MetricCard label="Recall" value={state.metrics.recall} />
+                          <MetricCard label="IoU" value={state.metrics.iou} />
+                          <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
                         </div>
                       </div>
-                      <Button size="lg" className="w-full" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
-                        <Download className="h-4 w-4 mr-2" /> Download Enhanced
-                      </Button>
-                    </div>
-                    <div className="space-y-4">
-                      {state.fidelityVizGemini && (
-                        <Card className="bg-primary/5 border-primary/30">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <Gem className="h-4 w-4 text-primary" /> Accuracy
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="rounded-lg overflow-hidden border-2 border-primary/20">
-                              <img src={state.fidelityVizGemini} alt="Accuracy" className="w-full h-auto" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                      {state.metricsGemini && (
-                        <Card className="bg-card/50">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-primary" /> Metrics
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-2 gap-2">
-                              <MetricCard label="Precision" value={state.metricsGemini.precision} />
-                              <MetricCard label="Recall" value={state.metricsGemini.recall} />
-                              <MetricCard label="IoU" value={state.metricsGemini.iou} />
-                              <MetricCard label="Growth" value={state.metricsGemini.growthRatio} format="ratio" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="enhanced" className="mt-6">
+              {(state.geminiResult || state.fluxResult) && (
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-4">
+                    <div 
+                      className="overflow-hidden border border-border cursor-pointer group relative"
+                      onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
+                    >
+                      <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                    <Button size="lg" className="w-full" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
+                      <Download className="h-4 w-4 mr-2" /> Download Enhanced
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {state.fidelityVizGemini && (
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                          <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
+                        </h4>
+                        <div className="overflow-hidden border border-border/50">
+                          <img src={state.fidelityVizGemini} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
+                        </div>
+                        {/* Color Legend */}
+                        <div className="space-y-1.5 pt-2 border-t border-border/30">
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Color Guide</p>
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-green-500 border border-green-600" />
+                              <span className="text-foreground">Original Jewelry</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-blue-500 border border-blue-600" />
+                              <span className="text-foreground">Extended</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-red-500 border border-red-600" />
+                              <span className="text-foreground">Shrunk</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {state.metricsGemini && (
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" /> Metrics
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <MetricCard label="Precision" value={state.metricsGemini.precision} />
+                          <MetricCard label="Recall" value={state.metricsGemini.recall} />
+                          <MetricCard label="IoU" value={state.metricsGemini.iou} />
+                          <MetricCard label="Growth" value={state.metricsGemini.growthRatio} format="ratio" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     );
   }
