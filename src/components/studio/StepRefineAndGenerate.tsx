@@ -277,7 +277,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   if (currentView === 'generating') {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <Card className="bg-card/50 backdrop-blur w-full max-w-md">
+        <Card className="border-border/30 w-full max-w-md">
           <CardContent className="pt-10 pb-10">
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-8">
@@ -333,7 +333,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         </Dialog>
 
         {/* Header with status and regenerate */}
-        <Card className="bg-card/50 backdrop-blur border-primary/20">
+        <Card className="border-border/30">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -344,7 +344,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               </div>
               <Button 
                 onClick={handleGenerate}
-                className="formanova-glow"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Regenerate
@@ -354,11 +353,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         </Card>
 
         {/* Results */}
-        <Card className="bg-card/50 backdrop-blur">
+        <Card className="border-border/30">
           <CardHeader>
-            <CardTitle className="font-display flex items-center gap-2">
+            <CardTitle className="font-display text-xl flex items-center gap-2">
               <Gem className="h-5 w-5 text-primary" />
-              Your Results
+              Results
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -516,13 +515,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       {/* Main Grid: Mask Editor + Controls */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left: Mask Canvas */}
-        <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
+        <Card className="lg:col-span-2 border-border/30">
           <CardHeader className="pb-3">
-            <CardTitle className="font-display flex items-center gap-2">
+            <CardTitle className="font-display text-xl flex items-center gap-2">
               <Paintbrush className="h-5 w-5 text-primary" />
-              Refine Mask (Optional)
+              Refine Mask
             </CardTitle>
-            <CardDescription>Paint to adjust your mask, then generate</CardDescription>
+            <CardDescription className="text-muted-foreground">Paint to adjust, then generate</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs defaultValue="overlay">
@@ -620,7 +619,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button 
-                className="flex-1 h-12 text-lg font-semibold formanova-glow" 
+                className="flex-1 h-12 text-lg font-semibold"
                 onClick={handleGenerate} 
                 disabled={!state.maskBinary}
               >
@@ -632,11 +631,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         </Card>
 
         {/* Right: Brush Controls */}
-        <Card className="bg-card/50 backdrop-blur">
+        <Card className="border-border/30">
           <CardHeader className="pb-3">
             <CardTitle className="font-display text-lg flex items-center gap-2">
               <Paintbrush className="h-5 w-5 text-primary" />
-              Brush Controls
+              Controls
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">

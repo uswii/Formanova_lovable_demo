@@ -246,13 +246,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
+      <Card className="lg:col-span-2 border-border/30">
         <CardHeader>
-          <CardTitle className="font-display flex items-center gap-2">
+          <CardTitle className="font-display text-xl flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Upload & Mark Your Jewelry
+            Upload & Mark
           </CardTitle>
-          <CardDescription>Upload your jewelry image and click to mark the jewelry pieces</CardDescription>
+          <CardDescription className="text-muted-foreground">Upload your jewelry image and click to mark the pieces</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!state.originalImage ? (
@@ -361,7 +361,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     >
                       Clear All
                     </Button>
-                    <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="formanova-glow font-semibold">
+                    <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="font-semibold">
                       {isGeneratingMask ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
                       Generate Mask
                     </Button>
@@ -380,13 +380,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/50 backdrop-blur">
+      <Card className="border-border/30">
         <CardHeader>
           <CardTitle className="font-display text-lg flex items-center gap-2">
             <Diamond className="h-5 w-5 text-primary" />
-            Example Gallery
+            Examples
           </CardTitle>
-          <CardDescription>Click any example to try it out</CardDescription>
+          <CardDescription className="text-muted-foreground">Click any example to try it</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoadingExamples ? (

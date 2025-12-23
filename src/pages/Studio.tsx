@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { 
   Upload, 
   Sparkles, 
-  PlayCircle,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
 import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
 import { ServerOffline } from '@/components/studio/ServerOffline';
@@ -77,31 +74,8 @@ export default function Studio() {
 
 
   return (
-    <div className="min-h-screen formanova-gradient relative overflow-hidden">
-      {/* Theme-specific decorative elements */}
-      <div className="theme-decorations pointer-events-none" />
-      
-      <div className="px-3 py-6 relative z-10">
-        {/* Step Progress with integrated notice */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-          {/* Compact Necklace Notice */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
-            <span className="text-primary font-medium">💎 Necklaces Only</span>
-            <span className="text-muted-foreground hidden sm:inline">•</span>
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="h-auto p-0 text-primary hover:text-primary/80"
-              asChild
-            >
-              <Link to="/tutorial">
-                <PlayCircle className="h-3.5 w-3.5 mr-1" />
-                Tutorial
-              </Link>
-            </Button>
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="px-6 md:px-12 py-8 relative z-10">
         {/* Step Progress */}
         <div className="flex items-center justify-center mb-6">
           {stepConfig.map((step, index) => (
