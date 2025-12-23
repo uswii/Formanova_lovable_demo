@@ -279,7 +279,7 @@ export function MaskCanvas({
   }, [mode, isDrawing, getCanvasCoords, onBrushStrokePoint, draw]);
 
   return (
-    <div ref={containerRef} className="relative inline-block cursor-crosshair leading-[0]">
+    <div ref={containerRef} className="relative inline-block cursor-crosshair rounded-lg overflow-hidden">
       <canvas ref={canvasRef} className="block" />
       <canvas
         ref={overlayCanvasRef}

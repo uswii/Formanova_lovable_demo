@@ -36,17 +36,22 @@ type BrushStroke = {
   radius: number;
 };
 
+type ViewState = 'refine' | 'generating' | 'results';
+
 export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
+  // View state
+  const [currentView, setCurrentView] = useState<ViewState>(
+    state.fluxResult || state.geminiResult ? 'results' : 'refine'
+  );
+
   // Mask editing state
   const [brushMode, setBrushMode] = useState<'add' | 'remove'>('add');
   const [brushSize, setBrushSize] = useState(30);
-  const [isApplying, setIsApplying] = useState(false);
   const [history, setHistory] = useState<BrushStroke[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeStroke, setActiveStroke] = useState<BrushStroke | null>(null);
 
   // Generate state
-  const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
@@ -110,7 +115,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       return;
     }
 
-    setIsGenerating(true);
+    // Switch to generating view
+    setCurrentView('generating');
     setProgress(0);
     updateState({ isGenerating: true });
 
@@ -220,6 +226,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         sessionId: response.session_id,
       });
 
+      // Switch to results view
+      setCurrentView('results');
+
     } catch (error) {
       console.error('Generation error:', error);
       toast({
@@ -228,12 +237,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
       });
       updateState({ isGenerating: false });
+      setCurrentView('refine');
     } finally {
       if (progressInterval.current) {
         clearInterval(progressInterval.current);
         progressInterval.current = null;
       }
-      setIsGenerating(false);
     }
   };
 
@@ -263,216 +272,87 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     );
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Fullscreen Image Dialog */}
-      <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
-          <div className="relative w-full h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
-              <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
-              <div className="flex items-center gap-2">
-                {fullscreenImage && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                )}
+  // ========== GENERATING VIEW ==========
+  if (currentView === 'generating') {
+    return (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <Card className="bg-card/50 backdrop-blur w-full max-w-md">
+          <CardContent className="pt-10 pb-10">
+            <div className="flex flex-col items-center justify-center">
+              <div className="relative mb-8">
+                <div className="w-28 h-28 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <Diamond className="absolute inset-0 m-auto h-12 w-12 text-primary" />
               </div>
-            </div>
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-              {fullscreenImage && (
-                <img 
-                  src={fullscreenImage.url} 
-                  alt={fullscreenImage.title} 
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              <h3 className="font-display text-2xl mb-2">Generating Photoshoot</h3>
+              <p className="text-muted-foreground mb-6">Creating your professional jewelry photo...</p>
+              <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                  style={{ width: `${progress}%` }} 
                 />
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Main Grid: Mask Editor + Controls + Generate */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left: Mask Canvas */}
-        <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display flex items-center gap-2">
-              <Paintbrush className="h-5 w-5 text-primary" />
-              Refine Mask & Generate
-            </CardTitle>
-            <CardDescription>Optionally refine your mask, then generate</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Tabs defaultValue="overlay">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overlay">Overlay View</TabsTrigger>
-                <TabsTrigger value="binary">Binary Mask</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overlay" className="mt-4">
-                <div className="flex justify-center">
-                  <div className="relative inline-block rounded-xl overflow-hidden border border-border">
-                    {baseImage ? (
-                      <MaskCanvas
-                        key={canvasKey}
-                        image={baseImage}
-                        brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
-                        brushSize={brushSize}
-                        mode="brush"
-                        canvasSize={400}
-                        initialStrokes={effectiveStrokes}
-                        onBrushStrokeStart={handleStrokeStart}
-                        onBrushStrokePoint={handleStrokePoint}
-                        onBrushStrokeEnd={handleStrokeEnd}
-                      />
-                    ) : (
-                      <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                        <p className="text-muted-foreground">No mask generated yet</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground text-center mt-3">
-                  <span className="text-green-500 font-semibold">Green</span> = Preserved • <span className="font-semibold">Black</span> = AI-generated
-                </p>
-              </TabsContent>
-
-              <TabsContent value="binary" className="mt-4">
-                <div className="flex justify-center">
-                  <div className="relative inline-block rounded-xl overflow-hidden border border-border">
-                    {state.maskBinary ? (
-                      <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain" />
-                    ) : (
-                      <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                        <p className="text-muted-foreground">No mask generated yet</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyIndex < 0}>
-                <Undo className="h-4 w-4 mr-1" /> Undo
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
-                Redo <Redo className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-border">
-              <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back
-              </Button>
-              <Button 
-                className="flex-1 formanova-glow" 
-                onClick={handleGenerate} 
-                disabled={isGenerating || !state.maskBinary}
-              >
-                {isGenerating ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                {state.fluxResult ? 'Regenerate' : 'Generate Photoshoot'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Right: Brush Controls */}
-        <Card className="bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Paintbrush className="h-5 w-5 text-primary" />
-              Brush Controls
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Brush Type</label>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant={brushMode === 'add' ? 'default' : 'outline'}
-                  onClick={() => setBrushMode('add')}
-                  className={`justify-start h-11 ${brushMode === 'add' ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
-                >
-                  <div className="h-4 w-4 rounded-full bg-green-500 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium text-sm">Add Area</p>
-                  </div>
-                </Button>
-                <Button
-                  variant={brushMode === 'remove' ? 'default' : 'outline'}
-                  onClick={() => setBrushMode('remove')}
-                  className={`justify-start h-11 ${brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900 border-gray-800' : ''}`}
-                >
-                  <div className="h-4 w-4 rounded-full bg-black border-2 border-white/30 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium text-sm">Remove Area</p>
-                  </div>
-                </Button>
               </div>
+              <p className="mt-3 text-lg font-mono text-primary">{progress}%</p>
             </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Brush Size</label>
-                <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{brushSize}px</span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="100"
-                value={brushSize}
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-full accent-primary h-2 rounded-lg appearance-none bg-muted cursor-pointer"
-              />
-            </div>
-
-            <Alert className="border-primary/40 bg-primary/10">
-              <Lightbulb className="h-4 w-4 text-primary" />
-              <AlertDescription className="text-sm">
-                <strong>Tip:</strong> Paint green over areas you want to preserve.
-              </AlertDescription>
-            </Alert>
-
-            {state.status && (
-              <div className="pt-3 border-t border-border">
-                <StatusBadge status={state.status} />
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
+    );
+  }
 
-      {/* Generating Overlay */}
-      {isGenerating && (
-        <Card className="bg-card/50 backdrop-blur min-h-[300px] flex items-center justify-center relative overflow-hidden">
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative mb-6">
-              <div className="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <Diamond className="absolute inset-0 m-auto h-8 w-8 text-primary" />
+  // ========== RESULTS VIEW ==========
+  if (currentView === 'results' && (state.fluxResult || state.geminiResult)) {
+    return (
+      <div className="space-y-6">
+        {/* Fullscreen Image Dialog */}
+        <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+            <div className="relative w-full h-full flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fullscreenImage && handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+              <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+                {fullscreenImage && (
+                  <img 
+                    src={fullscreenImage.url} 
+                    alt={fullscreenImage.title} 
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  />
+                )}
+              </div>
             </div>
-            <h3 className="font-display text-xl mb-4">Generating Photoshoot</h3>
-            <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          </DialogContent>
+        </Dialog>
+
+        {/* Header with status and regenerate */}
+        <Card className="bg-card/50 backdrop-blur border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Button variant="outline" onClick={() => setCurrentView('refine')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Edit Mask
+                </Button>
+                {state.status && <StatusBadge status={state.status} />}
+              </div>
+              <Button 
+                onClick={handleGenerate}
+                className="formanova-glow"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Regenerate
+              </Button>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
-          </div>
+          </CardContent>
         </Card>
-      )}
 
-      {/* Results */}
-      {!isGenerating && (state.fluxResult || state.geminiResult) && (
+        {/* Results */}
         <Card className="bg-card/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
@@ -597,7 +477,207 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             </Tabs>
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  // ========== REFINE VIEW (Default) ==========
+  return (
+    <div className="space-y-6">
+      {/* Fullscreen Image Dialog */}
+      <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+          <div className="relative w-full h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fullscreenImage && handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+              {fullscreenImage && (
+                <img 
+                  src={fullscreenImage.url} 
+                  alt={fullscreenImage.title} 
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Main Grid: Mask Editor + Controls */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left: Mask Canvas */}
+        <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-display flex items-center gap-2">
+              <Paintbrush className="h-5 w-5 text-primary" />
+              Refine Mask (Optional)
+            </CardTitle>
+            <CardDescription>Paint to adjust your mask, then generate</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Tabs defaultValue="overlay">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="overlay">Overlay View</TabsTrigger>
+                <TabsTrigger value="binary">Binary Mask</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overlay" className="mt-4">
+                <div className="flex justify-center">
+                  <div className="relative inline-block group">
+                    {baseImage ? (
+                      <>
+                        <MaskCanvas
+                          key={canvasKey}
+                          image={baseImage}
+                          brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                          brushSize={brushSize}
+                          mode="brush"
+                          canvasSize={400}
+                          initialStrokes={effectiveStrokes}
+                          onBrushStrokeStart={handleStrokeStart}
+                          onBrushStrokePoint={handleStrokePoint}
+                          onBrushStrokeEnd={handleStrokeEnd}
+                        />
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                          onClick={() => setFullscreenImage({ url: baseImage, title: 'Mask Overlay' })}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="aspect-[3/4] w-[300px] bg-muted flex items-center justify-center rounded-lg">
+                        <p className="text-muted-foreground">No mask generated yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground text-center mt-3">
+                  <span className="text-green-500 font-semibold">Green</span> = Preserved • <span className="font-semibold">Black</span> = AI-generated
+                </p>
+              </TabsContent>
+
+              <TabsContent value="binary" className="mt-4">
+                <div className="flex justify-center">
+                  <div className="relative inline-block group">
+                    {state.maskBinary ? (
+                      <>
+                        <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain rounded-lg" />
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                          onClick={() => setFullscreenImage({ url: state.maskBinary!, title: 'Binary Mask' })}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="aspect-[3/4] w-[300px] bg-muted flex items-center justify-center rounded-lg">
+                        <p className="text-muted-foreground">No mask generated yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyIndex < 0}>
+                <Undo className="h-4 w-4 mr-1" /> Undo
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
+                Redo <Redo className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t border-border">
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              </Button>
+              <Button 
+                className="flex-1 h-12 text-lg font-semibold formanova-glow" 
+                onClick={handleGenerate} 
+                disabled={!state.maskBinary}
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                Generate Photoshoot
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: Brush Controls */}
+        <Card className="bg-card/50 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <Paintbrush className="h-5 w-5 text-primary" />
+              Brush Controls
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Brush Type</label>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  variant={brushMode === 'add' ? 'default' : 'outline'}
+                  onClick={() => setBrushMode('add')}
+                  className={`justify-start h-11 ${brushMode === 'add' ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
+                >
+                  <div className="h-4 w-4 rounded-full bg-green-500 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium text-sm">Add to Mask</p>
+                  </div>
+                </Button>
+                <Button
+                  variant={brushMode === 'remove' ? 'default' : 'outline'}
+                  onClick={() => setBrushMode('remove')}
+                  className={`justify-start h-11 ${brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900 border-gray-800' : ''}`}
+                >
+                  <div className="h-4 w-4 rounded-full bg-black border-2 border-white/30 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium text-sm">Remove from Mask</p>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Brush Size</label>
+                <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{brushSize}px</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="100"
+                value={brushSize}
+                onChange={(e) => setBrushSize(Number(e.target.value))}
+                className="w-full accent-primary h-2 rounded-lg appearance-none bg-muted cursor-pointer"
+              />
+            </div>
+
+            <Alert className="border-primary/40 bg-primary/10">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                <strong>Tip:</strong> Paint green over jewelry areas you want to preserve.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
