@@ -62,13 +62,12 @@ export default function Welcome() {
             <div className="mb-8">
               <KineticText as="h1" animation="split" className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Your</KineticText>
               <KineticText as="h1" animation="split" delay={200} className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Jewelry</KineticText>
-              <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Preserved</KineticText>
+              <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Unchanged</KineticText>
             </div>
 
             <ScrollRevealSection animation="fade-up" delay={300}>
               <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed drop-shadow-lg">
-                AI imagery you can trust. Your jewelry is always accurately shown. 
-                No hallucinations. No subtle changes. Ever.
+                AI imagery you can trust. No hallucinations. No subtle changes. Ever.
               </p>
             </ScrollRevealSection>
 
