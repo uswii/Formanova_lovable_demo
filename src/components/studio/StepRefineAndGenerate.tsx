@@ -429,9 +429,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 </div>
               )}
               {/* Bottom button for Standard tab */}
-              <div className="flex justify-center mt-6">
-                <Button size="lg" variant="outline" onClick={handleGenerate}>
-                  <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+              <div className="flex justify-center mt-8">
+                <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
+                  <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
                 </Button>
               </div>
             </TabsContent>
@@ -503,9 +503,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 </div>
               )}
               {/* Bottom button for Enhanced tab */}
-              <div className="flex justify-center mt-6">
-                <Button size="lg" variant="outline" onClick={handleGenerate}>
-                  <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+              <div className="flex justify-center mt-8">
+                <Button size="lg" className="px-8 py-6 text-base" onClick={handleGenerate}>
+                  <RefreshCw className="h-5 w-5 mr-2" /> Regenerate Photoshoot
                 </Button>
               </div>
             </TabsContent>
@@ -521,27 +521,24 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       {/* Fullscreen Image Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
-          <div className="relative w-full h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border/20">
-              <h3 className="font-display text-lg">{fullscreenImage?.title}</h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fullscreenImage && handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
+          <div className="relative w-full h-full">
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && (
                 <img 
                   src={fullscreenImage.url} 
                   alt={fullscreenImage.title} 
-                  className="max-w-full max-h-[80vh] object-contain"
+                  className="max-w-full max-h-[85vh] object-contain"
                 />
               )}
             </div>
+            {/* Download button in top-right corner */}
+            <button
+              className="absolute top-4 right-12 z-20 w-10 h-10 rounded-lg bg-black/70 hover:bg-black/90 flex items-center justify-center text-white transition-colors shadow-lg"
+              onClick={() => fullscreenImage && handleDownload(fullscreenImage.url, `${fullscreenImage.title.toLowerCase().replace(/\s+/g, '_')}.jpg`)}
+              title="Download"
+            >
+              <Download className="h-5 w-5" />
+            </button>
           </div>
         </DialogContent>
       </Dialog>
