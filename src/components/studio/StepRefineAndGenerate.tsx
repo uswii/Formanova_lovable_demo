@@ -11,13 +11,14 @@ import {
   ArrowLeft, 
   Undo, 
   Redo, 
-  Sparkles,
   Download,
   CheckCircle2,
   XCircle,
-  Diamond,
   BarChart3,
   Expand,
+  Play,
+  RefreshCw,
+  Gem,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
@@ -281,7 +282,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-8">
                 <div className="w-28 h-28 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                <Diamond className="absolute inset-0 m-auto h-12 w-12 text-primary" />
+                <Gem className="absolute inset-0 m-auto h-12 w-12 text-primary" />
               </div>
               <h3 className="font-display text-2xl mb-2">Generating Photoshoot</h3>
               <p className="text-muted-foreground mb-6">Creating your professional jewelry photo...</p>
@@ -345,7 +346,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 onClick={handleGenerate}
                 className="formanova-glow"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" />
                 Regenerate
               </Button>
             </div>
@@ -356,7 +357,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         <Card className="bg-card/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
-              <Diamond className="h-5 w-5 text-primary" />
+              <Gem className="h-5 w-5 text-primary" />
               Your Results
             </CardTitle>
           </CardHeader>
@@ -389,7 +390,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                         <Card className="bg-primary/5 border-primary/30">
                           <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <Diamond className="h-4 w-4 text-primary" /> Accuracy
+                              <Gem className="h-4 w-4 text-primary" /> Accuracy
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -443,7 +444,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                         <Card className="bg-primary/5 border-primary/30">
                           <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold flex items-center gap-2">
-                              <Diamond className="h-4 w-4 text-primary" /> Accuracy
+                              <Gem className="h-4 w-4 text-primary" /> Accuracy
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -573,7 +574,19 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="relative inline-block group">
                     {state.maskBinary ? (
                       <>
-                        <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain rounded-lg" />
+                        <MaskCanvas
+                          key={`binary-${canvasKey}`}
+                          image={state.maskBinary}
+                          brushColor={brushMode === 'add' ? '#FFFFFF' : '#000000'}
+                          brushSize={brushSize}
+                          mode="brush"
+                          canvasSize={400}
+                          initialStrokes={effectiveStrokes}
+                          activeStroke={activeStroke}
+                          onBrushStrokeStart={handleStrokeStart}
+                          onBrushStrokePoint={handleStrokePoint}
+                          onBrushStrokeEnd={handleStrokeEnd}
+                        />
                         <button
                           className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                           onClick={() => setFullscreenImage({ url: state.maskBinary!, title: 'Binary Mask' })}
@@ -611,8 +624,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 onClick={handleGenerate} 
                 disabled={!state.maskBinary}
               >
-                <Sparkles className="h-5 w-5 mr-2" />
-                Generate Photoshoot
+                <Play className="h-5 w-5 mr-2" />
+                Generate
               </Button>
             </div>
           </CardContent>
