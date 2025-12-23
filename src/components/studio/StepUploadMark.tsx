@@ -71,8 +71,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       setRedDots([]);
       setUndoStack([]);
       setRedoStack([]);
-      // Show tutorial when image is uploaded
-      setShowTutorial(true);
+      // Don't auto-show tutorial, let user click if needed
     };
     reader.readAsDataURL(file);
   }, [updateState, toast]);
@@ -314,6 +313,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   />
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
+                    <button
+                      className="h-6 px-2 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-xs gap-1.5 transition-colors"
+                      onClick={() => setShowTutorial(true)}
+                      title="How to mark"
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                      <span>How it works</span>
+                    </button>
                     <button
                       className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                       onClick={() => setFullscreenImage(state.originalImage)}
