@@ -277,30 +277,28 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   if (currentView === 'generating') {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <Card className="border-border/30 w-full max-w-md">
-          <CardContent className="pt-10 pb-10">
-            <div className="flex flex-col items-center justify-center">
-              <div className="relative mb-6">
-                <div className="w-32 h-32 rounded-full border-[3px] border-dashed border-muted-foreground/40 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full bg-muted-foreground/10 flex items-center justify-center">
-                    <svg className="h-12 w-12 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
-                    </svg>
-                  </div>
+        <div className="border-2 border-dashed border-border/50 p-8 w-full max-w-lg">
+          <div className="flex flex-col items-center justify-center">
+            <div className="relative mb-6">
+              <div className="w-32 h-32 rounded-full border-[3px] border-dashed border-muted-foreground/40 flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+                  <svg className="h-12 w-12 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
+                  </svg>
                 </div>
               </div>
-              <h3 className="font-display text-2xl uppercase tracking-wide" style={{ textShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3)' }}>Generating Photoshoot</h3>
-              
-              <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                  style={{ width: `${progress}%` }} 
-                />
-              </div>
-              <p className="mt-3 text-lg font-mono text-primary">{progress}%</p>
             </div>
-          </CardContent>
-        </Card>
+            <h3 className="font-display text-2xl uppercase tracking-wide mb-6" style={{ textShadow: '0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3)' }}>Generating Photoshoot</h3>
+            
+            <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                style={{ width: `${progress}%` }} 
+              />
+            </div>
+            <p className="mt-3 text-lg font-mono text-primary">{progress}%</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -390,7 +388,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityViz && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -418,7 +416,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metrics && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                           <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
@@ -454,7 +452,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityVizGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -482,7 +480,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metricsGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                           <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
