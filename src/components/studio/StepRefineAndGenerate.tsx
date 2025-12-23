@@ -386,7 +386,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityViz && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-base uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -414,7 +414,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metrics && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-base uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
@@ -428,11 +428,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               )}
-              {/* Bottom buttons for Standard tab */}
-              <div className="flex gap-4 mt-6">
-                <Button size="lg" className="flex-1" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
-                  <Download className="h-4 w-4 mr-2" /> Download Standard
-                </Button>
+              {/* Bottom button for Standard tab */}
+              <div className="flex justify-center mt-6">
                 <Button size="lg" variant="outline" onClick={handleGenerate}>
                   <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
                 </Button>
@@ -463,7 +460,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityVizGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-base uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -491,7 +488,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metricsGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-base uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
@@ -505,11 +502,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               )}
-              {/* Bottom buttons for Enhanced tab */}
-              <div className="flex gap-4 mt-6">
-                <Button size="lg" className="flex-1" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
-                  <Download className="h-4 w-4 mr-2" /> Download Enhanced
-                </Button>
+              {/* Bottom button for Enhanced tab */}
+              <div className="flex justify-center mt-6">
                 <Button size="lg" variant="outline" onClick={handleGenerate}>
                   <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
                 </Button>
