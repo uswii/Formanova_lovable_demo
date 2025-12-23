@@ -37,7 +37,7 @@ export function MarkingTutorial({ onDismiss }: Props) {
 
         {/* Brief instruction */}
         <p className="text-sm text-muted-foreground text-center mb-4">
-          <strong className="text-foreground">Tap 3-5 dots</strong> along the necklace chain. AI will detect the rest automatically.
+          Place <strong className="text-foreground">3-5 dots</strong> on the jewelry and click generate. That's it!
         </p>
 
         <Button onClick={onDismiss} className="w-full">
