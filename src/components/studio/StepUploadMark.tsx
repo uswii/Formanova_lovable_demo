@@ -314,12 +314,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                     <button
-                      className="h-6 px-2 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-xs gap-1.5 transition-colors"
+                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                       onClick={() => setShowTutorial(true)}
-                      title="Watch tutorial"
+                      title="Tutorial"
                     >
-                      <HelpCircle className="h-3 w-3" />
-                      <span>Tutorial</span>
+                      <HelpCircle className="h-3.5 w-3.5" />
                     </button>
                     <button
                       className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
