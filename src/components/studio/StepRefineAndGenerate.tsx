@@ -367,20 +367,27 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 <div className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-4">
                     <div 
-                      className="overflow-hidden border border-border cursor-pointer group relative"
+                      className="overflow-hidden border border-border cursor-pointer relative"
                       onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
                     >
                       <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {/* Top-right corner buttons */}
+                      <div className="absolute top-3 right-3 z-10 flex gap-2">
+                        <button
+                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' }); }}
+                          title="Fullscreen"
+                        >
+                          <Expand className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleDownload(state.fluxResult!, 'standard_result.jpg'); }}
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                        onClick={(e) => { e.stopPropagation(); handleDownload(state.fluxResult!, 'standard_result.jpg'); }}
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -441,20 +448,27 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 <div className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-4">
                     <div 
-                      className="overflow-hidden border border-border cursor-pointer group relative"
+                      className="overflow-hidden border border-border cursor-pointer relative"
                       onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
                     >
                       <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {/* Top-right corner buttons */}
+                      <div className="absolute top-3 right-3 z-10 flex gap-2">
+                        <button
+                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' }); }}
+                          title="Fullscreen"
+                        >
+                          <Expand className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg'); }}
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                        onClick={(e) => { e.stopPropagation(); handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg'); }}
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
                   <div className="space-y-4">
