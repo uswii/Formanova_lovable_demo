@@ -548,9 +548,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <Tabs defaultValue="overlay">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="overlay">Overlay View</TabsTrigger>
-                <TabsTrigger value="binary" className="flex items-center gap-2">
-                  <Play className="h-3.5 w-3.5" /> Generated Mask
-                </TabsTrigger>
+                <TabsTrigger value="binary">Binary View</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overlay" className="mt-4">
