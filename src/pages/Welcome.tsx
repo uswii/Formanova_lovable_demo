@@ -56,7 +56,7 @@ export default function Welcome() {
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
           <ScrollRevealSection animation="fade-left" className="max-w-2xl">
             <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium drop-shadow-lg">
-              Trustable AI Photography
+              Trustable AI Photography for Jewelry
             </span>
 
             <div className="mb-8">
