@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Slider } from '@/components/ui/slider';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Maximize2, Download } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -18,12 +19,13 @@ interface Props {
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
-  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]); // image pixel space
+  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
   const [isLoadingExamples, setIsLoadingExamples] = useState(true);
   const [markerSize, setMarkerSize] = useState(10);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -205,8 +207,45 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setRedoStack([]);
   };
 
+  const handleDownload = (imageUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
+      {/* Fullscreen Dialog */}
+      <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+          <div className="relative w-full h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="font-display text-lg">Image Preview</h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fullscreenImage && handleDownload(fullscreenImage, 'jewelry_image.jpg')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+              {fullscreenImage && (
+                <img 
+                  src={fullscreenImage} 
+                  alt="Full preview" 
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
         <CardHeader>
           <CardTitle className="font-display flex items-center gap-2">
@@ -250,15 +289,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           ) : (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <div className="relative inline-block rounded-xl overflow-hidden border border-border">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-2 right-2 z-10 shadow-lg"
-                    onClick={clearImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="relative inline-block group">
+                  {/* Canvas without extra border wrapper */}
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
@@ -268,6 +300,24 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
+                  {/* Close button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                    onClick={clearImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {/* Enlarge button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                    onClick={() => setFullscreenImage(state.originalImage)}
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
