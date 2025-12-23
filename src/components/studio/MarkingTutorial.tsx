@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
 interface Props {
   onDismiss: () => void;
+}
+
+// Preload video globally so it's cached
+const videoUrl = '/videos/marking-tutorial.mp4';
+if (typeof window !== 'undefined') {
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'video';
+  link.href = videoUrl;
+  document.head.appendChild(link);
 }
 
 export function MarkingTutorial({ onDismiss }: Props) {
@@ -26,11 +36,12 @@ export function MarkingTutorial({ onDismiss }: Props) {
         {/* Video demo */}
         <div className="relative aspect-video bg-muted/30 border border-border/50 mb-4 overflow-hidden rounded-sm">
           <video
-            src="/videos/marking-tutorial.mp4"
+            src={videoUrl}
             autoPlay
             loop
             muted
             playsInline
+            preload="auto"
             className="w-full h-full object-contain"
           />
         </div>
