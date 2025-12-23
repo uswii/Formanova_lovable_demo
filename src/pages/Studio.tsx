@@ -2,32 +2,29 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Upload, 
-  Paintbrush, 
   Sparkles, 
   PlayCircle,
-  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
-import { StepRefineMask } from '@/components/studio/StepRefineMask';
-import { StepGenerate } from '@/components/studio/StepGenerate';
+import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
 import { ServerOffline } from '@/components/studio/ServerOffline';
 import { useA100Status } from '@/hooks/use-a100-status';
 
-export type StudioStep = 'upload' | 'refine' | 'generate';
+export type StudioStep = 'upload' | 'generate';
 
 export interface StudioState {
   originalImage: string | null;
   markedImage: string | null;
   maskOverlay: string | null;
   maskBinary: string | null;
-  originalMask: string | null; // Original SAM mask before edits
+  originalMask: string | null;
   editedMask: string | null;
   gender: 'female' | 'male';
   fluxResult: string | null;
   geminiResult: string | null;
-  fidelityViz: string | null; // Standard fidelity visualization
-  fidelityVizGemini: string | null; // Enhanced fidelity visualization
+  fidelityViz: string | null;
+  fidelityVizGemini: string | null;
   metrics: {
     precision: number;
     recall: number;
@@ -43,7 +40,7 @@ export interface StudioState {
   status: 'good' | 'bad' | null;
   isGenerating: boolean;
   sessionId: string | null;
-  scaledPoints: number[][] | null; // For fidelity analysis
+  scaledPoints: number[][] | null;
 }
 
 export default function Studio() {
@@ -75,8 +72,7 @@ export default function Studio() {
 
   const stepConfig = [
     { id: 'upload' as const, label: 'Upload & Mark', icon: Upload, step: 1 },
-    { id: 'refine' as const, label: 'Refine Mask', icon: Paintbrush, step: 2 },
-    { id: 'generate' as const, label: 'Generate', icon: Sparkles, step: 3 },
+    { id: 'generate' as const, label: 'Refine & Generate', icon: Sparkles, step: 2 },
   ];
 
 
@@ -152,24 +148,15 @@ export default function Studio() {
                 <StepUploadMark 
                   state={state} 
                   updateState={updateState}
-                  onNext={() => setCurrentStep('refine')}
-                />
-              )}
-              
-              {currentStep === 'refine' && (
-                <StepRefineMask 
-                  state={state} 
-                  updateState={updateState}
                   onNext={() => setCurrentStep('generate')}
-                  onBack={() => setCurrentStep('upload')}
                 />
               )}
               
               {currentStep === 'generate' && (
-                <StepGenerate 
+                <StepRefineAndGenerate 
                   state={state} 
                   updateState={updateState}
-                  onBack={() => setCurrentStep('refine')}
+                  onBack={() => setCurrentStep('upload')}
                 />
               )}
             </>

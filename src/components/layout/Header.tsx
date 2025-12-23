@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -74,6 +76,31 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            
+            {/* Auth Button */}
+            {user ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut()}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                asChild
+                className="gap-2"
+              >
+                <Link to="/auth">
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </Link>
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -118,6 +145,31 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          
+          {/* Mobile Auth Button */}
+          {user ? (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => signOut()}
+              className={`gap-2 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+            >
+              <LogOut className="h-5 w-5" />
+              Sign Out
+            </Button>
+          ) : (
+            <Link
+              to="/auth"
+              className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+            >
+              <Button variant="default" size="lg" className="gap-2">
+                <LogIn className="h-5 w-5" />
+                Sign In
+              </Button>
+            </Link>
+          )}
         </nav>
       </div>
 
