@@ -17,7 +17,7 @@ import {
   XCircle,
   Diamond,
   BarChart3,
-  Maximize2,
+  ZoomIn,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
@@ -377,7 +377,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       >
                         <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                       <Button size="lg" className="w-full" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
@@ -431,7 +431,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       >
                         <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                       <Button size="lg" className="w-full" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
@@ -543,18 +543,18 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                           mode="brush"
                           canvasSize={400}
                           initialStrokes={effectiveStrokes}
+                          activeStroke={activeStroke}
                           onBrushStrokeStart={handleStrokeStart}
                           onBrushStrokePoint={handleStrokePoint}
                           onBrushStrokeEnd={handleStrokeEnd}
                         />
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                        <button
+                          className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                           onClick={() => setFullscreenImage({ url: baseImage, title: 'Mask Overlay' })}
+                          title="Fullscreen"
                         >
-                          <Maximize2 className="h-4 w-4" />
-                        </Button>
+                          <ZoomIn className="h-3.5 w-3.5" />
+                        </button>
                       </>
                     ) : (
                       <div className="aspect-[3/4] w-[300px] bg-muted flex items-center justify-center rounded-lg">
@@ -574,14 +574,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     {state.maskBinary ? (
                       <>
                         <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain rounded-lg" />
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="absolute top-2 left-2 z-10 shadow-lg opacity-80 hover:opacity-100"
+                        <button
+                          className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                           onClick={() => setFullscreenImage({ url: state.maskBinary!, title: 'Binary Mask' })}
+                          title="Fullscreen"
                         >
-                          <Maximize2 className="h-4 w-4" />
-                        </Button>
+                          <ZoomIn className="h-3.5 w-3.5" />
+                        </button>
                       </>
                     ) : (
                       <div className="aspect-[3/4] w-[300px] bg-muted flex items-center justify-center rounded-lg">

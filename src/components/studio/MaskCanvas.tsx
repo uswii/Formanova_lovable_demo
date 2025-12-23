@@ -24,6 +24,10 @@ interface Props {
    * Initial strokes to render on the canvas (for undo/redo support)
    */
   initialStrokes?: BrushStroke[];
+  /**
+   * Active stroke being drawn (for live preview)
+   */
+  activeStroke?: BrushStroke | null;
   onCanvasClick?: (x: number, y: number) => void;
   onCanvasChange?: (dataUrl: string) => void;
   onBrushStrokeStart?: () => void;
@@ -39,6 +43,7 @@ export function MaskCanvas({
   mode,
   canvasSize = 400,
   initialStrokes = [],
+  activeStroke = null,
   onCanvasClick,
   onCanvasChange,
   onBrushStrokeStart,
@@ -110,7 +115,7 @@ export function MaskCanvas({
     };
   }, [displayWidth, displayHeight]);
 
-  // Draw initial strokes when image loads or initialStrokes changes (for undo/redo)
+  // Draw initial strokes + active stroke when image loads or strokes change (for live preview)
   useEffect(() => {
     if (!imageLoaded || mode !== 'brush') return;
 
@@ -136,7 +141,19 @@ export function MaskCanvas({
         ctx.fill();
       });
     });
-  }, [imageLoaded, initialStrokes, mode, toDisplaySpace]);
+
+    // Draw active stroke for live preview
+    if (activeStroke && activeStroke.points.length > 0) {
+      const color = activeStroke.type === 'add' ? '#00FF00' : '#000000';
+      activeStroke.points.forEach((point) => {
+        const displayPt = toDisplaySpace(point[0], point[1]);
+        ctx.beginPath();
+        ctx.arc(displayPt.x, displayPt.y, activeStroke.radius / 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    }
+  }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace]);
 
   // Draw dots for marking mode (dots are in SAM space)
   useEffect(() => {
