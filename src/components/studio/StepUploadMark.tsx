@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download } from 'lucide-react';
+import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
 
 interface Props {
@@ -26,6 +27,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [isLoadingExamples, setIsLoadingExamples] = useState(true);
   const [markerSize, setMarkerSize] = useState(10);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -69,6 +71,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       setRedDots([]);
       setUndoStack([]);
       setRedoStack([]);
+      // Show tutorial when image is uploaded
+      setShowTutorial(true);
     };
     reader.readAsDataURL(file);
   }, [updateState, toast]);
@@ -218,6 +222,9 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
   return (
     <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
+      {/* Tutorial Overlay */}
+      {showTutorial && <MarkingTutorial onDismiss={() => setShowTutorial(false)} />}
+      
       {/* Fullscreen Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
@@ -293,22 +300,9 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Instructional hint - show only when no dots placed */}
-              {redDots.length === 0 && (
-                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 text-sm">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/20 border-2 border-red-500 flex-shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Tap on the necklace to place markers</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">Place 3-5 dots along the jewelry. AI will detect the rest automatically.</p>
-                  </div>
-                </div>
-              )}
-              
               <div className="flex justify-center">
                 <div className="relative inline-block group">
-                  {/* Canvas without extra border wrapper */}
+                  {/* Canvas */}
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
@@ -318,21 +312,15 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
-                  
-                  {/* First-time overlay hint */}
-                  {redDots.length === 0 && (
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                      <div className="flex flex-col items-center gap-2 animate-pulse">
-                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-red-400/60 flex items-center justify-center">
-                          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                        </div>
-                        <span className="text-xs text-white/80 bg-black/50 px-2 py-1 rounded">Click here</span>
-                      </div>
-                    </div>
-                  )}
-                  
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
+                    <button
+                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setShowTutorial(true); }}
+                      title="How to mark"
+                    >
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                       onClick={() => setFullscreenImage(state.originalImage)}
