@@ -345,12 +345,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 </Button>
                 {state.status && <StatusBadge status={state.status} />}
               </div>
-              <Button 
-                onClick={handleGenerate}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Regenerate
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -380,10 +374,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                         <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
+                      <button
+                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleDownload(state.fluxResult!, 'standard_result.jpg'); }}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
                     </div>
-                    <Button size="lg" className="w-full" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
-                      <Download className="h-4 w-4 mr-2" /> Download Standard
-                    </Button>
                   </div>
                   <div className="space-y-4">
                     {state.fidelityViz && (
@@ -430,6 +428,15 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               )}
+              {/* Bottom buttons for Standard tab */}
+              <div className="flex gap-4 mt-6">
+                <Button size="lg" className="flex-1" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
+                  <Download className="h-4 w-4 mr-2" /> Download Standard
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleGenerate}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="enhanced" className="mt-6">
@@ -444,10 +451,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                         <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
+                      <button
+                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg'); }}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
                     </div>
-                    <Button size="lg" className="w-full" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
-                      <Download className="h-4 w-4 mr-2" /> Download Enhanced
-                    </Button>
                   </div>
                   <div className="space-y-4">
                     {state.fidelityVizGemini && (
@@ -494,6 +505,15 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               )}
+              {/* Bottom buttons for Enhanced tab */}
+              <div className="flex gap-4 mt-6">
+                <Button size="lg" className="flex-1" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
+                  <Download className="h-4 w-4 mr-2" /> Download Enhanced
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleGenerate}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
