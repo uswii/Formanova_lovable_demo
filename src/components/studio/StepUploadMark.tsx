@@ -249,9 +249,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       {/* Main Upload Area */}
       <div className="lg:col-span-2 space-y-6">
         <div>
-          <span className="marta-label mb-3 block">Step 1</span>
+          <div className="flex items-center gap-4 mb-3">
+            <span className="marta-label">Step 1</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+              💎 Necklaces Only
+            </span>
+          </div>
           <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload & Mark</h2>
-          <p className="text-muted-foreground mt-2">Upload your jewelry image and click to mark the pieces</p>
+          <p className="text-muted-foreground mt-2">Upload your image and tap on the jewelry to select it</p>
         </div>
         
         <div className="space-y-4">
@@ -288,6 +293,19 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Instructional hint - show only when no dots placed */}
+              {redDots.length === 0 && (
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 text-sm">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/20 border-2 border-red-500 flex-shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Tap on the necklace to place markers</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">Place 3-5 dots along the jewelry. AI will detect the rest automatically.</p>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-center">
                 <div className="relative inline-block group">
                   {/* Canvas without extra border wrapper */}
@@ -300,6 +318,19 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
+                  
+                  {/* First-time overlay hint */}
+                  {redDots.length === 0 && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2 animate-pulse">
+                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-red-400/60 flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                        </div>
+                        <span className="text-xs text-white/80 bg-black/50 px-2 py-1 rounded">Click here</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                     <button
@@ -399,7 +430,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             <p className="text-sm text-muted-foreground text-center">No examples available</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {exampleImages.map((example) => (
               <button
                 key={example.id}
