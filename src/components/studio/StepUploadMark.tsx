@@ -217,12 +217,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
+    <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
       {/* Fullscreen Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
           <div className="relative w-full h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="flex items-center justify-between p-4 border-b border-border/20">
               <h3 className="font-display text-lg">Image Preview</h3>
               <Button
                 size="sm"
@@ -238,7 +238,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 <img 
                   src={fullscreenImage} 
                   alt="Full preview" 
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  className="max-w-full max-h-[80vh] object-contain"
                 />
               )}
             </div>
@@ -246,21 +246,21 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Card className="lg:col-span-2 border-border/30">
-        <CardHeader>
-          <CardTitle className="font-display text-xl flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" />
-            Upload & Mark
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">Upload your jewelry image and click to mark the pieces</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Main Upload Area */}
+      <div className="lg:col-span-2 space-y-6">
+        <div>
+          <span className="marta-label mb-3 block">Step 1</span>
+          <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload & Mark</h2>
+          <p className="text-muted-foreground mt-2">Upload your jewelry image and click to mark the pieces</p>
+        </div>
+        
+        <div className="space-y-4">
           {!state.originalImage ? (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
-              className="relative border-2 border-dashed border-primary/30 rounded-2xl text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all p-12 flex-1 flex flex-col items-center justify-center"
+              className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all p-12 flex-1 flex flex-col items-center justify-center"
             >
               <div className="relative mx-auto w-24 h-24 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
@@ -371,60 +371,55 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
           )}
 
-          <Alert className="border-primary/40 bg-primary/10">
-            <Lightbulb className="h-5 w-5 text-primary" />
-            <AlertDescription className="text-base text-foreground">
-              <strong className="text-primary">Pro Tip:</strong> Use high-quality inputs for best results. Sharp, well-lit images produce the most accurate masks.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/30">
-        <CardHeader>
-          <CardTitle className="font-display text-lg flex items-center gap-2">
-            <Diamond className="h-5 w-5 text-primary" />
-            Examples
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">Click any example to try it</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoadingExamples ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : exampleImages.length === 0 ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground text-center">No server examples found.</p>
-              <p className="text-xs text-muted-foreground text-center">
-                Add images to <span className="font-mono">/home/bilal/viton_jewelry_model/examples</span> on the A100.
+          <div className="border border-border/20 p-4">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Pro Tip:</strong> Use high-quality inputs for best results. Sharp, well-lit images produce the most accurate masks.
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {exampleImages.map((example) => (
-                <button
-                  key={example.id}
-                  onClick={() => loadExample(example)}
-                  className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all bg-muted"
-                >
-                  <img
-                    src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
-                    alt={example.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                    <div className="bg-primary/90 text-primary-foreground rounded-full p-1.5">
-                      <Play className="h-3 w-3" />
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Examples Sidebar */}
+      <div className="space-y-6">
+        <div>
+          <span className="marta-label mb-3 block">Gallery</span>
+          <h3 className="font-display text-2xl uppercase tracking-tight">Examples</h3>
+          <p className="text-muted-foreground text-sm mt-2">Click any example to try it</p>
+        </div>
+        
+        {isLoadingExamples ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : exampleImages.length === 0 ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground text-center">No examples available</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {exampleImages.map((example) => (
+              <button
+                key={example.id}
+                onClick={() => loadExample(example)}
+                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
+              >
+                <img
+                  src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
+                  alt={example.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <Play className="h-6 w-6 text-white" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
