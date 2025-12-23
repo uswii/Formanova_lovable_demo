@@ -281,8 +281,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
           <CardContent className="pt-10 pb-10">
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-6">
-                <div className="w-28 h-28 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                <Gem className="absolute inset-0 m-auto h-12 w-12 text-primary" />
+                <div className="w-28 h-28 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center animate-pulse">
+                  <div className="w-20 h-20 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+                    <svg className="h-10 w-10 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="6" y="6" width="12" height="12" transform="rotate(45 12 12)" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <h3 className="font-display text-2xl">Generating Photoshoot</h3>
               
@@ -543,7 +548,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <Tabs defaultValue="overlay">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="overlay">Overlay View</TabsTrigger>
-                <TabsTrigger value="binary">Binary Mask</TabsTrigger>
+                <TabsTrigger value="binary" className="flex items-center gap-2">
+                  <Play className="h-3.5 w-3.5" /> Generated Mask
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overlay" className="mt-4">
@@ -640,7 +647,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 disabled={!state.maskBinary}
               >
                 <Play className="h-5 w-5 mr-2" />
-                Generate
+                Generate Photoshoot
               </Button>
             </div>
           </div>
