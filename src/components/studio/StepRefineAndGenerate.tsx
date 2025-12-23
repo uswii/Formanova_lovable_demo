@@ -280,12 +280,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         <Card className="border-border/30 w-full max-w-md">
           <CardContent className="pt-10 pb-10">
             <div className="flex flex-col items-center justify-center">
-              <div className="relative mb-8">
+              <div className="relative mb-6">
                 <div className="w-28 h-28 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
                 <Gem className="absolute inset-0 m-auto h-12 w-12 text-primary" />
               </div>
-              <h3 className="font-display text-2xl mb-2">Generating Photoshoot</h3>
-              <p className="text-muted-foreground mb-6">Creating your professional jewelry photo...</p>
+              <h3 className="font-display text-2xl">Generating Photoshoot</h3>
+              
               <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
@@ -385,7 +385,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityViz && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -413,8 +413,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metrics && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4 text-primary" /> Metrics
+                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
                           <MetricCard label="Precision" value={state.metrics.precision} />
@@ -449,7 +449,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-4">
                     {state.fidelityVizGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
+                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
                           <Gem className="h-4 w-4 text-primary" /> Jewelry Preservation Analysis
                         </h4>
                         <div className="overflow-hidden border border-border/50">
@@ -477,8 +477,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metricsGemini && (
                       <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4 text-primary" /> Metrics
+                        <h4 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
