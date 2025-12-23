@@ -17,7 +17,7 @@ import {
   XCircle,
   Diamond,
   BarChart3,
-  ZoomIn,
+  Expand,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
@@ -377,7 +377,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       >
                         <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                       <Button size="lg" className="w-full" onClick={() => handleDownload(state.fluxResult!, 'standard_result.jpg')}>
@@ -431,7 +431,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       >
                         <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="w-full h-auto" />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                       <Button size="lg" className="w-full" onClick={() => handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg')}>
@@ -553,7 +553,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => setFullscreenImage({ url: baseImage, title: 'Mask Overlay' })}
                           title="Fullscreen"
                         >
-                          <ZoomIn className="h-3.5 w-3.5" />
+                          <Expand className="h-3.5 w-3.5" />
                         </button>
                       </>
                     ) : (
@@ -579,7 +579,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => setFullscreenImage({ url: state.maskBinary!, title: 'Binary Mask' })}
                           title="Fullscreen"
                         >
-                          <ZoomIn className="h-3.5 w-3.5" />
+                          <Expand className="h-3.5 w-3.5" />
                         </button>
                       </>
                     ) : (
