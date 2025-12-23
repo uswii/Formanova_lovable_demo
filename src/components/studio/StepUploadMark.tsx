@@ -316,13 +316,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                     <button
                       className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={(e) => { e.stopPropagation(); setShowTutorial(true); }}
-                      title="How to mark"
-                    >
-                      <HelpCircle className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
                       onClick={() => setFullscreenImage(state.originalImage)}
                       title="Fullscreen"
                     >
