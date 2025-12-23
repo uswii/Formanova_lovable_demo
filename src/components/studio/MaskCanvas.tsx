@@ -131,8 +131,10 @@ export function MaskCanvas({
     ctx.scale(dpr, dpr);
 
     // Redraw all initial strokes (points are in SAM space, convert to display)
+    // Use the brushColor prop to determine the add color (green for overlay, white for binary)
+    const addColor = brushColor === '#FFFFFF' ? '#FFFFFF' : '#00FF00';
     initialStrokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? '#00FF00' : '#000000';
+      const color = stroke.type === 'add' ? addColor : '#000000';
       stroke.points.forEach((point) => {
         const displayPt = toDisplaySpace(point[0], point[1]);
         ctx.beginPath();
@@ -144,7 +146,7 @@ export function MaskCanvas({
 
     // Draw active stroke for live preview
     if (activeStroke && activeStroke.points.length > 0) {
-      const color = activeStroke.type === 'add' ? '#00FF00' : '#000000';
+      const color = activeStroke.type === 'add' ? addColor : '#000000';
       activeStroke.points.forEach((point) => {
         const displayPt = toDisplaySpace(point[0], point[1]);
         ctx.beginPath();
