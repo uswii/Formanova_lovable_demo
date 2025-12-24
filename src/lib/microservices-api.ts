@@ -178,12 +178,27 @@ export interface SAM3JobResponse {
 }
 
 export interface SAM3JobStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  mask_uri?: string;
-  mask_overlay_uri?: string;
-  original_mask_uri?: string;
-  scaled_points?: number[][];
-  error?: string;
+  status: 'pending' | 'processing' | 'queued' | 'running' | 'completed' | 'succeeded' | 'failed';
+  result?: {
+    mask?: {
+      uri: string;
+      type?: string;
+      bytes?: number;
+    };
+    mask_overlay?: {
+      uri: string;
+    };
+    original_mask?: {
+      uri: string;
+    };
+    status?: string;
+    meta?: {
+      method?: string;
+      image_size?: number[];
+      dilation?: number;
+    };
+  };
+  error?: string | null;
 }
 
 export async function submitSAM3Job(request: SAM3JobRequest): Promise<SAM3JobResponse> {
