@@ -271,6 +271,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   };
 
   const baseImage = state.maskOverlay || state.originalImage;
+  console.log('[StepRefine] baseImage exists:', !!baseImage, 'maskOverlay:', !!state.maskOverlay, 'originalImage:', !!state.originalImage);
 
   const StatusBadge = ({ status }: { status: 'good' | 'bad' | null }) => {
     if (!status) return null;
