@@ -28,7 +28,7 @@ interface Props {
   onNext: () => void;
 }
 
-// Helper to create mask overlay by compositing original image with semi-transparent mask
+// Helper to create mask overlay - white pixels become green translucent, rest shows original image
 async function createMaskOverlay(originalImageDataUrl: string, maskBase64: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -50,45 +50,44 @@ async function createMaskOverlay(originalImageDataUrl: string, maskBase64: strin
       canvas.width = originalImg.width;
       canvas.height = originalImg.height;
       
-      // Draw original image
+      // Draw original image first
       ctx.drawImage(originalImg, 0, 0);
       
-      // Draw mask with semi-transparent green overlay
-      ctx.globalAlpha = 0.4;
-      ctx.globalCompositeOperation = 'source-atop';
-      
-      // Create temporary canvas for colored mask
+      // Create temporary canvas for the mask
       const maskCanvas = document.createElement('canvas');
       maskCanvas.width = originalImg.width;
       maskCanvas.height = originalImg.height;
       const maskCtx = maskCanvas.getContext('2d');
+      
       if (maskCtx) {
+        // Draw mask scaled to original image size
         maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
         
-        // Get mask data and colorize it
-        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const data = imageData.data;
+        // Get mask pixels
+        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const data = maskData.data;
+        
+        // Convert white pixels to semi-transparent green, black to fully transparent
         for (let i = 0; i < data.length; i += 4) {
-          // If pixel is white (mask), make it green
-          if (data[i] > 128) {
-            data[i] = 0;     // R
-            data[i + 1] = 255; // G
+          const brightness = data[i]; // R channel (mask is grayscale)
+          if (brightness > 128) {
+            // White pixel -> green with 50% opacity
+            data[i] = 0;       // R
+            data[i + 1] = 200; // G
             data[i + 2] = 0;   // B
+            data[i + 3] = 128; // A (semi-transparent)
           } else {
-            data[i + 3] = 0; // Make black pixels transparent
+            // Black pixel -> fully transparent
+            data[i + 3] = 0;
           }
         }
-        maskCtx.putImageData(imageData, 0, 0);
+        maskCtx.putImageData(maskData, 0, 0);
         
-        // Draw colored mask over original
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(originalImg, 0, 0);
-        ctx.globalAlpha = 0.4;
+        // Draw the green overlay on top of original
         ctx.drawImage(maskCanvas, 0, 0);
       }
       
-      resolve(canvas.toDataURL('image/jpeg', 0.9));
+      resolve(canvas.toDataURL('image/png'));
     };
     
     originalImg.onload = onLoad;
@@ -97,7 +96,7 @@ async function createMaskOverlay(originalImageDataUrl: string, maskBase64: strin
     maskImg.onerror = () => reject(new Error('Failed to load mask image'));
     
     originalImg.src = originalImageDataUrl;
-    maskImg.src = `data:image/png;base64,${maskBase64}`;
+    maskImg.src = maskBase64.startsWith('data:') ? maskBase64 : `data:image/png;base64,${maskBase64}`;
   });
 }
 interface ProcessingState {
