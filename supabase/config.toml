@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.microservices-proxy]
 verify_jwt = false
+
+[functions.azure-get-sas]
+verify_jwt = false
