@@ -215,11 +215,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       return;
     }
 
+    if (isProcessingUpload) {
+      toast({
+        variant: 'destructive',
+        title: 'Please wait',
+        description: 'Image is still processing.',
+      });
+      return;
+    }
+
     if (!processingState.resizedUri) {
       toast({
         variant: 'destructive',
-        title: 'No image',
-        description: 'Please upload an image first.',
+        title: 'Processing incomplete',
+        description: 'Please wait for image processing to complete, or re-upload.',
       });
       return;
     }
@@ -460,12 +469,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     canvasSize={400}
                   />
                   
-                  {/* Processing overlay */}
+                  {/* Processing overlay - just spinner */}
                   {isProcessingUpload && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20">
-                      <Loader2 className="h-12 w-12 text-white animate-spin mb-3" />
-                      <p className="text-white text-sm font-medium">Processing image...</p>
-                      <p className="text-white/70 text-xs mt-1">Resizing & optimizing</p>
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+                      <Loader2 className="h-10 w-10 text-white animate-spin" />
                     </div>
                   )}
                   {/* Compact control bar */}
