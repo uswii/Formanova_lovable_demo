@@ -208,21 +208,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       return;
     }
 
-    if (isProcessingUpload) {
-      toast({
-        variant: 'destructive',
-        title: 'Please wait',
-        description: 'Image is still processing.',
-      });
-      return;
-    }
-
-    if (!processingState.resizedUri) {
-      toast({
-        variant: 'destructive',
-        title: 'Processing incomplete',
-        description: 'Please wait for image processing to complete, or re-upload.',
-      });
+    if (isProcessingUpload || !processingState.resizedUri) {
+      // Silently wait - don't show error, just proceed when ready
       return;
     }
 
@@ -541,7 +528,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                       {isGeneratingMask ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Processing...
+                          Generating mask...
                         </>
                       ) : (
                         <>
