@@ -367,17 +367,28 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
       // Fetch the mask image
       const maskBase64 = await fetchImageAsBase64(maskUri);
+      console.log('[SAM3] Mask fetched, length:', maskBase64.length);
       
       // Create mask overlay by compositing original image with semi-transparent mask
       let maskOverlayDataUrl: string | null = null;
-      try {
-        maskOverlayDataUrl = await createMaskOverlay(state.originalImage!, maskBase64);
-      } catch (e) {
-        console.warn('Failed to create mask overlay:', e);
+      const currentOriginalImage = state.originalImage;
+      console.log('[SAM3] Original image for overlay, exists:', !!currentOriginalImage, 'length:', currentOriginalImage?.length);
+      
+      if (currentOriginalImage) {
+        try {
+          maskOverlayDataUrl = await createMaskOverlay(currentOriginalImage, maskBase64);
+          console.log('[SAM3] Overlay created, length:', maskOverlayDataUrl?.length);
+        } catch (e) {
+          console.error('[SAM3] Failed to create mask overlay:', e);
+        }
+      } else {
+        console.warn('[SAM3] No original image available for overlay creation');
       }
 
+      console.log('[SAM3] Updating state with maskOverlay:', !!maskOverlayDataUrl, 'originalImage:', !!currentOriginalImage);
+      
       updateState({
-        originalImage: state.originalImage,
+        originalImage: currentOriginalImage,
         maskOverlay: maskOverlayDataUrl,
         maskBinary: `data:image/png;base64,${maskBase64}`,
         originalMask: `data:image/png;base64,${maskBase64}`,
