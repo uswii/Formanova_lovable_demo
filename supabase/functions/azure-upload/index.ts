@@ -33,17 +33,18 @@ serve(async (req) => {
       );
     }
 
-    // Generate unique blob name
+    // Generate unique blob name (flat structure - no subdirectories to avoid path issues)
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const extension = content_type?.includes('png') ? 'png' : 'jpg';
-    const blobName = filename || `uploads/${timestamp}_${random}.${extension}`;
+    const blobName = filename || `${timestamp}_${random}.${extension}`;
 
     // Decode base64 to binary
     const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
-    // Azure Blob Storage REST API
-    const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${AZURE_CONTAINER_NAME}/${blobName}`;
+    // Azure Blob Storage REST API - URL encode the blob name for the request
+    const encodedBlobName = encodeURIComponent(blobName);
+    const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${AZURE_CONTAINER_NAME}/${encodedBlobName}`;
     const dateStr = new Date().toUTCString();
     const blobType = 'BlockBlob';
     const contentLength = binaryData.length;
