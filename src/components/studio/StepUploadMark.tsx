@@ -460,7 +460,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
-                    onCanvasClick={isProcessingUpload ? undefined : handleCanvasClick}
+                    onCanvasClick={handleCanvasClick}
                     brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
