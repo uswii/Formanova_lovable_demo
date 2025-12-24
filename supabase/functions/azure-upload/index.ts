@@ -109,10 +109,15 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Upload successful: ${url}`);
+    // Return URI in azure:// format that microservices expect
+    const azureUri = `azure://${AZURE_CONTAINER_NAME}/${blobName}`;
+    console.log(`Upload successful: ${azureUri} (https: ${url})`);
 
     return new Response(
-      JSON.stringify({ uri: url }),
+      JSON.stringify({ 
+        uri: azureUri,
+        https_url: url  // Also return HTTPS URL for direct access if needed
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
