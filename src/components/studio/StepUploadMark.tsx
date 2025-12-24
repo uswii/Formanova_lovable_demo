@@ -40,7 +40,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<string>('');
   const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
@@ -66,7 +65,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setIsProcessingUpload(true);
     try {
       // Step 1: Upload original to Azure
-      setProcessingStatus('Uploading to cloud...');
       let cleanBase64 = base64Data;
       if (cleanBase64.includes(',')) cleanBase64 = cleanBase64.split(',')[1];
       
@@ -74,7 +72,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       console.log('Original uploaded:', originalUri);
 
       // Step 2: Resize to 2000x2667
-      setProcessingStatus('Resizing image...');
       const resizeResult = await resize({ 
         image_uri: originalUri, 
         target_width: 2000, 
@@ -82,12 +79,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       });
       
       // Step 3: Upload resized image to Azure (since resize returns base64)
-      setProcessingStatus('Uploading resized image...');
       const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
       console.log('Resized uploaded:', resizedUri);
 
       // Step 4: Check if background removal is needed
-      setProcessingStatus('Analyzing image...');
       const zoomResult = await zoomCheck({ image_uri: resizedUri });
       console.log('Zoom check result:', zoomResult);
 
@@ -95,7 +90,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       
       // Step 5: If needed, remove background via BiRefNet
       if (zoomResult.should_remove_background) {
-        setProcessingStatus('Removing background...');
         const { job_id } = await submitBiRefNetJob(resizedUri);
         
         const result = await pollJobUntilComplete(
@@ -103,9 +97,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           {
             maxAttempts: 120,
             intervalMs: 1000,
-            onProgress: (attempt) => {
-              setProcessingStatus(`Removing background... (${attempt}s)`);
-            }
           }
         );
         
@@ -116,7 +107,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       }
 
       // Step 6: Fetch the final image and display it
-      setProcessingStatus('Loading preview...');
       const finalBase64 = await fetchImageAsBase64(finalUri);
       
       // Update state with processed image
@@ -143,7 +133,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         scaledPoints: null,
       });
 
-      setProcessingStatus('');
       toast({
         title: 'Image processed',
         description: zoomResult.should_remove_background 
@@ -153,7 +142,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
     } catch (error) {
       console.error('Image processing error:', error);
-      setProcessingStatus('');
       toast({
         variant: 'destructive',
         title: 'Processing failed',
@@ -226,7 +214,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       const imageUri = processingState.bgRemovedUri || processingState.resizedUri;
 
       // Submit SAM3 job
-      setProcessingStatus('Generating mask...');
       const { job_id } = await submitSAM3Job({
         image_uri: imageUri,
         points,
@@ -238,9 +225,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         {
           maxAttempts: 120,
           intervalMs: 1000,
-          onProgress: (attempt) => {
-            setProcessingStatus(`Generating mask... (${attempt}s)`);
-          }
         }
       );
 
@@ -249,7 +233,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       }
 
       // Fetch all the mask images
-      setProcessingStatus('Loading masks...');
+      
       const [maskBase64, maskOverlayBase64, originalMaskBase64] = await Promise.all([
         fetchImageAsBase64(result.mask_uri),
         result.mask_overlay_uri ? fetchImageAsBase64(result.mask_overlay_uri) : Promise.resolve(null),
@@ -263,7 +247,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         processedImageBase64 = state.originalImage;
       }
 
-      setProcessingStatus('');
 
       updateState({
         originalImage: processedImageBase64,
@@ -277,7 +260,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       onNext();
     } catch (error) {
       console.error('Segmentation error:', error);
-      setProcessingStatus('');
+      
       toast({
         variant: 'destructive',
         title: 'Segmentation failed',
@@ -401,7 +384,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 </div>
               </div>
               <p className="text-xl font-display font-medium mb-2">Processing Image</p>
-              <p className="text-sm text-muted-foreground">{processingStatus || 'Please wait...'}</p>
+              <p className="text-sm text-muted-foreground">Please wait...</p>
             </div>
           ) : !state.originalImage ? (
             <div
@@ -520,7 +503,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                       {isGeneratingMask ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          {processingStatus || 'Generating...'}
+                          Processing...
                         </>
                       ) : (
                         <>

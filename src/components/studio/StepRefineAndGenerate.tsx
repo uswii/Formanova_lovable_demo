@@ -55,7 +55,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
   // Generate state
   const [progress, setProgress] = useState(0);
-  const [processingStatus, setProcessingStatus] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -121,7 +120,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     // Switch to generating view
     setCurrentView('generating');
     setProgress(0);
-    setProcessingStatus('Preparing...');
     updateState({ isGenerating: true });
 
     progressInterval.current = setInterval(() => {
@@ -133,7 +131,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       let currentMask = state.editedMask || state.maskBinary;
       
       if (effectiveStrokes.length > 0) {
-        setProcessingStatus('Applying brush strokes...');
         let originalBase64 = state.originalImage;
         if (originalBase64.includes(',')) originalBase64 = originalBase64.split(',')[1];
 
@@ -157,8 +154,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       }
 
       // Upload images to Azure for the A100 generate endpoint
-      setProcessingStatus('Uploading to cloud...');
-      
       let imageBase64 = state.originalImage;
       if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
 
@@ -181,9 +176,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         originalMaskUri = originalMaskUpload.uri;
       }
 
-      // Now generate using A100 (still uses base64 for now, but we have URIs ready for future)
-      setProcessingStatus('Generating photoshoot...');
-      
+      // Now generate using A100
       const response = await a100Api.generate({
         image_base64: imageBase64,
         mask_base64: maskBase64,
@@ -234,7 +227,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
       setProgress(100);
-      setProcessingStatus('Complete!');
       
       updateState({
         fluxResult: generatedImageUrl,
@@ -265,7 +257,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         clearInterval(progressInterval.current);
         progressInterval.current = null;
       }
-      setProcessingStatus('');
+      
     }
   };
 
@@ -311,7 +303,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               </div>
             </div>
             <h3 className="font-display text-2xl uppercase tracking-wide mb-2">Generating Photoshoot</h3>
-            <p className="text-sm text-muted-foreground mb-6">{processingStatus || 'Please wait...'}</p>
+            <p className="text-sm text-muted-foreground mb-6">Please wait...</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
