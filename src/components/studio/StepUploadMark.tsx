@@ -250,9 +250,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       );
 
       // Extract mask URI from the nested result structure
+      console.log('[SAM3] Poll result:', JSON.stringify(result));
       const maskUri = result.result?.mask?.uri;
       const maskOverlayUri = result.result?.mask_overlay?.uri;
       const originalMaskUri = result.result?.original_mask?.uri;
+      console.log('[SAM3] Extracted maskUri:', maskUri);
 
       if (!maskUri) {
         throw new Error('No mask returned from SAM3');
