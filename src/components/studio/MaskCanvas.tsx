@@ -64,13 +64,23 @@ export function MaskCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx) {
+      console.log('[MaskCanvas] No canvas or context');
+      return;
+    }
 
+    if (!image) {
+      console.log('[MaskCanvas] No image prop provided');
+      return;
+    }
+
+    console.log('[MaskCanvas] Loading image, length:', image.length, 'prefix:', image.substring(0, 50));
     setImageLoaded(false);
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
+      console.log('[MaskCanvas] Image loaded, natural size:', img.naturalWidth, 'x', img.naturalHeight);
       // Use device pixel ratio for sharper rendering
       const dpr = window.devicePixelRatio || 1;
       canvas.width = displayWidth * dpr;
@@ -92,6 +102,10 @@ export function MaskCanvas({
       ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
       
       setImageLoaded(true);
+      console.log('[MaskCanvas] Image drawn to canvas');
+    };
+    img.onerror = (e) => {
+      console.error('[MaskCanvas] Failed to load image:', e);
     };
     img.src = image;
   }, [image, displayWidth, displayHeight]);
