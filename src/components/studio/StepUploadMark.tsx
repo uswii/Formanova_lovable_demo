@@ -193,6 +193,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
       let finalUri = resizedUri;
       let finalBase64 = resizeResult.image_base64;
+      let contentType = 'image/jpeg';
+      
+      // Clean any existing data URL prefix from resize result
+      if (finalBase64.includes(',')) {
+        finalBase64 = finalBase64.split(',')[1];
+      }
       
       // Step 4: If needed, remove background via BiRefNet
       if (zoomResult.should_remove_background) {
@@ -211,8 +217,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         if (resultUri) {
           finalUri = resultUri;
           console.log('Background removed:', finalUri);
-          // Fetch the background-removed image
+          // Fetch the background-removed image (PNG with transparency)
           finalBase64 = await fetchImageAsBase64(finalUri);
+          contentType = 'image/png';
+          
+          // Clean any existing data URL prefix
+          if (finalBase64.includes(',')) {
+            finalBase64 = finalBase64.split(',')[1];
+          }
         }
       }
 
@@ -223,8 +235,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         padding: resizeResult.padding,
       });
 
+      const imageDataUrl = `data:${contentType};base64,${finalBase64}`;
+      console.log('[processUploadedImage] Setting originalImage, length:', imageDataUrl.length, 'prefix:', imageDataUrl.substring(0, 40));
+
       updateState({
-        originalImage: `data:image/jpeg;base64,${finalBase64}`,
+        originalImage: imageDataUrl,
         markedImage: null,
         maskOverlay: null,
         maskBinary: null,
