@@ -102,8 +102,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           }
         );
         
-        if (result.result_uri) {
-          finalUri = result.result_uri;
+        // Extract result URI from the nested structure
+        const resultUri = result.result?.output?.uri || result.result_uri;
+        if (resultUri) {
+          finalUri = resultUri;
           console.log('Background removed:', finalUri);
           // Fetch the background-removed image
           finalBase64 = await fetchImageAsBase64(finalUri);
@@ -208,8 +210,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       return;
     }
 
-    if (isProcessingUpload || !processingState.resizedUri) {
-      // Silently wait - don't show error, just proceed when ready
+    if (isProcessingUpload) {
+      toast({
+        title: 'Please wait',
+        description: 'Image is still being processed...',
+      });
+      return;
+    }
+
+    if (!processingState.resizedUri) {
+      toast({
+        variant: 'destructive',
+        title: 'Image not ready',
+        description: 'Please upload an image first or wait for processing to complete.',
+      });
       return;
     }
 
