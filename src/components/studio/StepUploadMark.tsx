@@ -130,7 +130,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
-  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
@@ -140,10 +139,19 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [showTutorial, setShowTutorial] = useState(false);
   const { toast } = useToast();
   
-  // Use processingState from parent state for persistence
+  // Use processingState and redDots from parent state for persistence
   const processingState = state.processingState;
   const setProcessingState = (newState: typeof processingState) => {
     updateState({ processingState: newState });
+  };
+  
+  const redDots = state.redDots;
+  const setRedDots = (dotsOrFn: { x: number; y: number }[] | ((prev: { x: number; y: number }[]) => { x: number; y: number }[])) => {
+    if (typeof dotsOrFn === 'function') {
+      updateState({ redDots: dotsOrFn(state.redDots) });
+    } else {
+      updateState({ redDots: dotsOrFn });
+    }
   };
 
   useEffect(() => {
@@ -423,11 +431,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       editedMask: null,
       sessionId: null,
       scaledPoints: null,
+      redDots: [],
+      processingState: {},
     });
-    setRedDots([]);
     setUndoStack([]);
     setRedoStack([]);
-    setProcessingState({});
   };
 
   const loadExample = async (example: ExampleImage) => {

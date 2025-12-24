@@ -45,6 +45,7 @@ export interface StudioState {
   sessionId: string | null;
   scaledPoints: number[][] | null;
   processingState: ProcessingState;
+  redDots: { x: number; y: number }[];
 }
 
 export default function Studio() {
@@ -69,6 +70,7 @@ export default function Studio() {
     sessionId: null,
     scaledPoints: null,
     processingState: {},
+    redDots: [],
   });
 
   const updateState = (updates: Partial<StudioState>) => {
