@@ -188,16 +188,31 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
       if (!response) throw new Error('Generation failed');
 
+      // Debug: Log the full response
+      console.log('[Generate] Full response keys:', Object.keys(response));
+      console.log('[Generate] Raw response:', {
+        hasResultBase64: !!response.result_base64,
+        hasResultGemini: !!response.result_gemini_base64,
+        hasFidelityViz: !!(response as any).fidelity_viz_base64,
+        hasFidelityVizGemini: !!(response as any).fidelity_viz_gemini_base64,
+        hasMetrics: !!(response as any).metrics,
+        hasMetricsGemini: !!(response as any).metrics_gemini,
+        metrics: (response as any).metrics,
+        metricsGemini: (response as any).metrics_gemini,
+      });
+
       const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
       
       let status: 'good' | 'bad' | null = null;
       let metricsData: StudioState['metrics'] = null;
       const rawMetrics = (response as any).metrics as any;
+      console.log('[Generate] rawMetrics:', rawMetrics);
       if (rawMetrics && typeof rawMetrics === 'object') {
         const precision = safeNumber(rawMetrics.precision);
         const recall = safeNumber(rawMetrics.recall);
         const iou = safeNumber(rawMetrics.iou);
         const growthRatio = safeNumber(rawMetrics.growth_ratio ?? rawMetrics.growthRatio);
+        console.log('[Generate] Parsed metrics:', { precision, recall, iou, growthRatio });
         if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
           metricsData = { precision, recall, iou, growthRatio };
           const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
@@ -207,11 +222,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
       let metricsGeminiData: StudioState['metricsGemini'] = null;
       const rawMetricsGemini = (response as any).metrics_gemini as any;
+      console.log('[Generate] rawMetricsGemini:', rawMetricsGemini);
       if (rawMetricsGemini && typeof rawMetricsGemini === 'object') {
         const precision = safeNumber(rawMetricsGemini.precision);
         const recall = safeNumber(rawMetricsGemini.recall);
         const iou = safeNumber(rawMetricsGemini.iou);
         const growthRatio = safeNumber(rawMetricsGemini.growth_ratio ?? rawMetricsGemini.growthRatio);
+        console.log('[Generate] Parsed metricsGemini:', { precision, recall, iou, growthRatio });
         if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
           metricsGeminiData = { precision, recall, iou, growthRatio };
         }
@@ -219,14 +236,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
       const fidelityVizBase64 = (response as any).fidelity_viz_base64 ?? null;
       const fidelityVizDataUrl = fidelityVizBase64 ? `data:image/jpeg;base64,${fidelityVizBase64}` : null;
+      console.log('[Generate] fidelityViz exists:', !!fidelityVizDataUrl, 'length:', fidelityVizDataUrl?.length);
       
       const fidelityVizGeminiBase64 = (response as any).fidelity_viz_gemini_base64 ?? null;
       const fidelityVizGeminiDataUrl = fidelityVizGeminiBase64 ? `data:image/jpeg;base64,${fidelityVizGeminiBase64}` : null;
+      console.log('[Generate] fidelityVizGemini exists:', !!fidelityVizGeminiDataUrl, 'length:', fidelityVizGeminiDataUrl?.length);
 
       const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
       setProgress(100);
+      
+      console.log('[Generate] Updating state with:', {
+        hasFluxResult: !!generatedImageUrl,
+        hasGeminiResult: !!geminiImageUrl,
+        hasFidelityViz: !!fidelityVizDataUrl,
+        hasFidelityVizGemini: !!fidelityVizGeminiDataUrl,
+        hasMetrics: !!metricsData,
+        hasMetricsGemini: !!metricsGeminiData,
+        status,
+      });
       
       updateState({
         fluxResult: generatedImageUrl,
