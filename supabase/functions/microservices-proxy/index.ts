@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // Microservice endpoints
-const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8003';
+const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:18015';
 const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
 const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
 
