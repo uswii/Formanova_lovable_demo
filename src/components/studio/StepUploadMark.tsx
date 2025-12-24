@@ -46,59 +46,86 @@ async function createMaskOverlay(originalImageDataUrl: string, maskBase64: strin
       loadedCount++;
       if (loadedCount < 2) return;
       
-      // Set canvas size to match original image
-      canvas.width = originalImg.width;
-      canvas.height = originalImg.height;
-      
-      // Draw original image first
-      ctx.drawImage(originalImg, 0, 0);
-      
-      // Create temporary canvas for the mask
-      const maskCanvas = document.createElement('canvas');
-      maskCanvas.width = originalImg.width;
-      maskCanvas.height = originalImg.height;
-      const maskCtx = maskCanvas.getContext('2d');
-      
-      if (maskCtx) {
-        // Draw mask scaled to original image size
-        maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
+      try {
+        // Set canvas size to match original image
+        canvas.width = originalImg.width;
+        canvas.height = originalImg.height;
         
-        // Get mask pixels
-        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const data = maskData.data;
+        console.log('[Overlay] Canvas size:', canvas.width, 'x', canvas.height);
+        console.log('[Overlay] Mask size:', maskImg.width, 'x', maskImg.height);
         
-        // Convert white pixels to semi-transparent green, black to fully transparent
-        for (let i = 0; i < data.length; i += 4) {
-          const brightness = data[i]; // R channel (mask is grayscale)
-          if (brightness > 128) {
-            // White pixel -> green with 50% opacity
-            data[i] = 0;       // R
-            data[i + 1] = 200; // G
-            data[i + 2] = 0;   // B
-            data[i + 3] = 128; // A (semi-transparent)
-          } else {
-            // Black pixel -> fully transparent
-            data[i + 3] = 0;
+        // Draw original image first
+        ctx.drawImage(originalImg, 0, 0);
+        
+        // Create temporary canvas for the mask
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = originalImg.width;
+        maskCanvas.height = originalImg.height;
+        const maskCtx = maskCanvas.getContext('2d');
+        
+        if (maskCtx) {
+          // Draw mask scaled to original image size
+          maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
+          
+          // Get mask pixels
+          const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+          const data = maskData.data;
+          
+          let whiteCount = 0;
+          let blackCount = 0;
+          
+          // Convert white pixels to semi-transparent green, black to fully transparent
+          for (let i = 0; i < data.length; i += 4) {
+            const brightness = data[i]; // R channel (mask is grayscale)
+            if (brightness > 128) {
+              whiteCount++;
+              // White pixel -> green with 50% opacity
+              data[i] = 0;       // R
+              data[i + 1] = 200; // G
+              data[i + 2] = 0;   // B
+              data[i + 3] = 128; // A (semi-transparent)
+            } else {
+              blackCount++;
+              // Black pixel -> fully transparent
+              data[i + 3] = 0;
+            }
           }
+          
+          console.log('[Overlay] White pixels:', whiteCount, 'Black pixels:', blackCount);
+          
+          maskCtx.putImageData(maskData, 0, 0);
+          
+          // Draw the green overlay on top of original
+          ctx.drawImage(maskCanvas, 0, 0);
         }
-        maskCtx.putImageData(maskData, 0, 0);
         
-        // Draw the green overlay on top of original
-        ctx.drawImage(maskCanvas, 0, 0);
+        const result = canvas.toDataURL('image/png');
+        console.log('[Overlay] Generated overlay, length:', result.length);
+        resolve(result);
+      } catch (e) {
+        console.error('[Overlay] Error in onLoad:', e);
+        reject(e);
       }
-      
-      resolve(canvas.toDataURL('image/png'));
     };
     
     originalImg.onload = onLoad;
     maskImg.onload = onLoad;
-    originalImg.onerror = () => reject(new Error('Failed to load original image'));
-    maskImg.onerror = () => reject(new Error('Failed to load mask image'));
+    originalImg.onerror = (e) => {
+      console.error('[Overlay] Failed to load original image:', e);
+      reject(new Error('Failed to load original image'));
+    };
+    maskImg.onerror = (e) => {
+      console.error('[Overlay] Failed to load mask image:', e);
+      reject(new Error('Failed to load mask image'));
+    };
     
     originalImg.src = originalImageDataUrl;
-    maskImg.src = maskBase64.startsWith('data:') ? maskBase64 : `data:image/png;base64,${maskBase64}`;
+    const maskSrc = maskBase64.startsWith('data:') ? maskBase64 : `data:image/png;base64,${maskBase64}`;
+    console.log('[Overlay] Mask src prefix:', maskSrc.substring(0, 50));
+    maskImg.src = maskSrc;
   });
 }
+
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
