@@ -41,11 +41,13 @@ serve(async (req) => {
       targetUrl = `${IMAGE_MANIPULATOR_URL}/resize`;
       if (req.method === 'POST') {
         targetBody = await req.text();
+        console.log('Resize request body:', targetBody);
       }
     } else if (endpoint === '/zoom-check') {
       targetUrl = `${IMAGE_MANIPULATOR_URL}/zoom_check`;
       if (req.method === 'POST') {
         targetBody = await req.text();
+        console.log('Zoom check request body:', targetBody);
       }
     } else if (endpoint === '/birefnet/jobs') {
       targetUrl = `${BIREFNET_URL}/jobs`;
@@ -85,8 +87,9 @@ serve(async (req) => {
     const responseData = await response.text();
 
     console.log(`Response from ${endpoint}: status=${response.status}`);
-
-    // Try to parse as JSON for logging
+    if (response.status >= 400) {
+      console.error(`Error response body:`, responseData);
+    }
     try {
       const jsonData = JSON.parse(responseData);
       if (endpoint.includes('/jobs') && !endpoint.includes('/jobs/')) {
