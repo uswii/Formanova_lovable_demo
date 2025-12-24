@@ -74,9 +74,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
       // Step 2: Resize to 2000x2667
       const resizeResult = await resize({ 
-        image_uri: originalUri, 
+        image: originalUri, 
         target_width: 2000, 
-        target_height: 2667 
+        target_height: 2667,
+        flag: 'fixed_dimensions'
       });
       
       // Step 3: Upload resized image to Azure
@@ -84,7 +85,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       console.log('Resized uploaded:', resizedUri);
 
       // Step 4: Check if background removal is needed
-      const zoomResult = await zoomCheck({ image_uri: resizedUri });
+      const zoomResult = await zoomCheck({ image: resizedUri });
       console.log('Zoom check result:', zoomResult);
 
       let finalUri = resizedUri;

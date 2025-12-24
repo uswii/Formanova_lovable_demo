@@ -44,9 +44,10 @@ export async function uploadToAzure(
 
 // ========== Image Manipulator ==========
 export interface ResizeRequest {
-  image_uri: string;
+  image: string;  // Can be azure:// URI, HTTP URL, or base64
   target_width?: number;
   target_height?: number;
+  flag?: string;  // e.g., "fixed_dimensions"
 }
 
 export interface ResizeResponse {
@@ -80,7 +81,7 @@ export async function resize(request: ResizeRequest): Promise<ResizeResponse> {
 }
 
 export interface ZoomCheckRequest {
-  image_uri: string;
+  image: string;  // Can be azure:// URI, HTTP URL, or base64
 }
 
 export interface ZoomCheckResponse {
