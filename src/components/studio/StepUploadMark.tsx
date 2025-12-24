@@ -469,7 +469,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   
                   {/* Processing overlay - just spinner */}
                   {isProcessingUpload && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 pointer-events-none">
                       <Loader2 className="h-10 w-10 text-white animate-spin" />
                     </div>
                   )}
