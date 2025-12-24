@@ -125,9 +125,11 @@ serve(async (req) => {
       60
     );
 
-    // Build the full SAS URL
-    const httpsUrl = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${containerName}/${encodeURIComponent(blobName)}`;
+    // Build the full SAS URL (don't encode the blob name as it may contain path segments)
+    const httpsUrl = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${containerName}/${blobName}`;
     const sasUrl = `${httpsUrl}?${sasToken}`;
+    
+    console.log(`Generated SAS URL: ${httpsUrl}`);
 
     return new Response(
       JSON.stringify({ 
