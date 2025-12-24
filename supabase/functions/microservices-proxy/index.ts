@@ -95,6 +95,10 @@ serve(async (req) => {
       if (endpoint.includes('/jobs') && !endpoint.includes('/jobs/')) {
         console.log(`Job created:`, jsonData);
       }
+      // Log SAM3 poll responses to debug mask_uri
+      if (endpoint.startsWith('/sam3/jobs/')) {
+        console.log(`SAM3 job status:`, JSON.stringify(jsonData));
+      }
     } catch {
       // Not JSON, that's fine
     }
