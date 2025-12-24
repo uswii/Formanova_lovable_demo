@@ -172,11 +172,28 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       setRedoStack([]);
       setProcessingState({});
       
-      // Process the uploaded image through the new pipeline
+      // Show preview immediately
+      updateState({
+        originalImage: result,
+        markedImage: null,
+        maskOverlay: null,
+        maskBinary: null,
+        originalMask: null,
+        editedMask: null,
+        fluxResult: null,
+        geminiResult: null,
+        fidelityViz: null,
+        metrics: null,
+        status: null,
+        sessionId: null,
+        scaledPoints: null,
+      });
+      
+      // Process the uploaded image through the pipeline
       await processUploadedImage(result);
     };
     reader.readAsDataURL(file);
-  }, [toast]);
+  }, [toast, updateState]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -318,8 +335,27 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setRedoStack([]);
     setProcessingState({});
     
+    const previewImage = `data:image/jpeg;base64,${example.image_base64}`;
+    
+    // Show preview immediately
+    updateState({
+      originalImage: previewImage,
+      markedImage: null,
+      maskOverlay: null,
+      maskBinary: null,
+      originalMask: null,
+      editedMask: null,
+      fluxResult: null,
+      geminiResult: null,
+      fidelityViz: null,
+      metrics: null,
+      status: null,
+      sessionId: null,
+      scaledPoints: null,
+    });
+    
     // Process example image through the same pipeline
-    await processUploadedImage(`data:image/jpeg;base64,${example.image_base64}`);
+    await processUploadedImage(previewImage);
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -378,13 +414,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </div>
         
         <div className="space-y-4">
-          {isProcessingUpload ? (
-            <div className="border border-dashed border-border/40 text-center p-12 flex-1 flex flex-col items-center justify-center">
-              <div className="relative mx-auto w-16 h-16">
-                <Loader2 className="h-16 w-16 text-primary animate-spin" />
-              </div>
-            </div>
-          ) : !state.originalImage ? (
+          {!state.originalImage ? (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -423,12 +453,21 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
-                    onCanvasClick={handleCanvasClick}
+                    onCanvasClick={isProcessingUpload ? undefined : handleCanvasClick}
                     brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={400}
                   />
+                  
+                  {/* Processing overlay */}
+                  {isProcessingUpload && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20">
+                      <Loader2 className="h-12 w-12 text-white animate-spin mb-3" />
+                      <p className="text-white text-sm font-medium">Processing image...</p>
+                      <p className="text-white/70 text-xs mt-1">Resizing & optimizing</p>
+                    </div>
+                  )}
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                     <button
