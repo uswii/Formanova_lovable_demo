@@ -249,21 +249,26 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         }
       );
 
-      if (!result.mask_uri) {
+      // Extract mask URI from the nested result structure
+      const maskUri = result.result?.mask?.uri;
+      const maskOverlayUri = result.result?.mask_overlay?.uri;
+      const originalMaskUri = result.result?.original_mask?.uri;
+
+      if (!maskUri) {
         throw new Error('No mask returned from SAM3');
       }
 
       // Fetch all the mask images
       
       const [maskBase64, maskOverlayBase64, originalMaskBase64] = await Promise.all([
-        fetchImageAsBase64(result.mask_uri),
-        result.mask_overlay_uri ? fetchImageAsBase64(result.mask_overlay_uri) : Promise.resolve(null),
-        result.original_mask_uri ? fetchImageAsBase64(result.original_mask_uri) : Promise.resolve(null),
+        fetchImageAsBase64(maskUri),
+        maskOverlayUri ? fetchImageAsBase64(maskOverlayUri) : Promise.resolve(null),
+        originalMaskUri ? fetchImageAsBase64(originalMaskUri) : Promise.resolve(null),
       ]);
 
       // Also fetch the processed image if we have an overlay
       let processedImageBase64 = state.originalImage;
-      if (result.mask_overlay_uri) {
+      if (maskOverlayUri) {
         // The overlay should be based on the processed image
         processedImageBase64 = state.originalImage;
       }
@@ -275,7 +280,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         maskBinary: `data:image/png;base64,${maskBase64}`,
         originalMask: originalMaskBase64 ? `data:image/png;base64,${originalMaskBase64}` : `data:image/png;base64,${maskBase64}`,
         sessionId: job_id,
-        scaledPoints: result.scaled_points ?? null,
+        scaledPoints: result.result?.meta?.image_size ? [result.result.meta.image_size] : null,
       });
 
       onNext();
