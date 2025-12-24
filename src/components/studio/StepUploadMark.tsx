@@ -10,6 +10,17 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
+import { 
+  uploadToAzure, 
+  resize, 
+  zoomCheck, 
+  submitBiRefNetJob, 
+  pollBiRefNetJob, 
+  submitSAM3Job, 
+  pollSAM3Job, 
+  pollJobUntilComplete,
+  fetchImageAsBase64 
+} from '@/lib/microservices-api';
 
 interface Props {
   state: StudioState;
@@ -17,9 +28,19 @@ interface Props {
   onNext: () => void;
 }
 
+// Extended state to track URIs
+interface ProcessingState {
+  originalUri?: string;
+  resizedUri?: string;
+  bgRemovedUri?: string;
+  padding?: { top: number; bottom: number; left: number; right: number };
+}
+
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
   const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
@@ -28,6 +49,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [markerSize, setMarkerSize] = useState(10);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [processingState, setProcessingState] = useState<ProcessingState>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,21 +62,73 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     loadExamples();
   }, []);
 
-  const handleFileUpload = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid file type',
-        description: 'Please upload an image file.',
-      });
-      return;
-    }
+  const processUploadedImage = async (base64Data: string) => {
+    setIsProcessingUpload(true);
+    try {
+      // Step 1: Upload original to Azure
+      setProcessingStatus('Uploading to cloud...');
+      let cleanBase64 = base64Data;
+      if (cleanBase64.includes(',')) cleanBase64 = cleanBase64.split(',')[1];
+      
+      const { uri: originalUri } = await uploadToAzure(cleanBase64);
+      console.log('Original uploaded:', originalUri);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
+      // Step 2: Resize to 2000x2667
+      setProcessingStatus('Resizing image...');
+      const resizeResult = await resize({ 
+        image_uri: originalUri, 
+        target_width: 2000, 
+        target_height: 2667 
+      });
+      
+      // Step 3: Upload resized image to Azure (since resize returns base64)
+      setProcessingStatus('Uploading resized image...');
+      const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
+      console.log('Resized uploaded:', resizedUri);
+
+      // Step 4: Check if background removal is needed
+      setProcessingStatus('Analyzing image...');
+      const zoomResult = await zoomCheck({ image_uri: resizedUri });
+      console.log('Zoom check result:', zoomResult);
+
+      let finalUri = resizedUri;
+      
+      // Step 5: If needed, remove background via BiRefNet
+      if (zoomResult.should_remove_background) {
+        setProcessingStatus('Removing background...');
+        const { job_id } = await submitBiRefNetJob(resizedUri);
+        
+        const result = await pollJobUntilComplete(
+          () => pollBiRefNetJob(job_id),
+          {
+            maxAttempts: 120,
+            intervalMs: 1000,
+            onProgress: (attempt) => {
+              setProcessingStatus(`Removing background... (${attempt}s)`);
+            }
+          }
+        );
+        
+        if (result.result_uri) {
+          finalUri = result.result_uri;
+          console.log('Background removed:', finalUri);
+        }
+      }
+
+      // Step 6: Fetch the final image and display it
+      setProcessingStatus('Loading preview...');
+      const finalBase64 = await fetchImageAsBase64(finalUri);
+      
+      // Update state with processed image
+      setProcessingState({
+        originalUri,
+        resizedUri,
+        bgRemovedUri: zoomResult.should_remove_background ? finalUri : undefined,
+        padding: resizeResult.padding,
+      });
+
       updateState({
-        originalImage: result,
+        originalImage: `data:image/jpeg;base64,${finalBase64}`,
         markedImage: null,
         maskOverlay: null,
         maskBinary: null,
@@ -68,13 +142,51 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         sessionId: null,
         scaledPoints: null,
       });
+
+      setProcessingStatus('');
+      toast({
+        title: 'Image processed',
+        description: zoomResult.should_remove_background 
+          ? 'Image resized and background removed' 
+          : 'Image resized and ready',
+      });
+
+    } catch (error) {
+      console.error('Image processing error:', error);
+      setProcessingStatus('');
+      toast({
+        variant: 'destructive',
+        title: 'Processing failed',
+        description: error instanceof Error ? error.message : 'Failed to process image',
+      });
+    } finally {
+      setIsProcessingUpload(false);
+    }
+  };
+
+  const handleFileUpload = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file type',
+        description: 'Please upload an image file.',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const result = e.target?.result as string;
       setRedDots([]);
       setUndoStack([]);
       setRedoStack([]);
-      // Don't auto-show tutorial, let user click if needed
+      setProcessingState({});
+      
+      // Process the uploaded image through the new pipeline
+      await processUploadedImage(result);
     };
     reader.readAsDataURL(file);
-  }, [updateState, toast]);
+  }, [toast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -96,7 +208,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       return;
     }
 
-    if (!state.originalImage) {
+    if (!processingState.resizedUri) {
       toast({
         variant: 'destructive',
         title: 'No image',
@@ -109,38 +221,63 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
     try {
       const points = redDots.map((dot) => [dot.x, dot.y]);
+      
+      // Use the processed URI (bg removed if applicable, otherwise resized)
+      const imageUri = processingState.bgRemovedUri || processingState.resizedUri;
 
-      let imageBase64 = state.originalImage;
-      if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
-
-      // Points are already in 2000x2667 SAM space from MaskCanvas
-      const response = await a100Api.segment({
-        image_base64: imageBase64,
+      // Submit SAM3 job
+      setProcessingStatus('Generating mask...');
+      const { job_id } = await submitSAM3Job({
+        image_uri: imageUri,
         points,
-        // No longer need client dimensions - points are already in SAM space
       });
 
-      if (!response) throw new Error('Segmentation failed');
+      // Poll for completion
+      const result = await pollJobUntilComplete(
+        () => pollSAM3Job(job_id),
+        {
+          maxAttempts: 120,
+          intervalMs: 1000,
+          onProgress: (attempt) => {
+            setProcessingStatus(`Generating mask... (${attempt}s)`);
+          }
+        }
+      );
 
-      // Debug: Log the scaled_points received from API
-      console.log('Segmentation response received:', {
-        hasScaledPoints: !!response.scaled_points,
-        scaledPointsLength: response.scaled_points?.length,
-        scaledPoints: response.scaled_points,
-      });
+      if (!result.mask_uri) {
+        throw new Error('No mask returned from SAM3');
+      }
+
+      // Fetch all the mask images
+      setProcessingStatus('Loading masks...');
+      const [maskBase64, maskOverlayBase64, originalMaskBase64] = await Promise.all([
+        fetchImageAsBase64(result.mask_uri),
+        result.mask_overlay_uri ? fetchImageAsBase64(result.mask_overlay_uri) : Promise.resolve(null),
+        result.original_mask_uri ? fetchImageAsBase64(result.original_mask_uri) : Promise.resolve(null),
+      ]);
+
+      // Also fetch the processed image if we have an overlay
+      let processedImageBase64 = state.originalImage;
+      if (result.mask_overlay_uri) {
+        // The overlay should be based on the processed image
+        processedImageBase64 = state.originalImage;
+      }
+
+      setProcessingStatus('');
 
       updateState({
-        originalImage: `data:image/jpeg;base64,${response.processed_image_base64}`,
-        maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
-        maskBinary: `data:image/png;base64,${response.mask_base64}`,
-        originalMask: `data:image/png;base64,${response.original_mask_base64}`,
-        sessionId: response.session_id,
-        scaledPoints: response.scaled_points ?? null,
+        originalImage: processedImageBase64,
+        maskOverlay: maskOverlayBase64 ? `data:image/jpeg;base64,${maskOverlayBase64}` : null,
+        maskBinary: `data:image/png;base64,${maskBase64}`,
+        originalMask: originalMaskBase64 ? `data:image/png;base64,${originalMaskBase64}` : `data:image/png;base64,${maskBase64}`,
+        sessionId: job_id,
+        scaledPoints: result.scaled_points ?? null,
       });
 
       onNext();
     } catch (error) {
       console.error('Segmentation error:', error);
+      setProcessingStatus('');
       toast({
         variant: 'destructive',
         title: 'Segmentation failed',
@@ -187,27 +324,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setRedDots([]);
     setUndoStack([]);
     setRedoStack([]);
+    setProcessingState({});
   };
 
-  const loadExample = (example: ExampleImage) => {
-    updateState({
-      originalImage: `data:image/jpeg;base64,${example.image_base64}`,
-      markedImage: null,
-      maskOverlay: null,
-      maskBinary: null,
-      originalMask: null,
-      editedMask: null,
-      fluxResult: null,
-      geminiResult: null,
-      fidelityViz: null,
-      metrics: null,
-      status: null,
-      sessionId: null,
-      scaledPoints: null,
-    });
+  const loadExample = async (example: ExampleImage) => {
     setRedDots([]);
     setUndoStack([]);
     setRedoStack([]);
+    setProcessingState({});
+    
+    // Process example image through the same pipeline
+    await processUploadedImage(`data:image/jpeg;base64,${example.image_base64}`);
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -266,7 +393,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         </div>
         
         <div className="space-y-4">
-          {!state.originalImage ? (
+          {isProcessingUpload ? (
+            <div className="border border-dashed border-border/40 text-center p-12 flex-1 flex flex-col items-center justify-center">
+              <div className="relative mx-auto w-24 h-24 mb-6">
+                <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                </div>
+              </div>
+              <p className="text-xl font-display font-medium mb-2">Processing Image</p>
+              <p className="text-sm text-muted-foreground">{processingStatus || 'Please wait...'}</p>
+            </div>
+          ) : !state.originalImage ? (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -380,8 +517,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                       Clear All
                     </Button>
                     <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="font-semibold">
-                      {isGeneratingMask ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
-                      Generate Mask
+                      {isGeneratingMask ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          {processingStatus || 'Generating...'}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-5 w-5 mr-2" />
+                          Generate Mask
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -422,7 +568,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               <button
                 key={example.id}
                 onClick={() => loadExample(example)}
-                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
+                disabled={isProcessingUpload}
+                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all disabled:opacity-50"
               >
                 <img
                   src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}

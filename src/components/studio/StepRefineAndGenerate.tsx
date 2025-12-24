@@ -24,6 +24,7 @@ import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { a100Api } from '@/lib/a100-api';
+import { uploadToAzure, fetchImageAsBase64 } from '@/lib/microservices-api';
 
 interface Props {
   state: StudioState;
@@ -54,6 +55,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
   // Generate state
   const [progress, setProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -119,6 +121,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     // Switch to generating view
     setCurrentView('generating');
     setProgress(0);
+    setProcessingStatus('Preparing...');
     updateState({ isGenerating: true });
 
     progressInterval.current = setInterval(() => {
@@ -130,6 +133,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       let currentMask = state.editedMask || state.maskBinary;
       
       if (effectiveStrokes.length > 0) {
+        setProcessingStatus('Applying brush strokes...');
         let originalBase64 = state.originalImage;
         if (originalBase64.includes(',')) originalBase64 = originalBase64.split(',')[1];
 
@@ -152,22 +156,38 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         }
       }
 
-      // Now generate
+      // Upload images to Azure for the A100 generate endpoint
+      setProcessingStatus('Uploading to cloud...');
+      
       let imageBase64 = state.originalImage;
       if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
 
       let maskBase64 = currentMask;
       if (maskBase64.includes(',')) maskBase64 = maskBase64.split(',')[1];
 
-      let originalMaskBase64: string | undefined;
+      // Upload both image and mask to Azure
+      const [imageUpload, maskUpload] = await Promise.all([
+        uploadToAzure(imageBase64, 'image/jpeg'),
+        uploadToAzure(maskBase64, 'image/png'),
+      ]);
+
+      console.log('Uploaded to Azure - image:', imageUpload.uri, 'mask:', maskUpload.uri);
+
+      // Upload original mask if available
+      let originalMaskUri: string | undefined;
       if (state.originalMask) {
-        originalMaskBase64 = state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask;
+        let originalMaskBase64 = state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask;
+        const originalMaskUpload = await uploadToAzure(originalMaskBase64, 'image/png');
+        originalMaskUri = originalMaskUpload.uri;
       }
 
+      // Now generate using A100 (still uses base64 for now, but we have URIs ready for future)
+      setProcessingStatus('Generating photoshoot...');
+      
       const response = await a100Api.generate({
         image_base64: imageBase64,
         mask_base64: maskBase64,
-        original_mask_base64: originalMaskBase64,
+        original_mask_base64: state.originalMask ? (state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask) : undefined,
         gender: state.gender,
         use_gemini: true,
         scaled_points: state.scaledPoints || undefined,
@@ -214,6 +234,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
       setProgress(100);
+      setProcessingStatus('Complete!');
       
       updateState({
         fluxResult: generatedImageUrl,
@@ -244,6 +265,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         clearInterval(progressInterval.current);
         progressInterval.current = null;
       }
+      setProcessingStatus('');
     }
   };
 
@@ -288,7 +310,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 </div>
               </div>
             </div>
-            <h3 className="font-display text-2xl uppercase tracking-wide mb-6">Generating Photoshoot</h3>
+            <h3 className="font-display text-2xl uppercase tracking-wide mb-2">Generating Photoshoot</h3>
+            <p className="text-sm text-muted-foreground mb-6">{processingStatus || 'Please wait...'}</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
