@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.azure-get-sas]
 verify_jwt = false
+
+[functions.azure-fetch-image]
+verify_jwt = false

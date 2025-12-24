@@ -1,0 +1,116 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Generate SAS token for blob access
+async function generateSasToken(
+  accountName: string,
+  accountKey: string,
+  containerName: string,
+  blobName: string,
+  expiryMinutes: number = 60
+): Promise<string> {
+  const now = new Date();
+  const expiry = new Date(now.getTime() + expiryMinutes * 60 * 1000);
+  
+  const formatDate = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const startTime = formatDate(now);
+  const expiryTime = formatDate(expiry);
+  
+  const signedPermissions = 'r';
+  const signedResourceType = 'b';
+  const signedProtocol = 'https';
+  const signedVersion = '2020-10-02';
+  
+  const stringToSign = [
+    signedPermissions,
+    startTime,
+    expiryTime,
+    `/blob/${accountName}/${containerName}/${blobName}`,
+    '', '', signedProtocol, signedVersion, signedResourceType,
+    '', '', '', '', '', '',
+  ].join('\n');
+
+  const encoder = new TextEncoder();
+  const keyData = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey(
+    'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(stringToSign));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  const sasParams = new URLSearchParams({
+    sv: signedVersion, st: startTime, se: expiryTime,
+    sr: signedResourceType, sp: signedPermissions, spr: signedProtocol, sig: signatureBase64,
+  });
+
+  return sasParams.toString();
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME');
+    const AZURE_ACCOUNT_KEY = Deno.env.get('AZURE_ACCOUNT_KEY');
+
+    if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Azure configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { azure_uri } = await req.json();
+
+    if (!azure_uri || !azure_uri.startsWith('azure://')) {
+      return new Response(
+        JSON.stringify({ error: 'azure_uri is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse azure://container/blob format
+    const path = azure_uri.replace('azure://', '');
+    const slashIndex = path.indexOf('/');
+    const containerName = path.substring(0, slashIndex);
+    const blobName = path.substring(slashIndex + 1);
+
+    console.log(`Fetching image: ${containerName}/${blobName}`);
+
+    // Generate SAS and fetch
+    const sasToken = await generateSasToken(AZURE_ACCOUNT_NAME, AZURE_ACCOUNT_KEY, containerName, blobName, 60);
+    const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Azure fetch failed: ${response.status} ${response.statusText}`);
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch from Azure: ${response.status}` }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    console.log(`Successfully fetched image (${arrayBuffer.byteLength} bytes)`);
+
+    return new Response(
+      JSON.stringify({ base64, content_type: response.headers.get('content-type') || 'image/png' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Azure fetch-image error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

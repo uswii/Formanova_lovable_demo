@@ -281,43 +281,32 @@ export async function pollJobUntilComplete<T extends { status: string }>(
   throw new Error(`Job timed out after ${maxAttempts} attempts`);
 }
 
-// ========== Helper: Convert azure:// URI to fetchable URL ==========
-const AZURE_GET_SAS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-get-sas`;
+// ========== Helper: Fetch image via edge function (avoids CORS) ==========
+const AZURE_FETCH_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-fetch-image`;
 
-export async function getAzureSasUrl(azureUri: string): Promise<string> {
-  // If it's already an HTTPS URL, return as-is
-  if (azureUri.startsWith('https://')) {
-    return azureUri;
-  }
-  
-  // Convert azure://container/blob to SAS URL via edge function
-  const response = await fetch(AZURE_GET_SAS_URL, {
-    method: 'POST',
-    headers: authHeaders,
-    body: JSON.stringify({ azure_uri: azureUri }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get SAS URL: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.sas_url;
-}
-
-// ========== Helper: Fetch image from URI and convert to base64 ==========
 export async function fetchImageAsBase64(uri: string): Promise<string> {
   console.log('[microservices] Fetching image from URI:', uri.substring(0, 50) + '...');
   
-  // Handle azure:// URIs by getting a SAS URL first
-  let fetchableUrl = uri;
+  // Handle azure:// URIs via edge function to avoid CORS
   if (uri.startsWith('azure://')) {
-    console.log('[microservices] Converting azure:// URI to SAS URL...');
-    fetchableUrl = await getAzureSasUrl(uri);
+    console.log('[microservices] Fetching via edge function to avoid CORS...');
+    const response = await fetch(AZURE_FETCH_IMAGE_URL, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ azure_uri: uri }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch image: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.base64;
   }
   
-  const response = await fetch(fetchableUrl);
+  // For regular URLs, fetch directly
+  const response = await fetch(uri);
   if (!response.ok) {
     throw new Error(`Failed to fetch image: ${response.status}`);
   }
