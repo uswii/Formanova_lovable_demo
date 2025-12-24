@@ -30,7 +30,6 @@ interface Props {
 
 // Extended state to track URIs
 interface ProcessingState {
-  originalUri?: string;
   resizedUri?: string;
   bgRemovedUri?: string;
   padding?: { top: number; bottom: number; left: number; right: number };
@@ -68,30 +67,26 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       let cleanBase64 = base64Data;
       if (cleanBase64.includes(',')) cleanBase64 = cleanBase64.split(',')[1];
       
-      // Step 1: Upload original to Azure for storage
-      const { uri: originalUri } = await uploadToAzure(cleanBase64);
-      console.log('Original uploaded:', originalUri);
-
-      // Step 2: Resize to 2000x2667
+      // Step 1: Send base64 directly to resize (faster - no Azure upload first)
       const resizeResult = await resize({ 
-        image: originalUri, 
+        image: cleanBase64, 
         target_width: 2000, 
         target_height: 2667,
         flag: 'fixed_dimensions'
       });
       
-      // Step 3: Upload resized image to Azure
+      // Step 2: Upload resized image to Azure (needed for other services)
       const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
       console.log('Resized uploaded:', resizedUri);
 
-      // Step 4: Check if background removal is needed
+      // Step 3: Check if background removal is needed
       const zoomResult = await zoomCheck({ image: resizedUri });
       console.log('Zoom check result:', zoomResult);
 
       let finalUri = resizedUri;
       let finalBase64 = resizeResult.image_base64;
       
-      // Step 5: If needed, remove background via BiRefNet (still uses URI)
+      // Step 4: If needed, remove background via BiRefNet
       if (zoomResult.should_remove_background) {
         const { job_id } = await submitBiRefNetJob(resizedUri);
         
@@ -113,7 +108,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
       // Update state with processed image
       setProcessingState({
-        originalUri,
         resizedUri,
         bgRemovedUri: zoomResult.should_remove_background ? finalUri : undefined,
         padding: resizeResult.padding,
