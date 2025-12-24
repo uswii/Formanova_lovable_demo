@@ -199,15 +199,15 @@ serve(async (req) => {
     // Create SAS URL for private blob access
     const sasUrl = `${url}?${sasToken}`;
 
-    // Return both formats - SAS URL for direct access, azure:// for microservices that need it
+    // Return azure:// format as primary (microservices expect this format and have their own Azure creds)
+    // Also include SAS URL for direct browser/client access to private blobs
     const azureUri = `azure://${AZURE_CONTAINER_NAME}/${blobName}`;
-    console.log(`Upload successful: ${azureUri} with SAS token`);
+    console.log(`Upload successful: ${azureUri}`);
 
     return new Response(
       JSON.stringify({ 
-        uri: sasUrl,  // Primary: SAS URL for microservices to access private blobs
-        azure_uri: azureUri,  // azure:// format for reference
-        sas_url: sasUrl,  // Explicit SAS URL field
+        uri: azureUri,  // Primary: azure:// format for microservices
+        sas_url: sasUrl,  // SAS URL for direct client access to private blobs
         https_url: url  // Plain HTTPS URL (won't work for private containers without SAS)
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
