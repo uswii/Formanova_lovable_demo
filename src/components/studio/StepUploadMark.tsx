@@ -133,12 +133,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         scaledPoints: null,
       });
 
-      toast({
-        title: 'Image processed',
-        description: zoomResult.should_remove_background 
-          ? 'Image resized and background removed' 
-          : 'Image resized and ready',
-      });
+      // Processing complete - no toast notification
 
     } catch (error) {
       console.error('Image processing error:', error);
@@ -467,12 +462,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     canvasSize={400}
                   />
                   
-                  {/* Processing overlay - just spinner */}
-                  {isProcessingUpload && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 pointer-events-none">
-                      <Loader2 className="h-10 w-10 text-white animate-spin" />
-                    </div>
-                  )}
                   {/* Compact control bar */}
                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                     <button
