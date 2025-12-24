@@ -127,9 +127,14 @@ export interface BiRefNetJobResponse {
 }
 
 export interface BiRefNetJobStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result_uri?: string;
-  error?: string;
+  status: 'pending' | 'processing' | 'queued' | 'running' | 'completed' | 'succeeded' | 'failed';
+  result?: {
+    output?: {
+      uri: string;
+    };
+  } | null;
+  result_uri?: string; // Legacy field
+  error?: string | null;
 }
 
 export async function submitBiRefNetJob(imageUri: string): Promise<BiRefNetJobResponse> {
@@ -164,7 +169,9 @@ export async function pollBiRefNetJob(jobId: string): Promise<BiRefNetJobStatus>
     throw new Error(`BiRefNet job poll failed: ${error}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  console.log('[microservices] BiRefNet poll result:', data.status, data.result ? 'has result' : 'no result');
+  return data;
 }
 
 // ========== SAM3 (Segmentation) ==========
