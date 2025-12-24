@@ -135,11 +135,11 @@ export interface BiRefNetJobStatus {
 export async function submitBiRefNetJob(imageUri: string): Promise<BiRefNetJobResponse> {
   console.log('[microservices] Submitting BiRefNet job...');
   
-  // BiRefNet expects { image: { uri: "..." } }
+  // BiRefNet expects { data: { image: { uri: "..." } } }
   const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/birefnet/jobs`, {
     method: 'POST',
     headers: authHeaders,
-    body: JSON.stringify({ image: { uri: imageUri } }),
+    body: JSON.stringify({ data: { image: { uri: imageUri } } }),
   });
 
   if (!response.ok) {
