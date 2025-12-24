@@ -64,31 +64,33 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const processUploadedImage = async (base64Data: string) => {
     setIsProcessingUpload(true);
     try {
-      // Step 1: Upload original to Azure
+      // Clean the base64 data
       let cleanBase64 = base64Data;
       if (cleanBase64.includes(',')) cleanBase64 = cleanBase64.split(',')[1];
       
+      // Step 1: Upload original to Azure for storage
       const { uri: originalUri } = await uploadToAzure(cleanBase64);
       console.log('Original uploaded:', originalUri);
 
-      // Step 2: Resize to 2000x2667
+      // Step 2: Resize using base64 directly (microservice expects image_base64)
       const resizeResult = await resize({ 
-        image_uri: originalUri, 
+        image_base64: cleanBase64, 
         target_width: 2000, 
         target_height: 2667 
       });
       
-      // Step 3: Upload resized image to Azure (since resize returns base64)
+      // Step 3: Upload resized image to Azure
       const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
       console.log('Resized uploaded:', resizedUri);
 
-      // Step 4: Check if background removal is needed
-      const zoomResult = await zoomCheck({ image_uri: resizedUri });
+      // Step 4: Check if background removal is needed (using resized base64)
+      const zoomResult = await zoomCheck({ image_base64: resizeResult.image_base64 });
       console.log('Zoom check result:', zoomResult);
 
       let finalUri = resizedUri;
+      let finalBase64 = resizeResult.image_base64;
       
-      // Step 5: If needed, remove background via BiRefNet
+      // Step 5: If needed, remove background via BiRefNet (still uses URI)
       if (zoomResult.should_remove_background) {
         const { job_id } = await submitBiRefNetJob(resizedUri);
         
@@ -103,12 +105,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         if (result.result_uri) {
           finalUri = result.result_uri;
           console.log('Background removed:', finalUri);
+          // Fetch the background-removed image
+          finalBase64 = await fetchImageAsBase64(finalUri);
         }
       }
 
-      // Step 6: Fetch the final image and display it
-      const finalBase64 = await fetchImageAsBase64(finalUri);
-      
       // Update state with processed image
       setProcessingState({
         originalUri,
