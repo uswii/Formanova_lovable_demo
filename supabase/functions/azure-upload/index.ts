@@ -16,6 +16,12 @@ serve(async (req) => {
     const AZURE_ACCOUNT_KEY = Deno.env.get('AZURE_ACCOUNT_KEY');
     const AZURE_CONTAINER_NAME = Deno.env.get('AZURE_CONTAINER_NAME');
 
+    console.log('Azure config:', { 
+      account: AZURE_ACCOUNT_NAME, 
+      container: AZURE_CONTAINER_NAME,
+      hasKey: !!AZURE_ACCOUNT_KEY 
+    });
+
     if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
       console.error('Missing Azure configuration');
       return new Response(
