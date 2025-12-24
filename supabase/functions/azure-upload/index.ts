@@ -5,6 +5,76 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate SAS token for blob access
+async function generateSasToken(
+  accountName: string,
+  accountKey: string,
+  containerName: string,
+  blobName: string,
+  expiryMinutes: number = 60
+): Promise<string> {
+  const now = new Date();
+  const expiry = new Date(now.getTime() + expiryMinutes * 60 * 1000);
+  
+  // Format dates for SAS
+  const formatDate = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const startTime = formatDate(now);
+  const expiryTime = formatDate(expiry);
+  
+  // SAS parameters
+  const signedPermissions = 'r'; // read only
+  const signedService = 'b'; // blob
+  const signedResourceType = 'b'; // blob
+  const signedProtocol = 'https';
+  const signedVersion = '2020-10-02';
+  
+  // String to sign for blob SAS
+  const stringToSign = [
+    signedPermissions,
+    startTime,
+    expiryTime,
+    `/blob/${accountName}/${containerName}/${blobName}`,
+    '', // signed identifier
+    '', // signed IP
+    signedProtocol,
+    signedVersion,
+    signedResourceType,
+    '', // snapshot time
+    '', // encryption scope
+    '', // cache control
+    '', // content disposition
+    '', // content encoding
+    '', // content language
+    '', // content type
+  ].join('\n');
+
+  // Create HMAC-SHA256 signature
+  const encoder = new TextEncoder();
+  const keyData = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(stringToSign));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  // Build SAS query string
+  const sasParams = new URLSearchParams({
+    sv: signedVersion,
+    st: startTime,
+    se: expiryTime,
+    sr: signedResourceType,
+    sp: signedPermissions,
+    spr: signedProtocol,
+    sig: signatureBase64,
+  });
+
+  return sasParams.toString();
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -117,14 +187,28 @@ serve(async (req) => {
       );
     }
 
-    // Return URI in azure:// format that microservices expect
+    // Generate SAS token for the uploaded blob (valid for 60 minutes)
+    const sasToken = await generateSasToken(
+      AZURE_ACCOUNT_NAME,
+      AZURE_ACCOUNT_KEY,
+      AZURE_CONTAINER_NAME,
+      blobName,
+      60
+    );
+    
+    // Create SAS URL for private blob access
+    const sasUrl = `${url}?${sasToken}`;
+
+    // Return both formats - SAS URL for direct access, azure:// for microservices that need it
     const azureUri = `azure://${AZURE_CONTAINER_NAME}/${blobName}`;
-    console.log(`Upload successful: ${azureUri} (https: ${url})`);
+    console.log(`Upload successful: ${azureUri} with SAS token`);
 
     return new Response(
       JSON.stringify({ 
-        uri: azureUri,
-        https_url: url  // Also return HTTPS URL for direct access if needed
+        uri: sasUrl,  // Primary: SAS URL for microservices to access private blobs
+        azure_uri: azureUri,  // azure:// format for reference
+        sas_url: sasUrl,  // Explicit SAS URL field
+        https_url: url  // Plain HTTPS URL (won't work for private containers without SAS)
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
