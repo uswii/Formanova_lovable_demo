@@ -28,7 +28,78 @@ interface Props {
   onNext: () => void;
 }
 
-// Extended state to track URIs
+// Helper to create mask overlay by compositing original image with semi-transparent mask
+async function createMaskOverlay(originalImageDataUrl: string, maskBase64: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Failed to get canvas context'));
+      return;
+    }
+
+    const originalImg = new Image();
+    const maskImg = new Image();
+    
+    let loadedCount = 0;
+    const onLoad = () => {
+      loadedCount++;
+      if (loadedCount < 2) return;
+      
+      // Set canvas size to match original image
+      canvas.width = originalImg.width;
+      canvas.height = originalImg.height;
+      
+      // Draw original image
+      ctx.drawImage(originalImg, 0, 0);
+      
+      // Draw mask with semi-transparent green overlay
+      ctx.globalAlpha = 0.4;
+      ctx.globalCompositeOperation = 'source-atop';
+      
+      // Create temporary canvas for colored mask
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = originalImg.width;
+      maskCanvas.height = originalImg.height;
+      const maskCtx = maskCanvas.getContext('2d');
+      if (maskCtx) {
+        maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
+        
+        // Get mask data and colorize it
+        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          // If pixel is white (mask), make it green
+          if (data[i] > 128) {
+            data[i] = 0;     // R
+            data[i + 1] = 255; // G
+            data[i + 2] = 0;   // B
+          } else {
+            data[i + 3] = 0; // Make black pixels transparent
+          }
+        }
+        maskCtx.putImageData(imageData, 0, 0);
+        
+        // Draw colored mask over original
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(originalImg, 0, 0);
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(maskCanvas, 0, 0);
+      }
+      
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    
+    originalImg.onload = onLoad;
+    maskImg.onload = onLoad;
+    originalImg.onerror = () => reject(new Error('Failed to load original image'));
+    maskImg.onerror = () => reject(new Error('Failed to load mask image'));
+    
+    originalImg.src = originalImageDataUrl;
+    maskImg.src = `data:image/png;base64,${maskBase64}`;
+  });
+}
 interface ProcessingState {
   resizedUri?: string;
   bgRemovedUri?: string;
@@ -261,27 +332,22 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         throw new Error('No mask returned from SAM3');
       }
 
-      // Fetch all the mask images
+      // Fetch the mask image
+      const maskBase64 = await fetchImageAsBase64(maskUri);
       
-      const [maskBase64, maskOverlayBase64, originalMaskBase64] = await Promise.all([
-        fetchImageAsBase64(maskUri),
-        maskOverlayUri ? fetchImageAsBase64(maskOverlayUri) : Promise.resolve(null),
-        originalMaskUri ? fetchImageAsBase64(originalMaskUri) : Promise.resolve(null),
-      ]);
-
-      // Also fetch the processed image if we have an overlay
-      let processedImageBase64 = state.originalImage;
-      if (maskOverlayUri) {
-        // The overlay should be based on the processed image
-        processedImageBase64 = state.originalImage;
+      // Create mask overlay by compositing original image with semi-transparent mask
+      let maskOverlayDataUrl: string | null = null;
+      try {
+        maskOverlayDataUrl = await createMaskOverlay(state.originalImage!, maskBase64);
+      } catch (e) {
+        console.warn('Failed to create mask overlay:', e);
       }
 
-
       updateState({
-        originalImage: processedImageBase64,
-        maskOverlay: maskOverlayBase64 ? `data:image/jpeg;base64,${maskOverlayBase64}` : null,
+        originalImage: state.originalImage,
+        maskOverlay: maskOverlayDataUrl,
         maskBinary: `data:image/png;base64,${maskBase64}`,
-        originalMask: originalMaskBase64 ? `data:image/png;base64,${originalMaskBase64}` : `data:image/png;base64,${maskBase64}`,
+        originalMask: `data:image/png;base64,${maskBase64}`,
         sessionId: job_id,
         scaledPoints: result.result?.meta?.image_size ? [result.result.meta.image_size] : null,
       });
@@ -538,8 +604,18 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     >
                       Clear All
                     </Button>
-                    <Button size="lg" onClick={handleGenerateMask} disabled={isGeneratingMask || redDots.length === 0} className="font-semibold">
-                      {isGeneratingMask ? (
+                    <Button 
+                      size="lg" 
+                      onClick={handleGenerateMask} 
+                      disabled={isGeneratingMask || redDots.length === 0 || isProcessingUpload} 
+                      className="font-semibold"
+                    >
+                      {isProcessingUpload ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Processing image...
+                        </>
+                      ) : isGeneratingMask ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
                           Generating mask...
