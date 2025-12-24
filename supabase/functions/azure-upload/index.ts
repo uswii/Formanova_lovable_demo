@@ -14,7 +14,8 @@ serve(async (req) => {
   try {
     const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME');
     const AZURE_ACCOUNT_KEY = Deno.env.get('AZURE_ACCOUNT_KEY');
-    const AZURE_CONTAINER_NAME = Deno.env.get('AZURE_CONTAINER_NAME');
+    // Azure container names must be lowercase
+    const AZURE_CONTAINER_NAME = Deno.env.get('AZURE_CONTAINER_NAME')?.toLowerCase();
 
     console.log('Azure config:', { 
       account: AZURE_ACCOUNT_NAME, 
