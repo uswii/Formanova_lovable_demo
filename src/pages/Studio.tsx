@@ -10,6 +10,12 @@ import { useA100Status } from '@/hooks/use-a100-status';
 
 export type StudioStep = 'upload' | 'generate';
 
+export interface ProcessingState {
+  resizedUri?: string;
+  bgRemovedUri?: string;
+  padding?: { top: number; bottom: number; left: number; right: number };
+}
+
 export interface StudioState {
   originalImage: string | null;
   markedImage: string | null;
@@ -38,6 +44,7 @@ export interface StudioState {
   isGenerating: boolean;
   sessionId: string | null;
   scaledPoints: number[][] | null;
+  processingState: ProcessingState;
 }
 
 export default function Studio() {
@@ -61,6 +68,7 @@ export default function Studio() {
     isGenerating: false,
     sessionId: null,
     scaledPoints: null,
+    processingState: {},
   });
 
   const updateState = (updates: Partial<StudioState>) => {

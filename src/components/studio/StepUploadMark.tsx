@@ -99,12 +99,6 @@ async function createMaskOverlay(originalImageDataUrl: string, maskBase64: strin
     maskImg.src = maskBase64.startsWith('data:') ? maskBase64 : `data:image/png;base64,${maskBase64}`;
   });
 }
-interface ProcessingState {
-  resizedUri?: string;
-  bgRemovedUri?: string;
-  padding?: { top: number; bottom: number; left: number; right: number };
-}
-
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingMask, setIsGeneratingMask] = useState(false);
@@ -117,8 +111,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [markerSize, setMarkerSize] = useState(10);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [processingState, setProcessingState] = useState<ProcessingState>({});
   const { toast } = useToast();
+  
+  // Use processingState from parent state for persistence
+  const processingState = state.processingState;
+  const setProcessingState = (newState: typeof processingState) => {
+    updateState({ processingState: newState });
+  };
 
   useEffect(() => {
     const loadExamples = async () => {
