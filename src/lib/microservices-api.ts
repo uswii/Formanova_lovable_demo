@@ -248,7 +248,7 @@ export async function pollJobUntilComplete<T extends { status: string }>(
     
     onProgress?.(attempt, result.status);
     
-    if (result.status === 'completed') {
+    if (result.status === 'completed' || result.status === 'succeeded') {
       console.log(`[microservices] Job completed after ${attempt} attempts`);
       return result;
     }
