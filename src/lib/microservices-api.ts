@@ -63,10 +63,18 @@ export interface ResizeResponse {
 export async function resize(request: ResizeRequest): Promise<ResizeResponse> {
   console.log('[microservices] Resizing image...');
   
+  // Backend expects image as an object with uri property
+  const payload = {
+    image: { uri: request.image },
+    target_width: request.target_width,
+    target_height: request.target_height,
+    flag: request.flag,
+  };
+  
   const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/resize`, {
     method: 'POST',
     headers: authHeaders,
-    body: JSON.stringify(request),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -91,10 +99,15 @@ export interface ZoomCheckResponse {
 export async function zoomCheck(request: ZoomCheckRequest): Promise<ZoomCheckResponse> {
   console.log('[microservices] Checking zoom level...');
   
+  // Backend expects image as an object with uri property
+  const payload = {
+    image: { uri: request.image },
+  };
+  
   const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/zoom-check`, {
     method: 'POST',
     headers: authHeaders,
-    body: JSON.stringify(request),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
