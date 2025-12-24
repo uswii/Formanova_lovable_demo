@@ -72,9 +72,9 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       const { uri: originalUri } = await uploadToAzure(cleanBase64);
       console.log('Original uploaded:', originalUri);
 
-      // Step 2: Resize using base64 directly (microservice expects image_base64)
+      // Step 2: Resize to 2000x2667
       const resizeResult = await resize({ 
-        image_base64: cleanBase64, 
+        image_uri: originalUri, 
         target_width: 2000, 
         target_height: 2667 
       });
@@ -83,8 +83,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
       console.log('Resized uploaded:', resizedUri);
 
-      // Step 4: Check if background removal is needed (using resized base64)
-      const zoomResult = await zoomCheck({ image_base64: resizeResult.image_base64 });
+      // Step 4: Check if background removal is needed
+      const zoomResult = await zoomCheck({ image_uri: resizedUri });
       console.log('Zoom check result:', zoomResult);
 
       let finalUri = resizedUri;

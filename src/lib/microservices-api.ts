@@ -44,7 +44,7 @@ export async function uploadToAzure(
 
 // ========== Image Manipulator ==========
 export interface ResizeRequest {
-  image_base64: string;  // Changed from image_uri to image_base64
+  image_uri: string;
   target_width?: number;
   target_height?: number;
 }
@@ -80,7 +80,7 @@ export async function resize(request: ResizeRequest): Promise<ResizeResponse> {
 }
 
 export interface ZoomCheckRequest {
-  image_base64: string;  // Changed from image_uri to image_base64
+  image_uri: string;
 }
 
 export interface ZoomCheckResponse {
