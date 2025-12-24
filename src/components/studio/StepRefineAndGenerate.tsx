@@ -295,8 +295,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         <div className="border-2 border-dashed border-border/50 p-8 w-full max-w-lg">
           <div className="flex flex-col items-center justify-center">
             <div className="relative mb-6">
-              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+              <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
+            
+            <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
