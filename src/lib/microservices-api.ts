@@ -189,10 +189,16 @@ export interface SAM3JobStatus {
 export async function submitSAM3Job(request: SAM3JobRequest): Promise<SAM3JobResponse> {
   console.log('[microservices] Submitting SAM3 job with', request.points.length, 'points...');
   
+  // SAM3 expects { image: { uri: "..." }, points: [...] }
+  const payload = {
+    image: { uri: request.image_uri },
+    points: request.points,
+  };
+  
   const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/sam3/jobs`, {
     method: 'POST',
     headers: authHeaders,
-    body: JSON.stringify(request),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
