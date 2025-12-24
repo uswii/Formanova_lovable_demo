@@ -378,13 +378,9 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         <div className="space-y-4">
           {isProcessingUpload ? (
             <div className="border border-dashed border-border/40 text-center p-12 flex-1 flex flex-col items-center justify-center">
-              <div className="relative mx-auto w-24 h-24 mb-6">
-                <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
-                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                </div>
+              <div className="relative mx-auto w-16 h-16">
+                <Loader2 className="h-16 w-16 text-primary animate-spin" />
               </div>
-              <p className="text-xl font-display font-medium mb-2">Processing Image</p>
-              <p className="text-sm text-muted-foreground">Please wait...</p>
             </div>
           ) : !state.originalImage ? (
             <div
