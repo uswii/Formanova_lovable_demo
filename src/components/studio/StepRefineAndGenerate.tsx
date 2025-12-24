@@ -294,16 +294,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         <div className="border-2 border-dashed border-border/50 p-8 w-full max-w-lg">
           <div className="flex flex-col items-center justify-center">
             <div className="relative mb-6">
-              <div className="w-32 h-32 rounded-full border-[3px] border-dashed border-muted-foreground/40 flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full bg-muted-foreground/10 flex items-center justify-center">
-                  <svg className="h-12 w-12 text-foreground animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
-                  </svg>
-                </div>
-              </div>
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
             </div>
-            <h3 className="font-display text-2xl uppercase tracking-wide mb-2">Generating Photoshoot</h3>
-            <p className="text-sm text-muted-foreground mb-6">Please wait...</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
