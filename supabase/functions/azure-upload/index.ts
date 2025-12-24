@@ -110,6 +110,12 @@ serve(async (req) => {
       );
     }
 
+    // Strip data URI prefix if present (e.g., "data:image/jpeg;base64,")
+    let cleanBase64 = base64;
+    if (base64.includes(',')) {
+      cleanBase64 = base64.split(',')[1];
+    }
+
     // Generate unique blob name (flat structure - no subdirectories to avoid path issues)
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
@@ -117,7 +123,7 @@ serve(async (req) => {
     const blobName = filename || `${timestamp}_${random}.${extension}`;
 
     // Decode base64 to binary
-    const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
 
     // Azure Blob Storage REST API - URL encode the blob name for the request
     const encodedBlobName = encodeURIComponent(blobName);
