@@ -123,13 +123,13 @@ async def resize_image(input: ResizeInput) -> ResizeOutput:
     activity.logger.info(f"Resizing image: {input.image_uri} to {input.target_width}x{input.target_height}")
     
     try:
-        # Convert azure:// URI to SAS URL for Image Manipulator
-        image_url = get_sas_url_from_uri(input.image_uri)
+        # Fetch image as base64 to avoid SAS URL issues
+        image_base64 = await fetch_blob_as_base64(input.image_uri)
         
         response = await http_client.post(
             f"{config.image_manipulator_url}/resize",
             json={
-                "image": {"uri": image_url},
+                "image": {"base64": image_base64},
                 "target_width": input.target_width,
                 "target_height": input.target_height,
                 "flag": "fixed_dimensions"
@@ -141,9 +141,12 @@ async def resize_image(input: ResizeInput) -> ResizeOutput:
         # Upload resized image to Azure
         resized_base64 = data.get("image_base64", "")
         if resized_base64:
+            # Strip data URI prefix if present
+            if resized_base64.startswith("data:"):
+                resized_base64 = resized_base64.split(",", 1)[1]
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=resized_base64,
-                content_type="image/jpeg",
+                content_type="image/png",
                 filename_prefix="resized"
             ))
             resized_uri = upload_result.azure_uri
@@ -155,7 +158,7 @@ async def resize_image(input: ResizeInput) -> ResizeOutput:
         return ResizeOutput(
             image_base64=resized_base64,
             resized_uri=resized_uri,
-            padding=data.get("padding", {"top": 0, "bottom": 0, "left": 0, "right": 0})
+            padding=data.get("padding", [0, 0, 0, 0])
         )
     except Exception as e:
         activity.logger.error(f"Failed to resize image: {e}")
@@ -219,13 +222,11 @@ async def remove_background(input: BackgroundRemoveInput) -> BackgroundRemoveOut
     activity.logger.info(f"Removing background for: {input.image_uri}")
     
     try:
-        # Convert azure:// URI to SAS URL for BiRefNet
-        image_url = get_sas_url_from_uri(input.image_uri)
-        
-        # BiRefNet expects: { data: { image: { uri: "..." } } }
+        # BiRefNet has Azure SDK - send azure:// URI directly
+        # BiRefNet expects: { data: { image: { uri: "azure://..." } } }
         response = await http_client.post(
             f"{config.birefnet_url}/jobs",
-            json={"data": {"image": {"uri": image_url}}}
+            json={"data": {"image": {"uri": input.image_uri}}}
         )
         response.raise_for_status()
         job_data = response.json()
@@ -236,9 +237,11 @@ async def remove_background(input: BackgroundRemoveInput) -> BackgroundRemoveOut
         # Poll until complete
         result = await poll_job(config.birefnet_url, job_id)
         
-        # BiRefNet returns result in: result.output.uri or result_uri (legacy)
+        # BiRefNet returns result in: result.image.uri
         result_uri = ""
-        if result.get("result") and result["result"].get("output"):
+        if result.get("result") and result["result"].get("image"):
+            result_uri = result["result"]["image"].get("uri", "")
+        if not result_uri and result.get("result") and result["result"].get("output"):
             result_uri = result["result"]["output"].get("uri", "")
         if not result_uri:
             result_uri = result.get("result_uri", "")
@@ -257,19 +260,19 @@ async def generate_mask(input: GenerateMaskInput) -> GenerateMaskOutput:
     activity.logger.info(f"Generating mask for: {input.image_uri} with {len(input.points)} points")
     
     try:
-        # Convert azure:// URI to SAS URL for SAM3
-        image_url = get_sas_url_from_uri(input.image_uri)
-        
         # Convert points to SAM3 format: [[x, y], ...]
         points = [[p.x, p.y] for p in input.points]
+        point_labels = [p.label if hasattr(p, 'label') else 1 for p in input.points]
         
-        # SAM3 expects: { data: { image: { uri: "..." }, points: [...] } }
+        # SAM3 has Azure SDK - send azure:// URI directly
+        # SAM3 expects: { data: { image: { uri: "azure://..." }, points: [...] } }
         response = await http_client.post(
             f"{config.sam3_url}/jobs",
             json={
                 "data": {
-                    "image": {"uri": image_url},
-                    "points": points
+                    "image": {"uri": input.image_uri},
+                    "points": points,
+                    "point_labels": point_labels
                 }
             }
         )
