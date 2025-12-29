@@ -64,6 +64,7 @@ class JewelryGenerationWorkflow:
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            original_uri = upload_result["azure_uri"] if isinstance(upload_result, dict) else upload_result.azure_uri
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
@@ -73,13 +74,15 @@ class JewelryGenerationWorkflow:
             resize_result = await workflow.execute_activity(
                 "resize_image",
                 ResizeInput(
-                    image_uri=upload_result.azure_uri,
+                    image_uri=original_uri,
                     target_width=2000,
                     target_height=2667
                 ),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            resized_uri = resize_result["resized_uri"] if isinstance(resize_result, dict) else resize_result.resized_uri
+            resized_base64 = resize_result["image_base64"] if isinstance(resize_result, dict) else resize_result.image_base64
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
@@ -88,27 +91,28 @@ class JewelryGenerationWorkflow:
             self._set_progress(20, WorkflowStep.CHECKING_ZOOM)
             zoom_result = await workflow.execute_activity(
                 "check_zoom",
-                ZoomCheckInput(image_uri=resize_result.resized_uri),
+                ZoomCheckInput(image_uri=resized_uri),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            recommend_bg_removal = zoom_result["recommend_bg_removal"] if isinstance(zoom_result, dict) else zoom_result.recommend_bg_removal
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            image_for_segmentation = resize_result.resized_uri
+            image_for_segmentation = resized_uri
             background_removed = False
             
             # Step 4: Remove background if recommended
-            if zoom_result.recommend_bg_removal:
+            if recommend_bg_removal:
                 self._set_progress(30, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
                     "remove_background",
-                    BackgroundRemoveInput(image_uri=resize_result.resized_uri),
+                    BackgroundRemoveInput(image_uri=resized_uri),
                     start_to_close_timeout=timedelta(seconds=120),
                     retry_policy=ML_SERVICE_RETRY
                 )
-                image_for_segmentation = bg_result.result_uri
+                image_for_segmentation = bg_result["result_uri"] if isinstance(bg_result, dict) else bg_result.result_uri
                 background_removed = True
             
             if self._cancelled:
@@ -125,11 +129,12 @@ class JewelryGenerationWorkflow:
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
+            mask_uri = mask_result["mask_uri"] if isinstance(mask_result, dict) else mask_result.mask_uri
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            final_mask_uri = mask_result.mask_uri
+            final_mask_uri = mask_uri
             
             # Step 6: Refine mask with brush strokes if provided
             if input.brush_strokes and len(input.brush_strokes) > 0:
@@ -138,13 +143,13 @@ class JewelryGenerationWorkflow:
                     "refine_mask",
                     RefineMaskInput(
                         image_uri=image_for_segmentation,
-                        mask_uri=mask_result.mask_uri,
+                        mask_uri=mask_uri,
                         strokes=input.brush_strokes
                     ),
                     start_to_close_timeout=timedelta(seconds=60),
                     retry_policy=ML_SERVICE_RETRY
                 )
-                final_mask_uri = refine_result.refined_mask_uri
+                final_mask_uri = refine_result["refined_mask_uri"] if isinstance(refine_result, dict) else refine_result.refined_mask_uri
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
@@ -158,7 +163,7 @@ class JewelryGenerationWorkflow:
             generate_result = await workflow.execute_activity(
                 "generate_images",
                 GenerateImagesInput(
-                    image_uri=resize_result.resized_uri,
+                    image_uri=resized_uri,
                     mask_uri=final_mask_uri
                 ),
                 start_to_close_timeout=timedelta(seconds=300),
@@ -170,14 +175,22 @@ class JewelryGenerationWorkflow:
             
             workflow.logger.info("JewelryGenerationWorkflow completed successfully")
             
+            # Extract results from dict or object
+            flux_base64 = generate_result["flux_result_base64"] if isinstance(generate_result, dict) else generate_result.flux_result_base64
+            flux_viz_base64 = generate_result["flux_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
+            flux_metrics = generate_result["flux_metrics"] if isinstance(generate_result, dict) else generate_result.flux_metrics
+            gemini_base64 = generate_result["gemini_result_base64"] if isinstance(generate_result, dict) else generate_result.gemini_result_base64
+            gemini_viz_base64 = generate_result["gemini_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
+            gemini_metrics = generate_result["gemini_metrics"] if isinstance(generate_result, dict) else generate_result.gemini_metrics
+            
             return WorkflowOutput(
-                flux_result_base64=generate_result.flux_result_base64,
-                flux_fidelity_viz_base64=generate_result.flux_fidelity_viz_base64,
-                flux_metrics=generate_result.flux_metrics,
-                gemini_result_base64=generate_result.gemini_result_base64,
-                gemini_fidelity_viz_base64=generate_result.gemini_fidelity_viz_base64,
-                gemini_metrics=generate_result.gemini_metrics,
-                processed_image_uri=resize_result.resized_uri,
+                flux_result_base64=flux_base64,
+                flux_fidelity_viz_base64=flux_viz_base64,
+                flux_metrics=flux_metrics,
+                gemini_result_base64=gemini_base64,
+                gemini_fidelity_viz_base64=gemini_viz_base64,
+                gemini_metrics=gemini_metrics,
+                processed_image_uri=resized_uri,
                 final_mask_uri=final_mask_uri,
                 background_removed=background_removed
             )
@@ -246,42 +259,46 @@ class PreprocessingWorkflow:
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            original_uri = upload_result["azure_uri"] if isinstance(upload_result, dict) else upload_result.azure_uri
             
             # Step 2: Resize
             self._set_progress(30, WorkflowStep.RESIZING_IMAGE)
             resize_result = await workflow.execute_activity(
                 "resize_image",
                 ResizeInput(
-                    image_uri=upload_result.azure_uri,
+                    image_uri=original_uri,
                     target_width=2000,
                     target_height=2667
                 ),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            resized_uri = resize_result["resized_uri"] if isinstance(resize_result, dict) else resize_result.resized_uri
+            resized_base64 = resize_result["image_base64"] if isinstance(resize_result, dict) else resize_result.image_base64
             
             # Step 3: Check zoom
             self._set_progress(40, WorkflowStep.CHECKING_ZOOM)
             zoom_result = await workflow.execute_activity(
                 "check_zoom",
-                ZoomCheckInput(image_uri=resize_result.resized_uri),
+                ZoomCheckInput(image_uri=resized_uri),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
+            recommend_bg_removal = zoom_result["recommend_bg_removal"] if isinstance(zoom_result, dict) else zoom_result.recommend_bg_removal
             
-            image_for_segmentation = resize_result.resized_uri
+            image_for_segmentation = resized_uri
             background_removed = False
             
             # Step 4: Remove background if needed
-            if zoom_result.recommend_bg_removal:
+            if recommend_bg_removal:
                 self._set_progress(60, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
                     "remove_background",
-                    BackgroundRemoveInput(image_uri=resize_result.resized_uri),
+                    BackgroundRemoveInput(image_uri=resized_uri),
                     start_to_close_timeout=timedelta(seconds=120),
                     retry_policy=ML_SERVICE_RETRY
                 )
-                image_for_segmentation = bg_result.result_uri
+                image_for_segmentation = bg_result["result_uri"] if isinstance(bg_result, dict) else bg_result.result_uri
                 background_removed = True
             
             # Step 5: Generate mask with SAM3
@@ -295,14 +312,15 @@ class PreprocessingWorkflow:
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
+            mask_uri = mask_result["mask_uri"] if isinstance(mask_result, dict) else mask_result.mask_uri
             
             self._set_progress(100, WorkflowStep.COMPLETED)
             
             return {
-                "originalUri": upload_result.azure_uri,
-                "resizedUri": resize_result.resized_uri,
-                "resizedImageBase64": resize_result.image_base64,
-                "maskUri": mask_result.mask_uri,
+                "originalUri": original_uri,
+                "resizedUri": resized_uri,
+                "resizedImageBase64": resized_base64,
+                "maskUri": mask_uri,
                 "backgroundRemoved": background_removed
             }
             
@@ -369,7 +387,7 @@ class GenerationWorkflow:
                     start_to_close_timeout=timedelta(seconds=60),
                     retry_policy=ML_SERVICE_RETRY
                 )
-                final_mask_uri = refine_result.refined_mask_uri
+                final_mask_uri = refine_result["refined_mask_uri"] if isinstance(refine_result, dict) else refine_result.refined_mask_uri
             
             # Step 2: Generate images
             self._set_progress(50, WorkflowStep.GENERATING_IMAGES)
@@ -385,30 +403,54 @@ class GenerationWorkflow:
             
             self._set_progress(100, WorkflowStep.COMPLETED)
             
-            # Convert metrics to dict if present
+            # Convert metrics to dict if present (handle both dict and object)
             flux_metrics = None
-            if generate_result.flux_metrics:
-                flux_metrics = {
-                    "precision": generate_result.flux_metrics.precision,
-                    "recall": generate_result.flux_metrics.recall,
-                    "iou": generate_result.flux_metrics.iou,
-                    "growthRatio": generate_result.flux_metrics.growth_ratio
-                }
+            gen_flux_metrics = generate_result.get("flux_metrics") if isinstance(generate_result, dict) else generate_result.flux_metrics
+            if gen_flux_metrics:
+                if isinstance(gen_flux_metrics, dict):
+                    flux_metrics = {
+                        "precision": gen_flux_metrics.get("precision"),
+                        "recall": gen_flux_metrics.get("recall"),
+                        "iou": gen_flux_metrics.get("iou"),
+                        "growthRatio": gen_flux_metrics.get("growth_ratio")
+                    }
+                else:
+                    flux_metrics = {
+                        "precision": gen_flux_metrics.precision,
+                        "recall": gen_flux_metrics.recall,
+                        "iou": gen_flux_metrics.iou,
+                        "growthRatio": gen_flux_metrics.growth_ratio
+                    }
             
             gemini_metrics = None
-            if generate_result.gemini_metrics:
-                gemini_metrics = {
-                    "precision": generate_result.gemini_metrics.precision,
-                    "recall": generate_result.gemini_metrics.recall,
-                    "iou": generate_result.gemini_metrics.iou,
-                    "growthRatio": generate_result.gemini_metrics.growth_ratio
-                }
+            gen_gemini_metrics = generate_result.get("gemini_metrics") if isinstance(generate_result, dict) else generate_result.gemini_metrics
+            if gen_gemini_metrics:
+                if isinstance(gen_gemini_metrics, dict):
+                    gemini_metrics = {
+                        "precision": gen_gemini_metrics.get("precision"),
+                        "recall": gen_gemini_metrics.get("recall"),
+                        "iou": gen_gemini_metrics.get("iou"),
+                        "growthRatio": gen_gemini_metrics.get("growth_ratio")
+                    }
+                else:
+                    gemini_metrics = {
+                        "precision": gen_gemini_metrics.precision,
+                        "recall": gen_gemini_metrics.recall,
+                        "iou": gen_gemini_metrics.iou,
+                        "growthRatio": gen_gemini_metrics.growth_ratio
+                    }
+            
+            # Extract results
+            flux_base64 = generate_result.get("flux_result_base64") if isinstance(generate_result, dict) else generate_result.flux_result_base64
+            gemini_base64 = generate_result.get("gemini_result_base64") if isinstance(generate_result, dict) else generate_result.gemini_result_base64
+            flux_viz = generate_result.get("flux_fidelity_viz_base64") if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
+            gemini_viz = generate_result.get("gemini_fidelity_viz_base64") if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
             
             return {
-                "fluxResultBase64": generate_result.flux_result_base64,
-                "geminiResultBase64": generate_result.gemini_result_base64,
-                "fluxFidelityVizBase64": generate_result.flux_fidelity_viz_base64,
-                "geminiFidelityVizBase64": generate_result.gemini_fidelity_viz_base64,
+                "fluxResultBase64": flux_base64,
+                "geminiResultBase64": gemini_base64,
+                "fluxFidelityVizBase64": flux_viz,
+                "geminiFidelityVizBase64": gemini_viz,
                 "fluxMetrics": flux_metrics,
                 "geminiMetrics": gemini_metrics,
                 "finalMaskUri": final_mask_uri
