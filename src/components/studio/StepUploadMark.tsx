@@ -130,6 +130,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       if (imageBase64.includes(',')) {
         imageBase64 = imageBase64.split(',')[1];
       }
+      
+      // Ensure proper base64 padding (must be multiple of 4)
+      const paddingNeeded = (4 - (imageBase64.length % 4)) % 4;
+      imageBase64 = imageBase64 + '='.repeat(paddingNeeded);
 
       // Convert red dots to mask points (normalized 0-1)
       // Dots are stored in SAM space (2000x2667), normalize to 0-1
