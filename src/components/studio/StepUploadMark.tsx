@@ -282,43 +282,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     document.body.removeChild(link);
   };
 
-  // ========== PROCESSING VIEW ==========
-  if (isProcessing) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px]">
-        <div className="border-2 border-dashed border-border/50 p-8 w-full max-w-lg">
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative mb-6">
-              <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
-            </div>
-            
-            <h3 className="font-display text-xl mb-2 text-foreground">Processing Image</h3>
-            <p className="text-sm text-muted-foreground mb-1">Temporal Workflow Pipeline</p>
-            <p className="text-sm font-medium text-primary mb-4">{processingStep}</p>
-            
-            <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                style={{ width: `${processingProgress}%` }} 
-              />
-            </div>
-            <p className="mt-3 text-lg font-mono text-primary">{processingProgress}%</p>
-
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-6"
-              onClick={handleCancelProcessing}
-            >
-              <XOctagon className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Note: We no longer return early during processing - instead we show overlay on the image
 
   return (
     <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
@@ -406,93 +370,125 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
-                    onCanvasClick={handleCanvasClick}
+                    onCanvasClick={isProcessing ? undefined : handleCanvasClick}
                     brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={400}
                   />
                   
-                  {/* Compact control bar */}
-                  <div className="absolute top-2 right-2 z-10 flex gap-1">
-                    <button
-                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={() => setShowTutorial(true)}
-                      title="Tutorial"
-                    >
-                      <HelpCircle className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={() => setFullscreenImage(state.originalImage)}
-                      title="Fullscreen"
-                    >
-                      <Expand className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={clearImage}
-                      title="Remove"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  {/* Processing overlay - shows on top of canvas with dots visible */}
+                  {isProcessing && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                      <div className="relative mb-4">
+                        <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                        <Gem className="absolute inset-0 m-auto h-6 w-6 text-primary" />
+                      </div>
+                      <p className="text-white font-medium text-sm mb-1">{processingStep}</p>
+                      <div className="w-32 h-2 bg-white/20 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full transition-all duration-500" 
+                          style={{ width: `${processingProgress}%` }} 
+                        />
+                      </div>
+                      <p className="text-white/80 text-xs mt-2">{processingProgress}%</p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-3 text-white/80 hover:text-white hover:bg-white/10"
+                        onClick={handleCancelProcessing}
+                      >
+                        <XOctagon className="h-3.5 w-3.5 mr-1.5" />
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Compact control bar - hide during processing */}
+                  {!isProcessing && (
+                    <div className="absolute top-2 right-2 z-10 flex gap-1">
+                      <button
+                        className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={() => setShowTutorial(true)}
+                        title="Tutorial"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={() => setFullscreenImage(state.originalImage)}
+                        title="Fullscreen"
+                      >
+                        <Expand className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={clearImage}
+                        title="Remove"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
-                  <Circle className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">Marker Size</span>
-                  <Slider
-                    value={[markerSize]}
-                    onValueChange={([v]) => setMarkerSize(v)}
-                    min={4}
-                    max={24}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <span className="text-sm font-medium w-8 text-right">{markerSize}px</span>
-                </div>
-                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
-                    <p className="text-base">
-                      <span className="font-bold text-foreground">{redDots.length}</span>
-                      <span className="text-muted-foreground"> marks placed</span>
-                    </p>
+              {/* Hide controls during processing */}
+              {!isProcessing && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
+                    <Circle className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Marker Size</span>
+                    <Slider
+                      value={[markerSize]}
+                      onValueChange={([v]) => setMarkerSize(v)}
+                      min={4}
+                      max={24}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-medium w-8 text-right">{markerSize}px</span>
                   </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
-                      <Undo2 className="h-5 w-5" />
-                    </Button>
-                    <Button variant="outline" size="default" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
-                      <Redo2 className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      onClick={() => {
-                        setUndoStack((prev) => [...prev, redDots]);
-                        setRedoStack([]);
-                        setRedDots([]);
-                      }}
-                      disabled={redDots.length === 0}
-                    >
-                      Clear All
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      onClick={handleProceed} 
-                      disabled={redDots.length === 0} 
-                      className="font-semibold"
-                    >
-                      <Sparkles className="h-5 w-5 mr-2" />
-                      Continue
-                    </Button>
+                  <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
+                      <p className="text-base">
+                        <span className="font-bold text-foreground">{redDots.length}</span>
+                        <span className="text-muted-foreground"> marks placed</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
+                        <Undo2 className="h-5 w-5" />
+                      </Button>
+                      <Button variant="outline" size="default" onClick={handleRedo} disabled={redoStack.length === 0} title="Redo">
+                        <Redo2 className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="default"
+                        onClick={() => {
+                          setUndoStack((prev) => [...prev, redDots]);
+                          setRedoStack([]);
+                          setRedDots([]);
+                        }}
+                        disabled={redDots.length === 0}
+                      >
+                        Clear All
+                      </Button>
+                      <Button 
+                        size="lg" 
+                        onClick={handleProceed} 
+                        disabled={redDots.length === 0} 
+                        className="font-semibold"
+                      >
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        Continue
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
