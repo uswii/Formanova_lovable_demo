@@ -142,10 +142,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       }));
 
       // Start Temporal preprocessing workflow
-      const { workflowId } = await temporalApi.startPreprocessing({
+      const response = await temporalApi.startPreprocessing({
         originalImageBase64: imageBase64,
         maskPoints,
       });
+
+      console.log('[Preprocessing] Response:', response);
+      
+      const workflowId = response?.workflowId;
+      if (!workflowId) {
+        throw new Error('Backend did not return a workflowId. Response: ' + JSON.stringify(response));
+      }
 
       console.log('[Preprocessing] Started workflow:', workflowId);
 
