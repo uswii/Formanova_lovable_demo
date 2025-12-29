@@ -168,13 +168,13 @@ async def check_zoom(input: ZoomCheckInput) -> ZoomCheckOutput:
     activity.logger.info(f"Checking zoom for: {input.image_uri}")
     
     try:
-        # Convert azure:// URI to accessible SAS URL for the IMAGE_MANIPULATOR service
-        image_url = get_sas_url_from_uri(input.image_uri)
-        activity.logger.info(f"Using SAS URL for zoom check")
+        # Fetch image as base64 and send directly to avoid SAS URL issues
+        image_base64 = await fetch_blob_as_base64(input.image_uri)
+        activity.logger.info(f"Fetched image as base64 for zoom check")
         
         response = await http_client.post(
             f"{config.image_manipulator_url}/zoom_check",
-            json={"image": {"uri": image_url}}
+            json={"image": {"base64": image_base64}}
         )
         response.raise_for_status()
         data = response.json()
