@@ -26,6 +26,7 @@ export interface WorkflowStartRequest {
   originalImageBase64: string;
   maskPoints: MaskPoint[];
   brushStrokes?: BrushStroke[];
+  gender?: 'female' | 'male';
   sessionId?: string;
 }
 
@@ -48,6 +49,9 @@ export interface WorkflowResult {
   geminiMetrics: FidelityMetrics | null;
   fluxFidelityVizBase64: string | null;
   geminiFidelityVizBase64: string | null;
+  maskBase64?: string;           // Mask from SAM3
+  maskOverlayBase64?: string;    // Overlay preview
+  backgroundRemoved?: boolean;
 }
 
 export interface WorkflowError {

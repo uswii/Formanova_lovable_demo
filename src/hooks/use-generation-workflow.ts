@@ -5,7 +5,6 @@ import {
   WorkflowStatusResponse,
   WorkflowResult,
   WorkflowError,
-  WorkflowStatus,
   getStepLabel,
   BrushStroke as TemporalBrushStroke,
   MaskPoint,
@@ -145,6 +144,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
     brushStrokes?: ComponentBrushStroke[];
     imageWidth?: number;
     imageHeight?: number;
+    gender?: 'female' | 'male';
     sessionId?: string;
   }) => {
     const {
@@ -153,6 +153,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
       brushStrokes = [],
       imageWidth = 2000,
       imageHeight = 2667,
+      gender = 'female',
       sessionId,
     } = params;
 
@@ -161,7 +162,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
       status: 'running',
       workflowId: null,
       progress: 0,
-      currentStep: 'CHECKING_A100_HEALTH',
+      currentStep: 'UPLOADING_IMAGE',
       stepLabel: 'Starting...',
       result: null,
       error: null,
@@ -176,6 +177,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
         originalImageBase64,
         maskPoints: maskPoints as MaskPoint[],
         brushStrokes: temporalBrushStrokes.length > 0 ? temporalBrushStrokes : undefined,
+        gender,
         sessionId,
       });
 
