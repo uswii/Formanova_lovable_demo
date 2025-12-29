@@ -1,13 +1,9 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
-  Paintbrush, 
   Lightbulb, 
-  Loader2, 
   ArrowLeft, 
   Undo, 
   Redo, 
@@ -19,12 +15,13 @@ import {
   Play,
   RefreshCw,
   Gem,
+  XOctagon,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { a100Api } from '@/lib/a100-api';
-import { uploadToAzure, fetchImageAsBase64 } from '@/lib/microservices-api';
+import { useGenerationWorkflow } from '@/hooks/use-generation-workflow';
+import { getStepLabel } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -41,6 +38,8 @@ type BrushStroke = {
 type ViewState = 'refine' | 'generating' | 'results';
 
 export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
+  const { toast } = useToast();
+  
   // View state
   const [currentView, setCurrentView] = useState<ViewState>(
     state.fluxResult || state.geminiResult ? 'results' : 'refine'
@@ -53,12 +52,53 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeStroke, setActiveStroke] = useState<BrushStroke | null>(null);
 
-  // Generate state
-  const [progress, setProgress] = useState(0);
+  // Fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  const { toast } = useToast();
+  // Temporal workflow hook
+  const workflow = useGenerationWorkflow({
+    onComplete: (result) => {
+      // Map Temporal result to StudioState
+      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+      
+      let status: 'good' | 'bad' | null = null;
+      let metricsData: StudioState['metrics'] = null;
+      
+      if (result.fluxMetrics) {
+        const { precision, recall, iou, growthRatio } = result.fluxMetrics;
+        metricsData = { precision, recall, iou, growthRatio };
+        const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
+        status = isGood ? 'good' : 'bad';
+      }
+
+      let metricsGeminiData: StudioState['metricsGemini'] = null;
+      if (result.geminiMetrics) {
+        metricsGeminiData = result.geminiMetrics;
+      }
+
+      updateState({
+        fluxResult: result.fluxResultBase64 ? `data:image/jpeg;base64,${result.fluxResultBase64}` : null,
+        geminiResult: result.geminiResultBase64 ? `data:image/jpeg;base64,${result.geminiResultBase64}` : null,
+        fidelityViz: result.fluxFidelityVizBase64 ? `data:image/jpeg;base64,${result.fluxFidelityVizBase64}` : null,
+        fidelityVizGemini: result.geminiFidelityVizBase64 ? `data:image/jpeg;base64,${result.geminiFidelityVizBase64}` : null,
+        metrics: metricsData,
+        metricsGemini: metricsGeminiData,
+        status,
+        isGenerating: false,
+      });
+
+      setCurrentView('results');
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Generation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
+      });
+      updateState({ isGenerating: false });
+      setCurrentView('refine');
+    },
+  });
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -119,175 +159,44 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
     // Switch to generating view
     setCurrentView('generating');
-    setProgress(0);
     updateState({ isGenerating: true });
 
-    progressInterval.current = setInterval(() => {
-      setProgress(prev => Math.min(prev + 1, 95));
-    }, 600);
-
     try {
-      // If there are brush strokes, apply them first
-      let currentMask = state.editedMask || state.maskBinary;
-      
-      if (effectiveStrokes.length > 0) {
-        let originalBase64 = state.originalImage;
-        if (originalBase64.includes(',')) originalBase64 = originalBase64.split(',')[1];
-
-        let maskBase64 = currentMask;
-        if (maskBase64.includes(',')) maskBase64 = maskBase64.split(',')[1];
-
-        const refineResponse = await a100Api.refineMask({
-          original_image_base64: originalBase64,
-          current_mask_base64: maskBase64,
-          brush_strokes: effectiveStrokes,
-        });
-
-        if (refineResponse) {
-          currentMask = `data:image/png;base64,${refineResponse.mask_base64}`;
-          updateState({
-            maskBinary: currentMask,
-            maskOverlay: `data:image/jpeg;base64,${refineResponse.mask_overlay_base64}`,
-            editedMask: currentMask,
-          });
-        }
-      }
-
-      // Upload images to Azure for the A100 generate endpoint
+      // Prepare image base64 (strip data URL prefix if present)
       let imageBase64 = state.originalImage;
-      if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
-
-      let maskBase64 = currentMask;
-      if (maskBase64.includes(',')) maskBase64 = maskBase64.split(',')[1];
-
-      // Upload both image and mask to Azure
-      const [imageUpload, maskUpload] = await Promise.all([
-        uploadToAzure(imageBase64, 'image/jpeg'),
-        uploadToAzure(maskBase64, 'image/png'),
-      ]);
-
-      console.log('Uploaded to Azure - image:', imageUpload.uri, 'mask:', maskUpload.uri);
-
-      // Upload original mask if available
-      let originalMaskUri: string | undefined;
-      if (state.originalMask) {
-        let originalMaskBase64 = state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask;
-        const originalMaskUpload = await uploadToAzure(originalMaskBase64, 'image/png');
-        originalMaskUri = originalMaskUpload.uri;
+      if (imageBase64.includes(',')) {
+        imageBase64 = imageBase64.split(',')[1];
       }
 
-      // Now generate using A100
-      const response = await a100Api.generate({
-        image_base64: imageBase64,
-        mask_base64: maskBase64,
-        original_mask_base64: state.originalMask ? (state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask) : undefined,
-        gender: state.gender,
-        use_gemini: true,
-        scaled_points: state.scaledPoints || undefined,
+      // Convert scaledPoints to maskPoints format for Temporal
+      // scaledPoints is number[][] like [[x, y], [x, y], ...]
+      // We need to convert to { x, y, label } format with normalized 0-1 coordinates
+      const maskPoints = (state.scaledPoints || []).map(([x, y]) => ({
+        x: x / 2000,  // Normalize from 2000x2667 workspace
+        y: y / 2667,
+        label: 1 as const,  // All points are foreground
+      }));
+
+      // Start the Temporal workflow
+      await workflow.startGeneration({
+        originalImageBase64: imageBase64,
+        maskPoints,
+        brushStrokes: effectiveStrokes,
+        imageWidth: 2000,
+        imageHeight: 2667,
+        sessionId: state.sessionId || undefined,
       });
-
-      if (!response) throw new Error('Generation failed');
-
-      // Debug: Log the full response
-      console.log('[Generate] Full response keys:', Object.keys(response));
-      console.log('[Generate] Raw response:', {
-        hasResultBase64: !!response.result_base64,
-        hasResultGemini: !!response.result_gemini_base64,
-        hasFidelityViz: !!(response as any).fidelity_viz_base64,
-        hasFidelityVizGemini: !!(response as any).fidelity_viz_gemini_base64,
-        hasMetrics: !!(response as any).metrics,
-        hasMetricsGemini: !!(response as any).metrics_gemini,
-        metrics: (response as any).metrics,
-        metricsGemini: (response as any).metrics_gemini,
-      });
-
-      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-      
-      let status: 'good' | 'bad' | null = null;
-      let metricsData: StudioState['metrics'] = null;
-      const rawMetrics = (response as any).metrics as any;
-      console.log('[Generate] rawMetrics:', rawMetrics);
-      if (rawMetrics && typeof rawMetrics === 'object') {
-        const precision = safeNumber(rawMetrics.precision);
-        const recall = safeNumber(rawMetrics.recall);
-        const iou = safeNumber(rawMetrics.iou);
-        const growthRatio = safeNumber(rawMetrics.growth_ratio ?? rawMetrics.growthRatio);
-        console.log('[Generate] Parsed metrics:', { precision, recall, iou, growthRatio });
-        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
-          metricsData = { precision, recall, iou, growthRatio };
-          const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
-          status = isGood ? 'good' : 'bad';
-        }
-      }
-
-      let metricsGeminiData: StudioState['metricsGemini'] = null;
-      const rawMetricsGemini = (response as any).metrics_gemini as any;
-      console.log('[Generate] rawMetricsGemini:', rawMetricsGemini);
-      if (rawMetricsGemini && typeof rawMetricsGemini === 'object') {
-        const precision = safeNumber(rawMetricsGemini.precision);
-        const recall = safeNumber(rawMetricsGemini.recall);
-        const iou = safeNumber(rawMetricsGemini.iou);
-        const growthRatio = safeNumber(rawMetricsGemini.growth_ratio ?? rawMetricsGemini.growthRatio);
-        console.log('[Generate] Parsed metricsGemini:', { precision, recall, iou, growthRatio });
-        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
-          metricsGeminiData = { precision, recall, iou, growthRatio };
-        }
-      }
-
-      const fidelityVizBase64 = (response as any).fidelity_viz_base64 ?? null;
-      const fidelityVizDataUrl = fidelityVizBase64 ? `data:image/jpeg;base64,${fidelityVizBase64}` : null;
-      console.log('[Generate] fidelityViz exists:', !!fidelityVizDataUrl, 'length:', fidelityVizDataUrl?.length);
-      
-      const fidelityVizGeminiBase64 = (response as any).fidelity_viz_gemini_base64 ?? null;
-      const fidelityVizGeminiDataUrl = fidelityVizGeminiBase64 ? `data:image/jpeg;base64,${fidelityVizGeminiBase64}` : null;
-      console.log('[Generate] fidelityVizGemini exists:', !!fidelityVizGeminiDataUrl, 'length:', fidelityVizGeminiDataUrl?.length);
-
-      const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
-      const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
-
-      setProgress(100);
-      
-      console.log('[Generate] Updating state with:', {
-        hasFluxResult: !!generatedImageUrl,
-        hasGeminiResult: !!geminiImageUrl,
-        hasFidelityViz: !!fidelityVizDataUrl,
-        hasFidelityVizGemini: !!fidelityVizGeminiDataUrl,
-        hasMetrics: !!metricsData,
-        hasMetricsGemini: !!metricsGeminiData,
-        status,
-      });
-      
-      updateState({
-        fluxResult: generatedImageUrl,
-        geminiResult: geminiImageUrl,
-        fidelityViz: fidelityVizDataUrl,
-        fidelityVizGemini: fidelityVizGeminiDataUrl,
-        metrics: metricsData,
-        metricsGemini: metricsGeminiData,
-        status,
-        isGenerating: false,
-        sessionId: response.session_id,
-      });
-
-      // Switch to results view
-      setCurrentView('results');
 
     } catch (error) {
       console.error('Generation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Generation failed',
-        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
-      });
-      updateState({ isGenerating: false });
-      setCurrentView('refine');
-    } finally {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
-      
+      // Error handling is done in onError callback
     }
+  };
+
+  const handleCancel = async () => {
+    await workflow.cancelGeneration();
+    updateState({ isGenerating: false });
+    setCurrentView('refine');
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -328,15 +237,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
             
-            <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
+            <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
+            <p className="text-sm text-muted-foreground mb-4">{workflow.stepLabel}</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                style={{ width: `${progress}%` }} 
+                style={{ width: `${workflow.progress}%` }} 
               />
             </div>
-            <p className="mt-3 text-lg font-mono text-primary">{progress}%</p>
+            <p className="mt-3 text-lg font-mono text-primary">{workflow.progress}%</p>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-6"
+              onClick={handleCancel}
+            >
+              <XOctagon className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
           </div>
         </div>
       </div>
