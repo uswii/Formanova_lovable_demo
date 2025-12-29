@@ -482,8 +482,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                         disabled={redDots.length === 0} 
                         className="font-semibold"
                       >
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Continue
+                        Generate Mask
                       </Button>
                     </div>
                   </div>
