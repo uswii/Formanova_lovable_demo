@@ -53,8 +53,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   // Fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
 
-  // Generation state (simple, no Temporal)
+  // Generation state - Temporal workflow
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -160,13 +161,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         sessionId: state.sessionId || undefined,
       });
 
-      // Poll for status
+      // Import step progress helper
+      const { getStepProgress, getStepLabel } = await import('@/lib/temporal-api');
+      
+      // Poll for status with step tracking
       let completed = false;
       while (!completed) {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         const status = await temporalApi.getWorkflowStatus(workflowId);
-        setGenerationProgress(status.progress || 0);
+        
+        // Use step-based progress or fallback to status progress
+        const stepProgress = getStepProgress(status.currentStep);
+        const effectiveProgress = stepProgress > 0 ? stepProgress : (status.progress || 0);
+        setGenerationProgress(effectiveProgress);
+        
+        // Update step label for UI
+        const stepLabel = getStepLabel(status.currentStep);
+        setCurrentStepLabel(stepLabel);
+        console.log('[Generation] Step:', status.currentStep, 'Label:', stepLabel, 'Progress:', effectiveProgress);
 
         if (status.status === 'COMPLETED' && status.result) {
           completed = true;
@@ -275,7 +288,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             </div>
             
             <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
-            <p className="text-sm text-muted-foreground mb-4">Processing via Temporal workflow...</p>
+            <p className="text-sm text-muted-foreground mb-1">Temporal Workflow Pipeline</p>
+            <p className="text-sm font-medium text-primary mb-4">{currentStepLabel}</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 

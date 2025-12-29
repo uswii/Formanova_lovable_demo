@@ -83,25 +83,53 @@ export interface HealthResponse {
 }
 
 // ========== Workflow Steps ==========
+// These match the Temporal workflow activities in the backend
 
 export const WORKFLOW_STEPS = {
-  CHECKING_A100_HEALTH: { progress: 0, label: 'Pre-flight check' },
-  UPLOADING_IMAGE: { progress: 5, label: 'Uploading image' },
-  RESIZING_IMAGE: { progress: 15, label: 'Resizing image' },
-  CHECKING_ZOOM: { progress: 20, label: 'Analyzing image' },
-  REMOVING_BACKGROUND: { progress: 30, label: 'Removing background' },
-  GENERATING_MASK: { progress: 45, label: 'Generating mask' },
-  REFINING_MASK: { progress: 55, label: 'Refining mask' },
-  GENERATING_IMAGES: { progress: 70, label: 'Generating photoshoot' },
-  COMPLETED: { progress: 100, label: 'Complete' },
+  // Pre-flight
+  CHECKING_HEALTH: { progress: 0, label: 'Checking services...' },
+  
+  // Upload & preprocessing  
+  UPLOADING_IMAGE: { progress: 5, label: 'Uploading to Azure...' },
+  RESIZING_IMAGE: { progress: 12, label: 'Resizing image (2000×2667)...' },
+  
+  // Analysis
+  CHECKING_ZOOM: { progress: 18, label: 'Analyzing zoom level...' },
+  
+  // Background removal (BiRefNet)
+  SUBMITTING_BIREFNET: { progress: 22, label: 'Submitting background removal...' },
+  POLLING_BIREFNET: { progress: 28, label: 'Removing background...' },
+  
+  // Mask generation (SAM3)
+  SUBMITTING_SAM3: { progress: 38, label: 'Submitting mask generation...' },
+  POLLING_SAM3: { progress: 48, label: 'Generating mask...' },
+  
+  // Refinement
+  REFINING_MASK: { progress: 55, label: 'Applying refinements...' },
+  
+  // Final generation (A100)
+  GENERATING_FLUX: { progress: 65, label: 'Generating photoshoot (Flux)...' },
+  GENERATING_GEMINI: { progress: 85, label: 'Generating photoshoot (Gemini)...' },
+  
+  // Post-processing
+  CALCULATING_METRICS: { progress: 95, label: 'Calculating fidelity metrics...' },
+  
+  // Done
+  COMPLETED: { progress: 100, label: 'Complete!' },
 } as const;
 
 export type WorkflowStep = keyof typeof WORKFLOW_STEPS;
 
 export function getStepLabel(step: string | null): string {
-  if (!step) return 'Processing...';
+  if (!step) return 'Starting workflow...';
   const stepInfo = WORKFLOW_STEPS[step as WorkflowStep];
-  return stepInfo?.label || step;
+  return stepInfo?.label || step.replace(/_/g, ' ').toLowerCase();
+}
+
+export function getStepProgress(step: string | null): number {
+  if (!step) return 0;
+  const stepInfo = WORKFLOW_STEPS[step as WorkflowStep];
+  return stepInfo?.progress ?? 0;
 }
 
 // ========== API Client ==========
