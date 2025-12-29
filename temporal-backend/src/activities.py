@@ -136,9 +136,17 @@ async def check_zoom(input: ZoomCheckInput) -> ZoomCheckOutput:
     activity.logger.info(f"Checking zoom for: {input.image_uri}")
     
     try:
+        # Convert azure:// URI to accessible SAS URL for the IMAGE_MANIPULATOR service
+        image_url = input.image_uri
+        if image_url.startswith("azure://"):
+            # Extract blob name from azure://container/blobname
+            blob_name = image_url.replace(f"azure://{config.azure_container_name}/", "")
+            image_url = generate_sas_url(blob_name)
+            activity.logger.info(f"Converted to SAS URL for zoom check")
+        
         response = await http_client.post(
             f"{config.image_manipulator_url}/zoom_check",
-            json={"image": {"uri": input.image_uri}}
+            json={"image": {"uri": image_url}}
         )
         response.raise_for_status()
         data = response.json()
