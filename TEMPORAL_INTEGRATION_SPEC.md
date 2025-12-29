@@ -329,11 +329,12 @@ async function execute(input: WorkflowInput): Promise<WorkflowOutput> {
     contentType: "image/jpeg"
   });
   
-  // Step 2: Resize image to max 1536px
+  // Step 2: Resize to fixed 2000x2667 (SAM workspace size)
   setProgress(15, "RESIZING_IMAGE");
   const resizeResult = await activities.resizeImage({
     imageUri: uploadResult.azureUri,
-    maxDimension: 1536
+    targetWidth: 2000,
+    targetHeight: 2667
   });
   
   // Step 3: Check if background removal needed
@@ -448,31 +449,36 @@ async function execute(input: WorkflowInput): Promise<WorkflowOutput> {
 ```typescript
 {
   imageUri: string,       // Azure URI
-  maxDimension: number    // 1536
+  targetWidth: number,    // 2000
+  targetHeight: number    // 2667
 }
 ```
 
 **Output:**
 ```typescript
 {
-  resizedUri: string,     // Azure URI of resized image
-  originalWidth: number,
-  originalHeight: number,
-  newWidth: number,
-  newHeight: number
+  imageBase64: string,    // Base64 of resized image
+  padding: {
+    top: number,
+    bottom: number,
+    left: number,
+    right: number
+  }
 }
 ```
 
 **External Call:**
-- **Service:** Image Manipulator (Azure VM)
+- **Service:** Image Manipulator (Azure VM) - YOUR EXISTING SERVICE
 - **Base URL:** `http://20.106.235.80:8005`
 - **Method:** POST
 - **Endpoint:** `/resize`
 - **Body:**
   ```json
   {
-    "image_uri": "azure://...",
-    "max_dimension": 1536
+    "image": { "uri": "azure://..." },
+    "target_width": 2000,
+    "target_height": 2667,
+    "flag": "fixed_dimensions"
   }
   ```
 

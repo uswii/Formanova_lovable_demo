@@ -27,20 +27,20 @@ A simple HTTP server that:
 
 ### 2. Temporal Workflow
 
-A single workflow `JewelryGenerationWorkflow` that orchestrates these steps:
-1. Upload image to Azure Blob Storage
-2. Resize image (max 1536px)
-3. Check if background removal is needed
-4. Remove background (if needed) via BiRefNet service
-5. Generate segmentation mask via SAM3 service
-6. Refine mask with brush strokes (if provided)
-7. Generate final images via A100 server (Flux + Gemini models)
+A single workflow `JewelryGenerationWorkflow` that orchestrates these steps using **YOUR EXISTING MICROSERVICES**:
+1. Upload image to Azure Blob Storage (via Supabase edge function)
+2. Resize image to **2000×2667** (via Image Manipulator)
+3. Check if background removal is needed (via Image Manipulator `/zoom_check`)
+4. Remove background if needed (via BiRefNet on Modal - async job)
+5. Generate segmentation mask (via SAM3 on Modal - async job)
+6. Refine mask with brush strokes if provided (via A100 server)
+7. Generate final images (via A100 server - Flux at 768×1024, then Gemini)
 
 ### 3. Temporal Activities
 
-Individual functions that call external services:
-- `upload_to_azure` - Upload base64 image to Azure
-- `resize_image` - Call image manipulator service
+Individual functions that **call your existing microservices** (don't recreate them):
+- `upload_to_azure` - Call Azure upload edge function
+- `resize_image` - Call Image Manipulator `/resize` → 2000×2667
 - `check_zoom` - Determine if bg removal needed
 - `remove_background` - Call BiRefNet (async job pattern)
 - `generate_mask` - Call SAM3 (async job pattern)
@@ -181,20 +181,26 @@ AZURE_CONTAINER=jewelry-uploads
 
 **Base URL:** `http://20.106.235.80:8005`
 
+> **NOTE:** This is an EXISTING microservice. Temporal just calls it - don't recreate it.
+
 **POST /resize**
 ```json
-// Request
+// Request - resizes to FIXED 2000x2667 (3:4 aspect ratio)
 {
-  "image_uri": "azure://jewelry-uploads/xxx.jpg",
-  "max_dimension": 1536
+  "image": { "uri": "azure://jewelry-uploads/xxx.jpg" },
+  "target_width": 2000,
+  "target_height": 2667,
+  "flag": "fixed_dimensions"
 }
 // Response
 {
-  "resized_uri": "azure://jewelry-uploads/xxx-resized.jpg",
-  "original_width": 4000,
-  "original_height": 3000,
-  "new_width": 1536,
-  "new_height": 1152
+  "image_base64": "base64-jpeg-of-resized-image",
+  "padding": {
+    "top": 0,
+    "bottom": 0,
+    "left": 50,
+    "right": 50
+  }
 }
 ```
 
@@ -202,12 +208,11 @@ AZURE_CONTAINER=jewelry-uploads
 ```json
 // Request
 {
-  "image_uri": "azure://jewelry-uploads/xxx.jpg"
+  "image": { "uri": "azure://jewelry-uploads/xxx.jpg" }
 }
 // Response
 {
-  "recommend_bg_removal": true,
-  "zoom_level": 0.3
+  "should_remove_background": true
 }
 ```
 
