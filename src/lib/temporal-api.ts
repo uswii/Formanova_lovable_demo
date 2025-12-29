@@ -260,15 +260,55 @@ class TemporalApi {
       headers: this.getAuthHeaders(),
     });
 
+    // Try to parse JSON response regardless of status code
+    // Backend may return 500 for CANCELLED/FAILED states
+    const text = await response.text();
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Invalid response from workflow API: ${text}`);
+    }
+
+    // Check if response contains workflow status info (even with error status code)
+    if (data.detail === 'CANCELLED') {
+      return {
+        workflowId,
+        status: 'CANCELLED',
+        progress: 0,
+        currentStep: 'cancelled',
+        result: null,
+        error: {
+          code: 'WORKFLOW_FAILED',
+          message: 'Workflow was cancelled by the system',
+          failedStep: 'unknown',
+        },
+      };
+    }
+
+    if (data.detail === 'FAILED' || data.error) {
+      return {
+        workflowId,
+        status: 'FAILED',
+        progress: 0,
+        currentStep: 'failed',
+        result: null,
+        error: {
+          code: 'WORKFLOW_FAILED',
+          message: data.detail || data.error || 'Workflow failed',
+          failedStep: 'unknown',
+        },
+      };
+    }
+
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error(`Workflow not found: ${workflowId}`);
       }
-      const error = await response.text();
-      throw new Error(`Failed to get workflow status: ${error}`);
+      throw new Error(`Failed to get workflow status: ${text}`);
     }
 
-    return await response.json();
+    return data as WorkflowStatusResponse;
   }
 
   async cancelWorkflow(workflowId: string): Promise<void> {
