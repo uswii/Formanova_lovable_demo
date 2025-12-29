@@ -1,26 +1,13 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle } from 'lucide-react';
+import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
-import { 
-  uploadToAzure, 
-  resize, 
-  zoomCheck, 
-  submitBiRefNetJob, 
-  pollBiRefNetJob, 
-  submitSAM3Job, 
-  pollSAM3Job, 
-  pollJobUntilComplete,
-  fetchImageAsBase64 
-} from '@/lib/microservices-api';
 
 interface Props {
   state: StudioState;
@@ -28,108 +15,8 @@ interface Props {
   onNext: () => void;
 }
 
-// Helper to create mask overlay - white pixels become green translucent, rest shows original image
-async function createMaskOverlay(originalImageDataUrl: string, maskBase64: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      reject(new Error('Failed to get canvas context'));
-      return;
-    }
-
-    const originalImg = new Image();
-    const maskImg = new Image();
-    
-    let loadedCount = 0;
-    const onLoad = () => {
-      loadedCount++;
-      if (loadedCount < 2) return;
-      
-      try {
-        // Set canvas size to match original image
-        canvas.width = originalImg.width;
-        canvas.height = originalImg.height;
-        
-        console.log('[Overlay] Canvas size:', canvas.width, 'x', canvas.height);
-        console.log('[Overlay] Mask size:', maskImg.width, 'x', maskImg.height);
-        
-        // Draw original image first
-        ctx.drawImage(originalImg, 0, 0);
-        
-        // Create temporary canvas for the mask
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = originalImg.width;
-        maskCanvas.height = originalImg.height;
-        const maskCtx = maskCanvas.getContext('2d');
-        
-        if (maskCtx) {
-          // Draw mask scaled to original image size
-          maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
-          
-          // Get mask pixels
-          const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-          const data = maskData.data;
-          
-          let whiteCount = 0;
-          let blackCount = 0;
-          
-          // Convert white pixels to semi-transparent green, black to fully transparent
-          for (let i = 0; i < data.length; i += 4) {
-            const brightness = data[i]; // R channel (mask is grayscale)
-            if (brightness > 128) {
-              whiteCount++;
-              // White pixel -> green with 50% opacity
-              data[i] = 0;       // R
-              data[i + 1] = 200; // G
-              data[i + 2] = 0;   // B
-              data[i + 3] = 128; // A (semi-transparent)
-            } else {
-              blackCount++;
-              // Black pixel -> fully transparent
-              data[i + 3] = 0;
-            }
-          }
-          
-          console.log('[Overlay] White pixels:', whiteCount, 'Black pixels:', blackCount);
-          
-          maskCtx.putImageData(maskData, 0, 0);
-          
-          // Draw the green overlay on top of original
-          ctx.drawImage(maskCanvas, 0, 0);
-        }
-        
-        const result = canvas.toDataURL('image/png');
-        console.log('[Overlay] Generated overlay, length:', result.length);
-        resolve(result);
-      } catch (e) {
-        console.error('[Overlay] Error in onLoad:', e);
-        reject(e);
-      }
-    };
-    
-    originalImg.onload = onLoad;
-    maskImg.onload = onLoad;
-    originalImg.onerror = (e) => {
-      console.error('[Overlay] Failed to load original image:', e);
-      reject(new Error('Failed to load original image'));
-    };
-    maskImg.onerror = (e) => {
-      console.error('[Overlay] Failed to load mask image:', e);
-      reject(new Error('Failed to load mask image'));
-    };
-    
-    originalImg.src = originalImageDataUrl;
-    const maskSrc = maskBase64.startsWith('data:') ? maskBase64 : `data:image/png;base64,${maskBase64}`;
-    console.log('[Overlay] Mask src prefix:', maskSrc.substring(0, 50));
-    maskImg.src = maskSrc;
-  });
-}
-
 export function StepUploadMark({ state, updateState, onNext }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isGeneratingMask, setIsGeneratingMask] = useState(false);
-  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
   const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
@@ -138,12 +25,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const { toast } = useToast();
-  
-  // Use processingState and redDots from parent state for persistence
-  const processingState = state.processingState;
-  const setProcessingState = (newState: typeof processingState) => {
-    updateState({ processingState: newState });
-  };
   
   const redDots = state.redDots;
   const setRedDots = (dotsOrFn: { x: number; y: number }[] | ((prev: { x: number; y: number }[]) => { x: number; y: number }[])) => {
@@ -164,110 +45,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     loadExamples();
   }, []);
 
-  const processUploadedImage = async (base64Data: string) => {
-    setIsProcessingUpload(true);
-    try {
-      // Clean the base64 data
-      let cleanBase64 = base64Data;
-      if (cleanBase64.includes(',')) cleanBase64 = cleanBase64.split(',')[1];
-      
-      // Step 1: Upload to Azure (required - resize service needs URI)
-      const { uri: originalUri } = await uploadToAzure(cleanBase64);
-      console.log('Original uploaded:', originalUri);
-
-      // Step 2: Resize to 2000x2667
-      const resizeResult = await resize({ 
-        image: originalUri, 
-        target_width: 2000, 
-        target_height: 2667,
-        flag: 'fixed_dimensions'
-      });
-      
-      // Step 3: Upload resized image to Azure
-      const { uri: resizedUri } = await uploadToAzure(resizeResult.image_base64);
-      console.log('Resized uploaded:', resizedUri);
-
-      // Step 4: Check if background removal is needed
-      const zoomResult = await zoomCheck({ image: resizedUri });
-      console.log('Zoom check result:', zoomResult);
-
-      let finalUri = resizedUri;
-      let finalBase64 = resizeResult.image_base64;
-      let contentType = 'image/jpeg';
-      
-      // Clean any existing data URL prefix from resize result
-      if (finalBase64.includes(',')) {
-        finalBase64 = finalBase64.split(',')[1];
-      }
-      
-      // Step 4: If needed, remove background via BiRefNet
-      if (zoomResult.should_remove_background) {
-        const { job_id } = await submitBiRefNetJob(resizedUri);
-        
-        const result = await pollJobUntilComplete(
-          () => pollBiRefNetJob(job_id),
-          {
-            maxAttempts: 120,
-            intervalMs: 1000,
-          }
-        );
-        
-        // Extract result URI from the nested structure
-        const resultUri = result.result?.output?.uri || result.result_uri;
-        if (resultUri) {
-          finalUri = resultUri;
-          console.log('Background removed:', finalUri);
-          // Fetch the background-removed image (PNG with transparency)
-          finalBase64 = await fetchImageAsBase64(finalUri);
-          contentType = 'image/png';
-          
-          // Clean any existing data URL prefix
-          if (finalBase64.includes(',')) {
-            finalBase64 = finalBase64.split(',')[1];
-          }
-        }
-      }
-
-      // Update state with processed image
-      setProcessingState({
-        resizedUri,
-        bgRemovedUri: zoomResult.should_remove_background ? finalUri : undefined,
-        padding: resizeResult.padding,
-      });
-
-      const imageDataUrl = `data:${contentType};base64,${finalBase64}`;
-      console.log('[processUploadedImage] Setting originalImage, length:', imageDataUrl.length, 'prefix:', imageDataUrl.substring(0, 40));
-
-      updateState({
-        originalImage: imageDataUrl,
-        markedImage: null,
-        maskOverlay: null,
-        maskBinary: null,
-        originalMask: null,
-        editedMask: null,
-        fluxResult: null,
-        geminiResult: null,
-        fidelityViz: null,
-        metrics: null,
-        status: null,
-        sessionId: null,
-        scaledPoints: null,
-      });
-
-      // Processing complete - no toast notification
-
-    } catch (error) {
-      console.error('Image processing error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Processing failed',
-        description: error instanceof Error ? error.message : 'Failed to process image',
-      });
-    } finally {
-      setIsProcessingUpload(false);
-    }
-  };
-
   const handleFileUpload = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({
@@ -279,14 +56,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     }
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       const result = e.target?.result as string;
       setRedDots([]);
       setUndoStack([]);
       setRedoStack([]);
-      setProcessingState({});
       
-      // Show preview immediately
+      // Just show preview - no preprocessing, Temporal will handle everything
       updateState({
         originalImage: result,
         markedImage: null,
@@ -301,10 +77,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         status: null,
         sessionId: null,
         scaledPoints: null,
+        processingState: {},
       });
-      
-      // Process the uploaded image through the pipeline
-      await processUploadedImage(result);
     };
     reader.readAsDataURL(file);
   }, [toast, updateState]);
@@ -319,7 +93,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     e.preventDefault();
   }, []);
 
-  const handleGenerateMask = async () => {
+  const handleProceed = () => {
     if (redDots.length === 0) {
       toast({
         variant: 'destructive',
@@ -328,101 +102,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       });
       return;
     }
-
-    if (isProcessingUpload) {
-      toast({
-        title: 'Please wait',
-        description: 'Image is still being processed...',
-      });
-      return;
-    }
-
-    if (!processingState.resizedUri) {
-      toast({
-        variant: 'destructive',
-        title: 'Image not ready',
-        description: 'Please upload an image first or wait for processing to complete.',
-      });
-      return;
-    }
-
-    setIsGeneratingMask(true);
-
-    try {
-      const points = redDots.map((dot) => [dot.x, dot.y]);
-      
-      // Use the processed URI (bg removed if applicable, otherwise resized)
-      const imageUri = processingState.bgRemovedUri || processingState.resizedUri;
-
-      // Submit SAM3 job
-      const { job_id } = await submitSAM3Job({
-        image_uri: imageUri,
-        points,
-      });
-
-      // Poll for completion
-      const result = await pollJobUntilComplete(
-        () => pollSAM3Job(job_id),
-        {
-          maxAttempts: 120,
-          intervalMs: 1000,
-        }
-      );
-
-      // Extract mask URI from the nested result structure
-      console.log('[SAM3] Poll result:', JSON.stringify(result));
-      const maskUri = result.result?.mask?.uri;
-      const maskOverlayUri = result.result?.mask_overlay?.uri;
-      const originalMaskUri = result.result?.original_mask?.uri;
-      console.log('[SAM3] Extracted maskUri:', maskUri);
-
-      if (!maskUri) {
-        throw new Error('No mask returned from SAM3');
-      }
-
-      // Fetch the mask image
-      const maskBase64 = await fetchImageAsBase64(maskUri);
-      console.log('[SAM3] Mask fetched, length:', maskBase64.length);
-      
-      // Create mask overlay by compositing original image with semi-transparent mask
-      let maskOverlayDataUrl: string | null = null;
-      const currentOriginalImage = state.originalImage;
-      console.log('[SAM3] Original image for overlay, exists:', !!currentOriginalImage, 'length:', currentOriginalImage?.length);
-      
-      if (currentOriginalImage) {
-        try {
-          maskOverlayDataUrl = await createMaskOverlay(currentOriginalImage, maskBase64);
-          console.log('[SAM3] Overlay created, length:', maskOverlayDataUrl?.length);
-        } catch (e) {
-          console.error('[SAM3] Failed to create mask overlay:', e);
-        }
-      } else {
-        console.warn('[SAM3] No original image available for overlay creation');
-      }
-
-      console.log('[SAM3] Updating state with maskOverlay:', !!maskOverlayDataUrl, 'originalImage:', !!currentOriginalImage);
-      
-      updateState({
-        originalImage: currentOriginalImage,
-        maskOverlay: maskOverlayDataUrl,
-        maskBinary: `data:image/png;base64,${maskBase64}`,
-        originalMask: `data:image/png;base64,${maskBase64}`,
-        sessionId: job_id,
-        scaledPoints: result.result?.meta?.image_size ? [result.result.meta.image_size] : null,
-      });
-
-      onNext();
-    } catch (error) {
-      console.error('Segmentation error:', error);
-      
-      toast({
-        variant: 'destructive',
-        title: 'Segmentation failed',
-        description: error instanceof Error ? error.message : 'Failed to generate mask. Please try again.',
-      });
-    } finally {
-      setIsGeneratingMask(false);
-    }
+    onNext();
   };
 
   const handleCanvasClick = (x: number, y: number) => {
@@ -464,15 +144,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setRedoStack([]);
   };
 
-  const loadExample = async (example: ExampleImage) => {
+  const loadExample = (example: ExampleImage) => {
     setRedDots([]);
     setUndoStack([]);
     setRedoStack([]);
-    setProcessingState({});
     
     const previewImage = `data:image/jpeg;base64,${example.image_base64}`;
     
-    // Show preview immediately
+    // Just show preview - Temporal handles all processing
     updateState({
       originalImage: previewImage,
       markedImage: null,
@@ -487,10 +166,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       status: null,
       sessionId: null,
       scaledPoints: null,
+      processingState: {},
     });
-    
-    // Process example image through the same pipeline
-    await processUploadedImage(previewImage);
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -665,26 +342,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     </Button>
                     <Button 
                       size="lg" 
-                      onClick={handleGenerateMask} 
-                      disabled={isGeneratingMask || redDots.length === 0 || isProcessingUpload} 
+                      onClick={handleProceed} 
+                      disabled={redDots.length === 0} 
                       className="font-semibold"
                     >
-                      {isProcessingUpload ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Processing image...
-                        </>
-                      ) : isGeneratingMask ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Generating mask...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-5 w-5 mr-2" />
-                          Generate Mask
-                        </>
-                      )}
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      Continue
                     </Button>
                   </div>
                 </div>
@@ -725,8 +388,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
               <button
                 key={example.id}
                 onClick={() => loadExample(example)}
-                disabled={isProcessingUpload}
-                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all disabled:opacity-50"
+                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
               >
                 <img
                   src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}

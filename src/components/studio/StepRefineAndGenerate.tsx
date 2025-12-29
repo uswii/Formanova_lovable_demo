@@ -104,11 +104,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!state.originalImage || !state.maskBinary) {
+    if (!state.originalImage) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
-        description: 'Please complete the previous steps first.',
+        description: 'Please upload an image first.',
       });
       return;
     }
@@ -125,77 +125,98 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         imageBase64 = imageBase64.split(',')[1];
       }
 
-      // Prepare mask base64
-      let maskBase64 = state.maskBinary;
-      if (maskBase64.includes(',')) {
-        maskBase64 = maskBase64.split(',')[1];
-      }
+      // Convert red dots to mask points (normalized 0-1)
+      // The dots are in canvas coordinates (400x533 for 3:4 aspect ratio)
+      // Normalize to 0-1 range
+      const canvasWidth = 400;
+      const canvasHeight = 533; // 400 * (4/3)
+      
+      const maskPoints = state.redDots.map(dot => ({
+        x: dot.x / canvasWidth,
+        y: dot.y / canvasHeight,
+        label: 1 as const, // All marks are foreground
+      }));
 
-      // Prepare original mask base64 if available
-      let originalMaskBase64 = state.originalMask || undefined;
-      if (originalMaskBase64?.includes(',')) {
-        originalMaskBase64 = originalMaskBase64.split(',')[1];
-      }
+      // Convert brush strokes if any
+      const brushStrokes = effectiveStrokes.map(stroke => ({
+        type: stroke.type,
+        points: stroke.points.map(([x, y]) => [x / canvasWidth, y / canvasHeight]),
+        radius: stroke.radius,
+      }));
 
-      // Simulate progress for UX (A100 doesn't provide progress)
-      const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 5, 90));
-      }, 1000);
-
-      // Call A100 /generate directly - no preprocessing needed!
-      const result = await a100Api.generate({
-        image_base64: imageBase64,
-        mask_base64: maskBase64,
-        original_mask_base64: originalMaskBase64,
+      // Import and use Temporal API
+      const { temporalApi } = await import('@/lib/temporal-api');
+      
+      // Start the Temporal workflow
+      const { workflowId } = await temporalApi.startWorkflow({
+        originalImageBase64: imageBase64,
+        maskPoints,
+        brushStrokes: brushStrokes.length > 0 ? brushStrokes.map(s => ({
+          points: s.points.map(([x, y]) => ({ x, y })),
+          mode: s.type,
+          size: Math.round(s.radius / 4), // Normalize size
+        })) : undefined,
         gender: state.gender,
-        use_gemini: true,
-        scaled_points: state.scaledPoints || undefined,
+        sessionId: state.sessionId || undefined,
       });
 
-      clearInterval(progressInterval);
-      setGenerationProgress(100);
+      // Poll for status
+      let completed = false;
+      while (!completed) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const status = await temporalApi.getWorkflowStatus(workflowId);
+        setGenerationProgress(status.progress || 0);
 
-      if (!result) {
-        throw new Error('Generation failed - no response from server');
+        if (status.status === 'COMPLETED' && status.result) {
+          completed = true;
+          
+          // Map Temporal result to StudioState
+          let statusValue: 'good' | 'bad' | null = null;
+          let metricsData: StudioState['metrics'] = null;
+
+          if (status.result.fluxMetrics) {
+            metricsData = {
+              precision: status.result.fluxMetrics.precision,
+              recall: status.result.fluxMetrics.recall,
+              iou: status.result.fluxMetrics.iou,
+              growthRatio: status.result.fluxMetrics.growthRatio,
+            };
+            const isGood = status.result.fluxMetrics.precision >= 0.95 && 
+                           status.result.fluxMetrics.recall >= 0.9 && 
+                           status.result.fluxMetrics.iou >= 0.85;
+            statusValue = isGood ? 'good' : 'bad';
+          }
+
+          let metricsGeminiData: StudioState['metricsGemini'] = null;
+          if (status.result.geminiMetrics) {
+            metricsGeminiData = {
+              precision: status.result.geminiMetrics.precision,
+              recall: status.result.geminiMetrics.recall,
+              iou: status.result.geminiMetrics.iou,
+              growthRatio: status.result.geminiMetrics.growthRatio,
+            };
+          }
+
+          updateState({
+            fluxResult: status.result.fluxResultBase64 ? `data:image/jpeg;base64,${status.result.fluxResultBase64}` : null,
+            geminiResult: status.result.geminiResultBase64 ? `data:image/jpeg;base64,${status.result.geminiResultBase64}` : null,
+            fidelityViz: status.result.fluxFidelityVizBase64 ? `data:image/jpeg;base64,${status.result.fluxFidelityVizBase64}` : null,
+            fidelityVizGemini: status.result.geminiFidelityVizBase64 ? `data:image/jpeg;base64,${status.result.geminiFidelityVizBase64}` : null,
+            maskBinary: status.result.maskBase64 ? `data:image/png;base64,${status.result.maskBase64}` : state.maskBinary,
+            metrics: metricsData,
+            metricsGemini: metricsGeminiData,
+            status: statusValue,
+            isGenerating: false,
+          });
+
+          setCurrentView('results');
+        } else if (status.status === 'FAILED') {
+          throw new Error(status.error?.message || 'Workflow failed');
+        } else if (status.status === 'CANCELLED') {
+          throw new Error('Workflow was cancelled');
+        }
       }
-
-      // Map result to StudioState
-      let status: 'good' | 'bad' | null = null;
-      let metricsData: StudioState['metrics'] = null;
-
-      if (result.metrics) {
-        metricsData = {
-          precision: result.metrics.precision,
-          recall: result.metrics.recall,
-          iou: result.metrics.iou,
-          growthRatio: result.metrics.growth_ratio,
-        };
-        const isGood = result.metrics.precision >= 0.95 && result.metrics.recall >= 0.9 && result.metrics.iou >= 0.85;
-        status = isGood ? 'good' : 'bad';
-      }
-
-      let metricsGeminiData: StudioState['metricsGemini'] = null;
-      if (result.metrics_gemini) {
-        metricsGeminiData = {
-          precision: result.metrics_gemini.precision,
-          recall: result.metrics_gemini.recall,
-          iou: result.metrics_gemini.iou,
-          growthRatio: result.metrics_gemini.growth_ratio,
-        };
-      }
-
-      updateState({
-        fluxResult: result.result_base64 ? `data:image/jpeg;base64,${result.result_base64}` : null,
-        geminiResult: result.result_gemini_base64 ? `data:image/jpeg;base64,${result.result_gemini_base64}` : null,
-        fidelityViz: result.fidelity_viz_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_base64}` : null,
-        fidelityVizGemini: result.fidelity_viz_gemini_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_gemini_base64}` : null,
-        metrics: metricsData,
-        metricsGemini: metricsGeminiData,
-        status,
-        isGenerating: false,
-      });
-
-      setCurrentView('results');
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -209,8 +230,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     }
   };
 
-  const handleCancel = () => {
-    // Simple cancel - just reset state (A100 doesn't support cancel)
+  const handleCancel = async () => {
+    // Cancel via Temporal if we have a workflow ID
     updateState({ isGenerating: false });
     setCurrentView('refine');
   };
@@ -253,8 +274,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
             
-            <h3 className="font-display text-xl mb-2 text-foreground">Generating with Flux</h3>
-            <p className="text-sm text-muted-foreground mb-4">Running AI generation...</p>
+            <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
+            <p className="text-sm text-muted-foreground mb-4">Processing via Temporal workflow...</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
@@ -620,10 +641,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               <Button 
                 className="flex-1 h-12 text-lg font-semibold"
                 onClick={handleGenerate} 
-                disabled={!state.maskBinary}
+                disabled={!state.originalImage}
               >
                 <Gem className="h-5 w-5 mr-2" />
-                Flux
+                Generate Photoshoot
               </Button>
             </div>
           </div>
