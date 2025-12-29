@@ -22,12 +22,35 @@ export interface BrushStroke {
   size?: number;    // 1-100, default 20
 }
 
-export interface WorkflowStartRequest {
+// ========== Preprocessing Workflow (Step 1) ==========
+// Upload → Resize → Zoom Check → Background Removal → SAM3 Mask
+
+export interface PreprocessingRequest {
   originalImageBase64: string;
-  maskPoints: MaskPoint[];
-  brushStrokes?: BrushStroke[];
+  maskPoints: MaskPoint[];        // User's marked points for SAM3
+}
+
+export interface PreprocessingResult {
+  resizedImageBase64: string;     // Resized to 2000x2667
+  resizedUri: string;             // Azure URI of resized image
+  maskBase64: string;             // Binary mask from SAM3
+  maskOverlayBase64: string;      // Mask overlay preview
+  backgroundRemoved: boolean;     // Whether bg was removed
+  padding: { top: number; bottom: number; left: number; right: number };
+  sessionId: string;              // For later generation
+  scaledPoints: number[][];       // Points scaled to image dimensions
+}
+
+// ========== Generation Workflow (Step 2) ==========
+// Apply Refinements → Generate Flux/Gemini
+
+export interface GenerationRequest {
+  sessionId: string;              // From preprocessing
+  resizedImageBase64: string;     // From preprocessing
+  maskBase64: string;             // From preprocessing (or refined)
+  brushStrokes?: BrushStroke[];   // User refinements
   gender?: 'female' | 'male';
-  sessionId?: string;
+  scaledPoints?: number[][];      // Original points
 }
 
 export interface WorkflowStartResponse {
@@ -42,6 +65,25 @@ export interface FidelityMetrics {
   growthRatio: number;
 }
 
+export interface GenerationResult {
+  fluxResultBase64: string;
+  geminiResultBase64: string | null;
+  fluxMetrics: FidelityMetrics;
+  geminiMetrics: FidelityMetrics | null;
+  fluxFidelityVizBase64: string | null;
+  geminiFidelityVizBase64: string | null;
+  refinedMaskBase64?: string;     // If brush strokes were applied
+}
+
+// Legacy combined workflow (kept for compatibility)
+export interface WorkflowStartRequest {
+  originalImageBase64: string;
+  maskPoints: MaskPoint[];
+  brushStrokes?: BrushStroke[];
+  gender?: 'female' | 'male';
+  sessionId?: string;
+}
+
 export interface WorkflowResult {
   fluxResultBase64: string;
   geminiResultBase64: string | null;
@@ -49,8 +91,8 @@ export interface WorkflowResult {
   geminiMetrics: FidelityMetrics | null;
   fluxFidelityVizBase64: string | null;
   geminiFidelityVizBase64: string | null;
-  maskBase64?: string;           // Mask from SAM3
-  maskOverlayBase64?: string;    // Overlay preview
+  maskBase64?: string;
+  maskOverlayBase64?: string;
   backgroundRemoved?: boolean;
 }
 
@@ -162,6 +204,41 @@ class TemporalApi {
     }
   }
 
+  // ========== Preprocessing Workflow (Step 1) ==========
+  // Upload → Resize → Zoom Check → Background Removal → SAM3 Mask
+  async startPreprocessing(request: PreprocessingRequest): Promise<WorkflowStartResponse> {
+    const response = await fetch(getProxyUrl('/workflow/preprocess'), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to start preprocessing: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  // ========== Generation Workflow (Step 2) ==========
+  // Apply Refinements → Generate Flux/Gemini
+  async startGeneration(request: GenerationRequest): Promise<WorkflowStartResponse> {
+    const response = await fetch(getProxyUrl('/workflow/generate'), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to start generation: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  // Legacy: Combined workflow (kept for compatibility)
   async startWorkflow(request: WorkflowStartRequest): Promise<WorkflowStartResponse> {
     const response = await fetch(getProxyUrl('/workflow/start'), {
       method: 'POST',
