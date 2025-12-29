@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -12,7 +12,6 @@ import {
   XCircle,
   BarChart3,
   Expand,
-  Play,
   RefreshCw,
   Gem,
   XOctagon,
@@ -20,8 +19,7 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { useGenerationWorkflow } from '@/hooks/use-generation-workflow';
-import { getStepLabel } from '@/lib/temporal-api';
+import { a100Api } from '@/lib/a100-api';
 
 interface Props {
   state: StudioState;
@@ -55,50 +53,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   // Fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
 
-  // Temporal workflow hook
-  const workflow = useGenerationWorkflow({
-    onComplete: (result) => {
-      // Map Temporal result to StudioState
-      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-      
-      let status: 'good' | 'bad' | null = null;
-      let metricsData: StudioState['metrics'] = null;
-      
-      if (result.fluxMetrics) {
-        const { precision, recall, iou, growthRatio } = result.fluxMetrics;
-        metricsData = { precision, recall, iou, growthRatio };
-        const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
-        status = isGood ? 'good' : 'bad';
-      }
-
-      let metricsGeminiData: StudioState['metricsGemini'] = null;
-      if (result.geminiMetrics) {
-        metricsGeminiData = result.geminiMetrics;
-      }
-
-      updateState({
-        fluxResult: result.fluxResultBase64 ? `data:image/jpeg;base64,${result.fluxResultBase64}` : null,
-        geminiResult: result.geminiResultBase64 ? `data:image/jpeg;base64,${result.geminiResultBase64}` : null,
-        fidelityViz: result.fluxFidelityVizBase64 ? `data:image/jpeg;base64,${result.fluxFidelityVizBase64}` : null,
-        fidelityVizGemini: result.geminiFidelityVizBase64 ? `data:image/jpeg;base64,${result.geminiFidelityVizBase64}` : null,
-        metrics: metricsData,
-        metricsGemini: metricsGeminiData,
-        status,
-        isGenerating: false,
-      });
-
-      setCurrentView('results');
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Generation failed',
-        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
-      });
-      updateState({ isGenerating: false });
-      setCurrentView('refine');
-    },
-  });
+  // Generation state (simple, no Temporal)
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -160,6 +116,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     // Switch to generating view
     setCurrentView('generating');
     updateState({ isGenerating: true });
+    setGenerationProgress(0);
 
     try {
       // Prepare image base64 (strip data URL prefix if present)
@@ -168,33 +125,92 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         imageBase64 = imageBase64.split(',')[1];
       }
 
-      // Convert scaledPoints to maskPoints format for Temporal
-      // scaledPoints is number[][] like [[x, y], [x, y], ...]
-      // We need to convert to { x, y, label } format with normalized 0-1 coordinates
-      const maskPoints = (state.scaledPoints || []).map(([x, y]) => ({
-        x: x / 2000,  // Normalize from 2000x2667 workspace
-        y: y / 2667,
-        label: 1 as const,  // All points are foreground
-      }));
+      // Prepare mask base64
+      let maskBase64 = state.maskBinary;
+      if (maskBase64.includes(',')) {
+        maskBase64 = maskBase64.split(',')[1];
+      }
 
-      // Start the Temporal workflow
-      await workflow.startGeneration({
-        originalImageBase64: imageBase64,
-        maskPoints,
-        brushStrokes: effectiveStrokes,
-        imageWidth: 2000,
-        imageHeight: 2667,
-        sessionId: state.sessionId || undefined,
+      // Prepare original mask base64 if available
+      let originalMaskBase64 = state.originalMask || undefined;
+      if (originalMaskBase64?.includes(',')) {
+        originalMaskBase64 = originalMaskBase64.split(',')[1];
+      }
+
+      // Simulate progress for UX (A100 doesn't provide progress)
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 5, 90));
+      }, 1000);
+
+      // Call A100 /generate directly - no preprocessing needed!
+      const result = await a100Api.generate({
+        image_base64: imageBase64,
+        mask_base64: maskBase64,
+        original_mask_base64: originalMaskBase64,
+        gender: state.gender,
+        use_gemini: true,
+        scaled_points: state.scaledPoints || undefined,
       });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+
+      if (!result) {
+        throw new Error('Generation failed - no response from server');
+      }
+
+      // Map result to StudioState
+      let status: 'good' | 'bad' | null = null;
+      let metricsData: StudioState['metrics'] = null;
+
+      if (result.metrics) {
+        metricsData = {
+          precision: result.metrics.precision,
+          recall: result.metrics.recall,
+          iou: result.metrics.iou,
+          growthRatio: result.metrics.growth_ratio,
+        };
+        const isGood = result.metrics.precision >= 0.95 && result.metrics.recall >= 0.9 && result.metrics.iou >= 0.85;
+        status = isGood ? 'good' : 'bad';
+      }
+
+      let metricsGeminiData: StudioState['metricsGemini'] = null;
+      if (result.metrics_gemini) {
+        metricsGeminiData = {
+          precision: result.metrics_gemini.precision,
+          recall: result.metrics_gemini.recall,
+          iou: result.metrics_gemini.iou,
+          growthRatio: result.metrics_gemini.growth_ratio,
+        };
+      }
+
+      updateState({
+        fluxResult: result.result_base64 ? `data:image/jpeg;base64,${result.result_base64}` : null,
+        geminiResult: result.result_gemini_base64 ? `data:image/jpeg;base64,${result.result_gemini_base64}` : null,
+        fidelityViz: result.fidelity_viz_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_base64}` : null,
+        fidelityVizGemini: result.fidelity_viz_gemini_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_gemini_base64}` : null,
+        metrics: metricsData,
+        metricsGemini: metricsGeminiData,
+        status,
+        isGenerating: false,
+      });
+
+      setCurrentView('results');
 
     } catch (error) {
       console.error('Generation error:', error);
-      // Error handling is done in onError callback
+      toast({
+        variant: 'destructive',
+        title: 'Generation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
+      });
+      updateState({ isGenerating: false });
+      setCurrentView('refine');
     }
   };
 
-  const handleCancel = async () => {
-    await workflow.cancelGeneration();
+  const handleCancel = () => {
+    // Simple cancel - just reset state (A100 doesn't support cancel)
     updateState({ isGenerating: false });
     setCurrentView('refine');
   };
@@ -237,16 +253,16 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
             
-            <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
-            <p className="text-sm text-muted-foreground mb-4">{workflow.stepLabel}</p>
+            <h3 className="font-display text-xl mb-2 text-foreground">Generating with Flux</h3>
+            <p className="text-sm text-muted-foreground mb-4">Running AI generation...</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
-                style={{ width: `${workflow.progress}%` }} 
+                style={{ width: `${generationProgress}%` }} 
               />
             </div>
-            <p className="mt-3 text-lg font-mono text-primary">{workflow.progress}%</p>
+            <p className="mt-3 text-lg font-mono text-primary">{generationProgress}%</p>
 
             <Button 
               variant="outline" 
@@ -606,8 +622,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                 onClick={handleGenerate} 
                 disabled={!state.maskBinary}
               >
-                <Play className="h-5 w-5 mr-2" />
-                Generate Photoshoot
+                <Gem className="h-5 w-5 mr-2" />
+                Flux
               </Button>
             </div>
           </div>
