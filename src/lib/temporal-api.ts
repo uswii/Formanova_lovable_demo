@@ -1,7 +1,12 @@
 // Temporal Workflow API Client
 // Connects to Temporal orchestrator for jewelry generation pipeline
 
-const TEMPORAL_API_URL = import.meta.env.VITE_TEMPORAL_API_URL || 'http://localhost:8001';
+import { supabase } from '@/integrations/supabase/client';
+
+// Use Supabase edge function proxy to reach Temporal API
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const getProxyUrl = (endpoint: string) => 
+  `${SUPABASE_URL}/functions/v1/temporal-proxy?endpoint=${encodeURIComponent(endpoint)}`;
 
 // ========== Types ==========
 
@@ -98,17 +103,20 @@ export function getStepLabel(step: string | null): string {
 // ========== API Client ==========
 
 class TemporalApi {
-  private baseUrl: string;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  private getAuthHeaders(): Record<string, string> {
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${anonKey}`,
+      'apikey': anonKey,
+    };
   }
 
   async checkHealth(): Promise<HealthResponse | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`, {
+      const response = await fetch(getProxyUrl('/health'), {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -123,9 +131,9 @@ class TemporalApi {
   }
 
   async startWorkflow(request: WorkflowStartRequest): Promise<WorkflowStartResponse> {
-    const response = await fetch(`${this.baseUrl}/workflow/start`, {
+    const response = await fetch(getProxyUrl('/workflow/start'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(request),
     });
 
@@ -138,9 +146,9 @@ class TemporalApi {
   }
 
   async getWorkflowStatus(workflowId: string): Promise<WorkflowStatusResponse> {
-    const response = await fetch(`${this.baseUrl}/workflow/${workflowId}`, {
+    const response = await fetch(getProxyUrl(`/workflow/${workflowId}`), {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -155,9 +163,9 @@ class TemporalApi {
   }
 
   async cancelWorkflow(workflowId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/workflow/${workflowId}/cancel`, {
+    const response = await fetch(getProxyUrl(`/workflow/${workflowId}/cancel`), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -167,7 +175,7 @@ class TemporalApi {
   }
 }
 
-export const temporalApi = new TemporalApi(TEMPORAL_API_URL);
+export const temporalApi = new TemporalApi();
 
 // ========== Polling Helper ==========
 
