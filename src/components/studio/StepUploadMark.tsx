@@ -132,12 +132,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       }
 
       // Convert red dots to mask points (normalized 0-1)
-      const canvasWidth = 400;
-      const canvasHeight = 533; // 400 * (4/3)
+      // Dots are stored in SAM space (2000x2667), normalize to 0-1
+      const SAM_WIDTH = 2000;
+      const SAM_HEIGHT = 2667;
       
       const maskPoints = redDots.map(dot => ({
-        x: dot.x / canvasWidth,
-        y: dot.y / canvasHeight,
+        x: dot.x / SAM_WIDTH,
+        y: dot.y / SAM_HEIGHT,
         label: 1 as const, // All marks are foreground
       }));
 
