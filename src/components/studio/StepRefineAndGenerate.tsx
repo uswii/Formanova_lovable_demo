@@ -19,7 +19,7 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { a100Api } from '@/lib/a100-api';
+import { temporalApi, getStepProgress, getStepLabel, GenerationResult } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -105,11 +105,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!state.originalImage) {
+    if (!state.sessionId || !state.maskBinary) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
-        description: 'Please upload an image first.',
+        description: 'Please complete Step 1 first to generate the mask.',
       });
       return;
     }
@@ -118,52 +118,44 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
+    setCurrentStepLabel('Starting generation...');
 
     try {
-      // Prepare image base64 (strip data URL prefix if present)
-      let imageBase64 = state.originalImage;
+      // Get mask base64 (strip data URL prefix if present)
+      let maskBase64 = state.maskBinary;
+      if (maskBase64.includes(',')) {
+        maskBase64 = maskBase64.split(',')[1];
+      }
+
+      // Get original image base64
+      let imageBase64 = state.originalImage || '';
       if (imageBase64.includes(',')) {
         imageBase64 = imageBase64.split(',')[1];
       }
 
-      // Convert red dots to mask points (normalized 0-1)
-      // The dots are in canvas coordinates (400x533 for 3:4 aspect ratio)
-      // Normalize to 0-1 range
+      // Convert brush strokes if any (normalized 0-1)
       const canvasWidth = 400;
-      const canvasHeight = 533; // 400 * (4/3)
+      const canvasHeight = 533;
       
-      const maskPoints = state.redDots.map(dot => ({
-        x: dot.x / canvasWidth,
-        y: dot.y / canvasHeight,
-        label: 1 as const, // All marks are foreground
-      }));
+      const brushStrokes = effectiveStrokes.length > 0 ? effectiveStrokes.map(stroke => ({
+        points: stroke.points.map(([x, y]) => ({ 
+          x: x / canvasWidth, 
+          y: y / canvasHeight 
+        })),
+        mode: stroke.type,
+        size: Math.round(stroke.radius / 4),
+      })) : undefined;
 
-      // Convert brush strokes if any
-      const brushStrokes = effectiveStrokes.map(stroke => ({
-        type: stroke.type,
-        points: stroke.points.map(([x, y]) => [x / canvasWidth, y / canvasHeight]),
-        radius: stroke.radius,
-      }));
-
-      // Import and use Temporal API
-      const { temporalApi } = await import('@/lib/temporal-api');
-      
-      // Start the Temporal workflow
-      const { workflowId } = await temporalApi.startWorkflow({
-        originalImageBase64: imageBase64,
-        maskPoints,
-        brushStrokes: brushStrokes.length > 0 ? brushStrokes.map(s => ({
-          points: s.points.map(([x, y]) => ({ x, y })),
-          mode: s.type,
-          size: Math.round(s.radius / 4), // Normalize size
-        })) : undefined,
+      // Start the Generation workflow (Step 2)
+      const { workflowId } = await temporalApi.startGeneration({
+        sessionId: state.sessionId,
+        resizedImageBase64: imageBase64,
+        maskBase64,
+        brushStrokes,
         gender: state.gender,
-        sessionId: state.sessionId || undefined,
+        scaledPoints: state.scaledPoints || undefined,
       });
 
-      // Import step progress helper
-      const { getStepProgress, getStepLabel } = await import('@/lib/temporal-api');
-      
       // Poll for status with step tracking
       let completed = false;
       while (!completed) {
@@ -172,14 +164,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         const status = await temporalApi.getWorkflowStatus(workflowId);
         
         // Use step-based progress or fallback to status progress
+        // Generation steps start at 55% (after mask refinement)
         const stepProgress = getStepProgress(status.currentStep);
         const effectiveProgress = stepProgress > 0 ? stepProgress : (status.progress || 0);
         setGenerationProgress(effectiveProgress);
         
         // Update step label for UI
-        const stepLabel = getStepLabel(status.currentStep);
-        setCurrentStepLabel(stepLabel);
-        console.log('[Generation] Step:', status.currentStep, 'Label:', stepLabel, 'Progress:', effectiveProgress);
+        setCurrentStepLabel(getStepLabel(status.currentStep));
+        console.log('[Generation] Step:', status.currentStep, 'Progress:', effectiveProgress);
 
         if (status.status === 'COMPLETED' && status.result) {
           completed = true;

@@ -2,12 +2,13 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle } from 'lucide-react';
+import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
+import { temporalApi, getStepLabel, getStepProgress, PreprocessingResult } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -24,6 +25,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   const [markerSize, setMarkerSize] = useState(10);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  
+  // Preprocessing state (Temporal workflow)
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState('');
+  
   const { toast } = useToast();
   
   const redDots = state.redDots;
@@ -93,7 +100,8 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     e.preventDefault();
   }, []);
 
-  const handleProceed = () => {
+  // Run preprocessing via Temporal when user clicks Continue
+  const handleProceed = async () => {
     if (redDots.length === 0) {
       toast({
         variant: 'destructive',
@@ -102,7 +110,102 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       });
       return;
     }
-    onNext();
+
+    if (!state.originalImage) {
+      toast({
+        variant: 'destructive',
+        title: 'No image',
+        description: 'Please upload an image first.',
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingProgress(0);
+    setProcessingStep('Starting preprocessing...');
+
+    try {
+      // Prepare image base64 (strip data URL prefix if present)
+      let imageBase64 = state.originalImage;
+      if (imageBase64.includes(',')) {
+        imageBase64 = imageBase64.split(',')[1];
+      }
+
+      // Convert red dots to mask points (normalized 0-1)
+      const canvasWidth = 400;
+      const canvasHeight = 533; // 400 * (4/3)
+      
+      const maskPoints = redDots.map(dot => ({
+        x: dot.x / canvasWidth,
+        y: dot.y / canvasHeight,
+        label: 1 as const, // All marks are foreground
+      }));
+
+      // Start Temporal preprocessing workflow
+      const { workflowId } = await temporalApi.startPreprocessing({
+        originalImageBase64: imageBase64,
+        maskPoints,
+      });
+
+      console.log('[Preprocessing] Started workflow:', workflowId);
+
+      // Poll for status
+      let completed = false;
+      while (!completed) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const status = await temporalApi.getWorkflowStatus(workflowId);
+        
+        const stepProgress = getStepProgress(status.currentStep);
+        const effectiveProgress = stepProgress > 0 ? stepProgress : (status.progress || 0);
+        // Scale to 0-60% for preprocessing (mask gen ends at ~48%)
+        setProcessingProgress(Math.min(effectiveProgress, 60));
+        setProcessingStep(getStepLabel(status.currentStep));
+
+        console.log('[Preprocessing] Step:', status.currentStep, 'Progress:', effectiveProgress);
+
+        if (status.status === 'COMPLETED' && status.result) {
+          completed = true;
+          
+          const result = status.result as unknown as PreprocessingResult;
+          
+          // Update state with preprocessing results
+          updateState({
+            maskOverlay: result.maskOverlayBase64 ? `data:image/png;base64,${result.maskOverlayBase64}` : null,
+            maskBinary: result.maskBase64 ? `data:image/png;base64,${result.maskBase64}` : null,
+            sessionId: result.sessionId,
+            scaledPoints: result.scaledPoints,
+            processingState: {
+              resizedUri: result.resizedUri,
+              bgRemovedUri: result.backgroundRemoved ? result.resizedUri : undefined,
+              padding: result.padding,
+            },
+          });
+
+          setIsProcessing(false);
+          onNext();
+        } else if (status.status === 'FAILED') {
+          throw new Error(status.error?.message || 'Preprocessing failed');
+        } else if (status.status === 'CANCELLED') {
+          throw new Error('Preprocessing was cancelled');
+        }
+      }
+
+    } catch (error) {
+      console.error('Preprocessing error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Preprocessing failed',
+        description: error instanceof Error ? error.message : 'Failed to process image. Please try again.',
+      });
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancelProcessing = () => {
+    setIsProcessing(false);
+    setProcessingProgress(0);
+    setProcessingStep('');
   };
 
   const handleCanvasClick = (x: number, y: number) => {
@@ -178,6 +281,44 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     link.click();
     document.body.removeChild(link);
   };
+
+  // ========== PROCESSING VIEW ==========
+  if (isProcessing) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="border-2 border-dashed border-border/50 p-8 w-full max-w-lg">
+          <div className="flex flex-col items-center justify-center">
+            <div className="relative mb-6">
+              <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+            </div>
+            
+            <h3 className="font-display text-xl mb-2 text-foreground">Processing Image</h3>
+            <p className="text-sm text-muted-foreground mb-1">Temporal Workflow Pipeline</p>
+            <p className="text-sm font-medium text-primary mb-4">{processingStep}</p>
+            
+            <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                style={{ width: `${processingProgress}%` }} 
+              />
+            </div>
+            <p className="mt-3 text-lg font-mono text-primary">{processingProgress}%</p>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-6"
+              onClick={handleCancelProcessing}
+            >
+              <XOctagon className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
