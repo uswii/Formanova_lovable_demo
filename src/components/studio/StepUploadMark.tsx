@@ -179,19 +179,27 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         if (status.status === 'COMPLETED' && status.result) {
           completed = true;
           
-          // Update state with preprocessing results
-          // Backend returns: sessionId, resizedUri, maskUri, maskBase64, maskOverlayBase64, scaledPoints, etc.
           const anyResult = status.result as any;
           
+          // Workflow returns URIs only (not base64) to avoid Temporal blob limits
+          // Fetch overlay data separately
+          setProcessingStep('Fetching overlay...');
+          setProcessingProgress(65);
+          
+          const overlayData = await temporalApi.fetchOverlay(
+            anyResult.resizedUri,
+            anyResult.maskUri
+          );
+          
           updateState({
-            maskOverlay: anyResult.maskOverlayBase64 ? `data:image/png;base64,${anyResult.maskOverlayBase64}` : null,
-            maskBinary: anyResult.maskBase64 ? `data:image/png;base64,${anyResult.maskBase64}` : null,
+            maskOverlay: overlayData.overlayBase64 ? `data:image/png;base64,${overlayData.overlayBase64}` : null,
+            maskBinary: overlayData.maskBase64 ? `data:image/png;base64,${overlayData.maskBase64}` : null,
             sessionId: anyResult.sessionId,
             scaledPoints: anyResult.scaledPoints,
             processingState: {
               resizedUri: anyResult.resizedUri,
               maskUri: anyResult.maskUri,
-              bgRemovedUri: anyResult.backgroundRemoved ? anyResult.resizedUri : undefined,
+              bgRemovedUri: anyResult.bgRemovedUri,
               padding: anyResult.padding,
             },
           });
