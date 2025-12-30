@@ -271,12 +271,23 @@ async def get_workflow_status(workflow_id: str):
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
         
-        # Describe with explicit error handling
+        # Describe workflow with robust error handling
         try:
             desc = await handle.describe()
         except Exception as desc_error:
-            logger.warning(f"Describe failed for {workflow_id}: {desc_error}, assuming RUNNING")
-            # If describe fails, assume workflow is still running
+            error_str = str(desc_error).upper()
+            logger.warning(f"Describe failed for {workflow_id}: {desc_error}")
+            
+            # If workflow was cancelled or terminated, report it properly
+            if "CANCELLED" in error_str or "CANCELED" in error_str:
+                return WorkflowStatusResponse(
+                    workflowId=workflow_id,
+                    status="CANCELLED",
+                    progress=0,
+                    currentStep="CANCELLED"
+                )
+            
+            # Otherwise assume still running (race condition at startup)
             return WorkflowStatusResponse(
                 workflowId=workflow_id,
                 status="RUNNING",
@@ -313,9 +324,37 @@ async def get_workflow_status(workflow_id: str):
                     response.progress = progress.get("progress", 0)
                     response.currentStep = progress.get("current_step", "UNKNOWN")
             except Exception as e:
+                error_str = str(e).upper()
                 logger.warning(f"Progress query failed for {workflow_id}: {e}")
-                response.progress = 0
-                response.currentStep = "PROCESSING"
+                
+                # Query failed because workflow just completed - try to get result
+                if "CANCELLED" in error_str or "CANCELED" in error_str or "COMPLETED" in error_str:
+                    try:
+                        # Re-describe to get actual status
+                        desc = await handle.describe()
+                        if desc.status == WorkflowExecutionStatus.COMPLETED:
+                            response.status = "COMPLETED"
+                            response.progress = 100
+                            response.currentStep = "COMPLETED"
+                            try:
+                                result = await handle.result()
+                                if isinstance(result, dict):
+                                    response.result = result
+                                elif hasattr(result, '__dict__'):
+                                    response.result = asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
+                            except:
+                                pass
+                        elif desc.status == WorkflowExecutionStatus.CANCELLED:
+                            response.status = "CANCELLED"
+                            response.progress = 0
+                            response.currentStep = "CANCELLED"
+                    except:
+                        # Just report what we know
+                        response.progress = 0
+                        response.currentStep = "PROCESSING"
+                else:
+                    response.progress = 0
+                    response.currentStep = "PROCESSING"
         
         elif workflow_status == "COMPLETED":
             try:
@@ -329,7 +368,10 @@ async def get_workflow_status(workflow_id: str):
                 response.progress = 100
                 response.currentStep = "COMPLETED"
             except Exception as e:
+                logger.warning(f"Result fetch failed for {workflow_id}: {e}")
                 response.result = {"error": str(e)}
+                response.progress = 100
+                response.currentStep = "COMPLETED"
         
         elif workflow_status == "FAILED":
             response.error = {"code": "WORKFLOW_FAILED", "message": "Workflow execution failed"}
@@ -338,12 +380,24 @@ async def get_workflow_status(workflow_id: str):
         return response
         
     except RPCError as e:
-        if "not found" in str(e).lower():
+        error_str = str(e).lower()
+        if "not found" in error_str:
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
-        logger.error(f"✗ Status query failed: {e}")
+        logger.error(f"✗ RPC error for {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        logger.error(f"✗ Status check failed: {e}")
+        error_str = str(e).upper()
+        logger.warning(f"Status check exception for {workflow_id}: {e}")
+        
+        # Don't throw 500 for CANCELLED - return proper status instead
+        if "CANCELLED" in error_str or "CANCELED" in error_str:
+            return WorkflowStatusResponse(
+                workflowId=workflow_id,
+                status="CANCELLED",
+                progress=0,
+                currentStep="CANCELLED"
+            )
+        
         raise HTTPException(status_code=500, detail=str(e))
 
 
