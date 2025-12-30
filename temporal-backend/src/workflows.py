@@ -220,11 +220,10 @@ class PreprocessingWorkflow:
     @workflow.run
     async def run(self, input: WorkflowInput) -> dict:
         """Execute preprocessing workflow."""
-        import uuid
         workflow.logger.info("▶ PreprocessingWorkflow started")
         
         try:
-            session_id = str(uuid.uuid4())
+            session_id = str(workflow.uuid4())
             
             # Step 1: Upload
             self._set_progress(10, WorkflowStep.UPLOADING_IMAGE)
