@@ -186,23 +186,45 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           setProcessingStep('Fetching overlay...');
           setProcessingProgress(65);
           
-          const overlayData = await temporalApi.fetchOverlay(
-            anyResult.resizedUri,
-            anyResult.maskUri
-          );
-          
-          updateState({
-            maskOverlay: overlayData.overlayBase64 ? `data:image/png;base64,${overlayData.overlayBase64}` : null,
-            maskBinary: overlayData.maskBase64 ? `data:image/png;base64,${overlayData.maskBase64}` : null,
-            sessionId: anyResult.sessionId,
-            scaledPoints: anyResult.scaledPoints,
-            processingState: {
-              resizedUri: anyResult.resizedUri,
-              maskUri: anyResult.maskUri,
-              bgRemovedUri: anyResult.bgRemovedUri,
-              padding: anyResult.padding,
-            },
-          });
+          try {
+            const overlayData = await temporalApi.fetchOverlay(
+              anyResult.resizedUri,
+              anyResult.maskUri
+            );
+            
+            updateState({
+              maskOverlay: overlayData.overlayBase64 ? `data:image/png;base64,${overlayData.overlayBase64}` : null,
+              maskBinary: overlayData.maskBase64 ? `data:image/png;base64,${overlayData.maskBase64}` : null,
+              sessionId: anyResult.sessionId,
+              scaledPoints: anyResult.scaledPoints,
+              processingState: {
+                resizedUri: anyResult.resizedUri,
+                maskUri: anyResult.maskUri,
+                bgRemovedUri: anyResult.bgRemovedUri,
+                padding: anyResult.padding,
+              },
+            });
+          } catch (overlayError) {
+            console.error('[Preprocessing] Overlay fetch failed:', overlayError);
+            // Continue without overlay - user can still proceed
+            updateState({
+              maskOverlay: null,
+              maskBinary: null,
+              sessionId: anyResult.sessionId,
+              scaledPoints: anyResult.scaledPoints,
+              processingState: {
+                resizedUri: anyResult.resizedUri,
+                maskUri: anyResult.maskUri,
+                bgRemovedUri: anyResult.bgRemovedUri,
+                padding: anyResult.padding,
+              },
+            });
+            toast({
+              variant: 'default',
+              title: 'Overlay not available',
+              description: 'Mask was generated but overlay preview failed. You can still proceed.',
+            });
+          }
 
           setIsProcessing(false);
           onNext();
