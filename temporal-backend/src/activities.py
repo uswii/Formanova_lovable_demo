@@ -19,7 +19,6 @@ from .models import (
     GenerateMaskInput, GenerateMaskOutput, MaskPoint,
     RefineMaskInput, RefineMaskOutput, BrushStroke,
     GenerateImagesInput, GenerateImagesOutput, FidelityMetrics,
-    FetchOverlayInput, FetchOverlayOutput,
 )
 
 logger = logging.getLogger(__name__)
@@ -300,51 +299,6 @@ async def generate_mask(input: GenerateMaskInput) -> GenerateMaskOutput:
         activity.logger.error(f"Failed to generate mask: {e}")
         raise
 
-
-@activity.defn
-async def fetch_and_create_overlay(input: FetchOverlayInput) -> FetchOverlayOutput:
-    """Fetch mask from Azure and create overlay visualization."""
-    activity.logger.info(f"Fetching mask and creating overlay for: {input.mask_uri}")
-    
-    try:
-        # Fetch mask and image as base64
-        mask_base64 = await fetch_blob_as_base64(input.mask_uri)
-        image_base64 = await fetch_blob_as_base64(input.image_uri)
-        
-        # Call image manipulator to create overlay
-        response = await http_client.post(
-            f"{config.image_manipulator_url}/overlay",
-            json={
-                "image": {"base64": image_base64},
-                "mask": {"base64": mask_base64}
-            }
-        )
-        response.raise_for_status()
-        data = response.json()
-        
-        overlay_base64 = data.get("overlay_base64", "")
-        
-        # Strip data URI prefix if present
-        if overlay_base64.startswith("data:"):
-            overlay_base64 = overlay_base64.split(",", 1)[1]
-        
-        activity.logger.info("Overlay created successfully")
-        
-        return FetchOverlayOutput(
-            mask_base64=mask_base64,
-            overlay_base64=overlay_base64
-        )
-    except Exception as e:
-        activity.logger.error(f"Failed to create overlay: {e}")
-        # If overlay creation fails, still return mask without overlay
-        try:
-            mask_base64 = await fetch_blob_as_base64(input.mask_uri)
-            return FetchOverlayOutput(
-                mask_base64=mask_base64,
-                overlay_base64=mask_base64  # Use mask as fallback overlay
-            )
-        except:
-            raise e
 
 
 @activity.defn
