@@ -411,15 +411,22 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
         image_base64 = await fetch_blob_as_base64(input.image_uri)
         mask_base64 = await fetch_blob_as_base64(input.mask_uri)
         
-        # A100 expects: { image_base64, mask_base64, gender, use_gemini?, scaled_points? }
+        # Build request payload
+        payload = {
+            "image_base64": image_base64,
+            "mask_base64": mask_base64,
+            "gender": input.gender,
+            "use_gemini": True
+        }
+        
+        # Include scaled_points if available (enables SAM3 fidelity analysis on A100)
+        if input.scaled_points:
+            payload["scaled_points"] = input.scaled_points
+            activity.logger.info(f"Including {len(input.scaled_points)} scaled points for fidelity analysis")
+        
         response = await http_client.post(
             f"{config.a100_server_url}/generate",
-            json={
-                "image_base64": image_base64,
-                "mask_base64": mask_base64,
-                "gender": input.gender if hasattr(input, 'gender') else "female",
-                "use_gemini": True
-            },
+            json=payload,
             timeout=httpx.Timeout(300.0, connect=10.0)  # 5 minute timeout for generation
         )
         response.raise_for_status()

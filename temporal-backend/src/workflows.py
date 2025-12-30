@@ -384,9 +384,16 @@ class GenerationWorkflow:
         self._cancelled = False
     
     @workflow.run
-    async def run(self, image_uri: str, mask_uri: str, brush_strokes: Optional[list] = None) -> dict:
+    async def run(
+        self, 
+        image_uri: str, 
+        mask_uri: str, 
+        brush_strokes: Optional[list] = None,
+        gender: str = "female",
+        scaled_points: Optional[list] = None
+    ) -> dict:
         """Execute generation workflow."""
-        workflow.logger.info("Starting GenerationWorkflow")
+        workflow.logger.info(f"Starting GenerationWorkflow (gender={gender}, points={len(scaled_points) if scaled_points else 0})")
         
         try:
             final_mask_uri = mask_uri
@@ -417,13 +424,15 @@ class GenerationWorkflow:
                 )
                 final_mask_uri = refine_result["refined_mask_uri"] if isinstance(refine_result, dict) else refine_result.refined_mask_uri
             
-            # Step 2: Generate images
+            # Step 2: Generate images (Flux + Gemini + SAM3 fidelity via scaled_points)
             self._set_progress(50, WorkflowStep.GENERATING_IMAGES)
             generate_result = await workflow.execute_activity(
                 "generate_images",
                 GenerateImagesInput(
                     image_uri=image_uri,
-                    mask_uri=final_mask_uri
+                    mask_uri=final_mask_uri,
+                    gender=gender,
+                    scaled_points=scaled_points
                 ),
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=ML_SERVICE_RETRY

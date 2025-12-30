@@ -78,6 +78,8 @@ class StartGenerationRequest(BaseModel):
     imageUri: str = Field(..., description="Azure URI of processed image")
     maskUri: str = Field(..., description="Azure URI of mask")
     brushStrokes: Optional[List[BrushStrokeRequest]] = None
+    gender: str = Field(default="female", description="Model gender for prompt")
+    scaledPoints: Optional[List[List[float]]] = Field(default=None, description="SAM points for fidelity analysis")
 
 
 class WorkflowStartResponse(BaseModel):
@@ -282,7 +284,13 @@ async def start_generation(request: StartGenerationRequest):
         
         handle = await temporal_client.start_workflow(
             GenerationWorkflow.run,
-            args=[request.imageUri, request.maskUri, brush_strokes_data],
+            args=[
+                request.imageUri, 
+                request.maskUri, 
+                brush_strokes_data,
+                request.gender,
+                request.scaledPoints
+            ],
             id=workflow_id,
             task_queue=config.main_task_queue
         )
