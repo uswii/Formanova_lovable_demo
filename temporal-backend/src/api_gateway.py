@@ -275,24 +275,14 @@ async def get_workflow_status(workflow_id: str):
         try:
             desc = await handle.describe()
         except Exception as desc_error:
-            error_str = str(desc_error).upper()
-            logger.warning(f"Describe failed for {workflow_id}: {desc_error}")
-            
-            # If workflow was cancelled or terminated, report it properly
-            if "CANCELLED" in error_str or "CANCELED" in error_str:
-                return WorkflowStatusResponse(
-                    workflowId=workflow_id,
-                    status="CANCELLED",
-                    progress=0,
-                    currentStep="CANCELLED"
-                )
-            
-            # Otherwise assume still running (race condition at startup)
+            # CANCELLED exceptions from describe() are often transient during activity transitions
+            # The workflow is likely still running - return RUNNING as fallback
+            logger.warning(f"Describe failed for {workflow_id}: {desc_error} (assuming RUNNING)")
             return WorkflowStatusResponse(
                 workflowId=workflow_id,
                 status="RUNNING",
                 progress=0,
-                currentStep="STARTING"
+                currentStep="PROCESSING"
             )
         
         status_map = {
