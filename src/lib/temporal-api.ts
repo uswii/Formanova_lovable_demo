@@ -71,13 +71,13 @@ export interface FidelityMetrics {
 }
 
 export interface GenerationResult {
-  fluxResultBase64: string;
-  geminiResultBase64: string | null;
+  fluxResultUri: string;
+  geminiResultUri: string | null;
   fluxMetrics: FidelityMetrics;
   geminiMetrics: FidelityMetrics | null;
-  fluxFidelityVizBase64: string | null;
-  geminiFidelityVizBase64: string | null;
-  refinedMaskBase64?: string;     // If brush strokes were applied
+  fluxFidelityVizUri: string | null;
+  geminiFidelityVizUri: string | null;
+  finalMaskUri?: string;
 }
 
 // Legacy combined workflow (kept for compatibility)
@@ -90,14 +90,15 @@ export interface WorkflowStartRequest {
 }
 
 export interface WorkflowResult {
-  fluxResultBase64: string;
-  geminiResultBase64: string | null;
+  // URIs instead of base64 to avoid Temporal payload limits
+  fluxResultUri: string;
+  geminiResultUri: string | null;
   fluxMetrics: FidelityMetrics;
   geminiMetrics: FidelityMetrics | null;
-  fluxFidelityVizBase64: string | null;
-  geminiFidelityVizBase64: string | null;
-  maskBase64?: string;
-  maskOverlayBase64?: string;
+  fluxFidelityVizUri: string | null;
+  geminiFidelityVizUri: string | null;
+  maskUri?: string;
+  processedImageUri?: string;
   backgroundRemoved?: boolean;
 }
 
@@ -340,6 +341,23 @@ class TemporalApi {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Failed to fetch overlay: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  // ========== Fetch Images from URIs ==========
+  // Fetches images stored in Azure and returns base64 data
+  async fetchImages(imageUris: { [key: string]: string | null | undefined }): Promise<{ [key: string]: string | null }> {
+    const response = await fetch(getProxyUrl('/images/fetch'), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ uris: imageUris }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch images: ${error}`);
     }
 
     return await response.json();

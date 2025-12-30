@@ -179,6 +179,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         if (status.status === 'COMPLETED' && status.result) {
           completed = true;
           
+          // Fetch images from URIs
+          const images = await temporalApi.fetchImages({
+            fluxResult: status.result.fluxResultUri,
+            geminiResult: status.result.geminiResultUri,
+            fluxViz: status.result.fluxFidelityVizUri,
+            geminiViz: status.result.geminiFidelityVizUri,
+          });
+          
           // Map Temporal result to StudioState
           let statusValue: 'good' | 'bad' | null = null;
           let metricsData: StudioState['metrics'] = null;
@@ -207,11 +215,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
           }
 
           updateState({
-            fluxResult: status.result.fluxResultBase64 ? `data:image/jpeg;base64,${status.result.fluxResultBase64}` : null,
-            geminiResult: status.result.geminiResultBase64 ? `data:image/jpeg;base64,${status.result.geminiResultBase64}` : null,
-            fidelityViz: status.result.fluxFidelityVizBase64 ? `data:image/jpeg;base64,${status.result.fluxFidelityVizBase64}` : null,
-            fidelityVizGemini: status.result.geminiFidelityVizBase64 ? `data:image/jpeg;base64,${status.result.geminiFidelityVizBase64}` : null,
-            maskBinary: status.result.maskBase64 ? `data:image/png;base64,${status.result.maskBase64}` : state.maskBinary,
+            fluxResult: images.fluxResult ? `data:image/png;base64,${images.fluxResult}` : null,
+            geminiResult: images.geminiResult ? `data:image/png;base64,${images.geminiResult}` : null,
+            fidelityViz: images.fluxViz ? `data:image/png;base64,${images.fluxViz}` : null,
+            fidelityVizGemini: images.geminiViz ? `data:image/png;base64,${images.geminiViz}` : null,
             metrics: metricsData,
             metricsGemini: metricsGeminiData,
             status: statusValue,

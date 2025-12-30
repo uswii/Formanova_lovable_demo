@@ -5,7 +5,7 @@ import io
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 from dataclasses import asdict
 
 import numpy as np
@@ -582,7 +582,36 @@ async def get_overlay(request: OverlayRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def main():
+# -------------------------
+# Image Fetching Endpoint
+# -------------------------
+class ImageFetchRequest(BaseModel):
+    uris: Dict[str, Optional[str]]
+
+
+@app.post("/images/fetch")
+async def fetch_images(request: ImageFetchRequest):
+    """Fetch images from Azure URIs and return as base64."""
+    result = {}
+    
+    for key, uri in request.uris.items():
+        if not uri:
+            result[key] = None
+            continue
+        
+        try:
+            # Use the existing fetch_blob_as_base64 helper
+            blob_client = container_client.get_blob_client(uri.replace("azure://agentic-artifacts/", ""))
+            data = await asyncio.to_thread(blob_client.download_blob().readall)
+            base64_data = base64.b64encode(data).decode('utf-8')
+            result[key] = base64_data
+        except Exception as e:
+            logger.warning(f"Failed to fetch {key} from {uri}: {e}")
+            result[key] = None
+    
+    return result
+
+
     logger.info(f"Starting API on port {config.api_port}")
     uvicorn.run(
         "src.api_gateway:app",

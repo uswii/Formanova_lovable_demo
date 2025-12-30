@@ -70,11 +70,12 @@ class FidelityMetrics:
 @dataclass
 class WorkflowOutput:
     """Output from the JewelryGenerationWorkflow."""
-    flux_result_base64: str
-    flux_fidelity_viz_base64: Optional[str] = None
+    # Store URIs instead of base64 to avoid Temporal payload size limits
+    flux_result_uri: str
+    flux_fidelity_viz_uri: Optional[str] = None
     flux_metrics: Optional[FidelityMetrics] = None
-    gemini_result_base64: Optional[str] = None
-    gemini_fidelity_viz_base64: Optional[str] = None
+    gemini_result_uri: Optional[str] = None
+    gemini_fidelity_viz_uri: Optional[str] = None
     gemini_metrics: Optional[FidelityMetrics] = None
     processed_image_uri: Optional[str] = None
     final_mask_uri: Optional[str] = None
@@ -196,9 +197,10 @@ class GenerateImagesInput:
 @dataclass
 class GenerateImagesOutput:
     """Output from image generation activity."""
-    flux_result_base64: str
-    gemini_result_base64: Optional[str] = None
-    flux_fidelity_viz_base64: Optional[str] = None
-    gemini_fidelity_viz_base64: Optional[str] = None
+    # Store URIs instead of base64 to avoid Temporal payload size limits
+    flux_result_uri: str
+    gemini_result_uri: Optional[str] = None
+    flux_fidelity_viz_uri: Optional[str] = None
+    gemini_fidelity_viz_uri: Optional[str] = None
     flux_metrics: Optional[FidelityMetrics] = None
     gemini_metrics: Optional[FidelityMetrics] = None
