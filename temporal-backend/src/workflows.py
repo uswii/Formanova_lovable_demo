@@ -157,19 +157,19 @@ class JewelryGenerationWorkflow:
             self._set_progress(100, WorkflowStep.COMPLETED)
             workflow.logger.info("✓ JewelryGenerationWorkflow completed")
             
-            flux_base64 = generate_result["flux_result_base64"] if isinstance(generate_result, dict) else generate_result.flux_result_base64
-            flux_viz_base64 = generate_result["flux_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
+            flux_uri = generate_result["flux_result_uri"] if isinstance(generate_result, dict) else generate_result.flux_result_uri
+            flux_viz_uri = generate_result["flux_fidelity_viz_uri"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_uri
             flux_metrics = generate_result["flux_metrics"] if isinstance(generate_result, dict) else generate_result.flux_metrics
-            gemini_base64 = generate_result["gemini_result_base64"] if isinstance(generate_result, dict) else generate_result.gemini_result_base64
-            gemini_viz_base64 = generate_result["gemini_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
+            gemini_uri = generate_result["gemini_result_uri"] if isinstance(generate_result, dict) else generate_result.gemini_result_uri
+            gemini_viz_uri = generate_result["gemini_fidelity_viz_uri"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_uri
             gemini_metrics = generate_result["gemini_metrics"] if isinstance(generate_result, dict) else generate_result.gemini_metrics
             
             return WorkflowOutput(
-                flux_result_base64=flux_base64,
-                flux_fidelity_viz_base64=flux_viz_base64,
+                flux_result_uri=flux_uri,
+                flux_fidelity_viz_uri=flux_viz_uri,
                 flux_metrics=flux_metrics,
-                gemini_result_base64=gemini_base64,
-                gemini_fidelity_viz_base64=gemini_viz_base64,
+                gemini_result_uri=gemini_uri,
+                gemini_fidelity_viz_uri=gemini_viz_uri,
                 gemini_metrics=gemini_metrics,
                 processed_image_uri=resized_uri,
                 final_mask_uri=final_mask_uri,
@@ -377,24 +377,24 @@ class GenerationWorkflow:
             self._set_progress(100, WorkflowStep.COMPLETED)
             workflow.logger.info("✓ GenerationWorkflow completed")
             
-            flux_base64 = generate_result["flux_result_base64"] if isinstance(generate_result, dict) else generate_result.flux_result_base64
-            flux_viz = generate_result["flux_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
+            flux_uri = generate_result["flux_result_uri"] if isinstance(generate_result, dict) else generate_result.flux_result_uri
+            flux_viz_uri = generate_result["flux_fidelity_viz_uri"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_uri
             flux_metrics = generate_result["flux_metrics"] if isinstance(generate_result, dict) else generate_result.flux_metrics
-            gemini_base64 = generate_result["gemini_result_base64"] if isinstance(generate_result, dict) else generate_result.gemini_result_base64
-            gemini_viz = generate_result["gemini_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
+            gemini_uri = generate_result["gemini_result_uri"] if isinstance(generate_result, dict) else generate_result.gemini_result_uri
+            gemini_viz_uri = generate_result["gemini_fidelity_viz_uri"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_uri
             gemini_metrics = generate_result["gemini_metrics"] if isinstance(generate_result, dict) else generate_result.gemini_metrics
             
             return {
-                "fluxResultBase64": flux_base64,
-                "fluxFidelityVizBase64": flux_viz,
+                "fluxResultUri": flux_uri,
+                "fluxFidelityVizUri": flux_viz_uri,
                 "fluxMetrics": {
                     "precision": flux_metrics.precision if flux_metrics else 0,
                     "recall": flux_metrics.recall if flux_metrics else 0,
                     "iou": flux_metrics.iou if flux_metrics else 0,
                     "growthRatio": flux_metrics.growth_ratio if flux_metrics else 1
                 } if flux_metrics else None,
-                "geminiResultBase64": gemini_base64,
-                "geminiFidelityVizBase64": gemini_viz,
+                "geminiResultUri": gemini_uri,
+                "geminiFidelityVizUri": gemini_viz_uri,
                 "geminiMetrics": {
                     "precision": gemini_metrics.precision if gemini_metrics else 0,
                     "recall": gemini_metrics.recall if gemini_metrics else 0,

@@ -326,6 +326,43 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
         response.raise_for_status()
         data = response.json()
         
+        # Upload results to Azure to avoid Temporal payload size limits
+        flux_result_uri = None
+        if data.get("result_base64"):
+            upload_result = await upload_to_azure(UploadInput(
+                base64_data=data["result_base64"],
+                content_type="image/png",
+                filename_prefix="flux-result"
+            ))
+            flux_result_uri = upload_result.azure_uri
+        
+        gemini_result_uri = None
+        if data.get("result_gemini_base64"):
+            upload_result = await upload_to_azure(UploadInput(
+                base64_data=data["result_gemini_base64"],
+                content_type="image/png",
+                filename_prefix="gemini-result"
+            ))
+            gemini_result_uri = upload_result.azure_uri
+        
+        flux_viz_uri = None
+        if data.get("fidelity_viz_base64"):
+            upload_result = await upload_to_azure(UploadInput(
+                base64_data=data["fidelity_viz_base64"],
+                content_type="image/png",
+                filename_prefix="flux-fidelity"
+            ))
+            flux_viz_uri = upload_result.azure_uri
+        
+        gemini_viz_uri = None
+        if data.get("fidelity_viz_gemini_base64"):
+            upload_result = await upload_to_azure(UploadInput(
+                base64_data=data["fidelity_viz_gemini_base64"],
+                content_type="image/png",
+                filename_prefix="gemini-fidelity"
+            ))
+            gemini_viz_uri = upload_result.azure_uri
+        
         flux_metrics = None
         if data.get("metrics"):
             m = data["metrics"]
@@ -346,13 +383,13 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
                 growth_ratio=m.get("growth_ratio", 1)
             )
         
-        activity.logger.info("✓ Images generated (Flux + Gemini)")
+        activity.logger.info("✓ Images generated and uploaded to Azure")
         
         return GenerateImagesOutput(
-            flux_result_base64=data.get("result_base64", ""),
-            gemini_result_base64=data.get("result_gemini_base64"),
-            flux_fidelity_viz_base64=data.get("fidelity_viz_base64"),
-            gemini_fidelity_viz_base64=data.get("fidelity_viz_gemini_base64"),
+            flux_result_uri=flux_result_uri,
+            gemini_result_uri=gemini_result_uri,
+            flux_fidelity_viz_uri=flux_viz_uri,
+            gemini_fidelity_viz_uri=gemini_viz_uri,
             flux_metrics=flux_metrics,
             gemini_metrics=gemini_metrics
         )
