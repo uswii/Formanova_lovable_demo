@@ -48,6 +48,8 @@ export interface GenerationRequest {
   imageUri: string;              // Azure URI from preprocessing
   maskUri: string;               // Azure URI from preprocessing
   brushStrokes?: BrushStroke[];  // User refinements
+  gender?: 'female' | 'male';    // Model gender for prompt
+  scaledPoints?: number[][];     // SAM points for fidelity analysis
 }
 
 export interface WorkflowStartResponse {

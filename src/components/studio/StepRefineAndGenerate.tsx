@@ -150,10 +150,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       }
 
       // Start the Generation workflow (Step 2) using URIs from preprocessing
+      // Pass scaledPoints for SAM3 fidelity analysis on A100
       const { workflowId } = await temporalApi.startGeneration({
         imageUri,
         maskUri,
         brushStrokes,
+        gender: state.gender,
+        scaledPoints: state.scaledPoints || undefined,
       });
 
       // Poll for status with step tracking

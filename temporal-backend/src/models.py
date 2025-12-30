@@ -203,6 +203,8 @@ class GenerateImagesInput:
     """Input for image generation activity."""
     image_uri: str
     mask_uri: str
+    gender: str = "female"
+    scaled_points: Optional[List[List[float]]] = None  # For fidelity analysis
 
 
 @dataclass
