@@ -45,12 +45,9 @@ export interface PreprocessingResult {
 // Apply Refinements → Generate Flux/Gemini
 
 export interface GenerationRequest {
-  sessionId: string;              // From preprocessing
-  resizedImageBase64: string;     // From preprocessing
-  maskBase64: string;             // From preprocessing (or refined)
-  brushStrokes?: BrushStroke[];   // User refinements
-  gender?: 'female' | 'male';
-  scaledPoints?: number[][];      // Original points
+  imageUri: string;              // Azure URI from preprocessing
+  maskUri: string;               // Azure URI from preprocessing
+  brushStrokes?: BrushStroke[];  // User refinements
 }
 
 export interface WorkflowStartResponse {

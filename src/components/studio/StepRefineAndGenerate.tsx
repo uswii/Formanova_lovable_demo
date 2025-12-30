@@ -19,7 +19,7 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { temporalApi, getStepProgress, getStepLabel, GenerationResult } from '@/lib/temporal-api';
+import { temporalApi, getStepProgress, getStepLabel } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -105,7 +105,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!state.sessionId || !state.maskBinary) {
+    if (!state.processingState?.resizedUri || !state.processingState?.maskUri) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
@@ -121,18 +121,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
     setCurrentStepLabel('Starting generation...');
 
     try {
-      // Get mask base64 (strip data URL prefix if present)
-      let maskBase64 = state.maskBinary;
-      if (maskBase64.includes(',')) {
-        maskBase64 = maskBase64.split(',')[1];
-      }
-
-      // Get original image base64
-      let imageBase64 = state.originalImage || '';
-      if (imageBase64.includes(',')) {
-        imageBase64 = imageBase64.split(',')[1];
-      }
-
       // Convert brush strokes if any (normalized 0-1)
       const canvasWidth = 400;
       const canvasHeight = 533;
@@ -146,14 +134,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         size: Math.round(stroke.radius / 4),
       })) : undefined;
 
-      // Start the Generation workflow (Step 2)
+      // Get the URIs from preprocessing (stored in processingState)
+      const imageUri = state.processingState?.resizedUri;
+      const maskUri = state.processingState?.maskUri;
+      
+      if (!imageUri || !maskUri) {
+        toast({
+          variant: 'destructive',
+          title: 'Missing preprocessing data',
+          description: 'Please complete Step 1 first to generate the image and mask URIs.',
+        });
+        updateState({ isGenerating: false });
+        setCurrentView('refine');
+        return;
+      }
+
+      // Start the Generation workflow (Step 2) using URIs from preprocessing
       const { workflowId } = await temporalApi.startGeneration({
-        sessionId: state.sessionId,
-        resizedImageBase64: imageBase64,
-        maskBase64,
+        imageUri,
+        maskUri,
         brushStrokes,
-        gender: state.gender,
-        scaledPoints: state.scaledPoints || undefined,
       });
 
       // Poll for status with step tracking

@@ -13,6 +13,7 @@ export type StudioStep = 'upload' | 'generate';
 export interface ProcessingState {
   resizedUri?: string;
   bgRemovedUri?: string;
+  maskUri?: string;  // Azure URI of the generated mask
   padding?: { top: number; bottom: number; left: number; right: number };
 }
 
