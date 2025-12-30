@@ -611,7 +611,7 @@ async def fetch_images(request: ImageFetchRequest):
     
     return result
 
-
+def main():
     logger.info(f"Starting API on port {config.api_port}")
     uvicorn.run(
         "src.api_gateway:app",
