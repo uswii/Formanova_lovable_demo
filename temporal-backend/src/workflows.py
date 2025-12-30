@@ -49,10 +49,10 @@ class JewelryGenerationWorkflow:
     @workflow.run
     async def run(self, input: WorkflowInput) -> WorkflowOutput:
         """Execute the jewelry generation workflow."""
-        workflow.logger.info(f"Starting JewelryGenerationWorkflow with {len(input.mask_points)} points")
+        workflow.logger.info("▶ JewelryGenerationWorkflow started")
         
         try:
-            # Step 1: Upload original image to Azure
+            # Step 1: Upload original image
             self._set_progress(5, WorkflowStep.UPLOADING_IMAGE)
             upload_result = await workflow.execute_activity(
                 "upload_to_azure",
@@ -69,25 +69,20 @@ class JewelryGenerationWorkflow:
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            # Step 2: Resize to 2000x2667
+            # Step 2: Resize
             self._set_progress(15, WorkflowStep.RESIZING_IMAGE)
             resize_result = await workflow.execute_activity(
                 "resize_image",
-                ResizeInput(
-                    image_uri=original_uri,
-                    target_width=2000,
-                    target_height=2667
-                ),
+                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
             resized_uri = resize_result["resized_uri"] if isinstance(resize_result, dict) else resize_result.resized_uri
-            resized_base64 = resize_result["image_base64"] if isinstance(resize_result, dict) else resize_result.image_base64
             
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            # Step 3: Check if background removal is needed
+            # Step 3: Check zoom
             self._set_progress(20, WorkflowStep.CHECKING_ZOOM)
             zoom_result = await workflow.execute_activity(
                 "check_zoom",
@@ -103,7 +98,7 @@ class JewelryGenerationWorkflow:
             image_for_segmentation = resized_uri
             background_removed = False
             
-            # Step 4: Remove background if recommended
+            # Step 4: Remove background if needed
             if recommend_bg_removal:
                 self._set_progress(30, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
@@ -118,14 +113,11 @@ class JewelryGenerationWorkflow:
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            # Step 5: Generate mask with SAM3
+            # Step 5: Generate mask
             self._set_progress(45, WorkflowStep.GENERATING_MASK)
             mask_result = await workflow.execute_activity(
                 "generate_mask",
-                GenerateMaskInput(
-                    image_uri=image_for_segmentation,
-                    points=input.mask_points
-                ),
+                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points),
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
@@ -136,16 +128,12 @@ class JewelryGenerationWorkflow:
             
             final_mask_uri = mask_uri
             
-            # Step 6: Refine mask with brush strokes if provided
+            # Step 6: Refine mask if brush strokes provided
             if input.brush_strokes and len(input.brush_strokes) > 0:
                 self._set_progress(55, WorkflowStep.REFINING_MASK)
                 refine_result = await workflow.execute_activity(
                     "refine_mask",
-                    RefineMaskInput(
-                        image_uri=image_for_segmentation,
-                        mask_uri=mask_uri,
-                        strokes=input.brush_strokes
-                    ),
+                    RefineMaskInput(image_uri=image_for_segmentation, mask_uri=mask_uri, strokes=input.brush_strokes),
                     start_to_close_timeout=timedelta(seconds=60),
                     retry_policy=ML_SERVICE_RETRY
                 )
@@ -154,28 +142,21 @@ class JewelryGenerationWorkflow:
             if self._cancelled:
                 raise workflow.CancelledError(self._cancel_reason)
             
-            # Step 7: Upload final mask (if needed for A100)
+            # Step 7: Mask already uploaded
             self._set_progress(60, WorkflowStep.UPLOADING_MASK)
-            # Mask is already in Azure from SAM3/refine step
             
-            # Step 8: Generate final images with Flux + Gemini
+            # Step 8: Generate images
             self._set_progress(70, WorkflowStep.GENERATING_IMAGES)
             generate_result = await workflow.execute_activity(
                 "generate_images",
-                GenerateImagesInput(
-                    image_uri=resized_uri,
-                    mask_uri=final_mask_uri
-                ),
+                GenerateImagesInput(image_uri=resized_uri, mask_uri=final_mask_uri),
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=ML_SERVICE_RETRY
             )
             
-            # Complete!
             self._set_progress(100, WorkflowStep.COMPLETED)
+            workflow.logger.info("✓ JewelryGenerationWorkflow completed")
             
-            workflow.logger.info("JewelryGenerationWorkflow completed successfully")
-            
-            # Extract results from dict or object
             flux_base64 = generate_result["flux_result_base64"] if isinstance(generate_result, dict) else generate_result.flux_result_base64
             flux_viz_base64 = generate_result["flux_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
             flux_metrics = generate_result["flux_metrics"] if isinstance(generate_result, dict) else generate_result.flux_metrics
@@ -196,22 +177,19 @@ class JewelryGenerationWorkflow:
             )
             
         except workflow.CancelledError as e:
-            workflow.logger.info(f"Workflow cancelled: {e}")
+            workflow.logger.info(f"⚠ Workflow cancelled: {e}")
             raise
         except Exception as e:
-            workflow.logger.error(f"Workflow failed: {e}")
+            workflow.logger.error(f"✗ Workflow failed: {e}")
             raise
     
     def _set_progress(self, progress: int, step: WorkflowStep):
-        """Update workflow progress."""
         self._progress = progress
         self._current_step = step.value
         self._steps_completed = int((progress / 100) * self._total_steps)
-        workflow.logger.info(f"Progress: {progress}% - Step: {step.value}")
     
     @workflow.query
     def get_progress(self) -> WorkflowProgress:
-        """Query current workflow progress."""
         return WorkflowProgress(
             progress=self._progress,
             current_step=self._current_step,
@@ -221,13 +199,11 @@ class JewelryGenerationWorkflow:
     
     @workflow.query
     def get_current_step(self) -> str:
-        """Query current workflow step."""
         return self._current_step
     
     @workflow.signal
     def cancel(self, reason: str = "User cancelled"):
-        """Signal to cancel the workflow."""
-        workflow.logger.info(f"Cancel signal received: {reason}")
+        workflow.logger.info(f"⚠ Cancel signal: {reason}")
         self._cancelled = True
         self._cancel_reason = reason
 
@@ -245,21 +221,16 @@ class PreprocessingWorkflow:
     async def run(self, input: WorkflowInput) -> dict:
         """Execute preprocessing workflow."""
         import uuid
-        workflow.logger.info("Starting PreprocessingWorkflow")
+        workflow.logger.info("▶ PreprocessingWorkflow started")
         
         try:
-            # Generate session ID for this preprocessing run
             session_id = str(uuid.uuid4())
             
-            # Step 1: Upload original image
+            # Step 1: Upload
             self._set_progress(10, WorkflowStep.UPLOADING_IMAGE)
             upload_result = await workflow.execute_activity(
                 "upload_to_azure",
-                UploadInput(
-                    base64_data=input.original_image_base64,
-                    content_type="image/jpeg",
-                    filename_prefix="original"
-                ),
+                UploadInput(base64_data=input.original_image_base64, content_type="image/jpeg", filename_prefix="original"),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
@@ -269,19 +240,14 @@ class PreprocessingWorkflow:
             self._set_progress(30, WorkflowStep.RESIZING_IMAGE)
             resize_result = await workflow.execute_activity(
                 "resize_image",
-                ResizeInput(
-                    image_uri=original_uri,
-                    target_width=2000,
-                    target_height=2667
-                ),
+                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
             resized_uri = resize_result["resized_uri"] if isinstance(resize_result, dict) else resize_result.resized_uri
-            resized_base64 = resize_result["image_base64"] if isinstance(resize_result, dict) else resize_result.image_base64
             padding = resize_result["padding"] if isinstance(resize_result, dict) else resize_result.padding
             
-            # Step 3: Check zoom
+            # Step 3: Zoom check
             self._set_progress(40, WorkflowStep.CHECKING_ZOOM)
             zoom_result = await workflow.execute_activity(
                 "check_zoom",
@@ -294,7 +260,7 @@ class PreprocessingWorkflow:
             image_for_segmentation = resized_uri
             background_removed = False
             
-            # Step 4: Remove background if needed
+            # Step 4: Background removal if needed
             if recommend_bg_removal:
                 self._set_progress(60, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
@@ -306,26 +272,21 @@ class PreprocessingWorkflow:
                 image_for_segmentation = bg_result["result_uri"] if isinstance(bg_result, dict) else bg_result.result_uri
                 background_removed = True
             
-            # Step 5: Generate mask with SAM3
+            # Step 5: Generate mask
             self._set_progress(80, WorkflowStep.GENERATING_MASK)
             mask_result = await workflow.execute_activity(
                 "generate_mask",
-                GenerateMaskInput(
-                    image_uri=image_for_segmentation,
-                    points=input.mask_points
-                ),
+                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points),
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
             mask_uri = mask_result["mask_uri"] if isinstance(mask_result, dict) else mask_result.mask_uri
             
-            # Scale points from 0-1 to image dimensions
             scaled_points = [[p.x * 2000, p.y * 2667] for p in input.mask_points]
             
             self._set_progress(100, WorkflowStep.COMPLETED)
+            workflow.logger.info("✓ PreprocessingWorkflow completed")
             
-            # IMPORTANT: Only return URIs, not base64 data
-            # Temporal has blob size limits (~1MB) - frontend fetches overlay via /overlay endpoint
             return {
                 "sessionId": session_id,
                 "originalUri": original_uri,
@@ -338,7 +299,7 @@ class PreprocessingWorkflow:
             }
             
         except Exception as e:
-            workflow.logger.error(f"Preprocessing failed: {e}")
+            workflow.logger.error(f"✗ Preprocessing failed: {e}")
             raise
     
     def _set_progress(self, progress: int, step: WorkflowStep):
@@ -378,38 +339,29 @@ class GenerationWorkflow:
         scaled_points: Optional[list] = None
     ) -> dict:
         """Execute generation workflow."""
-        workflow.logger.info(f"Starting GenerationWorkflow (gender={gender}, points={len(scaled_points) if scaled_points else 0})")
+        workflow.logger.info("▶ GenerationWorkflow started")
         
         try:
             final_mask_uri = mask_uri
             
-            # Step 1: Refine mask if brush strokes provided
+            # Step 1: Refine mask if strokes provided
             if brush_strokes and len(brush_strokes) > 0:
                 self._set_progress(20, WorkflowStep.REFINING_MASK)
                 
-                # Convert brush strokes to proper format
                 strokes = []
                 for s in brush_strokes:
                     points = [StrokePoint(x=p["x"], y=p["y"]) for p in s.get("points", [])]
-                    strokes.append(BrushStroke(
-                        points=points,
-                        mode=s.get("mode", "add"),
-                        size=s.get("size", 20)
-                    ))
+                    strokes.append(BrushStroke(points=points, mode=s.get("mode", "add"), size=s.get("size", 20)))
                 
                 refine_result = await workflow.execute_activity(
                     "refine_mask",
-                    RefineMaskInput(
-                        image_uri=image_uri,
-                        mask_uri=mask_uri,
-                        strokes=strokes
-                    ),
+                    RefineMaskInput(image_uri=image_uri, mask_uri=mask_uri, strokes=strokes),
                     start_to_close_timeout=timedelta(seconds=60),
                     retry_policy=ML_SERVICE_RETRY
                 )
                 final_mask_uri = refine_result["refined_mask_uri"] if isinstance(refine_result, dict) else refine_result.refined_mask_uri
             
-            # Step 2: Generate images (Flux + Gemini + SAM3 fidelity via scaled_points)
+            # Step 2: Generate images
             self._set_progress(50, WorkflowStep.GENERATING_IMAGES)
             generate_result = await workflow.execute_activity(
                 "generate_images",
@@ -424,62 +376,37 @@ class GenerationWorkflow:
             )
             
             self._set_progress(100, WorkflowStep.COMPLETED)
+            workflow.logger.info("✓ GenerationWorkflow completed")
             
-            # Convert metrics to dict if present (handle both dict and object)
-            flux_metrics = None
-            gen_flux_metrics = generate_result.get("flux_metrics") if isinstance(generate_result, dict) else generate_result.flux_metrics
-            if gen_flux_metrics:
-                if isinstance(gen_flux_metrics, dict):
-                    flux_metrics = {
-                        "precision": gen_flux_metrics.get("precision"),
-                        "recall": gen_flux_metrics.get("recall"),
-                        "iou": gen_flux_metrics.get("iou"),
-                        "growthRatio": gen_flux_metrics.get("growth_ratio")
-                    }
-                else:
-                    flux_metrics = {
-                        "precision": gen_flux_metrics.precision,
-                        "recall": gen_flux_metrics.recall,
-                        "iou": gen_flux_metrics.iou,
-                        "growthRatio": gen_flux_metrics.growth_ratio
-                    }
-            
-            gemini_metrics = None
-            gen_gemini_metrics = generate_result.get("gemini_metrics") if isinstance(generate_result, dict) else generate_result.gemini_metrics
-            if gen_gemini_metrics:
-                if isinstance(gen_gemini_metrics, dict):
-                    gemini_metrics = {
-                        "precision": gen_gemini_metrics.get("precision"),
-                        "recall": gen_gemini_metrics.get("recall"),
-                        "iou": gen_gemini_metrics.get("iou"),
-                        "growthRatio": gen_gemini_metrics.get("growth_ratio")
-                    }
-                else:
-                    gemini_metrics = {
-                        "precision": gen_gemini_metrics.precision,
-                        "recall": gen_gemini_metrics.recall,
-                        "iou": gen_gemini_metrics.iou,
-                        "growthRatio": gen_gemini_metrics.growth_ratio
-                    }
-            
-            # Extract results
-            flux_base64 = generate_result.get("flux_result_base64") if isinstance(generate_result, dict) else generate_result.flux_result_base64
-            gemini_base64 = generate_result.get("gemini_result_base64") if isinstance(generate_result, dict) else generate_result.gemini_result_base64
-            flux_viz = generate_result.get("flux_fidelity_viz_base64") if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
-            gemini_viz = generate_result.get("gemini_fidelity_viz_base64") if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
+            flux_base64 = generate_result["flux_result_base64"] if isinstance(generate_result, dict) else generate_result.flux_result_base64
+            flux_viz = generate_result["flux_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.flux_fidelity_viz_base64
+            flux_metrics = generate_result["flux_metrics"] if isinstance(generate_result, dict) else generate_result.flux_metrics
+            gemini_base64 = generate_result["gemini_result_base64"] if isinstance(generate_result, dict) else generate_result.gemini_result_base64
+            gemini_viz = generate_result["gemini_fidelity_viz_base64"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_base64
+            gemini_metrics = generate_result["gemini_metrics"] if isinstance(generate_result, dict) else generate_result.gemini_metrics
             
             return {
                 "fluxResultBase64": flux_base64,
-                "geminiResultBase64": gemini_base64,
                 "fluxFidelityVizBase64": flux_viz,
+                "fluxMetrics": {
+                    "precision": flux_metrics.precision if flux_metrics else 0,
+                    "recall": flux_metrics.recall if flux_metrics else 0,
+                    "iou": flux_metrics.iou if flux_metrics else 0,
+                    "growthRatio": flux_metrics.growth_ratio if flux_metrics else 1
+                } if flux_metrics else None,
+                "geminiResultBase64": gemini_base64,
                 "geminiFidelityVizBase64": gemini_viz,
-                "fluxMetrics": flux_metrics,
-                "geminiMetrics": gemini_metrics,
+                "geminiMetrics": {
+                    "precision": gemini_metrics.precision if gemini_metrics else 0,
+                    "recall": gemini_metrics.recall if gemini_metrics else 0,
+                    "iou": gemini_metrics.iou if gemini_metrics else 0,
+                    "growthRatio": gemini_metrics.growth_ratio if gemini_metrics else 1
+                } if gemini_metrics else None,
                 "finalMaskUri": final_mask_uri
             }
             
         except Exception as e:
-            workflow.logger.error(f"Generation failed: {e}")
+            workflow.logger.error(f"✗ Generation failed: {e}")
             raise
     
     def _set_progress(self, progress: int, step: WorkflowStep):
