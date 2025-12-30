@@ -152,7 +152,6 @@ async def resize_image(input: ResizeInput) -> ResizeOutput:
         activity.logger.info(f"✓ Resize: {input.target_width}x{input.target_height}")
         
         return ResizeOutput(
-            image_base64=resized_base64,
             resized_uri=upload_result.azure_uri,
             padding=data.get("padding", [0, 0, 0, 0])
         )
