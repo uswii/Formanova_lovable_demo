@@ -128,7 +128,6 @@ class ResizeInput:
 @dataclass
 class ResizeOutput:
     """Output from resize activity."""
-    image_base64: str
     resized_uri: str
     padding: dict = field(default_factory=lambda: {"top": 0, "bottom": 0, "left": 0, "right": 0})
 
