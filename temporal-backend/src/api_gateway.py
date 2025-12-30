@@ -324,37 +324,12 @@ async def get_workflow_status(workflow_id: str):
                     response.progress = progress.get("progress", 0)
                     response.currentStep = progress.get("current_step", "UNKNOWN")
             except Exception as e:
-                error_str = str(e).upper()
-                logger.warning(f"Progress query failed for {workflow_id}: {e}")
-                
-                # Query failed because workflow just completed - try to get result
-                if "CANCELLED" in error_str or "CANCELED" in error_str or "COMPLETED" in error_str:
-                    try:
-                        # Re-describe to get actual status
-                        desc = await handle.describe()
-                        if desc.status == WorkflowExecutionStatus.COMPLETED:
-                            response.status = "COMPLETED"
-                            response.progress = 100
-                            response.currentStep = "COMPLETED"
-                            try:
-                                result = await handle.result()
-                                if isinstance(result, dict):
-                                    response.result = result
-                                elif hasattr(result, '__dict__'):
-                                    response.result = asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
-                            except:
-                                pass
-                        elif desc.status == WorkflowExecutionStatus.CANCELLED:
-                            response.status = "CANCELLED"
-                            response.progress = 0
-                            response.currentStep = "CANCELLED"
-                    except:
-                        # Just report what we know
-                        response.progress = 0
-                        response.currentStep = "PROCESSING"
-                else:
-                    response.progress = 0
-                    response.currentStep = "PROCESSING"
+                # Query can fail with "CANCELLED" even when workflow is still running
+                # This is a transient Temporal SDK error during activity transitions
+                # We already confirmed workflow is RUNNING from describe(), so keep that status
+                logger.warning(f"Progress query failed for {workflow_id}: {e} (workflow still RUNNING per describe)")
+                response.progress = 0
+                response.currentStep = "PROCESSING"
         
         elif workflow_status == "COMPLETED":
             try:
@@ -386,19 +361,16 @@ async def get_workflow_status(workflow_id: str):
         logger.error(f"✗ RPC error for {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        error_str = str(e).upper()
+        # CANCELLED exceptions from Temporal SDK are often transient during activity transitions
+        # Don't assume the workflow is actually cancelled - return RUNNING as fallback
         logger.warning(f"Status check exception for {workflow_id}: {e}")
         
-        # Don't throw 500 for CANCELLED - return proper status instead
-        if "CANCELLED" in error_str or "CANCELED" in error_str:
-            return WorkflowStatusResponse(
-                workflowId=workflow_id,
-                status="CANCELLED",
-                progress=0,
-                currentStep="CANCELLED"
-            )
-        
-        raise HTTPException(status_code=500, detail=str(e))
+        return WorkflowStatusResponse(
+            workflowId=workflow_id,
+            status="RUNNING",
+            progress=0,
+            currentStep="PROCESSING"
+        )
 
 
 @app.post("/workflow/{workflow_id}/cancel")
