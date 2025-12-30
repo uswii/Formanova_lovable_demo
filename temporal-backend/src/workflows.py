@@ -384,22 +384,30 @@ class GenerationWorkflow:
             gemini_viz_uri = generate_result["gemini_fidelity_viz_uri"] if isinstance(generate_result, dict) else generate_result.gemini_fidelity_viz_uri
             gemini_metrics = generate_result["gemini_metrics"] if isinstance(generate_result, dict) else generate_result.gemini_metrics
             
+            # Helper to safely get metric value from dict or dataclass
+            def get_metric(metrics, key, default=0):
+                if not metrics:
+                    return default
+                if isinstance(metrics, dict):
+                    return metrics.get(key, default)
+                return getattr(metrics, key, default)
+            
             return {
                 "fluxResultUri": flux_uri,
                 "fluxFidelityVizUri": flux_viz_uri,
                 "fluxMetrics": {
-                    "precision": flux_metrics.precision if flux_metrics else 0,
-                    "recall": flux_metrics.recall if flux_metrics else 0,
-                    "iou": flux_metrics.iou if flux_metrics else 0,
-                    "growthRatio": flux_metrics.growth_ratio if flux_metrics else 1
+                    "precision": get_metric(flux_metrics, "precision", 0),
+                    "recall": get_metric(flux_metrics, "recall", 0),
+                    "iou": get_metric(flux_metrics, "iou", 0),
+                    "growthRatio": get_metric(flux_metrics, "growth_ratio", 1)
                 } if flux_metrics else None,
                 "geminiResultUri": gemini_uri,
                 "geminiFidelityVizUri": gemini_viz_uri,
                 "geminiMetrics": {
-                    "precision": gemini_metrics.precision if gemini_metrics else 0,
-                    "recall": gemini_metrics.recall if gemini_metrics else 0,
-                    "iou": gemini_metrics.iou if gemini_metrics else 0,
-                    "growthRatio": gemini_metrics.growth_ratio if gemini_metrics else 1
+                    "precision": get_metric(gemini_metrics, "precision", 0),
+                    "recall": get_metric(gemini_metrics, "recall", 0),
+                    "iou": get_metric(gemini_metrics, "iou", 0),
+                    "growthRatio": get_metric(gemini_metrics, "growth_ratio", 1)
                 } if gemini_metrics else None,
                 "finalMaskUri": final_mask_uri
             }
