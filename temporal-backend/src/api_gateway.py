@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from temporalio.client import Client, WorkflowExecutionStatus
+from temporalio.client import Client, WorkflowExecutionStatus, WorkflowHandle
 from temporalio.service import RPCError
 
 from .config import config
@@ -262,6 +262,27 @@ async def start_generation(request: StartGenerationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def try_get_workflow_result(handle: WorkflowHandle, workflow_id: str) -> Optional[dict]:
+    """Try to get workflow result with a short timeout. Returns None if not completed."""
+    try:
+        # Use wait_for with a very short timeout - if completed, result is immediate
+        result = await asyncio.wait_for(handle.result(), timeout=0.5)
+        
+        if hasattr(result, '__dict__'):
+            return asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
+        elif isinstance(result, dict):
+            return result
+        else:
+            return {"data": str(result)}
+    except asyncio.TimeoutError:
+        # Workflow not completed yet
+        return None
+    except Exception as e:
+        # Any other error (including CANCELLED during transition)
+        logger.debug(f"Result fetch for {workflow_id} returned: {e}")
+        return None
+
+
 @app.get("/workflow/{workflow_id}", response_model=WorkflowStatusResponse)
 async def get_workflow_status(workflow_id: str):
     """Get workflow status."""
@@ -271,43 +292,33 @@ async def get_workflow_status(workflow_id: str):
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
         
-        # Describe workflow with robust error handling
+        # First, try to get the result directly - this is the most reliable way
+        # to detect completion, as describe() can throw CANCELLED during transitions
+        result = await try_get_workflow_result(handle, workflow_id)
+        
+        if result is not None:
+            # Workflow completed successfully
+            logger.info(f"Workflow {workflow_id} completed (result available)")
+            return WorkflowStatusResponse(
+                workflowId=workflow_id,
+                status="COMPLETED",
+                progress=100,
+                currentStep="COMPLETED",
+                result=result
+            )
+        
+        # Result not available - workflow might be running, try describe()
         try:
             desc = await handle.describe()
         except Exception as desc_error:
-            # CANCELLED exceptions from describe() can happen during activity transitions OR after completion
-            # Try to get the result first - if it succeeds, workflow is actually completed
-            logger.warning(f"Describe failed for {workflow_id}: {desc_error}")
-            
-            try:
-                # Try to fetch result - if this works, workflow completed successfully
-                result = await handle.result()
-                logger.info(f"Workflow {workflow_id} actually completed (describe failed but result available)")
-                
-                result_dict = None
-                if hasattr(result, '__dict__'):
-                    result_dict = asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
-                elif isinstance(result, dict):
-                    result_dict = result
-                else:
-                    result_dict = {"data": str(result)}
-                
-                return WorkflowStatusResponse(
-                    workflowId=workflow_id,
-                    status="COMPLETED",
-                    progress=100,
-                    currentStep="COMPLETED",
-                    result=result_dict
-                )
-            except Exception as result_error:
-                # Result fetch also failed - workflow is likely still running
-                logger.warning(f"Result fetch also failed for {workflow_id}: {result_error} (assuming RUNNING)")
-                return WorkflowStatusResponse(
-                    workflowId=workflow_id,
-                    status="RUNNING",
-                    progress=0,
-                    currentStep="PROCESSING"
-                )
+            # describe() failed - assume workflow is still running
+            logger.warning(f"Describe failed for {workflow_id}: {desc_error} (assuming RUNNING)")
+            return WorkflowStatusResponse(
+                workflowId=workflow_id,
+                status="RUNNING",
+                progress=0,
+                currentStep="PROCESSING"
+            )
         
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
@@ -339,28 +350,16 @@ async def get_workflow_status(workflow_id: str):
                     response.currentStep = progress.get("current_step", "UNKNOWN")
             except Exception as e:
                 # Query can fail with "CANCELLED" even when workflow is still running
-                # This is a transient Temporal SDK error during activity transitions
-                # We already confirmed workflow is RUNNING from describe(), so keep that status
-                logger.warning(f"Progress query failed for {workflow_id}: {e} (workflow still RUNNING per describe)")
+                logger.warning(f"Progress query failed for {workflow_id}: {e}")
                 response.progress = 0
                 response.currentStep = "PROCESSING"
         
         elif workflow_status == "COMPLETED":
-            try:
-                result = await handle.result()
-                if hasattr(result, '__dict__'):
-                    response.result = asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
-                elif isinstance(result, dict):
-                    response.result = result
-                else:
-                    response.result = {"data": str(result)}
-                response.progress = 100
-                response.currentStep = "COMPLETED"
-            except Exception as e:
-                logger.warning(f"Result fetch failed for {workflow_id}: {e}")
-                response.result = {"error": str(e)}
-                response.progress = 100
-                response.currentStep = "COMPLETED"
+            # Try to get result again (we already tried but describe says completed)
+            result = await try_get_workflow_result(handle, workflow_id)
+            response.result = result
+            response.progress = 100
+            response.currentStep = "COMPLETED"
         
         elif workflow_status == "FAILED":
             response.error = {"code": "WORKFLOW_FAILED", "message": "Workflow execution failed"}
@@ -375,10 +374,24 @@ async def get_workflow_status(workflow_id: str):
         logger.error(f"✗ RPC error for {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        # CANCELLED exceptions from Temporal SDK are often transient during activity transitions
-        # Don't assume the workflow is actually cancelled - return RUNNING as fallback
+        # Any other exception - check if we can get a result
         logger.warning(f"Status check exception for {workflow_id}: {e}")
         
+        try:
+            handle = temporal_client.get_workflow_handle(workflow_id)
+            result = await try_get_workflow_result(handle, workflow_id)
+            if result is not None:
+                return WorkflowStatusResponse(
+                    workflowId=workflow_id,
+                    status="COMPLETED",
+                    progress=100,
+                    currentStep="COMPLETED",
+                    result=result
+                )
+        except Exception:
+            pass
+        
+        # Fallback to RUNNING
         return WorkflowStatusResponse(
             workflowId=workflow_id,
             status="RUNNING",
