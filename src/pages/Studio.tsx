@@ -5,8 +5,6 @@ import {
 } from 'lucide-react';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
 import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
-import { ServerOffline } from '@/components/studio/ServerOffline';
-import { useA100Status } from '@/hooks/use-a100-status';
 
 export type StudioStep = 'upload' | 'generate';
 
@@ -50,7 +48,6 @@ export interface StudioState {
 }
 
 export default function Studio() {
-  const { isOnline, isChecking, retry } = useA100Status();
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
   const [state, setState] = useState<StudioState>({
     originalImage: null,
@@ -125,26 +122,20 @@ export default function Studio() {
 
         {/* Step Content */}
         <div className="grid lg:grid-cols-1 gap-6">
-          {isOnline === false ? (
-            <ServerOffline onRetry={retry} isChecking={isChecking} />
-          ) : (
-            <>
-              {currentStep === 'upload' && (
-                <StepUploadMark 
-                  state={state} 
-                  updateState={updateState}
-                  onNext={() => setCurrentStep('generate')}
-                />
-              )}
-              
-              {currentStep === 'generate' && (
-                <StepRefineAndGenerate 
-                  state={state} 
-                  updateState={updateState}
-                  onBack={() => setCurrentStep('upload')}
-                />
-              )}
-            </>
+          {currentStep === 'upload' && (
+            <StepUploadMark 
+              state={state} 
+              updateState={updateState}
+              onNext={() => setCurrentStep('generate')}
+            />
+          )}
+          
+          {currentStep === 'generate' && (
+            <StepRefineAndGenerate 
+              state={state} 
+              updateState={updateState}
+              onBack={() => setCurrentStep('upload')}
+            />
           )}
         </div>
       </div>
