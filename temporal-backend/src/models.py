@@ -184,19 +184,6 @@ class RefineMaskOutput:
     refined_mask_uri: str
 
 
-@dataclass
-class FetchOverlayInput:
-    """Input for fetching mask and creating overlay."""
-    image_uri: str
-    mask_uri: str
-
-
-@dataclass
-class FetchOverlayOutput:
-    """Output from fetch overlay activity."""
-    mask_base64: str
-    overlay_base64: str
-
 
 @dataclass
 class GenerateImagesInput:
