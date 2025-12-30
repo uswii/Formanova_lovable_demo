@@ -215,8 +215,16 @@ async def remove_background(input: BackgroundRemoveInput) -> BackgroundRemoveOut
 async def generate_mask(input: GenerateMaskInput) -> GenerateMaskOutput:
     """Generate segmentation mask using SAM3 service (async job)."""
     try:
-        points = [[p.x, p.y] for p in input.points]
+        # SAM3 expects pixel coordinates in resized image space (2000x2667)
+        # Points are passed as normalized 0-1 values from frontend, need to scale them
+        TARGET_WIDTH = 2000
+        TARGET_HEIGHT = 2667
+        
+        # Scale normalized points (0-1) to pixel coordinates
+        points = [[p.x * TARGET_WIDTH, p.y * TARGET_HEIGHT] for p in input.points]
         point_labels = [p.label if hasattr(p, 'label') else 1 for p in input.points]
+        
+        activity.logger.info(f"▶ SAM3 points (scaled): {points}")
         
         response = await http_client.post(
             f"{config.sam3_url}/jobs",
