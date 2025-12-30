@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
-import { temporalApi, getStepLabel, getStepProgress, PreprocessingResult } from '@/lib/temporal-api';
+import { temporalApi, getStepLabel, getStepProgress } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -179,18 +179,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         if (status.status === 'COMPLETED' && status.result) {
           completed = true;
           
-          const result = status.result as unknown as PreprocessingResult;
-          
           // Update state with preprocessing results
+          // Backend returns: sessionId, resizedUri, maskUri, maskBase64, maskOverlayBase64, scaledPoints, etc.
+          const anyResult = status.result as any;
+          
           updateState({
-            maskOverlay: result.maskOverlayBase64 ? `data:image/png;base64,${result.maskOverlayBase64}` : null,
-            maskBinary: result.maskBase64 ? `data:image/png;base64,${result.maskBase64}` : null,
-            sessionId: result.sessionId,
-            scaledPoints: result.scaledPoints,
+            maskOverlay: anyResult.maskOverlayBase64 ? `data:image/png;base64,${anyResult.maskOverlayBase64}` : null,
+            maskBinary: anyResult.maskBase64 ? `data:image/png;base64,${anyResult.maskBase64}` : null,
+            sessionId: anyResult.sessionId,
+            scaledPoints: anyResult.scaledPoints,
             processingState: {
-              resizedUri: result.resizedUri,
-              bgRemovedUri: result.backgroundRemoved ? result.resizedUri : undefined,
-              padding: result.padding,
+              resizedUri: anyResult.resizedUri,
+              maskUri: anyResult.maskUri,
+              bgRemovedUri: anyResult.backgroundRemoved ? anyResult.resizedUri : undefined,
+              padding: anyResult.padding,
             },
           });
 

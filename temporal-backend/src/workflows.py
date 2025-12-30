@@ -11,7 +11,8 @@ with workflow.unsafe.imports_passed_through():
         WorkflowInput, WorkflowOutput, WorkflowProgress, WorkflowStep,
         UploadInput, ResizeInput, ZoomCheckInput, BackgroundRemoveInput,
         GenerateMaskInput, RefineMaskInput, GenerateImagesInput,
-        FidelityMetrics, MaskPoint, BrushStroke, StrokePoint
+        FidelityMetrics, MaskPoint, BrushStroke, StrokePoint,
+        FetchOverlayInput
     )
 
 logger = logging.getLogger(__name__)
@@ -244,9 +245,13 @@ class PreprocessingWorkflow:
     @workflow.run
     async def run(self, input: WorkflowInput) -> dict:
         """Execute preprocessing workflow."""
+        import uuid
         workflow.logger.info("Starting PreprocessingWorkflow")
         
         try:
+            # Generate session ID for this preprocessing run
+            session_id = str(uuid.uuid4())
+            
             # Step 1: Upload original image
             self._set_progress(10, WorkflowStep.UPLOADING_IMAGE)
             upload_result = await workflow.execute_activity(
@@ -275,6 +280,7 @@ class PreprocessingWorkflow:
             )
             resized_uri = resize_result["resized_uri"] if isinstance(resize_result, dict) else resize_result.resized_uri
             resized_base64 = resize_result["image_base64"] if isinstance(resize_result, dict) else resize_result.image_base64
+            padding = resize_result["padding"] if isinstance(resize_result, dict) else resize_result.padding
             
             # Step 3: Check zoom
             self._set_progress(40, WorkflowStep.CHECKING_ZOOM)
@@ -314,14 +320,36 @@ class PreprocessingWorkflow:
             )
             mask_uri = mask_result["mask_uri"] if isinstance(mask_result, dict) else mask_result.mask_uri
             
+            # Step 6: Fetch mask as base64 and generate overlay
+            self._set_progress(90, WorkflowStep.GENERATING_MASK)
+            mask_data = await workflow.execute_activity(
+                "fetch_and_create_overlay",
+                FetchOverlayInput(
+                    image_uri=resized_uri,
+                    mask_uri=mask_uri
+                ),
+                start_to_close_timeout=timedelta(seconds=60),
+                retry_policy=IMAGE_PROCESSING_RETRY
+            )
+            mask_base64 = mask_data["mask_base64"] if isinstance(mask_data, dict) else mask_data.mask_base64
+            mask_overlay_base64 = mask_data["overlay_base64"] if isinstance(mask_data, dict) else mask_data.overlay_base64
+            
+            # Scale points from 0-1 to image dimensions
+            scaled_points = [[p.x * 2000, p.y * 2667] for p in input.mask_points]
+            
             self._set_progress(100, WorkflowStep.COMPLETED)
             
             return {
+                "sessionId": session_id,
                 "originalUri": original_uri,
                 "resizedUri": resized_uri,
                 "resizedImageBase64": resized_base64,
                 "maskUri": mask_uri,
-                "backgroundRemoved": background_removed
+                "maskBase64": mask_base64,
+                "maskOverlayBase64": mask_overlay_base64,
+                "backgroundRemoved": background_removed,
+                "padding": {"top": padding[0], "bottom": padding[1], "left": padding[2], "right": padding[3]} if isinstance(padding, list) else padding,
+                "scaledPoints": scaled_points
             }
             
         except Exception as e:
