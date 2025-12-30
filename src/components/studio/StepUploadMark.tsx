@@ -504,14 +504,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                         disabled={redDots.length === 0 || isProcessing} 
                         className="font-semibold"
                       >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          'Generate Mask'
-                        )}
+                        Generate Mask
                       </Button>
                     </div>
                   </div>
