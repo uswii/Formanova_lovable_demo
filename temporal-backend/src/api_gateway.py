@@ -275,15 +275,39 @@ async def get_workflow_status(workflow_id: str):
         try:
             desc = await handle.describe()
         except Exception as desc_error:
-            # CANCELLED exceptions from describe() are often transient during activity transitions
-            # The workflow is likely still running - return RUNNING as fallback
-            logger.warning(f"Describe failed for {workflow_id}: {desc_error} (assuming RUNNING)")
-            return WorkflowStatusResponse(
-                workflowId=workflow_id,
-                status="RUNNING",
-                progress=0,
-                currentStep="PROCESSING"
-            )
+            # CANCELLED exceptions from describe() can happen during activity transitions OR after completion
+            # Try to get the result first - if it succeeds, workflow is actually completed
+            logger.warning(f"Describe failed for {workflow_id}: {desc_error}")
+            
+            try:
+                # Try to fetch result - if this works, workflow completed successfully
+                result = await handle.result()
+                logger.info(f"Workflow {workflow_id} actually completed (describe failed but result available)")
+                
+                result_dict = None
+                if hasattr(result, '__dict__'):
+                    result_dict = asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
+                elif isinstance(result, dict):
+                    result_dict = result
+                else:
+                    result_dict = {"data": str(result)}
+                
+                return WorkflowStatusResponse(
+                    workflowId=workflow_id,
+                    status="COMPLETED",
+                    progress=100,
+                    currentStep="COMPLETED",
+                    result=result_dict
+                )
+            except Exception as result_error:
+                # Result fetch also failed - workflow is likely still running
+                logger.warning(f"Result fetch also failed for {workflow_id}: {result_error} (assuming RUNNING)")
+                return WorkflowStatusResponse(
+                    workflowId=workflow_id,
+                    status="RUNNING",
+                    progress=0,
+                    currentStep="PROCESSING"
+                )
         
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
