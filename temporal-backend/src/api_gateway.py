@@ -508,17 +508,20 @@ async def get_overlay(request: OverlayRequest):
             mask = mask.resize(image.size, Image.LANCZOS)
         
         # Fast overlay creation using numpy
+        # White pixels in mask (value=255) → green translucent overlay
+        # Black pixels in mask (value=0) → original image unchanged
         img_arr = np.array(image, dtype=np.float32)
-        mask_arr = np.array(mask, dtype=np.float32) / 255.0
+        mask_arr = np.array(mask, dtype=np.float32) / 255.0  # Normalize to 0-1
         
-        # Create red tint overlay where mask is white
         overlay_arr = img_arr.copy()
         mask_3d = np.stack([mask_arr] * 3, axis=-1)
-        red_tint = np.array([255, 50, 50], dtype=np.float32)
         
-        # Blend: 60% original, 40% red where mask is active
-        blend_factor = 0.4
-        overlay_arr = overlay_arr * (1 - mask_3d * blend_factor) + red_tint * mask_3d * blend_factor
+        # Green tint for detected jewelry regions (where mask is white)
+        green_tint = np.array([50, 255, 100], dtype=np.float32)
+        
+        # Blend: show green where mask is white, original where mask is black
+        blend_factor = 0.5  # 50% green overlay on detected regions
+        overlay_arr = overlay_arr * (1 - mask_3d * blend_factor) + green_tint * mask_3d * blend_factor
         overlay_arr = np.clip(overlay_arr, 0, 255).astype(np.uint8)
         
         overlay_img = Image.fromarray(overlay_arr)
