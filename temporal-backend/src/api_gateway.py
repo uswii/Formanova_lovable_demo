@@ -262,57 +262,91 @@ async def start_generation(request: StartGenerationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def try_get_workflow_result(handle: WorkflowHandle, workflow_id: str) -> Optional[dict]:
-    """Try to get workflow result with a short timeout. Returns None if not completed."""
+async def safe_describe(handle: WorkflowHandle, *, timeout: float = 2.0, retries: int = 3):
+    """Describe workflow with retry and shield to prevent client-side cancellation."""
+    last_error = None
+    for attempt in range(retries):
+        try:
+            # shield() prevents wait_for timeout from cancelling the underlying RPC
+            return await asyncio.wait_for(asyncio.shield(handle.describe()), timeout=timeout)
+        except asyncio.TimeoutError as e:
+            last_error = e
+            logger.debug(f"Describe timeout (attempt {attempt + 1}/{retries})")
+            continue
+        except RPCError as e:
+            # Treat transport CANCELLED as transient - do NOT map to workflow cancelled
+            if "CANCELLED" in str(e).upper():
+                last_error = e
+                logger.debug(f"Describe RPC CANCELLED (attempt {attempt + 1}/{retries})")
+                continue
+            raise
+        except asyncio.CancelledError as e:
+            # Client-side cancellation - treat as transient
+            last_error = e
+            logger.debug(f"Describe CancelledError (attempt {attempt + 1}/{retries})")
+            continue
+    raise last_error if last_error else Exception("safe_describe failed")
+
+
+async def safe_query(handle: WorkflowHandle, query_method, *, timeout: float = 2.0, retries: int = 2):
+    """Query workflow with retry and shield to prevent client-side cancellation."""
+    last_error = None
+    for attempt in range(retries):
+        try:
+            return await asyncio.wait_for(asyncio.shield(handle.query(query_method)), timeout=timeout)
+        except asyncio.TimeoutError as e:
+            last_error = e
+            continue
+        except (RPCError, asyncio.CancelledError) as e:
+            if "CANCELLED" in str(e).upper() or isinstance(e, asyncio.CancelledError):
+                last_error = e
+                continue
+            raise
+    raise last_error if last_error else Exception("safe_query failed")
+
+
+async def safe_result(handle: WorkflowHandle, *, timeout: float = 1.0):
+    """Get workflow result with shield to prevent client-side cancellation. Returns None if not ready."""
     try:
-        # Use wait_for with a very short timeout - if completed, result is immediate
-        result = await asyncio.wait_for(handle.result(), timeout=0.5)
-        
-        if hasattr(result, '__dict__'):
-            return asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
-        elif isinstance(result, dict):
-            return result
-        else:
-            return {"data": str(result)}
+        return await asyncio.wait_for(asyncio.shield(handle.result()), timeout=timeout)
     except asyncio.TimeoutError:
-        # Workflow not completed yet
         return None
-    except Exception as e:
-        # Any other error (including CANCELLED during transition)
-        logger.debug(f"Result fetch for {workflow_id} returned: {e}")
-        return None
+    except (RPCError, asyncio.CancelledError) as e:
+        if "CANCELLED" in str(e).upper() or isinstance(e, asyncio.CancelledError):
+            return None
+        raise
 
 
 @app.get("/workflow/{workflow_id}", response_model=WorkflowStatusResponse)
 async def get_workflow_status(workflow_id: str):
-    """Get workflow status."""
+    """Get workflow status using shielded RPCs to prevent client-side cancellation issues."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
     
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
         
-        # First, try to get the result directly - this is the most reliable way
-        # to detect completion, as describe() can throw CANCELLED during transitions
-        result = await try_get_workflow_result(handle, workflow_id)
-        
-        if result is not None:
-            # Workflow completed successfully
-            logger.info(f"Workflow {workflow_id} completed (result available)")
-            return WorkflowStatusResponse(
-                workflowId=workflow_id,
-                status="COMPLETED",
-                progress=100,
-                currentStep="COMPLETED",
-                result=result
-            )
-        
-        # Result not available - workflow might be running, try describe()
+        # Step 1: Try describe() with shield + retries (most reliable for status)
         try:
-            desc = await handle.describe()
+            desc = await safe_describe(handle)
         except Exception as desc_error:
-            # describe() failed - assume workflow is still running
-            logger.warning(f"Describe failed for {workflow_id}: {desc_error} (assuming RUNNING)")
+            # All retries failed - check if we can get result (workflow might be completed)
+            logger.warning(f"safe_describe failed for {workflow_id}: {desc_error}")
+            
+            result = await safe_result(handle)
+            if result is not None:
+                # Result available = workflow completed
+                result_dict = _convert_result(result)
+                logger.info(f"Workflow {workflow_id} completed (result available despite describe failure)")
+                return WorkflowStatusResponse(
+                    workflowId=workflow_id,
+                    status="COMPLETED",
+                    progress=100,
+                    currentStep="COMPLETED",
+                    result=result_dict
+                )
+            
+            # Neither describe nor result worked - assume still running
             return WorkflowStatusResponse(
                 workflowId=workflow_id,
                 status="RUNNING",
@@ -320,6 +354,7 @@ async def get_workflow_status(workflow_id: str):
                 currentStep="PROCESSING"
             )
         
+        # Step 2: Map workflow execution status (from server, not RPC status)
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
             WorkflowExecutionStatus.COMPLETED: "COMPLETED",
@@ -332,38 +367,44 @@ async def get_workflow_status(workflow_id: str):
         workflow_status = status_map.get(desc.status, "UNKNOWN")
         response = WorkflowStatusResponse(workflowId=workflow_id, status=workflow_status)
         
+        # Step 3: Handle based on actual workflow execution status
         if workflow_status == "RUNNING":
+            # Try to get progress via query (best effort)
             try:
-                # Determine which workflow type to query based on workflow ID prefix
                 if workflow_id.startswith("preprocess-"):
-                    progress = await handle.query(PreprocessingWorkflow.get_progress)
+                    progress = await safe_query(handle, PreprocessingWorkflow.get_progress)
                 elif workflow_id.startswith("generate-"):
-                    progress = await handle.query(GenerationWorkflow.get_progress)
+                    progress = await safe_query(handle, GenerationWorkflow.get_progress)
                 else:
-                    progress = await handle.query(JewelryGenerationWorkflow.get_progress)
+                    progress = await safe_query(handle, JewelryGenerationWorkflow.get_progress)
                 
                 if isinstance(progress, WorkflowProgress):
                     response.progress = progress.progress
                     response.currentStep = progress.current_step
                 elif isinstance(progress, dict):
                     response.progress = progress.get("progress", 0)
-                    response.currentStep = progress.get("current_step", "UNKNOWN")
+                    response.currentStep = progress.get("current_step", "PROCESSING")
             except Exception as e:
-                # Query can fail with "CANCELLED" even when workflow is still running
-                logger.warning(f"Progress query failed for {workflow_id}: {e}")
+                # Query failed - return RUNNING with generic progress (don't downgrade state)
+                logger.debug(f"Progress query failed for {workflow_id}: {e}")
                 response.progress = 0
                 response.currentStep = "PROCESSING"
         
         elif workflow_status == "COMPLETED":
-            # Try to get result again (we already tried but describe says completed)
-            result = await try_get_workflow_result(handle, workflow_id)
-            response.result = result
+            result = await safe_result(handle, timeout=5.0)
+            if result is not None:
+                response.result = _convert_result(result)
             response.progress = 100
             response.currentStep = "COMPLETED"
         
         elif workflow_status == "FAILED":
             response.error = {"code": "WORKFLOW_FAILED", "message": "Workflow execution failed"}
             response.progress = 0
+        
+        elif workflow_status == "CANCELLED":
+            response.error = {"code": "WORKFLOW_CANCELLED", "message": "Workflow was cancelled"}
+            response.progress = 0
+            response.currentStep = "CANCELLED"
         
         return response
         
@@ -373,31 +414,16 @@ async def get_workflow_status(workflow_id: str):
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
         logger.error(f"✗ RPC error for {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        # Any other exception - check if we can get a result
-        logger.warning(f"Status check exception for {workflow_id}: {e}")
-        
-        try:
-            handle = temporal_client.get_workflow_handle(workflow_id)
-            result = await try_get_workflow_result(handle, workflow_id)
-            if result is not None:
-                return WorkflowStatusResponse(
-                    workflowId=workflow_id,
-                    status="COMPLETED",
-                    progress=100,
-                    currentStep="COMPLETED",
-                    result=result
-                )
-        except Exception:
-            pass
-        
-        # Fallback to RUNNING
-        return WorkflowStatusResponse(
-            workflowId=workflow_id,
-            status="RUNNING",
-            progress=0,
-            currentStep="PROCESSING"
-        )
+
+
+def _convert_result(result) -> dict:
+    """Convert workflow result to dict."""
+    if hasattr(result, '__dict__'):
+        return asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
+    elif isinstance(result, dict):
+        return result
+    else:
+        return {"data": str(result)}
 
 
 @app.post("/workflow/{workflow_id}/cancel")
