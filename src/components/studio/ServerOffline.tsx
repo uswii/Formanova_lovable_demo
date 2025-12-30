@@ -1,4 +1,4 @@
-import { WifiOff, RefreshCw, Loader2, Mail } from 'lucide-react';
+import { WifiOff, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Props {
   onRetry: () => void;
@@ -7,32 +7,24 @@ interface Props {
 
 export function ServerOffline({ onRetry, isChecking }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="relative mb-6">
-        <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
-          <WifiOff className="h-10 w-10 text-destructive" />
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="relative mb-4">
+        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+          <WifiOff className="h-8 w-8 text-muted-foreground" />
         </div>
       </div>
       
-      <h2 className="text-2xl font-display font-semibold mb-2">
-        Demo Offline
+      <h2 className="text-xl font-display font-semibold mb-2">
+        Server Offline
       </h2>
-      <p className="text-muted-foreground max-w-md mb-6">
-        To turn on the demo or request access, please contact:
+      <p className="text-muted-foreground text-sm mb-4">
+        The generation server is currently unavailable.
       </p>
-      
-      <a
-        href="mailto:sophia@raresense.so"
-        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mb-4"
-      >
-        <Mail className="h-4 w-4" />
-        sophia@raresense.so
-      </a>
       
       <button
         onClick={onRetry}
         disabled={isChecking}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
       >
         {isChecking ? (
           <Loader2 className="h-4 w-4 animate-spin" />
