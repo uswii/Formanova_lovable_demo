@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from temporalio.client import Client, WorkflowExecutionStatus, WorkflowHandle
-from temporalio.service import RPCError
+from temporalio.service import RPCError, RPCStatusCode
 
 from .config import config
 from .models import WorkflowInput, MaskPoint, BrushStroke, StrokePoint, WorkflowProgress
@@ -274,8 +274,8 @@ async def safe_describe(handle: WorkflowHandle, *, timeout: float = 2.0, retries
             logger.debug(f"Describe timeout (attempt {attempt + 1}/{retries})")
             continue
         except RPCError as e:
-            # Treat transport CANCELLED as transient - do NOT map to workflow cancelled
-            if "CANCELLED" in str(e).upper():
+            # Check structured status code, not string matching
+            if e.status == RPCStatusCode.CANCELLED:
                 last_error = e
                 logger.debug(f"Describe RPC CANCELLED (attempt {attempt + 1}/{retries})")
                 continue
@@ -297,8 +297,11 @@ async def safe_query(handle: WorkflowHandle, query_method, *, timeout: float = 2
         except asyncio.TimeoutError as e:
             last_error = e
             continue
-        except (RPCError, asyncio.CancelledError) as e:
-            if "CANCELLED" in str(e).upper() or isinstance(e, asyncio.CancelledError):
+        except asyncio.CancelledError as e:
+            last_error = e
+            continue
+        except RPCError as e:
+            if e.status == RPCStatusCode.CANCELLED:
                 last_error = e
                 continue
             raise
@@ -311,8 +314,10 @@ async def safe_result(handle: WorkflowHandle, *, timeout: float = 1.0):
         return await asyncio.wait_for(asyncio.shield(handle.result()), timeout=timeout)
     except asyncio.TimeoutError:
         return None
-    except (RPCError, asyncio.CancelledError) as e:
-        if "CANCELLED" in str(e).upper() or isinstance(e, asyncio.CancelledError):
+    except asyncio.CancelledError:
+        return None
+    except RPCError as e:
+        if e.status == RPCStatusCode.CANCELLED:
             return None
         raise
 
@@ -355,11 +360,12 @@ async def get_workflow_status(workflow_id: str):
             )
         
         # Step 2: Map workflow execution status (from server, not RPC status)
+        # Note: Temporal Python SDK uses CANCELED (one L), not CANCELLED
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
             WorkflowExecutionStatus.COMPLETED: "COMPLETED",
             WorkflowExecutionStatus.FAILED: "FAILED",
-            WorkflowExecutionStatus.CANCELLED: "CANCELLED",
+            WorkflowExecutionStatus.CANCELED: "CANCELLED",  # SDK spelling -> external spelling
             WorkflowExecutionStatus.TERMINATED: "CANCELLED",
             WorkflowExecutionStatus.TIMED_OUT: "FAILED"
         }
