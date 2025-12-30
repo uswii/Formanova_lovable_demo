@@ -404,10 +404,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     {state.fidelityViz && (
                       <div className="border border-border p-3 space-y-2">
                         <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-3 w-3 text-primary" /> Jewelry Preservation
+                          <Gem className="h-3 w-3" /> Jewelry Accuracy Visualization
                         </h4>
                         <div className="overflow-hidden border border-border/50">
-                          <img src={state.fidelityViz} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
+                          <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
                         </div>
                         <div className="flex flex-wrap gap-2 text-[10px]">
                           <div className="flex items-center gap-1">
@@ -428,7 +428,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     {state.metrics && (
                       <div className="border border-border p-3 space-y-2">
                         <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-3 w-3 text-primary" /> Metrics
+                          <BarChart3 className="h-3 w-3" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metrics.precision} />
@@ -477,10 +477,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     {state.fidelityVizGemini && (
                       <div className="border border-border p-3 space-y-2">
                         <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-3 w-3 text-primary" /> Jewelry Preservation
+                          <Gem className="h-3 w-3" /> Jewelry Accuracy Visualization
                         </h4>
                         <div className="overflow-hidden border border-border/50">
-                          <img src={state.fidelityVizGemini} alt="Jewelry Preservation Analysis" className="w-full h-auto" />
+                          <img src={state.fidelityVizGemini} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
                         </div>
                         <div className="flex flex-wrap gap-2 text-[10px]">
                           <div className="flex items-center gap-1">
@@ -501,7 +501,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     {state.metricsGemini && (
                       <div className="border border-border p-3 space-y-2">
                         <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-3 w-3 text-primary" /> Metrics
+                          <BarChart3 className="h-3 w-3" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
