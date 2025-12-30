@@ -286,14 +286,22 @@ async def get_workflow_status(workflow_id: str):
         
         if workflow_status == "RUNNING":
             try:
-                progress = await handle.query(JewelryGenerationWorkflow.get_progress)
+                # Determine which workflow type to query based on workflow ID prefix
+                if workflow_id.startswith("preprocess-"):
+                    progress = await handle.query(PreprocessingWorkflow.get_progress)
+                elif workflow_id.startswith("generate-"):
+                    progress = await handle.query(GenerationWorkflow.get_progress)
+                else:
+                    progress = await handle.query(JewelryGenerationWorkflow.get_progress)
+                
                 if isinstance(progress, WorkflowProgress):
                     response.progress = progress.progress
                     response.currentStep = progress.current_step
                 elif isinstance(progress, dict):
                     response.progress = progress.get("progress", 0)
                     response.currentStep = progress.get("current_step", "UNKNOWN")
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Progress query failed for {workflow_id}: {e}")
                 response.progress = 0
                 response.currentStep = "UNKNOWN"
         
@@ -320,6 +328,7 @@ async def get_workflow_status(workflow_id: str):
     except RPCError as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
+        logger.error(f"✗ Status query failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"✗ Status check failed: {e}")
