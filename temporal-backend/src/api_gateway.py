@@ -526,15 +526,30 @@ async def get_overlay(request: OverlayRequest):
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
         mask = Image.open(io.BytesIO(mask_data)).convert("L")
         
+        logger.info(f"▶ Overlay: image={image.size}, mask={mask.size}")
+        
         # Resize mask to match image if needed
         if mask.size != image.size:
+            logger.info(f"  Resizing mask from {mask.size} to {image.size}")
             mask = mask.resize(image.size, Image.LANCZOS)
+        
+        # Analyze mask to check if it has any white pixels
+        mask_arr = np.array(mask, dtype=np.float32)
+        mask_min = float(mask_arr.min())
+        mask_max = float(mask_arr.max())
+        mask_mean = float(mask_arr.mean())
+        white_pixel_count = int(np.sum(mask_arr > 127))
+        total_pixels = mask_arr.size
+        
+        logger.info(f"  Mask stats: min={mask_min}, max={mask_max}, mean={mask_mean:.1f}, white_pixels={white_pixel_count}/{total_pixels}")
+        
+        # Normalize mask to 0-1
+        mask_arr = mask_arr / 255.0
         
         # Fast overlay creation using numpy
         # White pixels in mask (value=255) → green translucent overlay
         # Black pixels in mask (value=0) → original image unchanged
         img_arr = np.array(image, dtype=np.float32)
-        mask_arr = np.array(mask, dtype=np.float32) / 255.0  # Normalize to 0-1
         
         overlay_arr = img_arr.copy()
         mask_3d = np.stack([mask_arr] * 3, axis=-1)
@@ -554,7 +569,7 @@ async def get_overlay(request: OverlayRequest):
         overlay_img.save(overlay_buffer, format="JPEG", quality=90)
         overlay_base64 = base64.b64encode(overlay_buffer.getvalue()).decode('utf-8')
         
-        logger.info(f"✓ Overlay created: {image.size}")
+        logger.info(f"✓ Overlay created: {image.size}, overlay_size={len(overlay_base64)} bytes")
         
         return OverlayResponse(
             imageBase64=image_base64,
