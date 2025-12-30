@@ -1,11 +1,14 @@
 """FastAPI REST API Gateway for Temporal workflows."""
 import asyncio
+import base64
 import logging
 import uuid
+from datetime import datetime, timedelta
 from typing import List, Optional
 from dataclasses import asdict
 
 import uvicorn
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -41,6 +44,32 @@ app.add_middleware(
 
 # Global Temporal client
 temporal_client: Optional[Client] = None
+
+
+# Azure blob helpers for overlay creation
+def get_blob_service_client() -> BlobServiceClient:
+    """Create Azure Blob Service client."""
+    connection_string = (
+        f"DefaultEndpointsProtocol=https;"
+        f"AccountName={config.azure_account_name};"
+        f"AccountKey={config.azure_account_key};"
+        f"EndpointSuffix=core.windows.net"
+    )
+    return BlobServiceClient.from_connection_string(connection_string)
+
+
+async def fetch_blob_as_base64(azure_uri: str) -> str:
+    """Fetch a blob from Azure and return as base64."""
+    if not azure_uri.startswith("azure://"):
+        raise ValueError(f"Expected azure:// URI, got: {azure_uri}")
+    
+    blob_name = azure_uri.replace(f"azure://{config.azure_container_name}/", "")
+    blob_service_client = get_blob_service_client()
+    container_client = blob_service_client.get_container_client(config.azure_container_name)
+    blob_client = container_client.get_blob_client(blob_name)
+    blob_data = blob_client.download_blob().readall()
+    
+    return base64.b64encode(blob_data).decode('utf-8')
 
 
 # Request/Response models
@@ -457,28 +486,56 @@ async def cancel_workflow(workflow_id: str):
 
 @app.post("/overlay", response_model=OverlayResponse)
 async def get_overlay(request: OverlayRequest):
-    """Fetch image and mask, create overlay."""
-    import httpx
+    """Fetch image and mask from Azure, create overlay locally."""
+    import io
+    import numpy as np
+    from PIL import Image
     
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                f"{config.image_manipulator_url}/create-overlay",
-                json={"image_uri": request.imageUri, "mask_uri": request.maskUri}
-            )
+        # Fetch image and mask from Azure
+        image_base64 = await fetch_blob_as_base64(request.imageUri)
+        mask_base64 = await fetch_blob_as_base64(request.maskUri)
+        
+        # Decode images
+        image_data = base64.b64decode(image_base64)
+        mask_data = base64.b64decode(mask_base64)
+        
+        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+        mask = Image.open(io.BytesIO(mask_data)).convert("L")
+        
+        # Resize mask to match image if needed
+        if mask.size != image.size:
+            mask = mask.resize(image.size, Image.LANCZOS)
+        
+        # Fast overlay creation using numpy
+        img_arr = np.array(image, dtype=np.float32)
+        mask_arr = np.array(mask, dtype=np.float32) / 255.0
+        
+        # Create red tint overlay where mask is white
+        overlay_arr = img_arr.copy()
+        mask_3d = np.stack([mask_arr] * 3, axis=-1)
+        red_tint = np.array([255, 50, 50], dtype=np.float32)
+        
+        # Blend: 60% original, 40% red where mask is active
+        blend_factor = 0.4
+        overlay_arr = overlay_arr * (1 - mask_3d * blend_factor) + red_tint * mask_3d * blend_factor
+        overlay_arr = np.clip(overlay_arr, 0, 255).astype(np.uint8)
+        
+        overlay_img = Image.fromarray(overlay_arr)
+        
+        # Convert overlay to base64
+        overlay_buffer = io.BytesIO()
+        overlay_img.save(overlay_buffer, format="JPEG", quality=90)
+        overlay_base64 = base64.b64encode(overlay_buffer.getvalue()).decode('utf-8')
+        
+        logger.info(f"✓ Overlay created: {image.size}")
+        
+        return OverlayResponse(
+            imageBase64=image_base64,
+            maskBase64=mask_base64,
+            overlayBase64=overlay_base64
+        )
             
-            if response.status_code != 200:
-                raise HTTPException(status_code=500, detail="Overlay creation failed")
-            
-            data = response.json()
-            return OverlayResponse(
-                imageBase64=data.get("image_base64", ""),
-                maskBase64=data.get("mask_base64", ""),
-                overlayBase64=data.get("overlay_base64", "")
-            )
-            
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Overlay creation timed out")
     except Exception as e:
         logger.error(f"✗ Overlay failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
