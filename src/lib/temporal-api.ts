@@ -31,14 +31,20 @@ export interface PreprocessingRequest {
 }
 
 export interface PreprocessingResult {
-  resizedImageBase64: string;     // Resized to 2000x2667
   resizedUri: string;             // Azure URI of resized image
-  maskBase64: string;             // Binary mask from SAM3
-  maskOverlayBase64: string;      // Mask overlay preview
+  maskUri: string;                // Azure URI of mask
+  bgRemovedUri?: string | null;   // Azure URI if bg was removed
   backgroundRemoved: boolean;     // Whether bg was removed
   padding: { top: number; bottom: number; left: number; right: number };
   sessionId: string;              // For later generation
   scaledPoints: number[][];       // Points scaled to image dimensions
+}
+
+// Response from /overlay endpoint (called after preprocessing)
+export interface OverlayResponse {
+  imageBase64: string;            // Resized image as base64
+  maskBase64: string;             // Binary mask as base64
+  overlayBase64: string;          // Mask overlay preview as base64
 }
 
 // ========== Generation Workflow (Step 2) ==========
@@ -320,6 +326,23 @@ class TemporalApi {
       const error = await response.text();
       throw new Error(`Failed to cancel workflow: ${error}`);
     }
+  }
+
+  // ========== Overlay Fetching (called after preprocessing) ==========
+  // Fetches image/mask base64 data separately to avoid Temporal blob size limits
+  async fetchOverlay(imageUri: string, maskUri: string): Promise<OverlayResponse> {
+    const response = await fetch(getProxyUrl('/overlay'), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ imageUri, maskUri }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch overlay: ${error}`);
+    }
+
+    return await response.json();
   }
 }
 

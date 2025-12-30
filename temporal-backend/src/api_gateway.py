@@ -96,6 +96,17 @@ class WorkflowStatusResponse(BaseModel):
     error: Optional[dict] = None
 
 
+class OverlayRequest(BaseModel):
+    imageUri: str = Field(..., description="Azure URI of the image")
+    maskUri: str = Field(..., description="Azure URI of the mask")
+
+
+class OverlayResponse(BaseModel):
+    imageBase64: str
+    maskBase64: str
+    overlayBase64: str
+
+
 class HealthResponse(BaseModel):
     status: str
     temporal: str
@@ -411,6 +422,41 @@ async def cancel_workflow(workflow_id: str):
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to cancel workflow: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/overlay", response_model=OverlayResponse)
+async def get_overlay(request: OverlayRequest):
+    """Fetch image and mask as base64, create overlay. Called after preprocessing workflow completes."""
+    import httpx
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Call image manipulator to create overlay
+            response = await client.post(
+                f"{config.image_manipulator_url}/create-overlay",
+                json={
+                    "image_uri": request.imageUri,
+                    "mask_uri": request.maskUri
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Overlay creation failed: {response.text}")
+                raise HTTPException(status_code=500, detail="Failed to create overlay")
+            
+            data = response.json()
+            
+            return OverlayResponse(
+                imageBase64=data.get("image_base64", ""),
+                maskBase64=data.get("mask_base64", ""),
+                overlayBase64=data.get("overlay_base64", "")
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Overlay creation timed out")
+    except Exception as e:
+        logger.error(f"Failed to create overlay: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
