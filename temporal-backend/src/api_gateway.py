@@ -270,7 +270,19 @@ async def get_workflow_status(workflow_id: str):
     
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
-        desc = await handle.describe()
+        
+        # Describe with explicit error handling
+        try:
+            desc = await handle.describe()
+        except Exception as desc_error:
+            logger.warning(f"Describe failed for {workflow_id}: {desc_error}, assuming RUNNING")
+            # If describe fails, assume workflow is still running
+            return WorkflowStatusResponse(
+                workflowId=workflow_id,
+                status="RUNNING",
+                progress=0,
+                currentStep="STARTING"
+            )
         
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
@@ -303,7 +315,7 @@ async def get_workflow_status(workflow_id: str):
             except Exception as e:
                 logger.warning(f"Progress query failed for {workflow_id}: {e}")
                 response.progress = 0
-                response.currentStep = "UNKNOWN"
+                response.currentStep = "PROCESSING"
         
         elif workflow_status == "COMPLETED":
             try:
