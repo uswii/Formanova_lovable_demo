@@ -1,13 +1,16 @@
 """FastAPI REST API Gateway for Temporal workflows."""
 import asyncio
 import base64
+import io
 import logging
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 from dataclasses import asdict
 
+import numpy as np
 import uvicorn
+from PIL import Image
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,20 +23,15 @@ from .models import WorkflowInput, MaskPoint, BrushStroke, StrokePoint, Workflow
 from .workflows import JewelryGenerationWorkflow, PreprocessingWorkflow, GenerationWorkflow
 
 # Simple logging format
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s | %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-# FastAPI app
 app = FastAPI(
     title="Jewelry Generation Temporal API",
     description="REST API for orchestrating jewelry virtual try-on workflows",
-    version="1.0.0"
+    version="1.0.0",
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,11 +40,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global Temporal client
 temporal_client: Optional[Client] = None
 
 
-# Azure blob helpers for overlay creation
+# -------------------------
+# Azure Blob Helpers
+# -------------------------
 def get_blob_service_client() -> BlobServiceClient:
     """Create Azure Blob Service client."""
     connection_string = (
@@ -72,7 +71,9 @@ async def fetch_blob_as_base64(azure_uri: str) -> str:
     return base64.b64encode(blob_data).decode('utf-8')
 
 
+# -------------------------
 # Request/Response models
+# -------------------------
 class MaskPointRequest(BaseModel):
     x: float = Field(..., ge=0, le=1)
     y: float = Field(..., ge=0, le=1)
@@ -144,11 +145,11 @@ class HealthResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup():
-    """Connect to Temporal on startup."""
     global temporal_client
-    
     try:
-        temporal_client = await Client.connect(config.temporal_address, namespace=config.temporal_namespace)
+        temporal_client = await Client.connect(
+            config.temporal_address, namespace=config.temporal_namespace
+        )
         logger.info("✓ Connected to Temporal")
     except Exception as e:
         logger.error(f"✗ Temporal connection failed: {e}")
@@ -162,249 +163,279 @@ async def shutdown():
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Check health of API and connected services."""
     import httpx
-    
+
     temporal_status = "connected" if temporal_client else "disconnected"
-    
+
     a100_status = "offline"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{config.a100_server_url}/health")
-            if response.status_code == 200:
+            r = await client.get(f"{config.a100_server_url}/health")
+            if r.status_code == 200:
                 a100_status = "online"
     except Exception:
         pass
-    
+
     image_manipulator_status = "offline"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{config.image_manipulator_url}/health")
-            if response.status_code == 200:
+            r = await client.get(f"{config.image_manipulator_url}/health")
+            if r.status_code == 200:
                 image_manipulator_status = "online"
     except Exception:
         pass
-    
+
     return HealthResponse(
         status="healthy" if temporal_status == "connected" else "degraded",
         temporal=temporal_status,
-        services={"a100": a100_status, "imageManipulator": image_manipulator_status, "birefnet": "unknown", "sam3": "unknown"}
+        services={
+            "a100": a100_status,
+            "imageManipulator": image_manipulator_status,
+            "birefnet": "unknown",
+            "sam3": "unknown",
+        },
     )
 
 
-@app.post("/workflow/start", response_model=WorkflowStartResponse, status_code=status.HTTP_202_ACCEPTED)
+# -------------------------
+# Start endpoints
+# -------------------------
+@app.post(
+    "/workflow/start",
+    response_model=WorkflowStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_workflow(request: StartWorkflowRequest):
-    """Start a new jewelry generation workflow."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
-    
+
     workflow_id = f"jewelry-gen-{uuid.uuid4()}"
-    
     try:
         mask_points = [MaskPoint(x=p.x, y=p.y, label=p.label) for p in request.maskPoints]
-        
+
         brush_strokes = None
         if request.brushStrokes:
             brush_strokes = [
-                BrushStroke(points=[StrokePoint(x=p.x, y=p.y) for p in s.points], mode=s.mode, size=s.size)
+                BrushStroke(
+                    points=[StrokePoint(x=p.x, y=p.y) for p in s.points],
+                    mode=s.mode,
+                    size=s.size,
+                )
                 for s in request.brushStrokes
             ]
-        
+
         workflow_input = WorkflowInput(
             original_image_base64=request.originalImageBase64,
             mask_points=mask_points,
             brush_strokes=brush_strokes,
             session_id=request.sessionId,
-            user_id=request.userId
+            user_id=request.userId,
         )
-        
+
         await temporal_client.start_workflow(
             JewelryGenerationWorkflow.run,
             workflow_input,
             id=workflow_id,
-            task_queue=config.main_task_queue
+            task_queue=config.main_task_queue,
         )
-        
+
         logger.info(f"▶ Started: {workflow_id}")
         return WorkflowStartResponse(workflowId=workflow_id, status="RUNNING")
-        
     except Exception as e:
         logger.error(f"✗ Start failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/workflow/preprocess", response_model=WorkflowStartResponse, status_code=status.HTTP_202_ACCEPTED)
+@app.post(
+    "/workflow/preprocess",
+    response_model=WorkflowStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_preprocessing(request: StartPreprocessingRequest):
-    """Start a preprocessing workflow."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
-    
+
     workflow_id = f"preprocess-{uuid.uuid4()}"
-    
     try:
         mask_points = [MaskPoint(x=p.x, y=p.y, label=p.label) for p in request.maskPoints]
-        workflow_input = WorkflowInput(original_image_base64=request.originalImageBase64, mask_points=mask_points)
-        
+        workflow_input = WorkflowInput(
+            original_image_base64=request.originalImageBase64,
+            mask_points=mask_points,
+        )
+
         await temporal_client.start_workflow(
             PreprocessingWorkflow.run,
             workflow_input,
             id=workflow_id,
-            task_queue=config.main_task_queue
+            task_queue=config.main_task_queue,
         )
-        
+
         logger.info(f"▶ Started preprocessing: {workflow_id}")
         return WorkflowStartResponse(workflowId=workflow_id, status="RUNNING")
-        
     except Exception as e:
         logger.error(f"✗ Preprocessing start failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/workflow/generate", response_model=WorkflowStartResponse, status_code=status.HTTP_202_ACCEPTED)
+@app.post(
+    "/workflow/generate",
+    response_model=WorkflowStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_generation(request: StartGenerationRequest):
-    """Start a generation workflow."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
-    
+
     workflow_id = f"generate-{uuid.uuid4()}"
-    
     try:
         brush_strokes_data = None
         if request.brushStrokes:
             brush_strokes_data = [
-                {"points": [{"x": p.x, "y": p.y} for p in s.points], "mode": s.mode, "size": s.size}
+                {
+                    "points": [{"x": p.x, "y": p.y} for p in s.points],
+                    "mode": s.mode,
+                    "size": s.size,
+                }
                 for s in request.brushStrokes
             ]
-        
+
         await temporal_client.start_workflow(
             GenerationWorkflow.run,
-            args=[request.imageUri, request.maskUri, brush_strokes_data, request.gender, request.scaledPoints],
+            args=[
+                request.imageUri,
+                request.maskUri,
+                brush_strokes_data,
+                request.gender,
+                request.scaledPoints,
+            ],
             id=workflow_id,
-            task_queue=config.main_task_queue
+            task_queue=config.main_task_queue,
         )
-        
+
         logger.info(f"▶ Started generation: {workflow_id}")
         return WorkflowStartResponse(workflowId=workflow_id, status="RUNNING")
-        
     except Exception as e:
         logger.error(f"✗ Generation start failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def safe_describe(handle: WorkflowHandle, *, timeout: float = 2.0, retries: int = 3):
-    """Describe workflow with retry and shield to prevent client-side cancellation."""
-    last_error = None
+# -------------------------
+# Safe RPC helpers
+# -------------------------
+_TRANSIENT_RPC_STATUSES = {RPCStatusCode.CANCELLED, RPCStatusCode.DEADLINE_EXCEEDED}
+
+
+async def safe_describe(handle: WorkflowHandle, *, timeout: float = 3.0, retries: int = 3):
+    last_error: Exception | None = None
     for attempt in range(retries):
         try:
-            # shield() prevents wait_for timeout from cancelling the underlying RPC
             return await asyncio.wait_for(asyncio.shield(handle.describe()), timeout=timeout)
         except asyncio.TimeoutError as e:
             last_error = e
-            logger.debug(f"Describe timeout (attempt {attempt + 1}/{retries})")
             continue
         except RPCError as e:
-            # Check structured status code, not string matching
-            if e.status == RPCStatusCode.CANCELLED:
+            # Transient client-side cancel/deadline; don't treat as workflow cancelled
+            if e.status in _TRANSIENT_RPC_STATUSES:
                 last_error = e
-                logger.debug(f"Describe RPC CANCELLED (attempt {attempt + 1}/{retries})")
                 continue
             raise
         except asyncio.CancelledError as e:
-            # Client-side cancellation - treat as transient
             last_error = e
-            logger.debug(f"Describe CancelledError (attempt {attempt + 1}/{retries})")
             continue
     raise last_error if last_error else Exception("safe_describe failed")
 
 
 async def safe_query(handle: WorkflowHandle, query_method, *, timeout: float = 2.0, retries: int = 2):
-    """Query workflow with retry and shield to prevent client-side cancellation."""
-    last_error = None
-    for attempt in range(retries):
+    last_error: Exception | None = None
+    for _ in range(retries):
         try:
             return await asyncio.wait_for(asyncio.shield(handle.query(query_method)), timeout=timeout)
         except asyncio.TimeoutError as e:
             last_error = e
             continue
-        except asyncio.CancelledError as e:
-            last_error = e
-            continue
         except RPCError as e:
-            if e.status == RPCStatusCode.CANCELLED:
+            # Transient client-side cancellation/deadline
+            if e.status in _TRANSIENT_RPC_STATUSES:
                 last_error = e
                 continue
             raise
+        except asyncio.CancelledError as e:
+            last_error = e
+            continue
     raise last_error if last_error else Exception("safe_query failed")
 
 
 async def safe_result(handle: WorkflowHandle, *, timeout: float = 1.0):
-    """Get workflow result with shield to prevent client-side cancellation. Returns None if not ready."""
+    """Return result if ready, else None. Never raise on transient CANCELLED/DEADLINE."""
     try:
         return await asyncio.wait_for(asyncio.shield(handle.result()), timeout=timeout)
     except asyncio.TimeoutError:
         return None
-    except asyncio.CancelledError:
-        return None
     except RPCError as e:
-        if e.status == RPCStatusCode.CANCELLED:
+        if e.status in _TRANSIENT_RPC_STATUSES:
             return None
         raise
+    except asyncio.CancelledError:
+        return None
 
 
+def _convert_result(result) -> dict:
+    if hasattr(result, "__dict__"):
+        return asdict(result) if hasattr(result, "__dataclass_fields__") else result.__dict__
+    if isinstance(result, dict):
+        return result
+    return {"data": str(result)}
+
+
+# -------------------------
+# Status endpoint (FIXED)
+# -------------------------
 @app.get("/workflow/{workflow_id}", response_model=WorkflowStatusResponse)
 async def get_workflow_status(workflow_id: str):
-    """Get workflow status using shielded RPCs to prevent client-side cancellation issues."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
-    
+
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
-        
-        # Step 1: Try describe() with shield + retries (most reliable for status)
+
+        # 1) Describe (authoritative execution status)
         try:
             desc = await safe_describe(handle)
-        except Exception as desc_error:
-            # All retries failed - check if we can get result (workflow might be completed)
-            logger.warning(f"safe_describe failed for {workflow_id}: {desc_error}")
-            
-            result = await safe_result(handle)
+        except Exception as e:
+            logger.warning(f"safe_describe failed for {workflow_id}: {e}")
+
+            # If describe failed, try result as a fallback
+            result = await safe_result(handle, timeout=0.5)
             if result is not None:
-                # Result available = workflow completed
-                result_dict = _convert_result(result)
-                logger.info(f"Workflow {workflow_id} completed (result available despite describe failure)")
                 return WorkflowStatusResponse(
                     workflowId=workflow_id,
                     status="COMPLETED",
                     progress=100,
                     currentStep="COMPLETED",
-                    result=result_dict
+                    result=_convert_result(result),
                 )
-            
-            # Neither describe nor result worked - assume still running
+
+            # Otherwise best-effort: still running
             return WorkflowStatusResponse(
-                workflowId=workflow_id,
-                status="RUNNING",
-                progress=0,
-                currentStep="PROCESSING"
+                workflowId=workflow_id, status="RUNNING", progress=0, currentStep="PROCESSING"
             )
-        
-        # Step 2: Map workflow execution status (from server, not RPC status)
-        # Note: Temporal Python SDK uses CANCELED (one L), not CANCELLED
+
+        # IMPORTANT FIX: enum is CANCELED (one L) in temporalio python
         status_map = {
             WorkflowExecutionStatus.RUNNING: "RUNNING",
             WorkflowExecutionStatus.COMPLETED: "COMPLETED",
             WorkflowExecutionStatus.FAILED: "FAILED",
-            WorkflowExecutionStatus.CANCELED: "CANCELLED",  # SDK spelling -> external spelling
+            WorkflowExecutionStatus.CANCELED: "CANCELLED",          # <- map to your API contract spelling
             WorkflowExecutionStatus.TERMINATED: "CANCELLED",
-            WorkflowExecutionStatus.TIMED_OUT: "FAILED"
+            WorkflowExecutionStatus.TIMED_OUT: "FAILED",
+            WorkflowExecutionStatus.CONTINUED_AS_NEW: "RUNNING",    # treat as still running (new run exists)
         }
-        
+
         workflow_status = status_map.get(desc.status, "UNKNOWN")
         response = WorkflowStatusResponse(workflowId=workflow_id, status=workflow_status)
-        
-        # Step 3: Handle based on actual workflow execution status
+
+        # 2) Enrich response
         if workflow_status == "RUNNING":
-            # Try to get progress via query (best effort)
             try:
                 if workflow_id.startswith("preprocess-"):
                     progress = await safe_query(handle, PreprocessingWorkflow.get_progress)
@@ -412,71 +443,64 @@ async def get_workflow_status(workflow_id: str):
                     progress = await safe_query(handle, GenerationWorkflow.get_progress)
                 else:
                     progress = await safe_query(handle, JewelryGenerationWorkflow.get_progress)
-                
+
                 if isinstance(progress, WorkflowProgress):
                     response.progress = progress.progress
                     response.currentStep = progress.current_step
                 elif isinstance(progress, dict):
                     response.progress = progress.get("progress", 0)
                     response.currentStep = progress.get("current_step", "PROCESSING")
+                else:
+                    response.progress = 0
+                    response.currentStep = "PROCESSING"
             except Exception as e:
-                # Query failed - return RUNNING with generic progress (don't downgrade state)
                 logger.debug(f"Progress query failed for {workflow_id}: {e}")
                 response.progress = 0
                 response.currentStep = "PROCESSING"
-        
+
         elif workflow_status == "COMPLETED":
             result = await safe_result(handle, timeout=5.0)
             if result is not None:
                 response.result = _convert_result(result)
             response.progress = 100
             response.currentStep = "COMPLETED"
-        
+
         elif workflow_status == "FAILED":
             response.error = {"code": "WORKFLOW_FAILED", "message": "Workflow execution failed"}
             response.progress = 0
-        
+            response.currentStep = "FAILED"
+
         elif workflow_status == "CANCELLED":
             response.error = {"code": "WORKFLOW_CANCELLED", "message": "Workflow was cancelled"}
             response.progress = 0
             response.currentStep = "CANCELLED"
-        
+
         return response
-        
+
     except RPCError as e:
-        error_str = str(e).lower()
-        if "not found" in error_str:
+        if e.status == RPCStatusCode.NOT_FOUND:
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
         logger.error(f"✗ RPC error for {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _convert_result(result) -> dict:
-    """Convert workflow result to dict."""
-    if hasattr(result, '__dict__'):
-        return asdict(result) if hasattr(result, '__dataclass_fields__') else result.__dict__
-    elif isinstance(result, dict):
-        return result
-    else:
-        return {"data": str(result)}
-
-
 @app.post("/workflow/{workflow_id}/cancel")
 async def cancel_workflow(workflow_id: str):
-    """Cancel a workflow."""
     if not temporal_client:
         raise HTTPException(status_code=503, detail="Temporal not connected")
-    
+
     try:
         handle = temporal_client.get_workflow_handle(workflow_id)
+        # Only JewelryGenerationWorkflow defines the cancel signal in your code;
+        # keep as-is (or branch by prefix if you add cancel signals to others).
         await handle.signal(JewelryGenerationWorkflow.cancel, "User cancelled")
         await handle.cancel()
-        
+
         logger.info(f"⚠ Cancelled: {workflow_id}")
         return {"workflowId": workflow_id, "status": "CANCELLING"}
-        
+
     except RPCError as e:
-        if "not found" in str(e).lower():
+        if e.status == RPCStatusCode.NOT_FOUND:
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
@@ -484,13 +508,12 @@ async def cancel_workflow(workflow_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# -------------------------
+# Overlay endpoint (FIXED - creates overlay locally)
+# -------------------------
 @app.post("/overlay", response_model=OverlayResponse)
 async def get_overlay(request: OverlayRequest):
-    """Fetch image and mask from Azure, create overlay locally."""
-    import io
-    import numpy as np
-    from PIL import Image
-    
+    """Fetch image and mask from Azure, create green overlay locally."""
     try:
         # Fetch image and mask from Azure
         image_base64 = await fetch_blob_as_base64(request.imageUri)
@@ -545,9 +568,14 @@ async def get_overlay(request: OverlayRequest):
 
 
 def main():
-    """Run the API gateway."""
     logger.info(f"Starting API on port {config.api_port}")
-    uvicorn.run("src.api_gateway:app", host="0.0.0.0", port=config.api_port, reload=False, log_level="warning")
+    uvicorn.run(
+        "src.api_gateway:app",
+        host="0.0.0.0",
+        port=config.api_port,
+        reload=False,
+        log_level="warning",
+    )
 
 
 if __name__ == "__main__":
