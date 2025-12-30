@@ -592,6 +592,16 @@ class ImageFetchRequest(BaseModel):
 @app.post("/images/fetch")
 async def fetch_images(request: ImageFetchRequest):
     """Fetch images from Azure URIs and return as base64."""
+    from azure.storage.blob import ContainerClient
+    
+    # Initialize Azure container client
+    account_url = f"https://{config.azure_account_name}.blob.core.windows.net"
+    container_client = ContainerClient(
+        account_url=account_url,
+        container_name=config.azure_container_name,
+        credential=config.azure_account_key
+    )
+    
     result = {}
     
     for key, uri in request.uris.items():
@@ -600,8 +610,9 @@ async def fetch_images(request: ImageFetchRequest):
             continue
         
         try:
-            # Use the existing fetch_blob_as_base64 helper
-            blob_client = container_client.get_blob_client(uri.replace("azure://agentic-artifacts/", ""))
+            # Extract blob name from azure:// URI
+            blob_name = uri.replace(f"azure://{config.azure_container_name}/", "")
+            blob_client = container_client.get_blob_client(blob_name)
             data = await asyncio.to_thread(blob_client.download_blob().readall)
             base64_data = base64.b64encode(data).decode('utf-8')
             result[key] = base64_data
