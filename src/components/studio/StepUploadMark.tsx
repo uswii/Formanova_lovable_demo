@@ -122,7 +122,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('Starting preprocessing...');
+    setProcessingStep('starting preprocessing...');
 
     try {
       // Prepare image base64 (strip data URL prefix if present)
@@ -183,7 +183,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           
           // Workflow returns URIs only (not base64) to avoid Temporal blob limits
           // Fetch overlay data separately
-          setProcessingStep('Fetching Overlay...');
+          setProcessingStep('fetching overlay...');
           setProcessingProgress(65);
           
           try {
