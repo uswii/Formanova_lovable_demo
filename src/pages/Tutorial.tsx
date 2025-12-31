@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, Play, Shield, Sparkles, Clock } from 'lucide-react';
+import { ArrowLeft, Play } from 'lucide-react';
 import { useScrollReveal, useMultipleScrollReveal } from '@/hooks/use-scroll-reveal';
 
 export default function Tutorial() {
@@ -15,8 +15,6 @@ export default function Tutorial() {
   const headerReveal = useScrollReveal();
   const videoReveal = useScrollReveal();
   const { setRef: setStepRef, visibleItems: stepVisible } = useMultipleScrollReveal(3);
-  const benefitsReveal = useScrollReveal();
-  const { setRef: setBenefitRef, visibleItems: benefitVisible } = useMultipleScrollReveal(3);
   const ctaReveal = useScrollReveal();
 
   const steps = [
@@ -27,31 +25,13 @@ export default function Tutorial() {
     },
     {
       step: '02',
-      title: 'Modify Mask',
+      title: 'Modify Mask (Optional)',
       description: 'Refine the selection if needed.',
     },
     {
       step: '03',
       title: 'Generate',
       description: 'Get your photoshoot.',
-    },
-  ];
-
-  const benefits = [
-    {
-      icon: Shield,
-      title: 'Your Jewelry, Untouched',
-      description: 'Every gemstone, every detail preserved exactly as photographed.',
-    },
-    {
-      icon: Sparkles,
-      title: 'Studio-Quality Results',
-      description: 'Professional model imagery that elevates your brand.',
-    },
-    {
-      icon: Clock,
-      title: 'Ready in Seconds',
-      description: 'Skip the expensive photoshoots. Get results instantly.',
     },
   ];
 
@@ -133,37 +113,6 @@ export default function Tutorial() {
           </div>
         </div>
 
-        {/* Benefits - Editorial Cards */}
-        <div 
-          ref={benefitsReveal.ref}
-          className={`mb-24 transition-all duration-1000 ${
-            benefitsReveal.isVisible ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <div className="flex items-center gap-4 mb-12">
-            <div className="w-12 h-px bg-primary" />
-            <span className="editorial-caps">Why FormaNova</span>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {benefits.map((benefit, index) => (
-              <div 
-                key={index}
-                ref={setBenefitRef(index)}
-                className={`editorial-card bg-card/40 backdrop-blur-sm border border-border/60 rounded-lg p-8 space-y-4 transition-all duration-700 ${
-                  benefitVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
-                }`}
-                style={{ transitionDelay: benefitVisible[index] ? `${index * 150}ms` : '0ms' }}
-              >
-                <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-primary/10 text-primary">
-                  <benefit.icon className="h-6 w-6" />
-                </div>
-                <h4 className="font-editorial text-xl font-medium">{benefit.title}</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* CTA */}
         <div 
@@ -179,7 +128,6 @@ export default function Tutorial() {
           >
             <Play className="h-4 w-4 mr-3" />
             <span>Start Creating</span>
-            <ArrowRight className="h-4 w-4 ml-3" />
           </Button>
           <p className="text-xs text-muted-foreground">
             Access this guide anytime from the menu.
