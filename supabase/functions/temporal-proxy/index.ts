@@ -28,6 +28,8 @@ serve(async (req) => {
       return await handleResult(endpoint);
     } else if (endpoint === '/health') {
       return await handleHealth();
+    } else if (endpoint === '/tcp-test') {
+      return await handleTcpTest();
     } else {
       // Legacy Temporal endpoints - fall back to old behavior
       return await handleLegacy(req, endpoint);
@@ -176,6 +178,40 @@ async function handleHealth(): Promise<Response> {
       JSON.stringify({ 
         status: 'offline',
         error: 'DAG pipeline server not reachable' 
+      }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function handleTcpTest(): Promise<Response> {
+  console.log('[DAG] TCP connection test');
+  
+  const host = '20.106.235.80';
+  const port = 8000;
+  
+  try {
+    const conn = await Deno.connect({ hostname: host, port });
+    conn.close();
+    
+    return new Response(
+      JSON.stringify({ 
+        status: 'success',
+        message: `TCP connection to ${host}:${port} successful`,
+        host,
+        port
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ 
+        status: 'failed',
+        message: `TCP connection to ${host}:${port} failed`,
+        error: errorMessage,
+        host,
+        port
       }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
