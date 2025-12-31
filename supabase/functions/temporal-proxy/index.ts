@@ -26,6 +26,8 @@ serve(async (req) => {
       return await handleStatus(endpoint);
     } else if (endpoint.startsWith('/result/')) {
       return await handleResult(endpoint);
+    } else if (endpoint === '/images/fetch') {
+      return await handleImageFetch(req);
     } else if (endpoint === '/health') {
       return await handleHealth();
     } else if (endpoint === '/tcp-test') {
@@ -182,6 +184,29 @@ async function handleHealth(): Promise<Response> {
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+}
+
+async function handleImageFetch(req: Request): Promise<Response> {
+  console.log('[DAG] Fetching images');
+  
+  const body = await req.json();
+  
+  const response = await fetch(`${DAG_API_URL}/images/fetch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  
+  const data = await response.text();
+  console.log('[DAG] Image fetch response:', response.status, data.substring(0, 200));
+  
+  return new Response(data, {
+    status: response.status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': response.headers.get('Content-Type') || 'application/json',
+    },
+  });
 }
 
 async function handleTcpTest(): Promise<Response> {
