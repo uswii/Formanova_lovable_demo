@@ -144,34 +144,54 @@ export function MaskCanvas({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.scale(dpr, dpr);
 
-    // Redraw all initial strokes (points are in SAM space, convert to display)
-    // Use very low opacity for brush strokes
-    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 255, 0, 0.2)';
-    const removeColor = 'rgba(0, 0, 0, 0.3)';
-    
-    initialStrokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? addColor : removeColor;
-      stroke.points.forEach((point) => {
-        const displayPt = toDisplaySpace(point[0], point[1]);
+    // Helper to draw a smooth stroke as connected lines
+    const drawSmoothStroke = (points: number[][], radius: number, color: string) => {
+      if (points.length === 0) return;
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = radius;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      if (points.length === 1) {
+        // Single point - draw a dot
+        const displayPt = toDisplaySpace(points[0][0], points[0][1]);
         ctx.beginPath();
-        ctx.arc(displayPt.x, displayPt.y, stroke.radius / 2, 0, Math.PI * 2);
+        ctx.arc(displayPt.x, displayPt.y, radius / 2, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
-      });
+        return;
+      }
+      
+      // Multiple points - draw connected line
+      ctx.beginPath();
+      const firstPt = toDisplaySpace(points[0][0], points[0][1]);
+      ctx.moveTo(firstPt.x, firstPt.y);
+      
+      for (let i = 1; i < points.length; i++) {
+        const pt = toDisplaySpace(points[i][0], points[i][1]);
+        ctx.lineTo(pt.x, pt.y);
+      }
+      
+      ctx.stroke();
+    };
+
+    // Translucent colors for brush strokes
+    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 255, 0, 0.15)';
+    const removeColor = 'rgba(0, 0, 0, 0.25)';
+    
+    // Draw all initial strokes as smooth lines
+    initialStrokes.forEach((stroke) => {
+      const color = stroke.type === 'add' ? addColor : removeColor;
+      drawSmoothStroke(stroke.points, stroke.radius, color);
     });
 
     // Draw active stroke for live preview
     if (activeStroke && activeStroke.points.length > 0) {
       const color = activeStroke.type === 'add' ? addColor : removeColor;
-      activeStroke.points.forEach((point) => {
-        const displayPt = toDisplaySpace(point[0], point[1]);
-        ctx.beginPath();
-        ctx.arc(displayPt.x, displayPt.y, activeStroke.radius / 2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-      });
+      drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
     }
-  }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace]);
+  }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace, brushColor]);
 
   // Draw dots for marking mode (dots are in SAM space)
   useEffect(() => {
@@ -226,7 +246,10 @@ export function MaskCanvas({
     return toSamSpace(xDisplay, yDisplay);
   }, [toSamSpace]);
 
-  // Draw a point on the canvas (x, y are in SAM space)
+  // Store last point for smooth line drawing
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Draw a point or line segment on the canvas (x, y are in SAM space)
   const draw = useCallback((x: number, y: number) => {
     const overlay = overlayCanvasRef.current;
     const ctx = overlay?.getContext('2d');
@@ -237,10 +260,32 @@ export function MaskCanvas({
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    ctx.beginPath();
-    ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
-    ctx.fillStyle = brushColor;
-    ctx.fill();
+    
+    // Use translucent colors
+    const drawColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 
+                      brushColor === '#000000' ? 'rgba(0, 0, 0, 0.25)' : 
+                      'rgba(0, 255, 0, 0.15)';
+    
+    if (lastPointRef.current) {
+      // Draw line from last point to current point for smooth strokes
+      const lastDisplayPt = toDisplaySpace(lastPointRef.current.x, lastPointRef.current.y);
+      ctx.strokeStyle = drawColor;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastDisplayPt.x, lastDisplayPt.y);
+      ctx.lineTo(displayPt.x, displayPt.y);
+      ctx.stroke();
+    } else {
+      // First point - draw a dot
+      ctx.beginPath();
+      ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = drawColor;
+      ctx.fill();
+    }
+    
+    lastPointRef.current = { x, y };
   }, [brushColor, brushSize, toDisplaySpace]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -254,6 +299,7 @@ export function MaskCanvas({
 
     if (mode === 'brush') {
       setIsDrawing(true);
+      lastPointRef.current = null; // Reset for new stroke
       onBrushStrokeStart?.();
       onBrushStrokePoint?.(coords.x, coords.y);
       draw(coords.x, coords.y);
@@ -273,6 +319,7 @@ export function MaskCanvas({
   const finishStroke = useCallback(() => {
     if (mode === 'brush' && isDrawing) {
       setIsDrawing(false);
+      lastPointRef.current = null; // Reset for next stroke
       onBrushStrokeEnd?.();
 
       // Export canvas data
