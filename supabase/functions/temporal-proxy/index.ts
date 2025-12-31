@@ -57,10 +57,14 @@ async function handleProcess(req: Request): Promise<Response> {
   const contentType = req.headers.get('content-type') || '';
   
   if (contentType.includes('multipart/form-data')) {
-    // Forward FormData request directly
+    // Forward FormData request directly - this is the correct approach
     const formData = await req.formData();
     
-    console.log('[DAG] FormData keys:', [...formData.keys()]);
+    // Log for debugging
+    console.log('[DAG] workflow_name:', formData.get('workflow_name'));
+    console.log('[DAG] has file:', !!formData.get('file'));
+    const overridesStr = String(formData.get('overrides') || '');
+    console.log('[DAG] overrides:', overridesStr.slice(0, 300));
     
     const response = await fetch(`${DAG_API_URL}/process`, {
       method: 'POST',
