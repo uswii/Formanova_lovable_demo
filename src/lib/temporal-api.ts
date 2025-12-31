@@ -485,18 +485,47 @@ class TemporalApi {
   }
 
   async fetchImages(imageUris: { [key: string]: string | null | undefined }): Promise<{ [key: string]: string | null }> {
-    const response = await fetch(getProxyUrl('/images/fetch'), {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ uris: imageUris }),
+    const results: { [key: string]: string | null } = {};
+    
+    // Use azure-fetch-image edge function to fetch each image from Azure
+    const fetchPromises = Object.entries(imageUris).map(async ([key, uri]) => {
+      if (!uri) {
+        results[key] = null;
+        return;
+      }
+      
+      // Handle both object { uri: "..." } and string formats
+      const azureUri = typeof uri === 'object' && (uri as any).uri ? (uri as any).uri : uri;
+      
+      if (!azureUri || !azureUri.startsWith('azure://')) {
+        console.warn(`[fetchImages] Invalid URI for ${key}:`, azureUri);
+        results[key] = null;
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/azure-fetch-image`, {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify({ azure_uri: azureUri }),
+        });
+        
+        if (!response.ok) {
+          console.warn(`[fetchImages] Failed to fetch ${key}:`, response.status);
+          results[key] = null;
+          return;
+        }
+        
+        const data = await response.json();
+        results[key] = data.base64 || null;
+      } catch (error) {
+        console.warn(`[fetchImages] Error fetching ${key}:`, error);
+        results[key] = null;
+      }
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to fetch images: ${error}`);
-    }
-
-    return await response.json();
+    
+    await Promise.all(fetchPromises);
+    return results;
   }
 }
 
