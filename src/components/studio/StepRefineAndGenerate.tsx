@@ -290,7 +290,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             </div>
             
             <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
-            <p className="text-sm text-muted-foreground mb-1">Temporal Workflow Pipeline</p>
             <p className="text-sm font-medium text-primary mb-4">{currentStepLabel}</p>
             
             <div className="w-full max-w-xs h-3 bg-muted rounded-full overflow-hidden">
