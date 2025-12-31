@@ -399,37 +399,37 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     </div>
                   </div>
                   {/* Side panel - scrollable if needed */}
-                  <div className="space-y-3 overflow-y-auto max-h-full">
+                  <div className="space-y-6 overflow-y-auto max-h-full">
                     {state.fidelityViz && (
-                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
-                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <Gem className="h-5 w-5 text-primary" /> Jewelry Accuracy
+                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                        <h4 className="font-display text-lg font-bold uppercase tracking-wide text-foreground flex items-center gap-3">
+                          <Gem className="h-6 w-6 text-primary" /> Jewelry Accuracy
                         </h4>
-                        <div className="overflow-hidden border border-border/50 rounded">
+                        <div className="overflow-hidden border border-border/50 rounded-lg">
                           <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-green-500" />
+                        <div className="flex flex-wrap gap-6 text-base pt-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-4 h-4 rounded bg-green-500" />
                             <span className="text-foreground font-medium">Original</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-blue-500" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-4 h-4 rounded bg-blue-500" />
                             <span className="text-foreground font-medium">Extended</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-red-500" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-4 h-4 rounded bg-red-500" />
                             <span className="text-foreground font-medium">Shrunk</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {state.metrics && (
-                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
-                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-primary" /> Quality Metrics
+                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                        <h4 className="font-display text-lg font-bold uppercase tracking-wide text-foreground flex items-center gap-3">
+                          <BarChart3 className="h-6 w-6 text-primary" /> Quality Metrics
                         </h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-4">
                           <MetricCard label="Precision" value={state.metrics.precision} />
                           <MetricCard label="Recall" value={state.metrics.recall} />
                           <MetricCard label="IoU" value={state.metrics.iou} />
@@ -734,9 +734,9 @@ function MetricCard({ label, value, format = 'percent' }: { label: string; value
   const isGood = format === 'ratio' ? value >= 0.9 && value <= 1.1 : value >= 0.9;
   
   return (
-    <div className="p-3 rounded-lg bg-muted/70 border border-border/50 text-center">
-      <p className="text-sm text-muted-foreground font-medium mb-1">{label}</p>
-      <p className={`text-xl font-bold ${isGood ? 'text-green-500' : 'text-foreground'}`}>{displayValue}</p>
+    <div className="p-5 rounded-xl bg-muted/70 border border-border/50 text-center">
+      <p className="text-base text-muted-foreground font-medium mb-2">{label}</p>
+      <p className={`text-2xl font-bold ${isGood ? 'text-green-500' : 'text-foreground'}`}>{displayValue}</p>
     </div>
   );
 }
