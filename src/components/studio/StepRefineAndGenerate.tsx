@@ -656,29 +656,15 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               </Button>
             </div>
 
-            {/* Prompt Input */}
-            <div className="space-y-2 pt-4 border-t border-border">
-              <label className="text-sm font-medium">Generation Prompt</label>
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what you want to generate..."
-                className="min-h-[80px] resize-none"
-              />
-              <p className="text-xs text-muted-foreground">
-                Describe how the jewelry should appear in the final image
-              </p>
-            </div>
-
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-4 border-t border-border">
               <Button variant="outline" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button 
                 className="flex-1 h-12 text-lg font-semibold"
                 onClick={handleGenerate} 
-                disabled={!state.originalImage || !prompt.trim()}
+                disabled={!state.originalImage}
               >
                 <Gem className="h-5 w-5 mr-2" />
                 Generate Photoshoot
