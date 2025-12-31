@@ -407,11 +407,11 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       
       {/* Fullscreen Dialog - Interactive mode for marking */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden">
           <div className="relative w-full h-full flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border/20">
               <div className="flex items-center gap-4">
-                <h3 className="font-display text-lg">Mark Jewelry - Enlarged View</h3>
+                <h3 className="font-display text-lg font-medium">Mark Jewelry - Enlarged View</h3>
                 <span className="text-sm text-muted-foreground">
                   {redDots.length}/{MAX_DOTS} dots placed
                 </span>
@@ -440,6 +440,13 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setFullscreenImage(null)}
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
