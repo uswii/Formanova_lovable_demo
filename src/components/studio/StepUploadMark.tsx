@@ -306,16 +306,9 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
   const MAX_DOTS = 10;
   const WARN_DOTS = 6;
+  const [showDotWarning, setShowDotWarning] = useState(false);
 
   const handleCanvasClick = (x: number, y: number) => {
-    // Check if we're at the warning threshold
-    if (redDots.length === WARN_DOTS - 1) {
-      toast({
-        title: `${WARN_DOTS} dots reached`,
-        description: 'Usually 3-5 dots are enough for good results. You can continue adding more if needed.',
-      });
-    }
-    
     // Check if we've reached max
     if (redDots.length >= MAX_DOTS) {
       toast({
@@ -324,6 +317,12 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         description: `You can only place up to ${MAX_DOTS} dots. Remove some to add more.`,
       });
       return;
+    }
+    
+    // Show warning when reaching threshold (after adding this dot)
+    if (redDots.length + 1 === WARN_DOTS) {
+      setShowDotWarning(true);
+      setTimeout(() => setShowDotWarning(false), 3000);
     }
     
     setUndoStack((prev) => [...prev, redDots]);
@@ -525,6 +524,20 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
+                  
+                  {/* Dot warning overlay - centered on canvas */}
+                  {showDotWarning && !isProcessing && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg px-6 py-4 shadow-lg max-w-[80%] text-center">
+                        <p className="text-sm font-medium text-foreground">
+                          {WARN_DOTS} dots placed
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Usually 3-5 dots are enough for good results
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Processing overlay - shows on top of canvas with dots visible */}
                   {isProcessing && (
