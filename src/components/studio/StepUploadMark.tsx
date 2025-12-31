@@ -164,15 +164,16 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       console.log('[Masking] Workflow completed, result:', result);
 
       // Extract mask data from sam3 sink
-      // Result shape: { sam3: [{ mask_uri: "...", overlay_uri: "..." }] }
+      // Result shape: { sam3: [{ mask: { uri: "...", bytes: ..., type: "..." }, overlay: { uri: "..." } }] }
       const sam3Result = result.sam3?.[0];
       
       if (!sam3Result) {
         throw new Error('No mask result from workflow');
       }
 
-      const maskUri = sam3Result.mask_uri || sam3Result.mask;
-      const overlayUri = sam3Result.overlay_uri || sam3Result.overlay;
+      // Handle both nested { uri: "..." } and flat "uri" formats
+      const maskUri = typeof sam3Result.mask === 'object' ? sam3Result.mask?.uri : (sam3Result.mask_uri || sam3Result.mask);
+      const overlayUri = typeof sam3Result.overlay === 'object' ? sam3Result.overlay?.uri : (sam3Result.overlay_uri || sam3Result.overlay);
 
       console.log('[Masking] Mask URI:', maskUri);
       console.log('[Masking] Overlay URI:', overlayUri);
