@@ -474,9 +474,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   {/* Side panel - scrollable if needed */}
                   <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityVizGemini && (
-                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
-                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <Gem className="h-5 w-5 text-primary" /> Jewelry Accuracy
+                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
+                          Jewelry Accuracy
                         </h4>
                         <div className="overflow-hidden border border-border/50 rounded">
                           <img src={state.fidelityVizGemini} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
@@ -498,9 +498,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                     {state.metricsGemini && (
-                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
-                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-primary" /> Quality Metrics
+                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
+                          Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
