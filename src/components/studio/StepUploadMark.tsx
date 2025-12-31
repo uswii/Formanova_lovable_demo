@@ -10,6 +10,74 @@ import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
+// Create an overlay by compositing the binary mask (green tint) over the original image
+async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Cannot create canvas context'));
+      return;
+    }
+
+    const originalImg = new Image();
+    const maskImg = new Image();
+    
+    let loadedCount = 0;
+    const onLoad = () => {
+      loadedCount++;
+      if (loadedCount < 2) return;
+      
+      // Set canvas size to original image size
+      canvas.width = originalImg.width;
+      canvas.height = originalImg.height;
+      
+      // Draw original image
+      ctx.drawImage(originalImg, 0, 0);
+      
+      // Create a temporary canvas for the mask
+      const maskCanvas = document.createElement('canvas');
+      const maskCtx = maskCanvas.getContext('2d');
+      if (!maskCtx) {
+        reject(new Error('Cannot create mask canvas context'));
+        return;
+      }
+      
+      maskCanvas.width = originalImg.width;
+      maskCanvas.height = originalImg.height;
+      
+      // Draw mask scaled to original size
+      maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
+      
+      // Get mask data and create green overlay where mask is white
+      const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < maskData.data.length; i += 4) {
+        // If mask pixel is white (or bright), apply green tint
+        const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
+        if (brightness > 128) {
+          // Blend with green (50% opacity)
+          overlayData.data[i] = Math.round(overlayData.data[i] * 0.5); // R
+          overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * 0.5 + 255 * 0.5); // G
+          overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * 0.5); // B
+        }
+      }
+      
+      ctx.putImageData(overlayData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    
+    originalImg.onload = onLoad;
+    maskImg.onload = onLoad;
+    originalImg.onerror = () => reject(new Error('Failed to load original image'));
+    maskImg.onerror = () => reject(new Error('Failed to load mask image'));
+    
+    originalImg.src = originalImage;
+    maskImg.src = maskBinary;
+  });
+}
+
 interface Props {
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
@@ -178,26 +246,29 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       console.log('[Masking] Mask URI:', maskUri);
       console.log('[Masking] Overlay URI:', overlayUri);
 
-      // Fetch the overlay images for display
-      setProcessingStep('Fetching overlay...');
+      // Fetch the mask image for display
+      setProcessingStep('Fetching mask...');
       setProcessingProgress(90);
 
-      // Try to fetch overlay data if URIs are available
-      let maskOverlay: string | null = null;
       let maskBinary: string | null = null;
+      let maskOverlay: string | null = null;
 
-      if (maskUri || overlayUri) {
+      if (maskUri) {
         try {
           const images = await temporalApi.fetchImages({
             mask: maskUri,
-            overlay: overlayUri,
           });
           
-          maskBinary = images.mask ? `data:image/png;base64,${images.mask}` : null;
-          maskOverlay = images.overlay ? `data:image/png;base64,${images.overlay}` : null;
+          if (images.mask) {
+            maskBinary = `data:image/png;base64,${images.mask}`;
+            
+            // Create overlay by compositing mask over original image
+            setProcessingStep('Creating overlay...');
+            maskOverlay = await createMaskOverlay(state.originalImage!, maskBinary);
+            console.log('[Masking] Created overlay from binary mask');
+          }
         } catch (fetchError) {
-          console.warn('[Masking] Failed to fetch overlay images:', fetchError);
-          // Continue without overlay preview
+          console.warn('[Masking] Failed to fetch mask:', fetchError);
         }
       }
 
