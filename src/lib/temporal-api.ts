@@ -282,24 +282,43 @@ class TemporalApi {
     prompt: string,
     invertMask: boolean = false
   ): Promise<DAGStartResponse> {
-    const formData = new FormData();
-    formData.append('file', imageBlob, 'image.jpg');
-    formData.append('workflow_name', 'flux_gen_pipeline');
-    formData.append('overrides', JSON.stringify({
-      mask: maskBase64,
-      prompt,
-      invert_mask: invertMask,
-    }));
+    // Convert image blob to base64 for the pipeline
+    const imageBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove data:image/...;base64, prefix if present
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(imageBlob);
+    });
+
+    // Clean mask base64 - remove data URI prefix if present
+    const cleanMask = maskBase64.includes(',') ? maskBase64.split(',')[1] : maskBase64;
 
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
+    // Send as JSON with base64 images - matching the pipeline inputs:
+    // root.original_path, root.mask, root.invert_mask, root.prompt
     const response = await fetch(getProxyUrl('/process'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${anonKey}`,
         'apikey': anonKey,
+        'Content-Type': 'application/json',
       },
-      body: formData,
+      body: JSON.stringify({
+        workflow_name: 'flux_gen_pipeline',
+        image_base64: imageBase64,
+        overrides: {
+          original_path: imageBase64,  // Pipeline expects root.original_path
+          mask: cleanMask,              // Pipeline expects root.mask
+          prompt: prompt,               // Pipeline expects root.prompt
+          invert_mask: invertMask,      // Pipeline expects root.invert_mask
+        },
+      }),
     });
 
     if (!response.ok) {
