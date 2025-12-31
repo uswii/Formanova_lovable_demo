@@ -145,10 +145,12 @@ export function MaskCanvas({
     ctx.scale(dpr, dpr);
 
     // Redraw all initial strokes (points are in SAM space, convert to display)
-    // Use the brushColor prop to determine the add color (green for overlay, white for binary)
-    const addColor = brushColor === '#FFFFFF' ? '#FFFFFF' : '#00FF00';
+    // Use the brushColor prop to determine the add color (translucent green for overlay, white for binary)
+    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 255, 0, 0.4)';
+    const removeColor = 'rgba(0, 0, 0, 0.6)';
+    
     initialStrokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? addColor : '#000000';
+      const color = stroke.type === 'add' ? addColor : removeColor;
       stroke.points.forEach((point) => {
         const displayPt = toDisplaySpace(point[0], point[1]);
         ctx.beginPath();
@@ -160,7 +162,7 @@ export function MaskCanvas({
 
     // Draw active stroke for live preview
     if (activeStroke && activeStroke.points.length > 0) {
-      const color = activeStroke.type === 'add' ? addColor : '#000000';
+      const color = activeStroke.type === 'add' ? addColor : removeColor;
       activeStroke.points.forEach((point) => {
         const displayPt = toDisplaySpace(point[0], point[1]);
         ctx.beginPath();
@@ -186,16 +188,24 @@ export function MaskCanvas({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.scale(dpr, dpr);
 
-    // Draw dots (convert from SAM space to display space)
-    dots.forEach((dot) => {
+    // Draw dots with translucent fill (convert from SAM space to display space)
+    dots.forEach((dot, index) => {
       const displayPt = toDisplaySpace(dot.x, dot.y);
       ctx.beginPath();
       ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
-      ctx.fillStyle = brushColor;
+      // Use translucent red for dots
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.stroke();
+      
+      // Add number label
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((index + 1).toString(), displayPt.x, displayPt.y);
     });
   }, [dots, brushColor, brushSize, mode, imageLoaded, toDisplaySpace]);
 
