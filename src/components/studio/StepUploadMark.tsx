@@ -49,30 +49,25 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       // Draw mask scaled to original size
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
-      // Get mask data and create green overlay where mask is selected
+      // Get mask data and create translucent green overlay where mask is selected
       // Note: The API returns inverted mask - white pixels = selected area to highlight
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
+      // Use 30% opacity for translucent overlay
+      const overlayOpacity = 0.3;
+      
       for (let i = 0; i < maskData.data.length; i += 4) {
         // Check mask pixel brightness - white = selected area
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
-        // Apply green tint where mask is WHITE (selected jewelry area)
+        // Apply translucent green tint where mask is WHITE (selected jewelry area)
         if (brightness > 128) {
-          // Blend with green (50% opacity)
-          overlayData.data[i] = Math.round(overlayData.data[i] * 0.5); // R
-          overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * 0.5 + 255 * 0.5); // G
-          overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * 0.5); // B
+          // Blend with green using translucent opacity
+          overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity)); // R
+          overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + 255 * overlayOpacity); // G
+          overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity)); // B
         }
       }
-      
-      console.log('[createMaskOverlay] Mask stats - checking first 1000 pixels for white/black ratio');
-      let whiteCount = 0, blackCount = 0;
-      for (let i = 0; i < Math.min(maskData.data.length, 4000); i += 4) {
-        const b = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
-        if (b > 128) whiteCount++; else blackCount++;
-      }
-      console.log('[createMaskOverlay] White pixels:', whiteCount, 'Black pixels:', blackCount);
       
       ctx.putImageData(overlayData, 0, 0);
       resolve(canvas.toDataURL('image/png'));
@@ -309,7 +304,28 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setProcessingStep('');
   };
 
+  const MAX_DOTS = 10;
+  const WARN_DOTS = 6;
+
   const handleCanvasClick = (x: number, y: number) => {
+    // Check if we're at the warning threshold
+    if (redDots.length === WARN_DOTS - 1) {
+      toast({
+        title: `${WARN_DOTS} dots reached`,
+        description: 'Usually 3-5 dots are enough for good results. You can continue adding more if needed.',
+      });
+    }
+    
+    // Check if we've reached max
+    if (redDots.length >= MAX_DOTS) {
+      toast({
+        variant: 'destructive',
+        title: 'Maximum dots reached',
+        description: `You can only place up to ${MAX_DOTS} dots. Remove some to add more.`,
+      });
+      return;
+    }
+    
     setUndoStack((prev) => [...prev, redDots]);
     setRedoStack([]);
     setRedDots((prev) => [...prev, { x, y }]);
@@ -390,29 +406,61 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       {/* Tutorial Overlay */}
       {showTutorial && <MarkingTutorial onDismiss={() => setShowTutorial(false)} />}
       
-      {/* Fullscreen Dialog */}
+      {/* Fullscreen Dialog - Interactive mode for marking */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">
           <div className="relative w-full h-full flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border/20">
-              <h3 className="font-display text-lg">Image Preview</h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fullscreenImage && handleDownload(fullscreenImage, 'jewelry_image.jpg')}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
+              <div className="flex items-center gap-4">
+                <h3 className="font-display text-lg">Mark Jewelry - Enlarged View</h3>
+                <span className="text-sm text-muted-foreground">
+                  {redDots.length}/{MAX_DOTS} dots placed
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0}
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fullscreenImage && handleDownload(fullscreenImage, 'jewelry_image.jpg')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-              {fullscreenImage && (
-                <img 
-                  src={fullscreenImage} 
-                  alt="Full preview" 
-                  className="max-w-full max-h-[80vh] object-contain"
+              {fullscreenImage && state.originalImage && (
+                <MaskCanvas
+                  image={state.originalImage}
+                  dots={redDots}
+                  brushColor="#FF0000"
+                  brushSize={markerSize}
+                  mode="dot"
+                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                  onCanvasClick={handleCanvasClick}
                 />
               )}
+            </div>
+            <div className="p-4 border-t border-border/20 flex justify-center">
+              <p className="text-sm text-muted-foreground">
+                Click on jewelry to mark it. Usually 3-5 dots are enough.
+              </p>
             </div>
           </div>
         </DialogContent>
