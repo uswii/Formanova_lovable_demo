@@ -576,9 +576,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                  <Play className="h-6 w-6 text-white" />
-                </div>
               </button>
             ))}
           </div>
