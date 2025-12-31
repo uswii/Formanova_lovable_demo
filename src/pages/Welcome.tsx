@@ -4,7 +4,7 @@ import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
-import { MarqueeText, MarqueeDivider } from '@/components/MarqueeText';
+
 
 
 // Assets
@@ -88,11 +88,6 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* Marquee Divider */}
-      <MarqueeDivider 
-        words={['AI PHOTOGRAPHY', 'JEWELRY', 'PRESERVED', 'ACCURATE', 'TRUSTED']} 
-        speed="normal"
-      />
 
       {/* Features Section */}
       <section className="marta-section">
