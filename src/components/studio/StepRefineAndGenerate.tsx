@@ -129,8 +129,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         maskBase64 = maskBase64.split(',')[1];
       }
 
-      // Default prompt for jewelry photoshoot
-      const prompt = 'professional jewelry photoshoot, elegant model, studio lighting';
+      // Prompt for jewelry generation
+      const prompt = 'Necklace worn by female model';
 
       console.log('[Generation] Starting DAG workflow');
 
