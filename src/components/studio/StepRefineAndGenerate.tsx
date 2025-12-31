@@ -355,7 +355,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             </Button>
             {state.status && <StatusBadge status={state.status} />}
           </div>
-          <h2 className="font-display text-xl md:text-2xl uppercase tracking-tight">Generated Photoshoot</h2>
+          <h2 className="font-display text-2xl md:text-3xl uppercase tracking-tight">Generated Photoshoot</h2>
           <Button size="default" className="px-6" onClick={handleGenerate}>
             <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
           </Button>
@@ -401,9 +401,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   {/* Side panel - scrollable if needed */}
                   <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityViz && (
-                      <div className="border border-border p-3 space-y-2">
-                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-3 w-3" /> Jewelry Accuracy Visualization
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-base uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <Gem className="h-4 w-4" /> Jewelry Accuracy Visualization
                         </h4>
                         <div className="overflow-hidden border border-border/50">
                           <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
@@ -425,9 +425,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                     {state.metrics && (
-                      <div className="border border-border p-3 space-y-2">
-                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-3 w-3" /> Quality Metrics
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-base uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metrics.precision} />
@@ -474,9 +474,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   {/* Side panel - scrollable if needed */}
                   <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityVizGemini && (
-                      <div className="border border-border p-3 space-y-2">
-                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <Gem className="h-3 w-3" /> Jewelry Accuracy Visualization
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-base uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <Gem className="h-4 w-4" /> Jewelry Accuracy Visualization
                         </h4>
                         <div className="overflow-hidden border border-border/50">
                           <img src={state.fidelityVizGemini} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
@@ -498,9 +498,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                       </div>
                     )}
                     {state.metricsGemini && (
-                      <div className="border border-border p-3 space-y-2">
-                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-3 w-3" /> Quality Metrics
+                      <div className="border border-border p-4 space-y-3">
+                        <h4 className="font-display text-base uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4" /> Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-1.5">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
