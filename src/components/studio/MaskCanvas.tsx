@@ -176,9 +176,9 @@ export function MaskCanvas({
       ctx.stroke();
     };
 
-    // Translucent colors for brush strokes
-    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 255, 0, 0.15)';
-    const removeColor = 'rgba(0, 0, 0, 0.25)';
+    // Translucent colors for brush strokes (35% opacity)
+    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 255, 0, 0.35)';
+    const removeColor = 'rgba(0, 0, 0, 0.35)';
     
     // Draw all initial strokes as smooth lines
     initialStrokes.forEach((stroke) => {
@@ -261,10 +261,10 @@ export function MaskCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    // Use translucent colors
-    const drawColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 
-                      brushColor === '#000000' ? 'rgba(0, 0, 0, 0.25)' : 
-                      'rgba(0, 255, 0, 0.15)';
+    // Use translucent colors (35% opacity)
+    const drawColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.35)' : 
+                      brushColor === '#000000' ? 'rgba(0, 0, 0, 0.35)' : 
+                      'rgba(0, 255, 0, 0.35)';
     
     if (lastPointRef.current) {
       // Draw line from last point to current point for smooth strokes
