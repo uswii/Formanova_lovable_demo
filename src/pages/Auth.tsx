@@ -43,7 +43,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen formanova-gradient relative overflow-hidden flex items-center justify-center px-4">
+    <div className="min-h-[calc(100vh-4rem)] formanova-gradient relative overflow-hidden flex items-center justify-center px-4">
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
