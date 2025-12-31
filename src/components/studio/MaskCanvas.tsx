@@ -176,9 +176,12 @@ export function MaskCanvas({
       ctx.stroke();
     };
 
-    // Translucent colors for brush strokes (35% opacity)
-    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 255, 0, 0.35)';
-    const removeColor = 'rgba(0, 0, 0, 0.35)';
+    // Use full opacity for binary mode (white/black brushes), translucent for overlay mode (green/black)
+    const isBinaryMode = brushColor === '#FFFFFF' || brushColor === '#000000';
+    const addColor = isBinaryMode 
+      ? (brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)')
+      : 'rgba(0, 255, 0, 0.35)';
+    const removeColor = isBinaryMode ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.35)';
     
     // Draw all initial strokes as smooth lines
     initialStrokes.forEach((stroke) => {
