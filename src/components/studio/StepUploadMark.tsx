@@ -535,13 +535,21 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   {/* Dot warning overlay - centered on canvas */}
                   {showDotWarning && !isProcessing && (
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                      <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg px-6 py-4 shadow-lg max-w-[80%] text-center">
+                      <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg px-6 py-4 shadow-lg max-w-[80%] text-center pointer-events-auto">
                         <p className="text-sm font-medium text-foreground">
                           {WARN_DOTS} dots placed
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Usually 3-5 dots are enough for good results
                         </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="mt-3 text-xs"
+                          onClick={() => setShowDotWarning(false)}
+                        >
+                          Continue
+                        </Button>
                       </div>
                     </div>
                   )}
