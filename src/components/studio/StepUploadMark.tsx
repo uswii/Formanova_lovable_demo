@@ -206,18 +206,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
       // Convert image to blob
       const imageBlob = base64ToBlob(state.originalImage);
       
-      // Convert red dots to normalized points (0-1)
-      // Dots are stored in SAM space (2000x2667), normalize to 0-1
-      const SAM_WIDTH = 2000;
-      const SAM_HEIGHT = 2667;
-      
-      const points = redDots.map(dot => [
-        dot.x / SAM_WIDTH,
-        dot.y / SAM_HEIGHT,
-      ]);
+      // Send points as absolute pixel coordinates in SAM space (2000x2667)
+      // The backend will normalize them internally by dividing by image dimensions
+      // DO NOT normalize here - backend does: [[x / w, y / h] for x, y in points]
+      const points = redDots.map(dot => [dot.x, dot.y]);
       const pointLabels = redDots.map(() => 1); // All foreground points
 
       console.log('[Masking] Starting DAG workflow with', points.length, 'points');
+      console.log('[Masking] Points (absolute SAM coords):', points);
 
       // Start DAG masking workflow
       const { workflow_id } = await temporalApi.startMaskingWorkflow(
