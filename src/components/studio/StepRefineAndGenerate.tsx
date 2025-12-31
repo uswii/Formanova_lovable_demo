@@ -402,8 +402,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   <div className="space-y-6 overflow-y-auto max-h-full">
                     {state.fidelityViz && (
                       <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-wide text-foreground flex items-center gap-3">
-                          <Gem className="h-6 w-6 text-primary" /> Jewelry Accuracy
+                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
+                          Jewelry Accuracy
                         </h4>
                         <div className="overflow-hidden border border-border/50 rounded-lg">
                           <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
@@ -426,8 +426,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                     )}
                     {state.metrics && (
                       <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-wide text-foreground flex items-center gap-3">
-                          <BarChart3 className="h-6 w-6 text-primary" /> Quality Metrics
+                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
+                          Quality Metrics
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                           <MetricCard label="Precision" value={state.metrics.precision} />
