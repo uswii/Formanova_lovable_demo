@@ -84,18 +84,25 @@ async function handleProcess(req: Request): Promise<Response> {
     const formData = new FormData();
     formData.append('workflow_name', body.workflow_name);
     
-    // Build overrides including the image as original_path
+    // Build overrides
     const overrides = body.overrides || {};
-    
-    // If image_base64 is provided separately, add it to overrides as original_path
-    if (body.image_base64 && !overrides.original_path) {
-      overrides.original_path = body.image_base64;
-    }
-    
     formData.append('overrides', JSON.stringify(overrides));
+    
+    // Handle base64 image - backend requires 'file' field
+    if (body.image_base64) {
+      const base64Data = body.image_base64;
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      formData.append('file', blob, 'image.jpg');
+    }
     
     console.log('[DAG] Converted JSON to FormData, workflow:', body.workflow_name);
     console.log('[DAG] Overrides keys:', Object.keys(overrides));
+    console.log('[DAG] Has file:', !!body.image_base64);
     
     const response = await fetch(`${DAG_API_URL}/process`, {
       method: 'POST',
