@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// New DAG Pipeline API at 48.214.48.103:8002
-const DAG_API_URL = 'http://48.214.48.103:8002';
+// DAG Pipeline API at 20.106.235.80:8000
+const DAG_API_URL = 'http://20.106.235.80:8000';
 
 serve(async (req) => {
   // Handle CORS preflight
