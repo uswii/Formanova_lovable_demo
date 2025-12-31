@@ -20,6 +20,7 @@ class Config:
     image_manipulator_url: str = os.getenv("IMAGE_MANIPULATOR_URL", "http://20.106.235.80:8005")
     birefnet_url: str = os.getenv("BIREFNET_URL", "https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run")
     sam3_url: str = os.getenv("SAM3_URL", "https://nemoooooooooo--sam3-service-fastapi-app.modal.run")
+    flux_fill_url: str = os.getenv("FLUX_FILL_URL", "https://nemoooooooooo--flux-fill-service-fastapi-app.modal.run")
     a100_server_url: str = os.getenv("A100_SERVER_URL", "http://localhost:8000")
     
     # API Server
