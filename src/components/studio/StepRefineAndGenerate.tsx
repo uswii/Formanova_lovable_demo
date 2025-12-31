@@ -58,6 +58,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
   const [prompt, setPrompt] = useState('Necklace worn by female model');
+  const [dagNodeResults, setDagNodeResults] = useState<Record<string, string | null>>({});
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -156,21 +157,42 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
       console.log('[Generation] Workflow completed, result:', result);
 
-      // Extract result from upscaler sink
-      const upscalerResult = result.upscaler?.[0];
-      const generatedUri = upscalerResult?.image;
-
-      if (!generatedUri) {
-        throw new Error('No generated image from workflow');
+      // Extract all node outputs
+      const nodeImageUris: Record<string, string | null> = {};
+      
+      // Collect URIs from each node
+      if (result.resize_image?.[0]?.image) {
+        nodeImageUris.resize_image = result.resize_image[0].image;
+      }
+      if (result.resize_mask?.[0]?.mask) {
+        nodeImageUris.resize_mask = result.resize_mask[0].mask;
+      }
+      if (result.white_bg_segmenter?.[0]?.mask || result.white_bg_segmenter?.[0]?.image) {
+        nodeImageUris.white_bg_segmenter = result.white_bg_segmenter[0].mask || result.white_bg_segmenter[0].image;
+      }
+      if (result.flux_fill?.[0]?.image) {
+        nodeImageUris.flux_fill = result.flux_fill[0].image;
+      }
+      if (result.upscaler?.[0]?.image) {
+        nodeImageUris.upscaler = result.upscaler[0].image;
       }
 
-      // Fetch the generated image
-      const images = await temporalApi.fetchImages({
-        fluxResult: generatedUri,
-      });
+      console.log('[Generation] Node URIs to fetch:', nodeImageUris);
+
+      // Fetch all node images
+      const fetchedImages = await temporalApi.fetchImages(nodeImageUris);
+      
+      // Convert to data URIs
+      const nodeResults: Record<string, string | null> = {};
+      for (const [key, base64] of Object.entries(fetchedImages)) {
+        nodeResults[key] = base64 ? `data:image/png;base64,${base64}` : null;
+      }
+      
+      console.log('[Generation] All node results fetched:', Object.keys(nodeResults));
+      setDagNodeResults(nodeResults);
 
       updateState({
-        fluxResult: images.fluxResult ? `data:image/png;base64,${images.fluxResult}` : null,
+        fluxResult: nodeResults.upscaler || nodeResults.flux_fill || null,
         geminiResult: null,
         fidelityViz: null,
         fidelityVizGemini: null,
@@ -313,9 +335,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         {/* Results content - fills remaining space */}
         <div className="flex-1 min-h-0">
           <Tabs defaultValue="standard" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 shrink-0">
+            <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="standard">Standard</TabsTrigger>
               <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
+              <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
             </TabsList>
 
             <TabsContent value="standard" className="mt-4 flex-1 min-h-0">
@@ -462,6 +485,42 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="pipeline" className="mt-4 flex-1 min-h-0 overflow-y-auto">
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Output from each node in the generation DAG pipeline:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {Object.entries(dagNodeResults).map(([nodeName, imageUrl]) => (
+                    <div key={nodeName} className="space-y-2">
+                      <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={nodeName} 
+                            className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setFullscreenImage({ url: imageUrl, title: nodeName })}
+                          />
+                        ) : (
+                          <div className="aspect-square flex items-center justify-center text-muted-foreground text-xs">
+                            No output
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs font-mono text-center text-muted-foreground">
+                        {nodeName.replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                  ))}
+                  {Object.keys(dagNodeResults).length === 0 && (
+                    <p className="text-sm text-muted-foreground col-span-full">
+                      No pipeline outputs available yet. Generate a photoshoot to see node outputs.
+                    </p>
+                  )}
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
