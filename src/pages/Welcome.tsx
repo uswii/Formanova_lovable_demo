@@ -112,6 +112,21 @@ export default function Welcome() {
               </div>
             ))}
           </StaggerContainer>
+
+          {/* Feature Video */}
+          <ScrollRevealSection animation="fade-up" delay={300} className="mt-16 md:mt-24">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-auto"
+              >
+                <source src="/videos/features-showcase.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </ScrollRevealSection>
         </div>
       </section>
 
