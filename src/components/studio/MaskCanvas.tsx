@@ -145,9 +145,9 @@ export function MaskCanvas({
     ctx.scale(dpr, dpr);
 
     // Redraw all initial strokes (points are in SAM space, convert to display)
-    // Use the brushColor prop to determine the add color (translucent green for overlay, white for binary)
-    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 255, 0, 0.4)';
-    const removeColor = 'rgba(0, 0, 0, 0.6)';
+    // Use very low opacity for brush strokes
+    const addColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 255, 0, 0.2)';
+    const removeColor = 'rgba(0, 0, 0, 0.3)';
     
     initialStrokes.forEach((stroke) => {
       const color = stroke.type === 'add' ? addColor : removeColor;
@@ -188,24 +188,16 @@ export function MaskCanvas({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.scale(dpr, dpr);
 
-    // Draw dots with translucent fill (convert from SAM space to display space)
-    dots.forEach((dot, index) => {
+    // Draw dots - solid red with white border (original style)
+    dots.forEach((dot) => {
       const displayPt = toDisplaySpace(dot.x, dot.y);
       ctx.beginPath();
       ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
-      // Use translucent red for dots
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+      ctx.fillStyle = '#FF0000';
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.stroke();
-      
-      // Add number label
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText((index + 1).toString(), displayPt.x, displayPt.y);
     });
   }, [dots, brushColor, brushSize, mode, imageLoaded, toDisplaySpace]);
 
