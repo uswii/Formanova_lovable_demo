@@ -490,36 +490,71 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <TabsContent value="pipeline" className="mt-4 flex-1 min-h-0 overflow-y-auto">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Output from each node in the generation DAG pipeline:
+                  Pipeline stages: Background Segmentation → Generation → Upscaling
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {Object.entries(dagNodeResults).map(([nodeName, imageUrl]) => (
-                    <div key={nodeName} className="space-y-2">
-                      <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
-                        {imageUrl ? (
-                          <img 
-                            src={imageUrl} 
-                            alt={nodeName} 
-                            className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setFullscreenImage({ url: imageUrl, title: nodeName })}
-                          />
-                        ) : (
-                          <div className="aspect-square flex items-center justify-center text-muted-foreground text-xs">
-                            No output
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs font-mono text-center text-muted-foreground">
-                        {nodeName.replace(/_/g, ' ')}
-                      </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* White BG Segmenter */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-center">1. Background Segmentation</h4>
+                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
+                      {dagNodeResults.white_bg_segmenter ? (
+                        <img 
+                          src={dagNodeResults.white_bg_segmenter} 
+                          alt="Background Segmentation" 
+                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setFullscreenImage({ url: dagNodeResults.white_bg_segmenter!, title: 'Background Segmentation' })}
+                        />
+                      ) : (
+                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
+                          No output
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {Object.keys(dagNodeResults).length === 0 && (
-                    <p className="text-sm text-muted-foreground col-span-full">
-                      No pipeline outputs available yet. Generate a photoshoot to see node outputs.
-                    </p>
-                  )}
+                  </div>
+
+                  {/* Flux Fill (before upscale) */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-center">2. Generated (Pre-Upscale)</h4>
+                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
+                      {dagNodeResults.flux_fill ? (
+                        <img 
+                          src={dagNodeResults.flux_fill} 
+                          alt="Generated Pre-Upscale" 
+                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setFullscreenImage({ url: dagNodeResults.flux_fill!, title: 'Generated (Pre-Upscale)' })}
+                        />
+                      ) : (
+                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
+                          No output
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Upscaler */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-center">3. Upscaled (Final)</h4>
+                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
+                      {dagNodeResults.upscaler ? (
+                        <img 
+                          src={dagNodeResults.upscaler} 
+                          alt="Upscaled Final" 
+                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setFullscreenImage({ url: dagNodeResults.upscaler!, title: 'Upscaled (Final)' })}
+                        />
+                      ) : (
+                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
+                          No output
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                {Object.keys(dagNodeResults).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Generate a photoshoot to see pipeline outputs.
+                  </p>
+                )}
               </div>
             </TabsContent>
           </Tabs>
