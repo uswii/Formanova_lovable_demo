@@ -77,7 +77,7 @@ export default function Studio() {
 
   const stepConfig = [
     { id: 'upload' as const, label: 'Upload & Mark', icon: Upload, step: 1 },
-    { id: 'generate' as const, label: 'Refine & Generate', icon: Sparkles, step: 2 },
+    { id: 'generate' as const, label: 'Refine & Generate', icon: null, step: 2 },
   ];
 
 
@@ -106,7 +106,7 @@ export default function Studio() {
                 <div className="h-6 w-6 rounded-full bg-current/20 flex items-center justify-center text-sm font-bold">
                   {step.step}
                 </div>
-                <step.icon className="h-4 w-4" />
+                {step.icon && <step.icon className="h-4 w-4" />}
                 <span className="hidden sm:inline font-medium">{step.label}</span>
               </button>
               {index < stepConfig.length - 1 && (

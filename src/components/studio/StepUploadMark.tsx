@@ -371,7 +371,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </span>
           </div>
           <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload & Mark</h2>
-          <p className="text-muted-foreground mt-2">Upload your image and tap on the jewelry to select it</p>
+          <p className="text-muted-foreground mt-2">Upload your image and click on the jewelry to mark it</p>
         </div>
         
         <div className="space-y-4">
