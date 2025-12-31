@@ -401,35 +401,35 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   {/* Side panel - scrollable if needed */}
                   <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityViz && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <Gem className="h-5 w-5" /> Jewelry Accuracy Visualization
+                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
+                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <Gem className="h-5 w-5 text-primary" /> Jewelry Accuracy
                         </h4>
-                        <div className="overflow-hidden border border-border/50">
+                        <div className="overflow-hidden border border-border/50 rounded">
                           <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
                         </div>
-                        <div className="flex flex-wrap gap-2 text-[10px]">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500" />
-                            <span>Original</span>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-green-500" />
+                            <span className="text-foreground font-medium">Original</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-blue-500" />
-                            <span>Extended</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-blue-500" />
+                            <span className="text-foreground font-medium">Extended</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-red-500" />
-                            <span>Shrunk</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-red-500" />
+                            <span className="text-foreground font-medium">Shrunk</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {state.metrics && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5" /> Quality Metrics
+                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
+                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-primary" /> Quality Metrics
                         </h4>
-                        <div className="grid grid-cols-2 gap-1.5">
+                        <div className="grid grid-cols-2 gap-2">
                           <MetricCard label="Precision" value={state.metrics.precision} />
                           <MetricCard label="Recall" value={state.metrics.recall} />
                           <MetricCard label="IoU" value={state.metrics.iou} />
@@ -474,35 +474,35 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                   {/* Side panel - scrollable if needed */}
                   <div className="space-y-3 overflow-y-auto max-h-full">
                     {state.fidelityVizGemini && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <Gem className="h-5 w-5" /> Jewelry Accuracy Visualization
+                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
+                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <Gem className="h-5 w-5 text-primary" /> Jewelry Accuracy
                         </h4>
-                        <div className="overflow-hidden border border-border/50">
+                        <div className="overflow-hidden border border-border/50 rounded">
                           <img src={state.fidelityVizGemini} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
                         </div>
-                        <div className="flex flex-wrap gap-2 text-[10px]">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500" />
-                            <span>Original</span>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-green-500" />
+                            <span className="text-foreground font-medium">Original</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-blue-500" />
-                            <span>Extended</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-blue-500" />
+                            <span className="text-foreground font-medium">Extended</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-red-500" />
-                            <span>Shrunk</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-red-500" />
+                            <span className="text-foreground font-medium">Shrunk</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {state.metricsGemini && (
-                      <div className="border border-border p-4 space-y-3">
-                        <h4 className="font-display text-lg font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5" /> Quality Metrics
+                      <div className="border border-border bg-card/50 p-4 space-y-3 rounded-lg">
+                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-foreground flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-primary" /> Quality Metrics
                         </h4>
-                        <div className="grid grid-cols-2 gap-1.5">
+                        <div className="grid grid-cols-2 gap-2">
                           <MetricCard label="Precision" value={state.metricsGemini.precision} />
                           <MetricCard label="Recall" value={state.metricsGemini.recall} />
                           <MetricCard label="IoU" value={state.metricsGemini.iou} />
@@ -734,9 +734,9 @@ function MetricCard({ label, value, format = 'percent' }: { label: string; value
   const isGood = format === 'ratio' ? value >= 0.9 && value <= 1.1 : value >= 0.9;
   
   return (
-    <div className="p-2 rounded-lg bg-muted/50 text-center">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold ${isGood ? 'text-green-500' : 'text-foreground'}`}>{displayValue}</p>
+    <div className="p-3 rounded-lg bg-muted/70 border border-border/50 text-center">
+      <p className="text-sm text-muted-foreground font-medium mb-1">{label}</p>
+      <p className={`text-xl font-bold ${isGood ? 'text-green-500' : 'text-foreground'}`}>{displayValue}</p>
     </div>
   );
 }
