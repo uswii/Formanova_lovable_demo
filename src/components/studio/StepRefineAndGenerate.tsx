@@ -556,7 +556,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
           <div>
             <span className="marta-label mb-3 block">Step 2</span>
             <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Refine & Generate</h2>
-            <p className="text-muted-foreground mt-2">Paint to adjust mask, then generate your photoshoot</p>
+            <p className="text-muted-foreground mt-2">Draw to Edit the mask if needed, then generate your photoshoot</p>
           </div>
           
           <div className="space-y-4">
