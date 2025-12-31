@@ -49,13 +49,15 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       // Draw mask scaled to original size
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
-      // Get mask data and create green overlay where mask is white
+      // Get mask data and create green overlay where mask is selected
+      // Note: The API returns inverted mask - white pixels = selected area to highlight
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
       for (let i = 0; i < maskData.data.length; i += 4) {
-        // If mask pixel is white (or bright), apply green tint
+        // Check mask pixel brightness - white = selected area
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
+        // Apply green tint where mask is WHITE (selected jewelry area)
         if (brightness > 128) {
           // Blend with green (50% opacity)
           overlayData.data[i] = Math.round(overlayData.data[i] * 0.5); // R
@@ -63,6 +65,14 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
           overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * 0.5); // B
         }
       }
+      
+      console.log('[createMaskOverlay] Mask stats - checking first 1000 pixels for white/black ratio');
+      let whiteCount = 0, blackCount = 0;
+      for (let i = 0; i < Math.min(maskData.data.length, 4000); i += 4) {
+        const b = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
+        if (b > 128) whiteCount++; else blackCount++;
+      }
+      console.log('[createMaskOverlay] White pixels:', whiteCount, 'Black pixels:', blackCount);
       
       ctx.putImageData(overlayData, 0, 0);
       resolve(canvas.toDataURL('image/png'));
