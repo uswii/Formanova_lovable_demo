@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
@@ -56,6 +57,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   // Generation state - Temporal workflow
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
+  const [prompt, setPrompt] = useState('Necklace worn by female model');
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -129,10 +131,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         maskBase64 = maskBase64.split(',')[1];
       }
 
-      // Prompt for jewelry generation
-      const prompt = 'Necklace worn by female model';
-
-      console.log('[Generation] Starting DAG workflow');
+      console.log('[Generation] Starting DAG workflow with prompt:', prompt);
 
       // Start DAG generation workflow
       const { workflow_id } = await temporalApi.startGenerationWorkflow(
@@ -598,15 +597,29 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               </Button>
             </div>
 
+            {/* Prompt Input */}
+            <div className="space-y-2 pt-4 border-t border-border">
+              <label className="text-sm font-medium">Generation Prompt</label>
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe what you want to generate..."
+                className="min-h-[80px] resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Describe how the jewelry should appear in the final image
+              </p>
+            </div>
+
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-border">
+            <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button 
                 className="flex-1 h-12 text-lg font-semibold"
                 onClick={handleGenerate} 
-                disabled={!state.originalImage}
+                disabled={!state.originalImage || !prompt.trim()}
               >
                 <Gem className="h-5 w-5 mr-2" />
                 Generate Photoshoot
