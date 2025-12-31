@@ -183,7 +183,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           
           // Workflow returns URIs only (not base64) to avoid Temporal blob limits
           // Fetch overlay data separately
-          setProcessingStep('Fetching overlay...');
+          setProcessingStep('Fetching Overlay...');
           setProcessingProgress(65);
           
           try {

@@ -37,7 +37,7 @@ export default function Welcome() {
   const handleStart = () => navigate('/studio');
 
   const features = [
-    { title: 'Zero Alterations', description: 'Your jewelry stays exactly as uploaded. No AI hallucinations. No subtle changes.' },
+    { title: 'Zero Alterations', description: 'Your jewelry stays exactly as in reality. No AI hallucinations. No subtle changes.' },
     { title: 'Verified Accuracy', description: 'See precision metrics that verify your jewelry is preserved perfectly.' },
     { title: 'Realistic Imagery', description: 'Get stunning photoshoot imagery with lifelike models ready in seconds.' },
   ];
@@ -95,7 +95,7 @@ export default function Welcome() {
           <ScrollRevealSection animation="fade-up" className="mb-16 md:mb-24">
             <span className="marta-label mb-6 block">Why FormaNova</span>
             <h2 className="marta-headline-sm">
-              <KineticText animation="wave">AI You Can Actually Trust</KineticText>
+              <KineticText animation="wave">AI Photography You Can Actually Trust</KineticText>
             </h2>
           </ScrollRevealSection>
 
