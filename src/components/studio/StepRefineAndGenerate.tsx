@@ -157,24 +157,32 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
 
       console.log('[Generation] Workflow completed, result:', result);
 
-      // Extract all node outputs
+      // Extract all node outputs - handle both { uri: "..." } objects and plain strings
+      const extractUri = (obj: any): string | null => {
+        if (!obj) return null;
+        if (typeof obj === 'string') return obj;
+        if (typeof obj === 'object' && obj.uri) return obj.uri;
+        return null;
+      };
+
       const nodeImageUris: Record<string, string | null> = {};
       
-      // Collect URIs from each node
+      // Collect URIs from each node (backend only returns sink nodes, so intermediate nodes may not exist)
       if (result.resize_image?.[0]?.image) {
-        nodeImageUris.resize_image = result.resize_image[0].image;
+        nodeImageUris.resize_image = extractUri(result.resize_image[0].image);
       }
       if (result.resize_mask?.[0]?.mask) {
-        nodeImageUris.resize_mask = result.resize_mask[0].mask;
+        nodeImageUris.resize_mask = extractUri(result.resize_mask[0].mask);
       }
-      if (result.white_bg_segmenter?.[0]?.mask || result.white_bg_segmenter?.[0]?.image) {
-        nodeImageUris.white_bg_segmenter = result.white_bg_segmenter[0].mask || result.white_bg_segmenter[0].image;
+      if (result.white_bg_segmenter?.[0]) {
+        const segResult = result.white_bg_segmenter[0];
+        nodeImageUris.white_bg_segmenter = extractUri(segResult.mask) || extractUri(segResult.image);
       }
       if (result.flux_fill?.[0]?.image) {
-        nodeImageUris.flux_fill = result.flux_fill[0].image;
+        nodeImageUris.flux_fill = extractUri(result.flux_fill[0].image);
       }
       if (result.upscaler?.[0]?.image) {
-        nodeImageUris.upscaler = result.upscaler[0].image;
+        nodeImageUris.upscaler = extractUri(result.upscaler[0].image);
       }
 
       console.log('[Generation] Node URIs to fetch:', nodeImageUris);
@@ -490,7 +498,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <TabsContent value="pipeline" className="mt-4 flex-1 min-h-0 overflow-y-auto">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Pipeline stages: Background Segmentation → Generation → Upscaling
+                  Pipeline output (backend currently only returns final upscaled result):
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* White BG Segmenter */}
@@ -505,8 +513,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => setFullscreenImage({ url: dagNodeResults.white_bg_segmenter!, title: 'Background Segmentation' })}
                         />
                       ) : (
-                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
-                          No output
+                        <div className="aspect-[3/4] flex flex-col items-center justify-center text-muted-foreground text-xs gap-1">
+                          <span>Not returned by backend</span>
+                          <span className="text-[10px]">(intermediate node)</span>
                         </div>
                       )}
                     </div>
@@ -524,8 +533,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => setFullscreenImage({ url: dagNodeResults.flux_fill!, title: 'Generated (Pre-Upscale)' })}
                         />
                       ) : (
-                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
-                          No output
+                        <div className="aspect-[3/4] flex flex-col items-center justify-center text-muted-foreground text-xs gap-1">
+                          <span>Not returned by backend</span>
+                          <span className="text-[10px]">(intermediate node)</span>
                         </div>
                       )}
                     </div>
