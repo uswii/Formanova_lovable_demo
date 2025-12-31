@@ -212,6 +212,14 @@ class GenerateResponse(BaseModel):
     metrics_gemini: Optional[Dict[str, float]] = None  # Fidelity metrics for Enhanced
     session_id: str
 
+class UpscaleRequest(BaseModel):
+    image_base64: str  # Base64 encoded image to upscale
+    target_width: int = 2000
+    target_height: int = 2667
+
+class UpscaleResponse(BaseModel):
+    image_base64: str  # Upscaled image
+
 # ═════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═════════════════════════════════════════════════════════════════════
@@ -461,6 +469,30 @@ async def refine_mask(request: RefineMaskRequest):
         log.error(f"Mask refinement failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/upscale", response_model=UpscaleResponse)
+async def upscale_image(request: UpscaleRequest):
+    """
+    Upscale an image to target dimensions using the external upscaler script.
+    """
+    try:
+        log.info(f"Upscaling image to {request.target_width}x{request.target_height}")
+        
+        # Decode image
+        image_pil = base64_to_pil(request.image_base64).convert("RGB")
+        
+        # Upscale
+        upscaled = upscale_with_external_script(image_pil, request.target_width, request.target_height)
+        
+        log.info("Upscale complete!")
+        
+        return UpscaleResponse(
+            image_base64=pil_to_base64(upscaled, "JPEG")
+        )
+        
+    except Exception as e:
+        log.error(f"Upscale failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_photoshoot(request: GenerateRequest):
     """
@@ -665,6 +697,7 @@ async def startup_event():
     log.info("  GET  /examples   - Example gallery")
     log.info("  POST /segment    - SAM segmentation")
     log.info("  POST /refine-mask - Brush mask editing")
+    log.info("  POST /upscale     - Upscale image")
     log.info("  POST /generate   - Generate photoshoot")
     log.info("=" * 60)
 
