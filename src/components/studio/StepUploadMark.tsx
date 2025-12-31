@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
-import { temporalApi, getStepLabel, getStepProgress } from '@/lib/temporal-api';
+import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -100,7 +100,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     e.preventDefault();
   }, []);
 
-  // Run preprocessing via Temporal when user clicks Continue
+  // Run preprocessing via DAG pipeline when user clicks Continue
   const handleProceed = async () => {
     if (redDots.length === 0) {
       toast({
@@ -122,125 +122,104 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
 
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('starting preprocessing...');
+    setProcessingStep('Starting masking workflow...');
 
     try {
-      // Prepare image base64 (strip data URL prefix if present)
-      let imageBase64 = state.originalImage;
-      if (imageBase64.includes(',')) {
-        imageBase64 = imageBase64.split(',')[1];
-      }
+      // Convert image to blob
+      const imageBlob = base64ToBlob(state.originalImage);
       
-      // Ensure proper base64 padding (must be multiple of 4)
-      const paddingNeeded = (4 - (imageBase64.length % 4)) % 4;
-      imageBase64 = imageBase64 + '='.repeat(paddingNeeded);
-
-      // Convert red dots to mask points (normalized 0-1)
+      // Convert red dots to normalized points (0-1)
       // Dots are stored in SAM space (2000x2667), normalize to 0-1
       const SAM_WIDTH = 2000;
       const SAM_HEIGHT = 2667;
       
-      const maskPoints = redDots.map(dot => ({
-        x: dot.x / SAM_WIDTH,
-        y: dot.y / SAM_HEIGHT,
-        label: 1 as const, // All marks are foreground
-      }));
+      const points = redDots.map(dot => [
+        dot.x / SAM_WIDTH,
+        dot.y / SAM_HEIGHT,
+      ]);
+      const pointLabels = redDots.map(() => 1); // All foreground points
 
-      // Start Temporal preprocessing workflow
-      const response = await temporalApi.startPreprocessing({
-        originalImageBase64: imageBase64,
-        maskPoints,
-      });
+      console.log('[Masking] Starting DAG workflow with', points.length, 'points');
 
-      console.log('[Preprocessing] Response:', response);
-      
-      const workflowId = response?.workflowId;
-      if (!workflowId) {
-        throw new Error('Backend did not return a workflowId. Response: ' + JSON.stringify(response));
-      }
+      // Start DAG masking workflow
+      const { workflow_id } = await temporalApi.startMaskingWorkflow(
+        imageBlob,
+        points,
+        pointLabels
+      );
 
-      console.log('[Preprocessing] Started workflow:', workflowId);
+      console.log('[Masking] Started workflow:', workflow_id);
 
       // Poll for status
-      let completed = false;
-      while (!completed) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const status = await temporalApi.getWorkflowStatus(workflowId);
-        
-        const stepProgress = getStepProgress(status.currentStep);
-        const effectiveProgress = stepProgress > 0 ? stepProgress : (status.progress || 0);
-        // Scale to 0-60% for preprocessing (mask gen ends at ~48%)
-        setProcessingProgress(Math.min(effectiveProgress, 60));
-        setProcessingStep(getStepLabel(status.currentStep));
+      const result = await pollDAGUntilComplete(workflow_id, 'masking', {
+        intervalMs: 1500,
+        onProgress: (visited, progress) => {
+          const lastStep = visited[visited.length - 1] || null;
+          setProcessingStep(getDAGStepLabel(lastStep, 'masking'));
+          setProcessingProgress(progress);
+          console.log('[Masking] Step:', lastStep, 'Progress:', progress);
+        },
+      });
 
-        console.log('[Preprocessing] Step:', status.currentStep, 'Progress:', effectiveProgress);
+      console.log('[Masking] Workflow completed, result:', result);
 
-        if (status.status === 'COMPLETED' && status.result) {
-          completed = true;
-          
-          const anyResult = status.result as any;
-          
-          // Workflow returns URIs only (not base64) to avoid Temporal blob limits
-          // Fetch overlay data separately
-          setProcessingStep('fetching overlay...');
-          setProcessingProgress(65);
-          
-          try {
-            const overlayData = await temporalApi.fetchOverlay(
-              anyResult.resizedUri,
-              anyResult.maskUri
-            );
-            
-            updateState({
-              maskOverlay: overlayData.overlayBase64 ? `data:image/png;base64,${overlayData.overlayBase64}` : null,
-              maskBinary: overlayData.maskBase64 ? `data:image/png;base64,${overlayData.maskBase64}` : null,
-              sessionId: anyResult.sessionId,
-              scaledPoints: anyResult.scaledPoints,
-              processingState: {
-                resizedUri: anyResult.resizedUri,
-                maskUri: anyResult.maskUri,
-                bgRemovedUri: anyResult.bgRemovedUri,
-                padding: anyResult.padding,
-              },
-            });
-          } catch (overlayError) {
-            console.error('[Preprocessing] Overlay fetch failed:', overlayError);
-            // Continue without overlay - user can still proceed
-            updateState({
-              maskOverlay: null,
-              maskBinary: null,
-              sessionId: anyResult.sessionId,
-              scaledPoints: anyResult.scaledPoints,
-              processingState: {
-                resizedUri: anyResult.resizedUri,
-                maskUri: anyResult.maskUri,
-                bgRemovedUri: anyResult.bgRemovedUri,
-                padding: anyResult.padding,
-              },
-            });
-            toast({
-              variant: 'default',
-              title: 'Overlay not available',
-              description: 'Mask was generated but overlay preview failed. You can still proceed.',
-            });
-          }
+      // Extract mask data from sam3 sink
+      // Result shape: { sam3: [{ mask_uri: "...", overlay_uri: "..." }] }
+      const sam3Result = result.sam3?.[0];
+      
+      if (!sam3Result) {
+        throw new Error('No mask result from workflow');
+      }
 
-          setIsProcessing(false);
-          onNext();
-        } else if (status.status === 'FAILED') {
-          throw new Error(status.error?.message || 'Preprocessing failed');
-        } else if (status.status === 'CANCELLED') {
-          throw new Error('Preprocessing was cancelled');
+      const maskUri = sam3Result.mask_uri || sam3Result.mask;
+      const overlayUri = sam3Result.overlay_uri || sam3Result.overlay;
+
+      console.log('[Masking] Mask URI:', maskUri);
+      console.log('[Masking] Overlay URI:', overlayUri);
+
+      // Fetch the overlay images for display
+      setProcessingStep('Fetching overlay...');
+      setProcessingProgress(90);
+
+      // Try to fetch overlay data if URIs are available
+      let maskOverlay: string | null = null;
+      let maskBinary: string | null = null;
+
+      if (maskUri || overlayUri) {
+        try {
+          const images = await temporalApi.fetchImages({
+            mask: maskUri,
+            overlay: overlayUri,
+          });
+          
+          maskBinary = images.mask ? `data:image/png;base64,${images.mask}` : null;
+          maskOverlay = images.overlay ? `data:image/png;base64,${images.overlay}` : null;
+        } catch (fetchError) {
+          console.warn('[Masking] Failed to fetch overlay images:', fetchError);
+          // Continue without overlay preview
         }
       }
 
+      // Update state with results
+      updateState({
+        maskOverlay,
+        maskBinary,
+        processingState: {
+          resizedUri: sam3Result.resized_uri || sam3Result.image_uri,
+          maskUri,
+          overlayUri,
+        },
+      });
+
+      setIsProcessing(false);
+      onNext();
+
     } catch (error) {
-      console.error('Preprocessing error:', error);
+      console.error('Masking error:', error);
       toast({
         variant: 'destructive',
-        title: 'Preprocessing failed',
-        description: error instanceof Error ? error.message : 'Failed to process image. Please try again.',
+        title: 'Masking failed',
+        description: error instanceof Error ? error.message : 'Failed to generate mask. Please try again.',
       });
       setIsProcessing(false);
     }
