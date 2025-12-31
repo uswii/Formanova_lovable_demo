@@ -19,7 +19,7 @@ import {
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { temporalApi, getStepProgress, getStepLabel } from '@/lib/temporal-api';
+import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -105,7 +105,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!state.processingState?.resizedUri || !state.processingState?.maskUri) {
+    if (!state.processingState?.maskUri) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
@@ -114,124 +114,74 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       return;
     }
 
-    // Switch to generating view
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
     setCurrentStepLabel('Starting generation...');
 
     try {
-      // Convert brush strokes if any (normalized 0-1)
-      const canvasWidth = 400;
-      const canvasHeight = 533;
+      // Convert original image to blob
+      const imageBlob = base64ToBlob(state.originalImage || '');
       
-      const brushStrokes = effectiveStrokes.length > 0 ? effectiveStrokes.map(stroke => ({
-        points: stroke.points.map(([x, y]) => ({ 
-          x: x / canvasWidth, 
-          y: y / canvasHeight 
-        })),
-        mode: stroke.type,
-        size: Math.round(stroke.radius / 4),
-      })) : undefined;
-
-      // Get the URIs from preprocessing (stored in processingState)
-      const imageUri = state.processingState?.resizedUri;
-      const maskUri = state.processingState?.maskUri;
-      
-      if (!imageUri || !maskUri) {
-        toast({
-          variant: 'destructive',
-          title: 'Missing preprocessing data',
-          description: 'Please complete Step 1 first to generate the image and mask URIs.',
-        });
-        updateState({ isGenerating: false });
-        setCurrentView('refine');
-        return;
+      // Get mask as base64 (from maskBinary or fetch from URI)
+      let maskBase64 = state.maskBinary || '';
+      if (maskBase64.includes(',')) {
+        maskBase64 = maskBase64.split(',')[1];
       }
 
-      // Start the Generation workflow (Step 2) using URIs from preprocessing
-      // Pass scaledPoints for SAM3 fidelity analysis on A100
-      const { workflowId } = await temporalApi.startGeneration({
-        imageUri,
-        maskUri,
-        brushStrokes,
-        gender: state.gender,
-        scaledPoints: state.scaledPoints || undefined,
+      // Default prompt for jewelry photoshoot
+      const prompt = 'professional jewelry photoshoot, elegant model, studio lighting';
+
+      console.log('[Generation] Starting DAG workflow');
+
+      // Start DAG generation workflow
+      const { workflow_id } = await temporalApi.startGenerationWorkflow(
+        imageBlob,
+        maskBase64,
+        prompt,
+        false // invertMask
+      );
+
+      console.log('[Generation] Started workflow:', workflow_id);
+
+      // Poll for status
+      const result = await pollDAGUntilComplete(workflow_id, 'generation', {
+        intervalMs: 2000,
+        onProgress: (visited, progress) => {
+          const lastStep = visited[visited.length - 1] || null;
+          setCurrentStepLabel(getDAGStepLabel(lastStep, 'generation'));
+          setGenerationProgress(progress);
+          console.log('[Generation] Step:', lastStep, 'Progress:', progress);
+        },
       });
 
-      // Poll for status with step tracking
-      let completed = false;
-      while (!completed) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const status = await temporalApi.getWorkflowStatus(workflowId);
-        
-        // Use step-based progress or fallback to status progress
-        // Generation steps start at 55% (after mask refinement)
-        const stepProgress = getStepProgress(status.currentStep);
-        const effectiveProgress = stepProgress > 0 ? stepProgress : (status.progress || 0);
-        setGenerationProgress(effectiveProgress);
-        
-        // Update step label for UI
-        setCurrentStepLabel(getStepLabel(status.currentStep));
-        console.log('[Generation] Step:', status.currentStep, 'Progress:', effectiveProgress);
+      console.log('[Generation] Workflow completed, result:', result);
 
-        if (status.status === 'COMPLETED' && status.result) {
-          completed = true;
-          
-          // Fetch images from URIs
-          const images = await temporalApi.fetchImages({
-            fluxResult: status.result.fluxResultUri,
-            geminiResult: status.result.geminiResultUri,
-            fluxViz: status.result.fluxFidelityVizUri,
-            geminiViz: status.result.geminiFidelityVizUri,
-          });
-          
-          // Map Temporal result to StudioState
-          let statusValue: 'good' | 'bad' | null = null;
-          let metricsData: StudioState['metrics'] = null;
+      // Extract result from upscaler sink
+      const upscalerResult = result.upscaler?.[0];
+      const generatedUri = upscalerResult?.image;
 
-          if (status.result.fluxMetrics) {
-            metricsData = {
-              precision: status.result.fluxMetrics.precision,
-              recall: status.result.fluxMetrics.recall,
-              iou: status.result.fluxMetrics.iou,
-              growthRatio: status.result.fluxMetrics.growthRatio,
-            };
-            const isGood = status.result.fluxMetrics.precision >= 0.95 && 
-                           status.result.fluxMetrics.recall >= 0.9 && 
-                           status.result.fluxMetrics.iou >= 0.85;
-            statusValue = isGood ? 'good' : 'bad';
-          }
-
-          let metricsGeminiData: StudioState['metricsGemini'] = null;
-          if (status.result.geminiMetrics) {
-            metricsGeminiData = {
-              precision: status.result.geminiMetrics.precision,
-              recall: status.result.geminiMetrics.recall,
-              iou: status.result.geminiMetrics.iou,
-              growthRatio: status.result.geminiMetrics.growthRatio,
-            };
-          }
-
-          updateState({
-            fluxResult: images.fluxResult ? `data:image/png;base64,${images.fluxResult}` : null,
-            geminiResult: images.geminiResult ? `data:image/png;base64,${images.geminiResult}` : null,
-            fidelityViz: images.fluxViz ? `data:image/png;base64,${images.fluxViz}` : null,
-            fidelityVizGemini: images.geminiViz ? `data:image/png;base64,${images.geminiViz}` : null,
-            metrics: metricsData,
-            metricsGemini: metricsGeminiData,
-            status: statusValue,
-            isGenerating: false,
-          });
-
-          setCurrentView('results');
-        } else if (status.status === 'FAILED') {
-          throw new Error(status.error?.message || 'Workflow failed');
-        } else if (status.status === 'CANCELLED') {
-          throw new Error('Workflow was cancelled');
-        }
+      if (!generatedUri) {
+        throw new Error('No generated image from workflow');
       }
+
+      // Fetch the generated image
+      const images = await temporalApi.fetchImages({
+        fluxResult: generatedUri,
+      });
+
+      updateState({
+        fluxResult: images.fluxResult ? `data:image/png;base64,${images.fluxResult}` : null,
+        geminiResult: null,
+        fidelityViz: null,
+        fidelityVizGemini: null,
+        metrics: null,
+        metricsGemini: null,
+        status: null,
+        isGenerating: false,
+      });
+
+      setCurrentView('results');
 
     } catch (error) {
       console.error('Generation error:', error);

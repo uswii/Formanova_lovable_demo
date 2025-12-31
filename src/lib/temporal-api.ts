@@ -1,61 +1,104 @@
-// Temporal Workflow API Client
-// Connects to Temporal orchestrator for jewelry generation pipeline
+// Temporal/DAG Workflow API Client
+// Connects to DAG pipeline orchestrator for jewelry generation
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Use Supabase edge function proxy to reach Temporal API
+// Use Supabase edge function proxy
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const getProxyUrl = (endpoint: string) => 
   `${SUPABASE_URL}/functions/v1/temporal-proxy?endpoint=${encodeURIComponent(endpoint)}`;
 
-// ========== Types ==========
+// ========== DAG Pipeline Types ==========
+
+export interface DAGStartResponse {
+  workflow_id: string;
+  status_url: string;
+  result_url: string;
+}
+
+export interface DAGProgress {
+  state: 'running' | 'completed' | 'failed';
+  total_nodes: number;
+  completed_nodes: number;
+  visited: string[];
+}
+
+export interface DAGStatusResponse {
+  progress: DAGProgress;
+  results: Record<string, any[]>;
+}
+
+export interface DAGResultResponse {
+  [key: string]: any[];
+}
+
+// ========== Masking Workflow Types ==========
+
+export interface MaskingWorkflowRequest {
+  imageBlob: Blob;
+  points: number[][];  // [[x, y], ...] normalized 0-1
+  pointLabels: number[];  // [1, 1, ...] foreground points
+}
+
+export interface MaskingResult {
+  mask_uri: string;
+  overlay_uri: string;
+}
+
+// ========== Generation Workflow Types ==========
+
+export interface GenerationWorkflowRequest {
+  imageBlob: Blob;
+  maskBase64: string;
+  prompt: string;
+  invertMask: boolean;
+}
+
+export interface GenerationResult {
+  image: string;  // Azure URI
+}
+
+// ========== Legacy Types (kept for compatibility) ==========
 
 export interface MaskPoint {
-  x: number;        // 0-1 normalized
-  y: number;        // 0-1 normalized
-  label: 0 | 1;     // 0=background, 1=foreground
+  x: number;
+  y: number;
+  label: 0 | 1;
 }
 
 export interface BrushStroke {
   points: Array<{ x: number; y: number }>;
   mode: 'add' | 'remove';
-  size?: number;    // 1-100, default 20
+  size?: number;
 }
-
-// ========== Preprocessing Workflow (Step 1) ==========
-// Upload → Resize → Zoom Check → Background Removal → SAM3 Mask
 
 export interface PreprocessingRequest {
   originalImageBase64: string;
-  maskPoints: MaskPoint[];        // User's marked points for SAM3
+  maskPoints: MaskPoint[];
 }
 
 export interface PreprocessingResult {
-  resizedUri: string;             // Azure URI of resized image
-  maskUri: string;                // Azure URI of mask
-  bgRemovedUri?: string | null;   // Azure URI if bg was removed
-  backgroundRemoved: boolean;     // Whether bg was removed
+  resizedUri: string;
+  maskUri: string;
+  bgRemovedUri?: string | null;
+  backgroundRemoved: boolean;
   padding: { top: number; bottom: number; left: number; right: number };
-  sessionId: string;              // For later generation
-  scaledPoints: number[][];       // Points scaled to image dimensions
+  sessionId: string;
+  scaledPoints: number[][];
 }
 
-// Response from /overlay endpoint (called after preprocessing)
 export interface OverlayResponse {
-  imageBase64: string;            // Resized image as base64
-  maskBase64: string;             // Binary mask as base64
-  overlayBase64: string;          // Mask overlay preview as base64
+  imageBase64: string;
+  maskBase64: string;
+  overlayBase64: string;
 }
-
-// ========== Generation Workflow (Step 2) ==========
-// Apply Refinements → Generate Flux/Gemini
 
 export interface GenerationRequest {
-  imageUri: string;              // Azure URI from preprocessing
-  maskUri: string;               // Azure URI from preprocessing
-  brushStrokes?: BrushStroke[];  // User refinements
-  gender?: 'female' | 'male';    // Model gender for prompt
-  scaledPoints?: number[][];     // SAM points for fidelity analysis
+  imageUri: string;
+  maskUri: string;
+  brushStrokes?: BrushStroke[];
+  gender?: 'female' | 'male';
+  scaledPoints?: number[][];
 }
 
 export interface WorkflowStartResponse {
@@ -70,27 +113,7 @@ export interface FidelityMetrics {
   growthRatio: number;
 }
 
-export interface GenerationResult {
-  fluxResultUri: string;
-  geminiResultUri: string | null;
-  fluxMetrics: FidelityMetrics;
-  geminiMetrics: FidelityMetrics | null;
-  fluxFidelityVizUri: string | null;
-  geminiFidelityVizUri: string | null;
-  finalMaskUri?: string;
-}
-
-// Legacy combined workflow (kept for compatibility)
-export interface WorkflowStartRequest {
-  originalImageBase64: string;
-  maskPoints: MaskPoint[];
-  brushStrokes?: BrushStroke[];
-  gender?: 'female' | 'male';
-  sessionId?: string;
-}
-
 export interface WorkflowResult {
-  // URIs instead of base64 to avoid Temporal payload limits
   fluxResultUri: string;
   geminiResultUri: string | null;
   fluxMetrics: FidelityMetrics;
@@ -120,9 +143,9 @@ export interface WorkflowStatusResponse {
 }
 
 export interface HealthResponse {
-  status: 'healthy' | 'degraded';
-  temporal: string;
-  services: {
+  status: 'healthy' | 'degraded' | 'offline';
+  temporal?: string;
+  services?: {
     a100: 'online' | 'offline';
     imageManipulator: 'online' | 'offline';
     birefnet: 'online' | 'offline';
@@ -130,39 +153,66 @@ export interface HealthResponse {
   };
 }
 
-// ========== Workflow Steps ==========
-// These match the Temporal workflow activities in the backend
+// ========== DAG Workflow Steps ==========
+
+export const DAG_MASKING_STEPS = {
+  'image_manipulator': { progress: 15, label: 'Resizing image...' },
+  'zoom_check': { progress: 25, label: 'Analyzing zoom level...' },
+  'bg_remove': { progress: 45, label: 'Removing background...' },
+  'sam3': { progress: 80, label: 'Generating mask...' },
+} as const;
+
+export const DAG_GENERATION_STEPS = {
+  'resize_image': { progress: 10, label: 'Resizing image...' },
+  'resize_mask': { progress: 15, label: 'Resizing mask...' },
+  'white_bg_segmenter': { progress: 35, label: 'Segmenting background...' },
+  'flux_fill': { progress: 70, label: 'Generating photoshoot...' },
+  'upscaler': { progress: 95, label: 'Upscaling result...' },
+} as const;
+
+export type DAGMaskingStep = keyof typeof DAG_MASKING_STEPS;
+export type DAGGenerationStep = keyof typeof DAG_GENERATION_STEPS;
+
+export function getDAGStepLabel(step: string | null, workflow: 'masking' | 'generation'): string {
+  if (!step) return 'Starting workflow...';
+  
+  if (workflow === 'masking') {
+    const stepInfo = DAG_MASKING_STEPS[step as DAGMaskingStep];
+    return stepInfo?.label || step.replace(/_/g, ' ');
+  } else {
+    const stepInfo = DAG_GENERATION_STEPS[step as DAGGenerationStep];
+    return stepInfo?.label || step.replace(/_/g, ' ');
+  }
+}
+
+export function getDAGStepProgress(visited: string[], workflow: 'masking' | 'generation'): number {
+  if (!visited || visited.length === 0) return 0;
+  
+  const lastStep = visited[visited.length - 1];
+  if (workflow === 'masking') {
+    const stepInfo = DAG_MASKING_STEPS[lastStep as DAGMaskingStep];
+    return stepInfo?.progress ?? 0;
+  } else {
+    const stepInfo = DAG_GENERATION_STEPS[lastStep as DAGGenerationStep];
+    return stepInfo?.progress ?? 0;
+  }
+}
+
+// ========== Legacy Step Labels ==========
 
 export const WORKFLOW_STEPS = {
-  // Pre-flight
   CHECKING_HEALTH: { progress: 0, label: 'Checking services...' },
-  
-  // Upload & preprocessing  
   UPLOADING_IMAGE: { progress: 5, label: 'Uploading to Azure...' },
   RESIZING_IMAGE: { progress: 12, label: 'Resizing image (2000×2667)...' },
-  
-  // Analysis
   CHECKING_ZOOM: { progress: 18, label: 'Analyzing zoom level...' },
-  
-  // Background removal (BiRefNet)
   SUBMITTING_BIREFNET: { progress: 22, label: 'Submitting background removal...' },
   POLLING_BIREFNET: { progress: 28, label: 'Removing background...' },
-  
-  // Mask generation (SAM3)
   SUBMITTING_SAM3: { progress: 38, label: 'Submitting mask generation...' },
   POLLING_SAM3: { progress: 48, label: 'Generating mask...' },
-  
-  // Refinement
   REFINING_MASK: { progress: 55, label: 'Applying refinements...' },
-  
-  // Final generation (A100)
   GENERATING_FLUX: { progress: 65, label: 'Generating photoshoot (Flux)...' },
   GENERATING_GEMINI: { progress: 85, label: 'Generating photoshoot (Gemini)...' },
-  
-  // Post-processing
   CALCULATING_METRICS: { progress: 95, label: 'Calculating fidelity metrics...' },
-  
-  // Done
   COMPLETED: { progress: 100, label: 'Complete!' },
 } as const;
 
@@ -192,6 +242,104 @@ class TemporalApi {
     };
   }
 
+  // ========== DAG Pipeline Methods ==========
+
+  async startMaskingWorkflow(
+    imageBlob: Blob,
+    points: number[][],
+    pointLabels: number[]
+  ): Promise<DAGStartResponse> {
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'image.jpg');
+    formData.append('workflow_name', 'necklace_point_masking');
+    formData.append('overrides', JSON.stringify({
+      points,
+      point_labels: pointLabels,
+    }));
+
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const response = await fetch(getProxyUrl('/process'), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to start masking workflow: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  async startGenerationWorkflow(
+    imageBlob: Blob,
+    maskBase64: string,
+    prompt: string,
+    invertMask: boolean = false
+  ): Promise<DAGStartResponse> {
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'image.jpg');
+    formData.append('workflow_name', 'flux_gen_pipeline');
+    formData.append('overrides', JSON.stringify({
+      mask: maskBase64,
+      prompt,
+      invert_mask: invertMask,
+    }));
+
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const response = await fetch(getProxyUrl('/process'), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to start generation workflow: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  async getDAGStatus(workflowId: string): Promise<DAGStatusResponse> {
+    const response = await fetch(getProxyUrl(`/status/${workflowId}`), {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get DAG status: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  async getDAGResult(workflowId: string): Promise<DAGResultResponse> {
+    const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get DAG result: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  // ========== Legacy Methods (kept for compatibility) ==========
+
   async checkHealth(): Promise<HealthResponse | null> {
     try {
       const response = await fetch(getProxyUrl('/health'), {
@@ -202,16 +350,14 @@ class TemporalApi {
       if (response.ok) {
         return await response.json();
       }
-      console.error('Temporal health check failed:', response.status);
+      console.error('Health check failed:', response.status);
       return null;
     } catch (error) {
-      console.error('Temporal health check error:', error);
+      console.error('Health check error:', error);
       return null;
     }
   }
 
-  // ========== Preprocessing Workflow (Step 1) ==========
-  // Upload → Resize → Zoom Check → Background Removal → SAM3 Mask
   async startPreprocessing(request: PreprocessingRequest): Promise<WorkflowStartResponse> {
     const response = await fetch(getProxyUrl('/workflow/preprocess'), {
       method: 'POST',
@@ -227,8 +373,6 @@ class TemporalApi {
     return await response.json();
   }
 
-  // ========== Generation Workflow (Step 2) ==========
-  // Apply Refinements → Generate Flux/Gemini
   async startGeneration(request: GenerationRequest): Promise<WorkflowStartResponse> {
     const response = await fetch(getProxyUrl('/workflow/generate'), {
       method: 'POST',
@@ -244,8 +388,7 @@ class TemporalApi {
     return await response.json();
   }
 
-  // Legacy: Combined workflow (kept for compatibility)
-  async startWorkflow(request: WorkflowStartRequest): Promise<WorkflowStartResponse> {
+  async startWorkflow(request: any): Promise<WorkflowStartResponse> {
     const response = await fetch(getProxyUrl('/workflow/start'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -266,8 +409,6 @@ class TemporalApi {
       headers: this.getAuthHeaders(),
     });
 
-    // Try to parse JSON response regardless of status code
-    // Backend may return 500 for CANCELLED/FAILED states
     const text = await response.text();
     let data: any;
     try {
@@ -276,7 +417,6 @@ class TemporalApi {
       throw new Error(`Invalid response from workflow API: ${text}`);
     }
 
-    // Check if response contains workflow status info (even with error status code)
     if (data.detail === 'CANCELLED') {
       return {
         workflowId,
@@ -329,8 +469,6 @@ class TemporalApi {
     }
   }
 
-  // ========== Overlay Fetching (called after preprocessing) ==========
-  // Fetches image/mask base64 data separately to avoid Temporal blob size limits
   async fetchOverlay(imageUri: string, maskUri: string): Promise<OverlayResponse> {
     const response = await fetch(getProxyUrl('/overlay'), {
       method: 'POST',
@@ -346,8 +484,6 @@ class TemporalApi {
     return await response.json();
   }
 
-  // ========== Fetch Images from URIs ==========
-  // Fetches images stored in Azure and returns base64 data
   async fetchImages(imageUris: { [key: string]: string | null | undefined }): Promise<{ [key: string]: string | null }> {
     const response = await fetch(getProxyUrl('/images/fetch'), {
       method: 'POST',
@@ -366,8 +502,50 @@ class TemporalApi {
 
 export const temporalApi = new TemporalApi();
 
-// ========== Polling Helper ==========
+// ========== Polling Helpers ==========
 
+export interface DAGPollOptions {
+  intervalMs?: number;
+  timeoutMs?: number;
+  onProgress?: (visited: string[], progress: number) => void;
+}
+
+export async function pollDAGUntilComplete(
+  workflowId: string,
+  workflow: 'masking' | 'generation',
+  options: DAGPollOptions = {}
+): Promise<DAGResultResponse> {
+  const {
+    intervalMs = 1500,
+    timeoutMs = 300000,
+    onProgress,
+  } = options;
+
+  const startTime = Date.now();
+
+  while (true) {
+    const status = await temporalApi.getDAGStatus(workflowId);
+    
+    const progress = getDAGStepProgress(status.progress.visited, workflow);
+    onProgress?.(status.progress.visited, progress);
+
+    if (status.progress.state === 'completed') {
+      return await temporalApi.getDAGResult(workflowId);
+    }
+
+    if (status.progress.state === 'failed') {
+      throw new Error('Workflow failed');
+    }
+
+    if (Date.now() - startTime > timeoutMs) {
+      throw new Error('Workflow timed out');
+    }
+
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+}
+
+// Legacy polling helper
 export interface PollOptions {
   intervalMs?: number;
   timeoutMs?: number;
@@ -380,7 +558,7 @@ export async function pollWorkflowUntilComplete(
 ): Promise<WorkflowStatusResponse> {
   const {
     intervalMs = 2000,
-    timeoutMs = 300000, // 5 minutes
+    timeoutMs = 300000,
     onProgress,
   } = options;
 
@@ -409,4 +587,20 @@ export async function pollWorkflowUntilComplete(
 
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
+}
+
+// ========== Utilities ==========
+
+export function base64ToBlob(base64: string, mimeType: string = 'image/jpeg'): Blob {
+  // Remove data URL prefix if present
+  const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+  
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
 }

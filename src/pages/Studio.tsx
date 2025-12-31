@@ -12,6 +12,7 @@ export interface ProcessingState {
   resizedUri?: string;
   bgRemovedUri?: string;
   maskUri?: string;  // Azure URI of the generated mask
+  overlayUri?: string;  // Azure URI of the overlay
   padding?: { top: number; bottom: number; left: number; right: number };
 }
 
