@@ -636,9 +636,6 @@
 
   .hero-accent-text {
     color: hsl(var(--formanova-hero-accent));
-    text-shadow: 
-      0 4px 12px rgba(0, 0, 0, 0.8),
-      0 0 30px hsl(var(--formanova-hero-accent) / 0.5);
   }
   
   [data-theme="neon"] .hero-accent-text {
