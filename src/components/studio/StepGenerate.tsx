@@ -16,10 +16,11 @@ import {
   Diamond,
   Maximize2,
   X,
+  XOctagon,
 } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
-import { a100Api } from '@/lib/a100-api';
+import { temporalApi, base64ToBlob, pollDAGUntilComplete, getDAGStepLabel } from '@/lib/temporal-api';
 
 interface Props {
   state: StudioState;
@@ -30,8 +31,8 @@ interface Props {
 export function StepGenerate({ state, updateState, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressStep, setProgressStep] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -46,111 +47,94 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
     setIsGenerating(true);
     setProgress(0);
+    setProgressStep('Starting generation workflow...');
     updateState({ isGenerating: true });
 
-    // Progress updates without messages
-    progressInterval.current = setInterval(() => {
-      setProgress(prev => Math.min(prev + 1, 95));
-    }, 600);
-
     try {
-      // Debug: Log scaledPoints before sending
-      console.log('Generation starting with state:', {
-        hasScaledPoints: !!state.scaledPoints,
-        scaledPointsLength: state.scaledPoints?.length,
-        scaledPoints: state.scaledPoints,
-      });
-
-      let imageBase64 = state.originalImage;
-      if (imageBase64.includes(',')) imageBase64 = imageBase64.split(',')[1];
-
+      // Convert original image to blob
+      const imageBlob = base64ToBlob(state.originalImage);
+      
+      // Get mask as base64 (without data URL prefix)
       let maskBase64 = state.editedMask || state.maskBinary;
-      if (maskBase64.includes(',')) maskBase64 = maskBase64.split(',')[1];
-
-      let originalMaskBase64: string | undefined;
-      if (state.originalMask) {
-        originalMaskBase64 = state.originalMask.includes(',') ? state.originalMask.split(',')[1] : state.originalMask;
+      if (maskBase64.includes(',')) {
+        maskBase64 = maskBase64.split(',')[1];
       }
 
-      const requestPayload = {
-        image_base64: imageBase64,
-        mask_base64: maskBase64,
-        original_mask_base64: originalMaskBase64,
-        gender: state.gender,
-        use_gemini: true,
-        scaled_points: state.scaledPoints || undefined,
-      };
-      
-      console.log('Sending generate request with scaled_points:', !!requestPayload.scaled_points);
+      // Default prompt for jewelry photoshoot
+      const prompt = "professional jewelry photoshoot, model wearing elegant necklace, studio lighting, high fashion, clean white background";
 
-      const response = await a100Api.generate(requestPayload);
+      console.log('[Generation] Starting DAG workflow flux_gen_pipeline');
 
-      if (!response) throw new Error('Generation failed');
+      // Start the generation workflow
+      const { workflow_id } = await temporalApi.startGenerationWorkflow(
+        imageBlob,
+        maskBase64,
+        prompt,
+        false // invert_mask
+      );
 
-      console.log('Generation response:', {
-        hasFlux: !!response.result_base64,
-        hasGemini: !!response.result_gemini_base64,
-        hasFidelityViz: !!(response as any).fidelity_viz_base64,
-        hasFidelityVizGemini: !!(response as any).fidelity_viz_gemini_base64,
-        hasMetrics: !!(response as any).metrics,
-        hasMetricsGemini: !!(response as any).metrics_gemini,
-        scaledPointsSent: !!state.scaledPoints,
+      console.log('[Generation] Started workflow:', workflow_id);
+
+      // Poll for status with progress updates
+      const result = await pollDAGUntilComplete(workflow_id, 'generation', {
+        intervalMs: 2000,
+        onProgress: (visited, progressPct) => {
+          const lastStep = visited[visited.length - 1] || null;
+          setProgressStep(getDAGStepLabel(lastStep, 'generation'));
+          setProgress(progressPct);
+          console.log('[Generation] Step:', lastStep, 'Progress:', progressPct);
+        },
       });
 
-      const safeNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+      console.log('[Generation] Workflow completed, result:', result);
+
+      // Extract result from upscaler sink
+      const upscalerResult = result.upscaler?.[0];
       
-      // Parse Standard metrics
-      let status: 'good' | 'bad' | null = null;
-      let metricsData: StudioState['metrics'] = null;
-      const rawMetrics = (response as any).metrics as any;
-      if (rawMetrics && typeof rawMetrics === 'object') {
-        const precision = safeNumber(rawMetrics.precision);
-        const recall = safeNumber(rawMetrics.recall);
-        const iou = safeNumber(rawMetrics.iou);
-        const growthRatio = safeNumber(rawMetrics.growth_ratio ?? rawMetrics.growthRatio);
-        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
-          metricsData = { precision, recall, iou, growthRatio };
-          const isGood = precision >= 0.95 && recall >= 0.9 && iou >= 0.85;
-          status = isGood ? 'good' : 'bad';
-        }
+      if (!upscalerResult) {
+        throw new Error('No result from generation workflow');
       }
 
-      // Parse Enhanced metrics
-      let metricsGeminiData: StudioState['metricsGemini'] = null;
-      const rawMetricsGemini = (response as any).metrics_gemini as any;
-      if (rawMetricsGemini && typeof rawMetricsGemini === 'object') {
-        const precision = safeNumber(rawMetricsGemini.precision);
-        const recall = safeNumber(rawMetricsGemini.recall);
-        const iou = safeNumber(rawMetricsGemini.iou);
-        const growthRatio = safeNumber(rawMetricsGemini.growth_ratio ?? rawMetricsGemini.growthRatio);
-        if (precision !== null && recall !== null && iou !== null && growthRatio !== null) {
-          metricsGeminiData = { precision, recall, iou, growthRatio };
+      // Fetch the generated image
+      setProgressStep('Fetching result...');
+      setProgress(95);
+
+      const imageUri = typeof upscalerResult.image === 'object' 
+        ? upscalerResult.image?.uri 
+        : (upscalerResult.image_uri || upscalerResult.image);
+
+      let generatedImageUrl: string | null = null;
+
+      if (imageUri) {
+        try {
+          const images = await temporalApi.fetchImages({ result: imageUri });
+          if (images.result) {
+            generatedImageUrl = `data:image/png;base64,${images.result}`;
+          }
+        } catch (fetchError) {
+          console.warn('[Generation] Failed to fetch result image:', fetchError);
         }
       }
-
-      // Fidelity visualizations
-      const fidelityVizBase64 = (response as any).fidelity_viz_base64 ?? null;
-      const fidelityVizDataUrl = fidelityVizBase64 ? `data:image/jpeg;base64,${fidelityVizBase64}` : null;
-      
-      const fidelityVizGeminiBase64 = (response as any).fidelity_viz_gemini_base64 ?? null;
-      const fidelityVizGeminiDataUrl = fidelityVizGeminiBase64 ? `data:image/jpeg;base64,${fidelityVizGeminiBase64}` : null;
-
-      const generatedImageUrl = `data:image/jpeg;base64,${response.result_base64}`;
-      const geminiImageUrl = response.result_gemini_base64 ? `data:image/jpeg;base64,${response.result_gemini_base64}` : null;
 
       setProgress(100);
       
       updateState({
         fluxResult: generatedImageUrl,
-        geminiResult: geminiImageUrl,
-        fidelityViz: fidelityVizDataUrl,
-        fidelityVizGemini: fidelityVizGeminiDataUrl,
-        metrics: metricsData,
-        metricsGemini: metricsGeminiData,
-        status,
+        geminiResult: null, // DAG pipeline doesn't have Gemini variant
+        fidelityViz: null,
+        fidelityVizGemini: null,
+        metrics: null,
+        metricsGemini: null,
+        status: generatedImageUrl ? 'good' : null,
         isGenerating: false,
-        sessionId: response.session_id,
       });
+
+      if (generatedImageUrl) {
+        toast({
+          title: 'Generation complete',
+          description: 'Your photoshoot has been generated successfully.',
+        });
+      }
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -161,12 +145,15 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       });
       updateState({ isGenerating: false });
     } finally {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
       setIsGenerating(false);
     }
+  };
+
+  const handleCancelGeneration = () => {
+    setIsGenerating(false);
+    setProgress(0);
+    setProgressStep('');
+    updateState({ isGenerating: false });
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
@@ -263,7 +250,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
                 <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
               </div>
-              <h3 className="font-display text-xl mb-4 text-foreground">Generating Photoshoot</h3>
+              <h3 className="font-display text-xl mb-2 text-foreground">Generating Photoshoot</h3>
+              <p className="text-sm text-muted-foreground mb-4">{progressStep}</p>
               <div className="w-64 h-3 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
@@ -271,6 +259,15 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                 />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-4 text-muted-foreground hover:text-foreground"
+                onClick={handleCancelGeneration}
+              >
+                <XOctagon className="h-3.5 w-3.5 mr-1.5" />
+                Cancel
+              </Button>
             </div>
           </Card>
         ) : (state.fluxResult || state.geminiResult) ? (
