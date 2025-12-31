@@ -84,13 +84,18 @@ async function handleProcess(req: Request): Promise<Response> {
     const formData = new FormData();
     formData.append('workflow_name', body.workflow_name);
     
-    // Build overrides
+    // Build overrides - include original_path for flux_gen_pipeline
     const overrides = body.overrides || {};
-    formData.append('overrides', JSON.stringify(overrides));
     
     // Handle base64 image - backend requires 'file' field
+    // Also add to overrides as original_path for the pipeline mapping
     if (body.image_base64) {
       const base64Data = body.image_base64;
+      
+      // Add image to overrides as original_path (pipeline expects root.original_path)
+      overrides.original_path = base64Data;
+      
+      // Also create file blob for the 'file' field
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -100,9 +105,12 @@ async function handleProcess(req: Request): Promise<Response> {
       formData.append('file', blob, 'image.jpg');
     }
     
+    formData.append('overrides', JSON.stringify(overrides));
+    
     console.log('[DAG] Converted JSON to FormData, workflow:', body.workflow_name);
     console.log('[DAG] Overrides keys:', Object.keys(overrides));
     console.log('[DAG] Has file:', !!body.image_base64);
+    console.log('[DAG] Has original_path in overrides:', !!overrides.original_path);
     
     const response = await fetch(`${DAG_API_URL}/process`, {
       method: 'POST',
