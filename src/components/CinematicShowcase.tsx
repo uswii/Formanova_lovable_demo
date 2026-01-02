@@ -502,7 +502,7 @@ export function CinematicShowcase() {
               animate={{ x: ['0%', '-300%'] }}
               transition={{
                 x: {
-                  duration: 12,
+                  duration: 20,
                   repeat: Infinity,
                   ease: 'linear',
                 },
