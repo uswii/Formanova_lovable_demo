@@ -35,20 +35,17 @@ export function CinematicShowcase() {
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
   const [showMannequin, setShowMannequin] = useState(true);
 
-  // Show mannequin only at very start, then switch to generated images
+  // Toggle between mannequin and generated image, then cycle to next
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowMannequin(false);
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Auto-cycle through images - both sections use same index
-  useEffect(() => {
-    if (showMannequin) return; // Don't start cycling until mannequin is done
-    
     const interval = setInterval(() => {
-      setZeroAltOutputIndex(prev => (prev + 1) % generatedImages.length);
+      if (showMannequin) {
+        // Switch from mannequin to generated image
+        setShowMannequin(false);
+      } else {
+        // Switch back to mannequin and advance to next image
+        setShowMannequin(true);
+        setZeroAltOutputIndex(prev => (prev + 1) % generatedImages.length);
+      }
     }, 3000);
     
     return () => clearInterval(interval);
