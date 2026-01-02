@@ -305,15 +305,14 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
   };
 
   const MAX_DOTS = 6;
+  const [showMaxDotsWarning, setShowMaxDotsWarning] = useState(false);
 
   const handleCanvasClick = (x: number, y: number) => {
     // Check if we've reached max
     if (redDots.length >= MAX_DOTS) {
-      toast({
-        variant: 'destructive',
-        title: 'Maximum dots reached',
-        description: `You can only place up to ${MAX_DOTS} dots. Remove some to add more.`,
-      });
+      setShowMaxDotsWarning(true);
+      // Auto-hide after 2 seconds
+      setTimeout(() => setShowMaxDotsWarning(false), 2000);
       return;
     }
     
@@ -444,15 +443,26 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && state.originalImage && (
-                <MaskCanvas
-                  image={state.originalImage}
-                  dots={redDots}
-                  brushColor="#FF0000"
-                  brushSize={markerSize}
-                  mode="dot"
-                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
-                  onCanvasClick={handleCanvasClick}
-                />
+                <div className="relative">
+                  <MaskCanvas
+                    image={state.originalImage}
+                    dots={redDots}
+                    brushColor="#FF0000"
+                    brushSize={markerSize}
+                    mode="dot"
+                    canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                    onCanvasClick={handleCanvasClick}
+                  />
+                  {/* Max dots warning overlay */}
+                  {showMaxDotsWarning && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-destructive text-destructive-foreground rounded-lg px-4 py-3 shadow-xl text-center animate-pulse">
+                        <p className="text-sm font-semibold">Maximum {MAX_DOTS} dots allowed</p>
+                        <p className="text-xs mt-1 opacity-80">Remove some to add more</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="p-4 border-t border-border/20 flex justify-center">
@@ -524,7 +534,16 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     canvasSize={400}
                   />
                   
-                  {/* Processing overlay - shows on top of canvas with dots visible */}
+                  {/* Max dots warning overlay */}
+                  {showMaxDotsWarning && !isProcessing && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-destructive text-destructive-foreground rounded-lg px-4 py-3 shadow-xl text-center animate-pulse">
+                        <p className="text-sm font-semibold">Maximum {MAX_DOTS} dots allowed</p>
+                        <p className="text-xs mt-1 opacity-80">Remove some to add more</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {isProcessing && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                       <div className="relative mb-4">
