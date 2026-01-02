@@ -33,18 +33,17 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase: 'mannequin' -> 'overlay' -> 'clean' -> next image
-  const [displayPhase, setDisplayPhase] = useState<'mannequin' | 'overlay' | 'clean'>('mannequin');
+  // Phase: 'overlay' -> 'clean' -> next image
+  const [displayPhase, setDisplayPhase] = useState<'overlay' | 'clean'>('overlay');
 
-  // Cycle through: mannequin -> overlay -> clean generated image -> next
+  // Cycle through: overlay -> clean generated image -> next overlay
   useEffect(() => {
     const interval = setInterval(() => {
       setDisplayPhase(prev => {
-        if (prev === 'mannequin') return 'overlay';
         if (prev === 'overlay') return 'clean';
-        // After clean, go back to mannequin and advance to next image
+        // After clean, advance to next image and show overlay
         setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
-        return 'mannequin';
+        return 'overlay';
       });
     }, 3000);
     
@@ -380,10 +379,10 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - mannequin or generated based on phase */}
+          {/* Base image - always generated image */}
           <img
-            src={displayPhase === 'mannequin' ? mannequinInput : generatedImages[zeroAltOutputIndex]}
-            alt={displayPhase === 'mannequin' ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
+            src={generatedImages[zeroAltOutputIndex]}
+            alt={`Output ${zeroAltOutputIndex + 1}`}
             className="absolute inset-0 w-full h-full object-contain"
           />
 
@@ -395,17 +394,16 @@ export function CinematicShowcase() {
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
-          {/* Landmarks - visible on mannequin and overlay phases */}
-          {displayPhase !== 'clean' && <MaskDerivedReferenceOverlay />}
+          {/* Landmarks - visible only during overlay phase */}
+          {displayPhase === 'overlay' && <MaskDerivedReferenceOverlay />}
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-              displayPhase === 'mannequin'
-                ? 'bg-background/90 text-foreground border border-border'
+              displayPhase === 'overlay'
+                ? 'bg-primary/80 text-primary-foreground'
                 : 'bg-primary text-primary-foreground'
             }`}>
-              {displayPhase === 'mannequin' && 'Original'}
               {displayPhase === 'overlay' && 'Zero Alteration'}
               {displayPhase === 'clean' && 'Generated'}
             </div>
