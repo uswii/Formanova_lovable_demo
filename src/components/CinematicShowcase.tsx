@@ -403,13 +403,11 @@ export function CinematicShowcase() {
             <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
               displayPhase === 'mannequin'
                 ? 'bg-background/90 text-foreground border border-border'
-                : displayPhase === 'overlay'
-                ? 'bg-primary/80 text-primary-foreground'
                 : 'bg-primary text-primary-foreground'
             }`}>
               {displayPhase === 'mannequin' && 'Original'}
               {displayPhase === 'overlay' && 'Zero Alteration'}
-              {displayPhase === 'clean' && 'Realistic Imagery'}
+              {displayPhase === 'clean' && 'Generated'}
             </div>
           </div>
         </div>
