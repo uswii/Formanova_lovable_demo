@@ -420,9 +420,9 @@ export function CinematicShowcase() {
             )}
           </AnimatePresence>
 
-          {/* Overlay + Landmarks only during verify phase AND not showing mannequin */}
+          {/* Overlay + Landmarks after mannequin phase */}
           <AnimatePresence>
-            {zeroAltPhase === 'verify' && !showMannequin && (
+            {!showMannequin && (
               <>
                 {/* Two-color overlay: jewelry highlighted, background dimmed */}
                 {jewelryEmphasisUrl && (
