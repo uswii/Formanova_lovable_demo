@@ -4,7 +4,7 @@ import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
-import { JewelryShowcase } from '@/components/JewelryShowcase';
+import { CinematicShowcase } from '@/components/CinematicShowcase';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -112,9 +112,9 @@ export default function Welcome() {
             ))}
           </StaggerContainer>
 
-          {/* Interactive Jewelry Showcase */}
+          {/* Cinematic Video Showcase */}
           <ScrollRevealSection animation="fade-up" delay={300} className="mt-16 md:mt-24">
-            <JewelryShowcase />
+            <CinematicShowcase />
           </ScrollRevealSection>
         </div>
       </section>
