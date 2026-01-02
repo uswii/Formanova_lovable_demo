@@ -167,6 +167,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                       mode="brush"
                       canvasSize={400}
                       initialStrokes={effectiveStrokes}
+                      activeStroke={activeStroke}
                       onBrushStrokeStart={handleStrokeStart}
                       onBrushStrokePoint={handleStrokePoint}
                       onBrushStrokeEnd={handleStrokeEnd}
@@ -187,7 +188,11 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               <div className="flex justify-center">
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   {state.maskBinary ? (
-                    <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain" />
+                    <div className="relative">
+                      <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain" />
+                      {/* Overlay to prevent interaction */}
+                      <div className="absolute inset-0 cursor-not-allowed" title="Switch to Overlay View to edit" />
+                    </div>
                   ) : (
                     <div className="aspect-[4/3] bg-muted flex items-center justify-center">
                       <p className="text-muted-foreground">No mask generated yet</p>
@@ -197,6 +202,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               </div>
               <p className="text-base text-foreground text-center mt-3">
                 <span className="font-semibold">White</span> = Preserved • <span className="font-semibold">Black</span> = Generated
+                <span className="block text-xs text-muted-foreground mt-1">Switch to Overlay View to edit</span>
               </p>
             </TabsContent>
           </Tabs>
