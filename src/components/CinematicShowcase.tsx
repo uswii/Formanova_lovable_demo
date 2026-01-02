@@ -57,38 +57,38 @@ export function CinematicShowcase() {
   const themeColors = useMemo(() => {
     switch(currentTheme) {
       case 'dark':
-        // Pure white accent on black
-        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.5)' };
+        // Pure white accent on black - light overlay
+        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
       case 'cyberpunk':
-        // Magenta/Pink primary with deep purple bg
-        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay: 'rgba(50, 0, 80, 0.6)' };
+        // Magenta/Pink primary with deep purple bg - light overlay
+        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay: 'rgba(50, 0, 80, 0.3)' };
       case 'vintage':
-        // Warm rust/terracotta with cream bg
-        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay: 'rgba(240, 230, 210, 0.55)' };
+        // Warm rust/terracotta with cream bg - light overlay
+        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay: 'rgba(240, 230, 210, 0.3)' };
       case 'nature':
-        // Green primary with earthy bg
-        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay: 'rgba(30, 60, 40, 0.5)' };
+        // Green primary with earthy bg - light overlay
+        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay: 'rgba(30, 60, 40, 0.25)' };
       case 'ocean':
-        // Teal/cyan primary with deep blue bg
-        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay: 'rgba(0, 40, 70, 0.55)' };
+        // Teal/cyan primary with deep blue bg - light overlay
+        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay: 'rgba(0, 40, 70, 0.28)' };
       case 'kawaii':
-        // Sakura pink primary with soft pink bg
-        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay: 'rgba(255, 220, 235, 0.6)' };
+        // Sakura pink primary with soft pink bg - light overlay
+        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay: 'rgba(255, 220, 235, 0.35)' };
       case 'fashion':
-        // Gold primary with black bg
-        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay: 'rgba(5, 5, 5, 0.6)' };
+        // Gold primary with black bg - light overlay
+        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay: 'rgba(5, 5, 5, 0.3)' };
       case 'luxury':
-        // Rose gold primary with burgundy bg
-        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay: 'rgba(60, 20, 30, 0.55)' };
+        // Rose gold primary with burgundy bg - light overlay
+        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay: 'rgba(60, 20, 30, 0.28)' };
       case 'retro':
-        // Green terminal with dark blue bg
-        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay: 'rgba(20, 25, 40, 0.6)' };
+        // Green terminal with dark blue bg - light overlay
+        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay: 'rgba(20, 25, 40, 0.3)' };
       case 'synthwave':
-        // Hot pink/magenta with purple bg
-        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay: 'rgba(40, 15, 60, 0.6)' };
+        // Hot pink/magenta with purple bg - light overlay
+        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay: 'rgba(40, 15, 60, 0.3)' };
       default:
-        // Light theme - black accent with light gray bg
-        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(240, 240, 240, 0.6)' };
+        // Light theme - black accent with light gray bg - light overlay
+        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(200, 200, 200, 0.35)' };
     }
   }, [currentTheme]);
 
