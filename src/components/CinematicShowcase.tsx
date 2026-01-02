@@ -33,31 +33,29 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase: 'mannequin' -> 'overlay' -> 'clean' for each generated image
+  // Phase: 'mannequin' -> 'overlay' -> 'clean' for EACH generated image
   const [displayPhase, setDisplayPhase] = useState<'mannequin' | 'overlay' | 'clean'>('mannequin');
 
-  // Cycle: mannequin with dots -> generated with overlay -> generated clean -> next generated...
+  // Cycle: mannequin+dots -> gen1+overlay -> gen1 clean -> mannequin+dots -> gen2+overlay -> gen2 clean -> ...
   useEffect(() => {
     const interval = setInterval(() => {
       setDisplayPhase(prev => {
         if (prev === 'mannequin') {
-          // Show first generated image with overlay
+          // After mannequin, show current generated image with overlay
           return 'overlay';
         }
         if (prev === 'overlay') {
-          // Show clean generated image
+          // After overlay, show clean generated image
           return 'clean';
         }
-        // After clean, move to next image and show its overlay (skip mannequin for subsequent)
-        const nextIndex = (zeroAltOutputIndex + 1) % generatedImages.length;
-        setZeroAltOutputIndex(nextIndex);
-        // Only show mannequin at the start of the full cycle
-        return nextIndex === 0 ? 'mannequin' : 'overlay';
+        // After clean, move to next image and show mannequin again
+        setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
+        return 'mannequin';
       });
     }, 2500);
     
     return () => clearInterval(interval);
-  }, [zeroAltOutputIndex]);
+  }, []);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
