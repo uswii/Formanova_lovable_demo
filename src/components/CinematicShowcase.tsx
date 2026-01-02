@@ -387,15 +387,15 @@ export function CinematicShowcase() {
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* Overlay + Landmarks - always visible */}
-          {jewelryEmphasisUrl && (
+          {/* Overlay only on generated images, not on mannequin */}
+          {!showMannequin && jewelryEmphasisUrl && (
             <img
               src={jewelryEmphasisUrl}
               alt=""
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
-          {/* Landmarks */}
+          {/* Landmarks - always visible */}
           <MaskDerivedReferenceOverlay />
 
           {/* Complete checkmark */}
