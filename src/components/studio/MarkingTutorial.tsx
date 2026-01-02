@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import mannequinJewelry from '@/assets/tutorial/mannequin-jewelry.jpg';
+import mannequinNecklace from '@/assets/tutorial/mannequin-necklace-studio.jpg';
 
 interface Props {
   onDismiss: () => void;
 }
 
-// Dot positions exactly on the jewelry (normalized 0-1 coordinates)
-// Based on the actual image: necklace chain forms V-shape with pendant at bottom
+// Dot positions exactly on the necklace (normalized 0-1 coordinates)
+// Based on the generated image: diamond chain V-shape with sapphire pendant
 const DOT_POSITIONS = [
-  { x: 0.32, y: 0.42 },  // Left necklace chain near shoulder
-  { x: 0.50, y: 0.54 },  // Center pendant (blue gem)
-  { x: 0.68, y: 0.42 },  // Right necklace chain near shoulder
+  { x: 0.35, y: 0.28 },  // Left necklace chain 
+  { x: 0.50, y: 0.52 },  // Center pendant (sapphire)
+  { x: 0.65, y: 0.28 },  // Right necklace chain
 ];
 
 export function MarkingTutorial({ onDismiss }: Props) {
-  const [cursorPos, setCursorPos] = useState({ x: 0.15, y: 0.25 });
+  const [cursorPos, setCursorPos] = useState({ x: 0.15, y: 0.15 });
   const [placedDots, setPlacedDots] = useState<number[]>([]);
   const [cycleKey, setCycleKey] = useState(0);
 
@@ -65,7 +65,7 @@ export function MarkingTutorial({ onDismiss }: Props) {
   // Animation: move cursor to each dot position, then place dot
   useEffect(() => {
     setPlacedDots([]);
-    setCursorPos({ x: 0.15, y: 0.25 });
+    setCursorPos({ x: 0.15, y: 0.15 });
     
     let dotIndex = 0;
     let phase: 'moving' | 'placing' = 'moving';
@@ -81,7 +81,7 @@ export function MarkingTutorial({ onDismiss }: Props) {
       const targetDot = DOT_POSITIONS[dotIndex];
       
       if (phase === 'moving') {
-        const startPos = dotIndex === 0 ? { x: 0.15, y: 0.25 } : DOT_POSITIONS[dotIndex - 1];
+        const startPos = dotIndex === 0 ? { x: 0.15, y: 0.15 } : DOT_POSITIONS[dotIndex - 1];
         const duration = 500;
         const startTime = Date.now();
         
@@ -139,8 +139,8 @@ export function MarkingTutorial({ onDismiss }: Props) {
         {/* Animated demo - compact */}
         <div className="relative aspect-[3/4] bg-muted/30 border border-border/50 mb-3 overflow-hidden rounded">
           <img
-            src={mannequinJewelry}
-            alt="Mannequin with jewelry"
+            src={mannequinNecklace}
+            alt="Mannequin with necklace"
             className="w-full h-full object-cover"
           />
           
