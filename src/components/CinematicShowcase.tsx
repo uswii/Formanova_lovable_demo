@@ -384,12 +384,12 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - original at start/complete, output during verify */}
+          {/* Base image - always show generated output */}
           <AnimatePresence mode="sync">
             <motion.img
-              key={zeroAltPhase === 'verify' ? `za-output-${zeroAltOutputIndex}` : 'za-input'}
-              src={zeroAltPhase === 'verify' ? generatedImages[zeroAltOutputIndex] : mannequinInput}
-              alt={zeroAltPhase === 'verify' ? `Output ${zeroAltOutputIndex + 1}` : "Original"}
+              key={`za-output-${zeroAltOutputIndex}`}
+              src={generatedImages[zeroAltOutputIndex]}
+              alt={`Output ${zeroAltOutputIndex + 1}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
