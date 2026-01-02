@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Paintbrush, Lightbulb, Loader2, ArrowLeft, ArrowRight, Undo, Redo, Sparkles } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Paintbrush, Lightbulb, Loader2, ArrowLeft, ArrowRight, Undo, Redo, Sparkles, Expand, X } from 'lucide-react';
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -27,6 +28,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
   const [brushMode, setBrushMode] = useState<'add' | 'remove'>('add');
   const [brushSize, setBrushSize] = useState(30);
   const [isApplying, setIsApplying] = useState(false);
+  const [fullscreenView, setFullscreenView] = useState<'overlay' | 'binary' | null>(null);
 
   const [history, setHistory] = useState<BrushStroke[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -140,7 +142,90 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
   const baseImage = state.maskOverlay || state.originalImage;
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
+    <>
+      {/* Fullscreen Dialog for editing */}
+      <Dialog open={fullscreenView !== null} onOpenChange={() => setFullscreenView(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden">
+          <div className="relative w-full h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/20">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">
+                  {fullscreenView === 'overlay' ? 'Overlay View' : 'Binary Mask'}
+                </span>
+                {fullscreenView === 'overlay' && (
+                  <span className="text-xs text-muted-foreground">Paint to refine</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={handleUndo} disabled={historyIndex < 0}>
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
+                  <Redo className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setFullscreenView(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+              {fullscreenView === 'overlay' && baseImage && (
+                <MaskCanvas
+                  key={`fullscreen-${canvasKey}`}
+                  image={baseImage}
+                  brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                  brushSize={brushSize}
+                  mode="brush"
+                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                  initialStrokes={effectiveStrokes}
+                  activeStroke={activeStroke}
+                  onBrushStrokeStart={handleStrokeStart}
+                  onBrushStrokePoint={handleStrokePoint}
+                  onBrushStrokeEnd={handleStrokeEnd}
+                />
+              )}
+              {fullscreenView === 'binary' && state.maskBinary && (
+                <BinaryMaskPreview
+                  maskImage={state.maskBinary}
+                  strokes={effectiveStrokes}
+                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                />
+              )}
+            </div>
+            {fullscreenView === 'overlay' && (
+              <div className="p-4 border-t border-border/20 flex justify-center gap-4">
+                <Button
+                  variant={brushMode === 'add' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setBrushMode('add')}
+                  className={brushMode === 'add' ? 'bg-green-600 hover:bg-green-700' : ''}
+                >
+                  <div className="h-3 w-3 rounded-full bg-green-500 mr-2" />
+                  Add
+                </Button>
+                <Button
+                  variant={brushMode === 'remove' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setBrushMode('remove')}
+                  className={brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900' : ''}
+                >
+                  <div className="h-3 w-3 rounded-full bg-black border border-white/30 mr-2" />
+                  Remove
+                </Button>
+              </div>
+            )}
+            {fullscreenView === 'binary' && (
+              <div className="p-4 border-t border-border/20 flex justify-center">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">White</span> = Preserved • <span className="font-semibold text-foreground">Black</span> = Generated
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2 bg-card/50 backdrop-blur">
         <CardHeader>
           <CardTitle className="font-display flex items-center gap-2">
@@ -160,19 +245,28 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               <div className="flex justify-center">
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   {baseImage ? (
-                    <MaskCanvas
-                      key={canvasKey}
-                      image={baseImage}
-                      brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
-                      brushSize={brushSize}
-                      mode="brush"
-                      canvasSize={400}
-                      initialStrokes={effectiveStrokes}
-                      activeStroke={activeStroke}
-                      onBrushStrokeStart={handleStrokeStart}
-                      onBrushStrokePoint={handleStrokePoint}
-                      onBrushStrokeEnd={handleStrokeEnd}
-                    />
+                    <>
+                      <MaskCanvas
+                        key={canvasKey}
+                        image={baseImage}
+                        brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                        brushSize={brushSize}
+                        mode="brush"
+                        canvasSize={400}
+                        initialStrokes={effectiveStrokes}
+                        activeStroke={activeStroke}
+                        onBrushStrokeStart={handleStrokeStart}
+                        onBrushStrokePoint={handleStrokePoint}
+                        onBrushStrokeEnd={handleStrokeEnd}
+                      />
+                      <button
+                        className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={() => setFullscreenView('overlay')}
+                        title="Fullscreen"
+                      >
+                        <Expand className="h-3.5 w-3.5" />
+                      </button>
+                    </>
                   ) : (
                     <div className="aspect-[4/3] bg-muted flex items-center justify-center">
                       <p className="text-muted-foreground">No mask generated yet</p>
@@ -189,11 +283,20 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               <div className="flex justify-center">
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   {state.maskBinary ? (
-                    <BinaryMaskPreview
-                      maskImage={state.maskBinary}
-                      strokes={effectiveStrokes}
-                      canvasSize={400}
-                    />
+                    <>
+                      <BinaryMaskPreview
+                        maskImage={state.maskBinary}
+                        strokes={effectiveStrokes}
+                        canvasSize={400}
+                      />
+                      <button
+                        className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        onClick={() => setFullscreenView('binary')}
+                        title="Fullscreen"
+                      >
+                        <Expand className="h-3.5 w-3.5" />
+                      </button>
+                    </>
                   ) : (
                     <div className="aspect-[4/3] bg-muted flex items-center justify-center">
                       <p className="text-muted-foreground">No mask generated yet</p>
@@ -311,5 +414,6 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
