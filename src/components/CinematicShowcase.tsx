@@ -391,7 +391,7 @@ export function CinematicShowcase() {
             alt={displayPhase.startsWith('mannequin') 
               ? "Original mannequin" 
               : `Output ${zeroAltOutputIndex + 1}`}
-            className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
+            className="absolute inset-0 w-full h-full object-contain"
           />
 
           {/* Overlay during overlay phases only */}
