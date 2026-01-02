@@ -222,38 +222,87 @@ export function CinematicShowcase() {
     { label: 'Growth', value: animatedValues.growth },
   ];
 
-  // Registration bracket component
-  const RegistrationBracket = ({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) => {
-    const isTop = position.startsWith('t');
-    const isLeft = position.endsWith('l');
-    const size = 12;
-    
+  // Physics-style reference overlay - minimal alignment graphics
+  const PhysicsReferenceOverlay = () => {
     return (
-      <motion.svg
-        className="absolute pointer-events-none"
-        width={size + 4}
-        height={size + 4}
-        style={{
-          [isTop ? 'top' : 'bottom']: '28%',
-          [isLeft ? 'left' : 'right']: '38%',
-        }}
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, delay: position === 'tl' ? 0 : position === 'tr' ? 0.1 : position === 'bl' ? 0.2 : 0.3 }}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        <path
-          d={isTop && isLeft ? `M2 ${size} L2 2 L${size} 2` :
-             isTop && !isLeft ? `M2 2 L${size} 2 L${size} ${size}` :
-             !isTop && isLeft ? `M2 2 L2 ${size} L${size} ${size}` :
-             `M2 ${size} L${size} ${size} L${size} 2`}
-          fill="none"
-          stroke={themeColors.accent}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </motion.svg>
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {/* Vertical center alignment line */}
+          <line 
+            x1="50" y1="20" x2="50" y2="80" 
+            stroke={themeColors.muted} 
+            strokeWidth="0.15" 
+            strokeDasharray="1,1"
+          />
+          {/* Horizontal alignment line through jewelry area */}
+          <line 
+            x1="30" y1="38" x2="70" y2="38" 
+            stroke={themeColors.muted} 
+            strokeWidth="0.15" 
+            strokeDasharray="1,1"
+          />
+        </svg>
+        
+        {/* Anchor points - small fixed reference dots */}
+        <div className="absolute" style={{ top: '32%', left: '38%' }}>
+          <div 
+            className="w-1.5 h-1.5 rounded-full border"
+            style={{ borderColor: themeColors.accent, background: 'transparent' }}
+          />
+        </div>
+        <div className="absolute" style={{ top: '32%', right: '38%' }}>
+          <div 
+            className="w-1.5 h-1.5 rounded-full border"
+            style={{ borderColor: themeColors.accent, background: 'transparent' }}
+          />
+        </div>
+        <div className="absolute" style={{ top: '44%', left: '50%', transform: 'translateX(-50%)' }}>
+          <div 
+            className="w-1.5 h-1.5 rounded-full border"
+            style={{ borderColor: themeColors.accent, background: 'transparent' }}
+          />
+        </div>
+        
+        {/* Corner registration marks */}
+        <svg className="absolute" style={{ top: '28%', left: '35%' }} width="10" height="10">
+          <path d="M0 8 L0 0 L8 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
+        </svg>
+        <svg className="absolute" style={{ top: '28%', right: '35%' }} width="10" height="10">
+          <path d="M10 0 L10 8 M2 0 L10 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
+        </svg>
+        <svg className="absolute" style={{ bottom: '52%', left: '35%' }} width="10" height="10">
+          <path d="M0 0 L0 8 L8 8" fill="none" stroke={themeColors.accent} strokeWidth="1" />
+        </svg>
+        <svg className="absolute" style={{ bottom: '52%', right: '35%' }} width="10" height="10">
+          <path d="M2 8 L10 8 L10 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
+        </svg>
+      </motion.div>
     );
   };
+
+  // Ghost reference - faint outline that stays fixed
+  const GhostReference = () => (
+    <motion.div
+      className="absolute inset-0 pointer-events-none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.15 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <img 
+        src={mannequinInput} 
+        alt="" 
+        className="w-full h-full object-contain opacity-30 mix-blend-overlay"
+        style={{ filter: 'grayscale(1) contrast(0.5)' }}
+      />
+    </motion.div>
+  );
 
   return (
     <div className="w-full">
@@ -276,53 +325,52 @@ export function CinematicShowcase() {
             />
           </AnimatePresence>
 
+          {/* Physics reference graphics - only during verification phases */}
+          <AnimatePresence>
+            {showBrackets && zeroAltPhase !== 'complete' && (
+              <>
+                <PhysicsReferenceOverlay />
+                {!zeroAltShowInput && <GhostReference />}
+              </>
+            )}
+          </AnimatePresence>
+
           {/* Subtle jewelry emphasis */}
-          {showBrackets && jewelryEmphasisUrl && (
+          {showBrackets && jewelryEmphasisUrl && zeroAltPhase !== 'complete' && (
             <motion.img
               src={jewelryEmphasisUrl}
               alt=""
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
 
-          {/* Registration brackets - stay fixed to prove no shift */}
-          {showBrackets && zeroAltPhase !== 'complete' && (
-            <>
-              <RegistrationBracket position="tl" />
-              <RegistrationBracket position="tr" />
-              <RegistrationBracket position="bl" />
-              <RegistrationBracket position="br" />
-            </>
-          )}
-
-          {/* Match percentage indicator */}
-          {zeroAltPhase === 'lock' && (
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div 
-                className="w-20 h-20 rounded-full border-2 flex items-center justify-center backdrop-blur-sm"
-                style={{ 
-                  borderColor: themeColors.accent,
-                  background: `conic-gradient(${themeColors.accent} ${matchPercent * 3.6}deg, transparent 0deg)`,
-                }}
+          {/* Verification text label - only during lock phase */}
+          <AnimatePresence>
+            {zeroAltPhase === 'lock' && (
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
               >
-                <div className="w-16 h-16 rounded-full bg-background/90 flex items-center justify-center">
-                  <span 
-                    className="text-lg font-bold font-mono"
-                    style={{ color: themeColors.accent }}
-                  >
-                    {matchPercent}%
-                  </span>
+                <div 
+                  className="px-4 py-2.5 rounded-lg backdrop-blur-md text-[11px] font-medium tracking-wide leading-relaxed"
+                  style={{ 
+                    background: 'rgba(0,0,0,0.6)',
+                    color: 'rgba(255,255,255,0.95)',
+                    border: `1px solid ${themeColors.muted}`
+                  }}
+                >
+                  Same pixels. Same position.<br/>
+                  <span className="text-[10px] opacity-70">Never re-rendered.</span>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Complete checkmark */}
           {zeroAltPhase === 'complete' && (
@@ -333,10 +381,10 @@ export function CinematicShowcase() {
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
             >
               <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center"
+                className="w-14 h-14 rounded-full flex items-center justify-center"
                 style={{ background: themeColors.accent }}
               >
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
@@ -358,16 +406,10 @@ export function CinematicShowcase() {
                 }`}
               >
                 {zeroAltPhase === 'toggle' && (zeroAltShowInput ? 'Before' : 'After')}
-                {zeroAltPhase === 'lock' && 'Matching...'}
+                {zeroAltPhase === 'lock' && 'Verifying...'}
                 {zeroAltPhase === 'complete' && 'Identical ✓'}
               </motion.div>
             </AnimatePresence>
-          </div>
-
-          <div className="absolute top-3 left-1/2 -translate-x-1/2">
-            <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-widest text-muted-foreground bg-background/60 backdrop-blur-sm">
-              Zero Alteration
-            </span>
           </div>
         </div>
 
@@ -405,7 +447,7 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output */}
+        {/* SECTION C — Final Output (clean, no overlays) */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="wait">
             <motion.img
@@ -424,12 +466,6 @@ export function CinematicShowcase() {
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
               Final Result
             </div>
-          </div>
-
-          <div className="absolute top-3 left-1/2 -translate-x-1/2">
-            <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-widest text-muted-foreground bg-background/60 backdrop-blur-sm">
-              Realistic Imagery
-            </span>
           </div>
         </div>
       </div>
