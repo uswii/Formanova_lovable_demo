@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useEmblaCarousel from 'embla-carousel-react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Import images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -35,33 +33,6 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-
-  // Carousel setup
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCarouselIndex(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-      emblaApi.off('reInit', onSelect);
-    };
-  }, [emblaApi, onSelect]);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -388,182 +359,165 @@ export function CinematicShowcase() {
     <div className="w-full">
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Carousel container */}
-      <div className="relative">
-        {/* Navigation arrows */}
-        <button
-          onClick={scrollPrev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-background transition-colors disabled:opacity-30"
-          disabled={!canScrollPrev}
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
-        <button
-          onClick={scrollNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-background transition-colors disabled:opacity-30"
-          disabled={!canScrollNext}
-        >
-          <ChevronRight className="w-5 h-5 text-foreground" />
-        </button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+        
+        {/* SECTION A — Zero Alteration */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          {/* Base image - original at start/complete, output during verify */}
+          <AnimatePresence mode="sync">
+            <motion.img
+              key={zeroAltPhase === 'verify' ? `za-output-${zeroAltOutputIndex}` : 'za-input'}
+              src={zeroAltPhase === 'verify' ? generatedImages[zeroAltOutputIndex] : mannequinInput}
+              alt={zeroAltPhase === 'verify' ? `Output ${zeroAltOutputIndex + 1}` : "Original"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          </AnimatePresence>
 
-        {/* Embla carousel */}
-        <div ref={emblaRef} className="overflow-hidden">
-          <div className="flex gap-4">
-            
-            {/* SECTION A — Zero Alteration */}
-            <div className="flex-[0_0_85%] md:flex-[0_0_33.333%] min-w-0">
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-                {/* Base image - original at start/complete, output during verify */}
-                <AnimatePresence mode="sync">
+          {/* Overlay + Landmarks only during verify phase */}
+          <AnimatePresence>
+            {zeroAltPhase === 'verify' && (
+              <>
+                {/* Two-color overlay: jewelry highlighted, background dimmed */}
+                {jewelryEmphasisUrl && (
                   <motion.img
-                    key={zeroAltPhase === 'verify' ? `za-output-${zeroAltOutputIndex}` : 'za-input'}
-                    src={zeroAltPhase === 'verify' ? generatedImages[zeroAltOutputIndex] : mannequinInput}
-                    alt={zeroAltPhase === 'verify' ? `Output ${zeroAltOutputIndex + 1}` : "Original"}
+                    src={jewelryEmphasisUrl}
+                    alt=""
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-0 w-full h-full object-contain"
+                    transition={{ duration: 0.3 }}
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                   />
-                </AnimatePresence>
+                )}
+                {/* Landmarks */}
+                <MaskDerivedReferenceOverlay />
+              </>
+            )}
+          </AnimatePresence>
 
-                {/* Overlay + Landmarks only during verify phase */}
-                <AnimatePresence>
-                  {zeroAltPhase === 'verify' && (
-                    <>
-                      {/* Two-color overlay: jewelry highlighted, background dimmed */}
-                      {jewelryEmphasisUrl && (
-                        <motion.img
-                          src={jewelryEmphasisUrl}
-                          alt=""
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                        />
-                      )}
-                      {/* Landmarks */}
-                      <MaskDerivedReferenceOverlay />
-                    </>
-                  )}
-                </AnimatePresence>
-
-                {/* Complete checkmark */}
-                <AnimatePresence>
-                  {zeroAltPhase === 'complete' && (
-                    <motion.div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    >
-                      <div 
-                        className="w-14 h-14 rounded-full flex items-center justify-center border-2"
-                        style={{ 
-                          background: themeColors.jewelryColor,
-                          borderColor: themeColors.accent
-                        }}
-                      >
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-background">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                {/* Status label */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={zeroAltPhase}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-                        zeroAltPhase === 'complete'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background/90 text-foreground border border-border'
-                      }`}
-                    >
-                      {zeroAltPhase === 'start' && 'Original'}
-                      {zeroAltPhase === 'verify' && 'Checking... did it shift?'}
-                      {zeroAltPhase === 'complete' && 'No. Never shifted, never altered.'}
-                    </motion.div>
-                  </AnimatePresence>
+          {/* Complete checkmark */}
+          <AnimatePresence>
+            {zeroAltPhase === 'complete' && (
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              >
+                <div 
+                  className="w-14 h-14 rounded-full flex items-center justify-center border-2"
+                  style={{ 
+                    background: themeColors.jewelryColor,
+                    borderColor: themeColors.accent
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-background">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                 </div>
-              </div>
-            </div>
-
-            {/* SECTION B — Metrics */}
-            <div className="flex-[0_0_85%] md:flex-[0_0_33.333%] min-w-0">
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border flex flex-col items-center justify-center p-5">
-                <div className="space-y-4 w-full max-w-[220px]">
-                  {metrics.map((metric) => (
-                    <div key={metric.label} className="space-y-1.5">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          {metric.label}
-                        </span>
-                        <span className="text-sm font-mono font-semibold text-foreground tabular-nums">
-                          {metric.value.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-primary rounded-full"
-                          animate={{ width: `${metric.value}%` }}
-                          transition={{ duration: 0.05 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    <span className="text-[10px] font-medium text-primary uppercase tracking-wider">
-                      Calculating
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION C — Final Output */}
-            <div className="flex-[0_0_85%] md:flex-[0_0_33.333%] min-w-0">
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-                <img
-                  src={generatedImages[zeroAltOutputIndex]}
-                  alt="Final result"
-                  className="w-full h-full object-contain"
-                />
-
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                  <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
-                    Final Result
-                  </div>
-                </div>
-              </div>
-            </div>
-
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Status label */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={zeroAltPhase}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
+                  zeroAltPhase === 'complete'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background/90 text-foreground border border-border'
+                }`}
+              >
+                {zeroAltPhase === 'start' && 'Original'}
+                {zeroAltPhase === 'verify' && 'Checking... did it shift?'}
+                {zeroAltPhase === 'complete' && 'No. Never shifted, never altered.'}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* Dot indicators */}
-        <div className="flex justify-center gap-2 mt-4">
-          {[0, 1, 2].map((index) => (
-            <button
-              key={index}
-              onClick={() => emblaApi?.scrollTo(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                carouselIndex === index ? 'bg-primary' : 'bg-muted-foreground/30'
-              }`}
-            />
-          ))}
+        {/* SECTION B — Metrics */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border flex flex-col items-center justify-center p-5">
+          <div className="space-y-4 w-full max-w-[220px]">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="space-y-1.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {metric.label}
+                  </span>
+                  <span className="text-sm font-mono font-semibold text-foreground tabular-nums">
+                    {metric.value.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary rounded-full"
+                    animate={{ width: `${metric.value}%` }}
+                    transition={{ duration: 0.05 }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <AnimatePresence mode="wait">
+              {zeroAltPhase === 'complete' ? (
+                <motion.div
+                  key="verified"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span className="text-[10px] font-medium text-green-500 uppercase tracking-wider">
+                    Verified
+                  </span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="calculating"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-medium text-primary uppercase tracking-wider">
+                    Calculating
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* SECTION C — Final Output */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          <img
+            src={generatedImages[zeroAltOutputIndex]}
+            alt="Final result"
+            className="w-full h-full object-contain"
+          />
+
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
+              Final Result
+            </div>
+          </div>
         </div>
       </div>
     </div>
