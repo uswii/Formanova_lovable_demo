@@ -376,15 +376,14 @@ export function CinematicShowcase() {
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-            <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
+            <div className={`px-3 py-1.5 rounded-full font-medium tracking-wide text-center ${
               displayPhase === 'mannequin-raw' || displayPhase === 'generated-clean'
-                ? 'bg-background/90 text-foreground border border-border'
-                : 'bg-primary/80 text-primary-foreground'
+                ? 'bg-background/90 text-foreground border border-border text-[10px]'
+                : 'bg-primary/80 text-primary-foreground text-[8px]'
             }`}>
               {displayPhase === 'mannequin-raw' && 'Original Input'}
-              {displayPhase === 'mannequin-overlay' && 'Zero Alteration'}
-              {displayPhase === 'generated-overlay' && 'Zero Alteration'}
-              {displayPhase === 'generated-clean' && 'Generated'}
+              {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && 'Zero Alteration'}
+              {displayPhase === 'generated-clean' && 'Realistic Imagery'}
             </div>
           </div>
         </div>
