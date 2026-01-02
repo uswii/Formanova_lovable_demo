@@ -35,24 +35,45 @@ export function CinematicShowcase() {
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
 
-  // Theme colors - jewelry color and background overlay color
+  // Theme colors - matching each theme's primary identity
   const themeColors = useMemo(() => {
     const theme = document.documentElement.getAttribute('data-theme') || 
                   (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
     
     switch(theme) {
       case 'dark':
-        return { accent: 'rgba(100, 200, 255, 0.95)', muted: 'rgba(100, 200, 255, 0.4)', jewelryColor: 'rgba(100, 200, 255, 0.9)', bgOverlay: 'rgba(0, 0, 0, 0.55)' };
+        // Pure white accent on black
+        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.5)' };
       case 'cyberpunk':
-        return { accent: 'rgba(255, 0, 200, 0.95)', muted: 'rgba(255, 0, 200, 0.4)', jewelryColor: 'rgba(255, 0, 200, 0.9)', bgOverlay: 'rgba(20, 0, 40, 0.55)' };
+        // Magenta/Pink primary
+        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay: 'rgba(30, 0, 50, 0.55)' };
       case 'vintage':
-        return { accent: 'rgba(220, 180, 100, 0.95)', muted: 'rgba(220, 180, 100, 0.4)', jewelryColor: 'rgba(220, 180, 100, 0.9)', bgOverlay: 'rgba(40, 30, 20, 0.5)' };
+        // Warm rust/terracotta primary
+        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay: 'rgba(50, 40, 35, 0.45)' };
       case 'nature':
-        return { accent: 'rgba(80, 200, 120, 0.95)', muted: 'rgba(80, 200, 120, 0.4)', jewelryColor: 'rgba(80, 200, 120, 0.9)', bgOverlay: 'rgba(20, 40, 20, 0.5)' };
+        // Green primary
+        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay: 'rgba(20, 40, 25, 0.5)' };
       case 'ocean':
-        return { accent: 'rgba(0, 180, 220, 0.95)', muted: 'rgba(0, 180, 220, 0.4)', jewelryColor: 'rgba(0, 180, 220, 0.9)', bgOverlay: 'rgba(0, 30, 50, 0.5)' };
+        // Teal/cyan primary
+        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay: 'rgba(0, 30, 50, 0.5)' };
+      case 'kawaii':
+        // Sakura pink primary
+        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay: 'rgba(60, 30, 45, 0.4)' };
+      case 'fashion':
+        // Gold primary
+        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.55)' };
+      case 'luxury':
+        // Rose gold primary
+        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay: 'rgba(40, 15, 20, 0.5)' };
+      case 'retro':
+        // Green terminal
+        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay: 'rgba(15, 20, 30, 0.55)' };
+      case 'synthwave':
+        // Hot pink/magenta
+        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay: 'rgba(30, 10, 40, 0.55)' };
       default:
-        return { accent: 'rgba(59, 130, 246, 0.95)', muted: 'rgba(59, 130, 246, 0.4)', jewelryColor: 'rgba(59, 130, 246, 0.9)', bgOverlay: 'rgba(0, 0, 0, 0.45)' };
+        // Light theme - black accent
+        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.75)', bgOverlay: 'rgba(255, 255, 255, 0.5)' };
     }
   }, []);
 
