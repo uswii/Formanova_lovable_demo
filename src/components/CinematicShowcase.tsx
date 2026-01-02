@@ -22,7 +22,6 @@ interface LandmarkPoint { x: number; y: number; type: 'anchor' | 'corner' }
 export function CinematicShowcase() {
   const [showInput, setShowInput] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [finalIndex, setFinalIndex] = useState(0);
   const [animatedValues, setAnimatedValues] = useState({ precision: 0, recall: 0, iou: 0, growth: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [jewelryEmphasisUrl, setJewelryEmphasisUrl] = useState<string>('');
@@ -255,13 +254,6 @@ export function CinematicShowcase() {
     return () => clearInterval(interval);
   }, [currentIndex]);
 
-  // Section C cycle
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFinalIndex(prev => (prev + 1) % generatedImages.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const metrics = [
     { label: 'Precision', value: animatedValues.precision },
@@ -472,17 +464,17 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output (clean, no overlays) */}
+        {/* SECTION C — Final Output (synced with Section A) */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="wait">
             <motion.img
-              key={finalIndex}
-              src={generatedImages[finalIndex]}
+              key={zeroAltOutputIndex}
+              src={generatedImages[zeroAltOutputIndex]}
               alt="Final result"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.3 }}
               className="w-full h-full object-contain"
             />
           </AnimatePresence>
