@@ -409,11 +409,16 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden">
           <div className="relative w-full h-full flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border/20">
-              <div className="flex items-center gap-4">
-                <h3 className="font-display text-lg font-medium">Mark Jewelry - Enlarged View</h3>
-                <span className="text-sm text-muted-foreground">
-                  {redDots.length}/{MAX_DOTS} dots placed
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <Circle className="h-3 w-3 fill-red-500 text-red-500" />
+                  <span className="text-sm font-medium">{redDots.length}/{MAX_DOTS}</span>
+                </div>
+                {showDotWarning && redDots.length >= WARN_DOTS && (
+                  <span className="text-xs text-amber-500 font-medium">
+                    Getting close to limit
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
