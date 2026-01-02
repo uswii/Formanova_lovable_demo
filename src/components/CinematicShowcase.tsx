@@ -35,12 +35,21 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
+  const [showMannequin, setShowMannequin] = useState(true);
 
   // Auto-play carousel setup
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: 'start' },
     [Autoplay({ delay: 3000, stopOnInteraction: false })]
   );
+
+  // Show mannequin only at very start, then switch to generated images
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowMannequin(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync carousel index with zeroAltOutputIndex
   const onSelect = useCallback(() => {
@@ -384,23 +393,36 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - always show generated output */}
+          {/* Base image - mannequin at start, then generated outputs */}
           <AnimatePresence mode="sync">
-            <motion.img
-              key={`za-output-${zeroAltOutputIndex}`}
-              src={generatedImages[zeroAltOutputIndex]}
-              alt={`Output ${zeroAltOutputIndex + 1}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 w-full h-full object-contain"
-            />
+            {showMannequin ? (
+              <motion.img
+                key="mannequin"
+                src={mannequinInput}
+                alt="Original mannequin"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <motion.img
+                key={`za-output-${zeroAltOutputIndex}`}
+                src={generatedImages[zeroAltOutputIndex]}
+                alt={`Output ${zeroAltOutputIndex + 1}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            )}
           </AnimatePresence>
 
-          {/* Overlay + Landmarks only during verify phase */}
+          {/* Overlay + Landmarks only during verify phase AND not showing mannequin */}
           <AnimatePresence>
-            {zeroAltPhase === 'verify' && (
+            {zeroAltPhase === 'verify' && !showMannequin && (
               <>
                 {/* Two-color overlay: jewelry highlighted, background dimmed */}
                 {jewelryEmphasisUrl && (
