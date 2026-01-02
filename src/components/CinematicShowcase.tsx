@@ -494,15 +494,34 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output synced with Section A */}
+        {/* SECTION C — Final Output with continuous carousel */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <img
-            src={generatedImages[zeroAltOutputIndex]}
-            alt={`Result ${zeroAltOutputIndex + 1}`}
-            className="w-full h-full object-contain"
-          />
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              className="flex h-full"
+              animate={{ x: ['0%', '-300%'] }}
+              transition={{
+                x: {
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: 'linear',
+                },
+              }}
+              style={{ width: '400%' }}
+            >
+              {[...generatedImages, ...generatedImages].map((img, idx) => (
+                <div key={idx} className="flex-shrink-0 w-1/4 h-full">
+                  <img
+                    src={img}
+                    alt={`Result ${(idx % generatedImages.length) + 1}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ))}
+            </motion.div>
+          </div>
 
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
               Realistic Imagery
             </div>
