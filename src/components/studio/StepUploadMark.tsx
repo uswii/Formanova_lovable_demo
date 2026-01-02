@@ -454,17 +454,39 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center relative">
               {fullscreenImage && state.originalImage && (
-                <MaskCanvas
-                  image={state.originalImage}
-                  dots={redDots}
-                  brushColor="#FF0000"
-                  brushSize={markerSize}
-                  mode="dot"
-                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
-                  onCanvasClick={handleCanvasClick}
-                />
+                <>
+                  <MaskCanvas
+                    image={state.originalImage}
+                    dots={redDots}
+                    brushColor="#FF0000"
+                    brushSize={markerSize}
+                    mode="dot"
+                    canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                    onCanvasClick={handleCanvasClick}
+                  />
+                  {/* Dot warning overlay - centered on canvas in fullscreen */}
+                  {showDotWarning && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/40">
+                      <div className="bg-background border-2 border-primary rounded-lg px-6 py-5 shadow-xl max-w-[80%] text-center relative">
+                        <button
+                          onClick={() => setShowDotWarning(false)}
+                          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                          aria-label="Close warning"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-base font-semibold text-foreground">
+                          Too many marks can reduce quality
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          3-5 dots usually work best
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="p-4 border-t border-border/20 flex justify-center">
