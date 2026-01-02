@@ -17,24 +17,6 @@ const metricsPerOutput = [
   { precision: 99.5, recall: 98.4, iou: 97.9, growth: 93.8 },
 ];
 
-// Anchor points for jewelry verification (normalized 0-1 positions)
-const jewelryAnchors = [
-  { id: 'top', x: 0.5, y: 0.28, label: 'Clasp' },
-  { id: 'left', x: 0.42, y: 0.35, label: 'Left Edge' },
-  { id: 'right', x: 0.58, y: 0.35, label: 'Right Edge' },
-  { id: 'center', x: 0.5, y: 0.38, label: 'Center' },
-  { id: 'bottom', x: 0.5, y: 0.42, label: 'Pendant' },
-];
-
-// Guide lines connecting anchors
-const guideLines = [
-  { from: 'top', to: 'left' },
-  { from: 'top', to: 'right' },
-  { from: 'left', to: 'center' },
-  { from: 'right', to: 'center' },
-  { from: 'center', to: 'bottom' },
-];
-
 export function CinematicShowcase() {
   const [showInput, setShowInput] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -60,61 +42,61 @@ export function CinematicShowcase() {
       case 'dark':
         return {
           primary: 'rgb(255, 255, 255)',
-          primaryMuted: 'rgba(255, 255, 255, 0.3)',
-          accent: 'rgba(255, 255, 255, 0.8)',
-          scan: 'rgba(255, 255, 255, 0.15)',
-          scanLine: 'rgba(255, 255, 255, 0.9)',
-          emphasis: 'rgba(255, 255, 255, 0.08)',
+          primaryMuted: 'rgba(255, 255, 255, 0.5)',
+          accent: 'rgba(255, 255, 255, 0.9)',
+          scan: 'rgba(255, 255, 255, 0.2)',
+          scanLine: 'rgba(255, 255, 255, 0.95)',
+          emphasis: 'rgba(255, 255, 255, 0.25)',
         };
       case 'cyberpunk':
         return {
           primary: 'rgb(255, 0, 200)',
-          primaryMuted: 'rgba(255, 0, 200, 0.3)',
-          accent: 'rgba(255, 0, 200, 0.8)',
-          scan: 'rgba(255, 0, 200, 0.12)',
-          scanLine: 'rgba(255, 0, 200, 0.9)',
-          emphasis: 'rgba(255, 0, 200, 0.06)',
+          primaryMuted: 'rgba(255, 0, 200, 0.5)',
+          accent: 'rgba(255, 0, 200, 0.9)',
+          scan: 'rgba(255, 0, 200, 0.2)',
+          scanLine: 'rgba(255, 0, 200, 0.95)',
+          emphasis: 'rgba(255, 0, 200, 0.2)',
         };
       case 'vintage':
         return {
           primary: 'rgb(180, 140, 80)',
-          primaryMuted: 'rgba(180, 140, 80, 0.3)',
-          accent: 'rgba(180, 140, 80, 0.8)',
-          scan: 'rgba(180, 140, 80, 0.12)',
-          scanLine: 'rgba(180, 140, 80, 0.9)',
-          emphasis: 'rgba(180, 140, 80, 0.06)',
+          primaryMuted: 'rgba(180, 140, 80, 0.5)',
+          accent: 'rgba(180, 140, 80, 0.9)',
+          scan: 'rgba(180, 140, 80, 0.2)',
+          scanLine: 'rgba(180, 140, 80, 0.95)',
+          emphasis: 'rgba(180, 140, 80, 0.2)',
         };
       case 'nature':
         return {
           primary: 'rgb(100, 180, 100)',
-          primaryMuted: 'rgba(100, 180, 100, 0.3)',
-          accent: 'rgba(100, 180, 100, 0.8)',
-          scan: 'rgba(100, 180, 100, 0.12)',
-          scanLine: 'rgba(100, 180, 100, 0.9)',
-          emphasis: 'rgba(100, 180, 100, 0.06)',
+          primaryMuted: 'rgba(100, 180, 100, 0.5)',
+          accent: 'rgba(100, 180, 100, 0.9)',
+          scan: 'rgba(100, 180, 100, 0.2)',
+          scanLine: 'rgba(100, 180, 100, 0.95)',
+          emphasis: 'rgba(100, 180, 100, 0.2)',
         };
       case 'ocean':
         return {
           primary: 'rgb(0, 150, 200)',
-          primaryMuted: 'rgba(0, 150, 200, 0.3)',
-          accent: 'rgba(0, 150, 200, 0.8)',
-          scan: 'rgba(0, 150, 200, 0.12)',
-          scanLine: 'rgba(0, 150, 200, 0.9)',
-          emphasis: 'rgba(0, 150, 200, 0.06)',
+          primaryMuted: 'rgba(0, 150, 200, 0.5)',
+          accent: 'rgba(0, 150, 200, 0.9)',
+          scan: 'rgba(0, 150, 200, 0.2)',
+          scanLine: 'rgba(0, 150, 200, 0.95)',
+          emphasis: 'rgba(0, 150, 200, 0.2)',
         };
       default: // light
         return {
           primary: 'rgb(0, 0, 0)',
-          primaryMuted: 'rgba(0, 0, 0, 0.25)',
-          accent: 'rgba(0, 0, 0, 0.7)',
-          scan: 'rgba(0, 0, 0, 0.08)',
-          scanLine: 'rgba(0, 0, 0, 0.8)',
-          emphasis: 'rgba(0, 0, 0, 0.04)',
+          primaryMuted: 'rgba(0, 0, 0, 0.4)',
+          accent: 'rgba(0, 0, 0, 0.85)',
+          scan: 'rgba(0, 0, 0, 0.12)',
+          scanLine: 'rgba(0, 0, 0, 0.9)',
+          emphasis: 'rgba(0, 0, 0, 0.15)',
         };
     }
   }, []);
 
-  // Create soft emphasis overlay from mask (subtle glow effect)
+  // Create solid emphasis overlay from mask
   useEffect(() => {
     const generateEmphasis = () => {
       const canvas = canvasRef.current;
@@ -129,10 +111,8 @@ export function CinematicShowcase() {
         canvas.width = maskImg.naturalWidth;
         canvas.height = maskImg.naturalHeight;
         
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw mask and create soft emphasis
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
         tempCanvas.height = canvas.height;
@@ -142,24 +122,21 @@ export function CinematicShowcase() {
         tempCtx.drawImage(maskImg, 0, 0);
         const maskData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-        // Create soft glow effect on jewelry areas
+        // Create more solid overlay on jewelry areas
+        ctx.fillStyle = themeColors.emphasis;
         for (let y = 0; y < canvas.height; y++) {
           for (let x = 0; x < canvas.width; x++) {
             const idx = (y * canvas.width + x) * 4;
             const brightness = maskData.data[idx];
             
             if (brightness > 200) {
-              // Soft radial gradient effect
-              ctx.fillStyle = themeColors.emphasis;
-              ctx.beginPath();
-              ctx.arc(x, y, 3, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.fillRect(x, y, 1, 1);
             }
           }
         }
 
-        // Apply blur for soft edges
-        ctx.filter = 'blur(8px)';
+        // Slight blur for soft edges
+        ctx.filter = 'blur(3px)';
         ctx.drawImage(canvas, 0, 0);
         ctx.filter = 'none';
 
@@ -182,7 +159,6 @@ export function CinematicShowcase() {
 
   // Zero Alteration Phase Controller
   useEffect(() => {
-    // Phase 1: Toggle 3 times
     if (zeroAltPhase === 'toggle') {
       const toggleInterval = setInterval(() => {
         setZeroAltShowInput(prev => !prev);
@@ -193,10 +169,8 @@ export function CinematicShowcase() {
     }
   }, [zeroAltPhase]);
 
-  // Progress through phases
   useEffect(() => {
     if (toggleCount >= 6 && zeroAltPhase === 'toggle') {
-      // After 3 full toggles, show diagram
       setShowDiagram(true);
       setZeroAltPhase('verify');
     }
@@ -204,12 +178,10 @@ export function CinematicShowcase() {
 
   useEffect(() => {
     if (zeroAltPhase === 'verify') {
-      // Toggle with diagram overlay
       const verifyInterval = setInterval(() => {
         setZeroAltShowInput(prev => !prev);
       }, 1500);
 
-      // After verification, trigger scan
       const scanTimeout = setTimeout(() => {
         clearInterval(verifyInterval);
         setZeroAltPhase('scan');
@@ -223,7 +195,6 @@ export function CinematicShowcase() {
     }
   }, [zeroAltPhase]);
 
-  // Scan animation
   useEffect(() => {
     if (zeroAltPhase === 'scan' && scanActive) {
       let progress = 0;
@@ -234,7 +205,6 @@ export function CinematicShowcase() {
         if (progress >= 100) {
           clearInterval(scanInterval);
           setScanActive(false);
-          // End on input frame and clean up
           setTimeout(() => {
             setZeroAltShowInput(true);
             setShowDiagram(false);
@@ -247,7 +217,6 @@ export function CinematicShowcase() {
     }
   }, [zeroAltPhase, scanActive]);
 
-  // Reset cycle after complete
   useEffect(() => {
     if (zeroAltPhase === 'complete') {
       const resetTimeout = setTimeout(() => {
@@ -260,7 +229,7 @@ export function CinematicShowcase() {
     }
   }, [zeroAltPhase]);
 
-  // Section B: Regular toggle between input and outputs (for metrics)
+  // Section B toggle
   useEffect(() => {
     const interval = setInterval(() => {
       setShowInput(prev => {
@@ -312,7 +281,7 @@ export function CinematicShowcase() {
     return () => clearInterval(interval);
   }, [currentIndex]);
 
-  // Section C: Final images cycle
+  // Section C cycle
   useEffect(() => {
     const interval = setInterval(() => {
       setFinalIndex(prev => (prev + 1) % generatedImages.length);
@@ -326,9 +295,6 @@ export function CinematicShowcase() {
     { label: 'IoU', value: animatedValues.iou },
     { label: 'Growth', value: animatedValues.growth },
   ];
-
-  // Get anchor position by id
-  const getAnchor = (id: string) => jewelryAnchors.find(a => a.id === id);
 
   return (
     <div className="w-full">
@@ -352,162 +318,222 @@ export function CinematicShowcase() {
             />
           </AnimatePresence>
 
-          {/* Soft Emphasis Overlay (only during verify phase) */}
+          {/* Solid Emphasis Overlay */}
           {(zeroAltPhase === 'verify' || zeroAltPhase === 'scan') && jewelryEmphasisUrl && (
             <motion.img
               src={jewelryEmphasisUrl}
               alt=""
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
+              animate={{ opacity: 0.8 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none mix-blend-overlay"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
 
-          {/* Scientific Diagram Overlay */}
+          {/* Physicist-Style Diagram Overlay */}
           {showDiagram && zeroAltPhase !== 'complete' && (
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
-              <defs>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Guide Lines */}
-              {guideLines.map((line, i) => {
-                const from = getAnchor(line.from);
-                const to = getAnchor(line.to);
-                if (!from || !to) return null;
-                
-                return (
-                  <motion.line
-                    key={`line-${i}`}
-                    x1={`${from.x * 100}%`}
-                    y1={`${from.y * 100}%`}
-                    x2={`${to.x * 100}%`}
-                    y2={`${to.y * 100}%`}
-                    stroke={themeColors.primaryMuted}
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, delay: i * 0.1 }}
-                    filter="url(#glow)"
-                  />
-                );
-              })}
-
-              {/* Anchor Points */}
-              {jewelryAnchors.map((anchor, i) => (
-                <motion.g key={anchor.id}>
-                  {/* Outer ring */}
-                  <motion.circle
-                    cx={`${anchor.x * 100}%`}
-                    cy={`${anchor.y * 100}%`}
-                    r="8"
-                    fill="none"
-                    stroke={themeColors.primaryMuted}
-                    strokeWidth="1"
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.5 + i * 0.08 }}
-                  />
-                  {/* Inner dot */}
-                  <motion.circle
-                    cx={`${anchor.x * 100}%`}
-                    cy={`${anchor.y * 100}%`}
-                    r="3"
-                    fill={themeColors.accent}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.2, 1] }}
-                    transition={{ duration: 0.3, delay: 0.6 + i * 0.08 }}
-                    filter="url(#glow)"
-                  />
-                  {/* Crosshair lines */}
-                  <motion.line
-                    x1={`${(anchor.x - 0.02) * 100}%`}
-                    y1={`${anchor.y * 100}%`}
-                    x2={`${(anchor.x + 0.02) * 100}%`}
-                    y2={`${anchor.y * 100}%`}
-                    stroke={themeColors.accent}
-                    strokeWidth="1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.6 }}
-                    transition={{ delay: 0.8 + i * 0.08 }}
-                  />
-                  <motion.line
-                    x1={`${anchor.x * 100}%`}
-                    y1={`${(anchor.y - 0.015) * 100}%`}
-                    x2={`${anchor.x * 100}%`}
-                    y2={`${(anchor.y + 0.015) * 100}%`}
-                    stroke={themeColors.accent}
-                    strokeWidth="1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.6 }}
-                    transition={{ delay: 0.8 + i * 0.08 }}
-                  />
-                </motion.g>
-              ))}
-
-              {/* Bounding Box */}
-              <motion.rect
-                x="40%"
-                y="26%"
-                width="20%"
-                height="18%"
-                fill="none"
+              {/* Horizontal Reference Line through jewelry center */}
+              <motion.line
+                x1="25%"
+                y1="35%"
+                x2="75%"
+                y2="35%"
                 stroke={themeColors.primaryMuted}
                 strokeWidth="1"
-                strokeDasharray="6 3"
-                rx="2"
+                strokeDasharray="8 4"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                transition={{ delay: 1.2 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              />
+              
+              {/* Vertical Reference Line through jewelry center */}
+              <motion.line
+                x1="50%"
+                y1="20%"
+                x2="50%"
+                y2="50%"
+                stroke={themeColors.primaryMuted}
+                strokeWidth="1"
+                strokeDasharray="8 4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
               />
 
-              {/* Scale/Position indicators at corners */}
-              {[
-                { x: 40, y: 26 },
-                { x: 60, y: 26 },
-                { x: 40, y: 44 },
-                { x: 60, y: 44 }
-              ].map((corner, i) => (
-                <motion.g key={`corner-${i}`}>
-                  <motion.line
-                    x1={`${corner.x}%`}
-                    y1={`${corner.y - 1.5}%`}
-                    x2={`${corner.x}%`}
-                    y2={`${corner.y + 1.5}%`}
-                    stroke={themeColors.accent}
-                    strokeWidth="1.5"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.8 }}
-                    transition={{ delay: 1.3 + i * 0.05 }}
-                  />
-                  <motion.line
-                    x1={`${corner.x - 1.5}%`}
-                    y1={`${corner.y}%`}
-                    x2={`${corner.x + 1.5}%`}
-                    y2={`${corner.y}%`}
-                    stroke={themeColors.accent}
-                    strokeWidth="1.5"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.8 }}
-                    transition={{ delay: 1.3 + i * 0.05 }}
-                  />
-                </motion.g>
-              ))}
+              {/* Left Arrow - pointing inward to jewelry */}
+              <motion.g
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+              >
+                <line
+                  x1="28%"
+                  y1="35%"
+                  x2="38%"
+                  y2="35%"
+                  stroke={themeColors.accent}
+                  strokeWidth="2"
+                />
+                <polygon
+                  points="0,-4 8,0 0,4"
+                  fill={themeColors.accent}
+                  transform="translate(152, 140) rotate(0)"
+                  style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                />
+                {/* Δx = 0 label */}
+                <text
+                  x="33%"
+                  y="32%"
+                  fill={themeColors.accent}
+                  fontSize="10"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                >
+                  Δx = 0
+                </text>
+              </motion.g>
+
+              {/* Right Arrow - pointing inward to jewelry */}
+              <motion.g
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+              >
+                <line
+                  x1="72%"
+                  y1="35%"
+                  x2="62%"
+                  y2="35%"
+                  stroke={themeColors.accent}
+                  strokeWidth="2"
+                />
+                <polygon
+                  points="0,-4 -8,0 0,4"
+                  fill={themeColors.accent}
+                  transform="translate(248, 140) rotate(0)"
+                  style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                />
+              </motion.g>
+
+              {/* Top Arrow - pointing down to jewelry */}
+              <motion.g
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+              >
+                <line
+                  x1="50%"
+                  y1="22%"
+                  x2="50%"
+                  y2="28%"
+                  stroke={themeColors.accent}
+                  strokeWidth="2"
+                />
+                <polygon
+                  points="-4,0 0,8 4,0"
+                  fill={themeColors.accent}
+                  transform="translate(200, 112)"
+                  style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                />
+                {/* Δy = 0 label */}
+                <text
+                  x="57%"
+                  y="25%"
+                  fill={themeColors.accent}
+                  fontSize="10"
+                  fontFamily="monospace"
+                  textAnchor="start"
+                >
+                  Δy = 0
+                </text>
+              </motion.g>
+
+              {/* Bottom Arrow - pointing up to jewelry */}
+              <motion.g
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.6 }}
+              >
+                <line
+                  x1="50%"
+                  y1="48%"
+                  x2="50%"
+                  y2="42%"
+                  stroke={themeColors.accent}
+                  strokeWidth="2"
+                />
+                <polygon
+                  points="-4,0 0,-8 4,0"
+                  fill={themeColors.accent}
+                  transform="translate(200, 168)"
+                  style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                />
+              </motion.g>
+
+              {/* Scale indicator - double-headed arrow */}
+              <motion.g
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.7 }}
+              >
+                {/* Left scale bracket */}
+                <line x1="40%" y1="44%" x2="40%" y2="46%" stroke={themeColors.accent} strokeWidth="1.5" />
+                <line x1="40%" y1="45%" x2="60%" y2="45%" stroke={themeColors.accent} strokeWidth="1.5" />
+                <line x1="60%" y1="44%" x2="60%" y2="46%" stroke={themeColors.accent} strokeWidth="1.5" />
+                
+                {/* Scale = 1:1 label */}
+                <text
+                  x="50%"
+                  y="49%"
+                  fill={themeColors.accent}
+                  fontSize="9"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                >
+                  scale 1:1
+                </text>
+              </motion.g>
+
+              {/* Rotation indicator - small arc showing θ = 0° */}
+              <motion.g
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.8 }}
+              >
+                <path
+                  d="M 170 125 A 15 15 0 0 1 185 140"
+                  fill="none"
+                  stroke={themeColors.accent}
+                  strokeWidth="1.5"
+                />
+                <text
+                  x="44%"
+                  y="28%"
+                  fill={themeColors.accent}
+                  fontSize="9"
+                  fontFamily="monospace"
+                  textAnchor="end"
+                >
+                  θ = 0°
+                </text>
+              </motion.g>
+
+              {/* Center crosshair - small + at jewelry center */}
+              <motion.g
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.9 }}
+              >
+                <line x1="48%" y1="35%" x2="52%" y2="35%" stroke={themeColors.accent} strokeWidth="2" />
+                <line x1="50%" y1="33%" x2="50%" y2="37%" stroke={themeColors.accent} strokeWidth="2" />
+              </motion.g>
             </svg>
           )}
 
           {/* Verification Scan Effect */}
           {zeroAltPhase === 'scan' && (
             <>
-              {/* Scan overlay that follows the line */}
               <motion.div
                 className="absolute left-0 right-0 pointer-events-none"
                 style={{
@@ -517,7 +543,6 @@ export function CinematicShowcase() {
                 }}
               />
               
-              {/* Scan line */}
               <motion.div
                 className="absolute left-0 right-0 h-[2px] pointer-events-none"
                 style={{
@@ -544,8 +569,8 @@ export function CinematicShowcase() {
                 }`}
               >
                 {zeroAltPhase === 'toggle' && (zeroAltShowInput ? 'Input' : 'Output')}
-                {zeroAltPhase === 'verify' && 'Verifying Position'}
-                {zeroAltPhase === 'scan' && 'Scanning Integrity'}
+                {zeroAltPhase === 'verify' && 'Verifying'}
+                {zeroAltPhase === 'scan' && 'Scanning'}
                 {zeroAltPhase === 'complete' && 'Zero Alteration ✓'}
               </motion.div>
             </AnimatePresence>
@@ -559,7 +584,7 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION B — Metrics with animated sliders */}
+        {/* SECTION B — Metrics */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border flex flex-col items-center justify-center p-5">
           <div className="space-y-4 w-full max-w-[220px]">
             {metrics.map((metric) => (
@@ -593,21 +618,9 @@ export function CinematicShowcase() {
               </span>
             </div>
           </div>
-
-          {/* Output indicator dots */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {generatedImages.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  currentIndex === i ? 'bg-primary w-4' : 'bg-foreground/15 w-1.5'
-                }`}
-              />
-            ))}
-          </div>
         </div>
 
-        {/* SECTION C — Final Clean Output (Realistic Imagery) */}
+        {/* SECTION C — Final Clean Output */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="wait">
             <motion.img
@@ -634,17 +647,6 @@ export function CinematicShowcase() {
             <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-widest text-muted-foreground bg-background/60 backdrop-blur-sm">
               Realistic Imagery
             </span>
-          </div>
-
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-1.5 mt-2">
-            {generatedImages.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  finalIndex === i ? 'bg-primary w-4' : 'bg-foreground/20 w-1.5'
-                }`}
-              />
-            ))}
           </div>
         </div>
       </div>
