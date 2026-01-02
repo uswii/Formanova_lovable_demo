@@ -486,10 +486,10 @@ export function CinematicShowcase() {
             <motion.div
               key={zeroAltOutputIndex}
               className="absolute inset-0"
-              initial={{ clipPath: 'inset(0 100% 0 0)' }}
-              animate={{ clipPath: 'inset(0 0% 0 0)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
             >
               <img
                 src={generatedImages[zeroAltOutputIndex]}
