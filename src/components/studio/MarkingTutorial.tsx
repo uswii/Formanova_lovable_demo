@@ -8,11 +8,11 @@ interface Props {
 }
 
 // Dot positions exactly on the necklace (normalized 0-1 coordinates)
-// Based on the generated image: diamond chain V-shape with sapphire pendant
+// Based on the generated image: diamond chain with sapphire pendant
 const DOT_POSITIONS = [
-  { x: 0.35, y: 0.28 },  // Left necklace chain 
-  { x: 0.50, y: 0.52 },  // Center pendant (sapphire)
-  { x: 0.65, y: 0.28 },  // Right necklace chain
+  { x: 0.30, y: 0.32 },  // Left necklace chain 
+  { x: 0.50, y: 0.48 },  // Center pendant (sapphire)
+  { x: 0.70, y: 0.32 },  // Right necklace chain
 ];
 
 export function MarkingTutorial({ onDismiss }: Props) {
@@ -148,6 +148,7 @@ export function MarkingTutorial({ onDismiss }: Props) {
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
             {placedDots.map((dotIdx) => {
               const dot = DOT_POSITIONS[dotIdx];
+              if (!dot) return null;
               return (
                 <circle
                   key={`${cycleKey}-${dotIdx}`}
