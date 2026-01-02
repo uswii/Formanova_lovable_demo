@@ -16,6 +16,9 @@ const metricsPerOutput = [
   { precision: 99.5, recall: 98.4, iou: 97.9, growth: 93.8 },
 ];
 
+// Jewelry landmark points derived from mask (normalized 0-100)
+interface LandmarkPoint { x: number; y: number; type: 'anchor' | 'corner' }
+
 export function CinematicShowcase() {
   const [showInput, setShowInput] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,6 +26,10 @@ export function CinematicShowcase() {
   const [animatedValues, setAnimatedValues] = useState({ precision: 0, recall: 0, iou: 0, growth: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [jewelryEmphasisUrl, setJewelryEmphasisUrl] = useState<string>('');
+  
+  // Mask-derived landmarks (bounding box corners + center anchors)
+  const [jewelryLandmarks, setJewelryLandmarks] = useState<LandmarkPoint[]>([]);
+  const [jewelryBounds, setJewelryBounds] = useState({ minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 });
   
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'toggle' | 'lock' | 'complete'>('toggle');
@@ -52,9 +59,9 @@ export function CinematicShowcase() {
     }
   }, []);
 
-  // Create emphasis overlay
+  // Extract jewelry region and landmarks from mask
   useEffect(() => {
-    const generateEmphasis = () => {
+    const extractLandmarks = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -65,26 +72,61 @@ export function CinematicShowcase() {
         canvas.width = maskImg.naturalWidth;
         canvas.height = maskImg.naturalHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-
-        tempCtx.drawImage(maskImg, 0, 0);
-        const maskData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = themeColors.emphasis;
-        for (let y = 0; y < canvas.height; y++) {
-          for (let x = 0; x < canvas.width; x++) {
-            const idx = (y * canvas.width + x) * 4;
+        ctx.drawImage(maskImg, 0, 0);
+        
+        const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Find bounding box of jewelry region
+        let minX = w, minY = h, maxX = 0, maxY = 0;
+        const jewelryPixels: { x: number; y: number }[] = [];
+        
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
             if (maskData.data[idx] > 200) {
-              ctx.fillRect(x, y, 1, 1);
+              minX = Math.min(minX, x);
+              minY = Math.min(minY, y);
+              maxX = Math.max(maxX, x);
+              maxY = Math.max(maxY, y);
+              jewelryPixels.push({ x, y });
             }
           }
         }
-
+        
+        if (jewelryPixels.length === 0) return;
+        
+        // Normalize to percentage coordinates
+        const normMinX = (minX / w) * 100;
+        const normMinY = (minY / h) * 100;
+        const normMaxX = (maxX / w) * 100;
+        const normMaxY = (maxY / h) * 100;
+        const centerX = (normMinX + normMaxX) / 2;
+        const centerY = (normMinY + normMaxY) / 2;
+        
+        setJewelryBounds({ minX: normMinX, minY: normMinY, maxX: normMaxX, maxY: normMaxY, centerX, centerY });
+        
+        // Generate landmark points: corners + edge midpoints + center
+        const landmarks: LandmarkPoint[] = [
+          { x: normMinX, y: normMinY, type: 'corner' },
+          { x: normMaxX, y: normMinY, type: 'corner' },
+          { x: normMinX, y: normMaxY, type: 'corner' },
+          { x: normMaxX, y: normMaxY, type: 'corner' },
+          { x: centerX, y: normMinY, type: 'anchor' },
+          { x: centerX, y: normMaxY, type: 'anchor' },
+          { x: normMinX, y: centerY, type: 'anchor' },
+          { x: normMaxX, y: centerY, type: 'anchor' },
+        ];
+        
+        setJewelryLandmarks(landmarks);
+        
+        // Create emphasis overlay
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = themeColors.emphasis;
+        for (const pixel of jewelryPixels) {
+          ctx.fillRect(pixel.x, pixel.y, 1, 1);
+        }
         ctx.filter = 'blur(4px)';
         ctx.drawImage(canvas, 0, 0);
         ctx.filter = 'none';
@@ -93,8 +135,8 @@ export function CinematicShowcase() {
       maskImg.src = jewelryMask;
     };
 
-    generateEmphasis();
-    const observer = new MutationObserver(generateEmphasis);
+    extractLandmarks();
+    const observer = new MutationObserver(extractLandmarks);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
     return () => observer.disconnect();
   }, [themeColors]);
@@ -222,8 +264,11 @@ export function CinematicShowcase() {
     { label: 'Growth', value: animatedValues.growth },
   ];
 
-  // Physics-style reference overlay - minimal alignment graphics
-  const PhysicsReferenceOverlay = () => {
+  // Mask-derived physics reference overlay - locked to jewelry region
+  const MaskDerivedReferenceOverlay = () => {
+    const { minX, minY, maxX, maxY, centerX, centerY } = jewelryBounds;
+    const padding = 2; // Small padding around jewelry region
+    
     return (
       <motion.div
         className="absolute inset-0 pointer-events-none"
@@ -233,73 +278,84 @@ export function CinematicShowcase() {
         transition={{ duration: 0.4 }}
       >
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Vertical center alignment line */}
+          {/* Alignment guides - vertical and horizontal through jewelry center */}
           <line 
-            x1="50" y1="20" x2="50" y2="80" 
+            x1={centerX} y1={Math.max(0, minY - 8)} 
+            x2={centerX} y2={Math.min(100, maxY + 8)} 
             stroke={themeColors.muted} 
-            strokeWidth="0.15" 
-            strokeDasharray="1,1"
+            strokeWidth="0.12" 
+            strokeDasharray="0.8,0.8"
           />
-          {/* Horizontal alignment line through jewelry area */}
           <line 
-            x1="30" y1="38" x2="70" y2="38" 
+            x1={Math.max(0, minX - 8)} y1={centerY} 
+            x2={Math.min(100, maxX + 8)} y2={centerY} 
             stroke={themeColors.muted} 
-            strokeWidth="0.15" 
-            strokeDasharray="1,1"
+            strokeWidth="0.12" 
+            strokeDasharray="0.8,0.8"
+          />
+          
+          {/* Corner registration marks - locked to jewelry bounding box */}
+          {/* Top-left */}
+          <path 
+            d={`M${minX - padding} ${minY - padding + 3} L${minX - padding} ${minY - padding} L${minX - padding + 3} ${minY - padding}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+          />
+          {/* Top-right */}
+          <path 
+            d={`M${maxX + padding - 3} ${minY - padding} L${maxX + padding} ${minY - padding} L${maxX + padding} ${minY - padding + 3}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+          />
+          {/* Bottom-left */}
+          <path 
+            d={`M${minX - padding} ${maxY + padding - 3} L${minX - padding} ${maxY + padding} L${minX - padding + 3} ${maxY + padding}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+          />
+          {/* Bottom-right */}
+          <path 
+            d={`M${maxX + padding - 3} ${maxY + padding} L${maxX + padding} ${maxY + padding} L${maxX + padding} ${maxY + padding - 3}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
           />
         </svg>
         
-        {/* Anchor points - small fixed reference dots */}
-        <div className="absolute" style={{ top: '32%', left: '38%' }}>
+        {/* Anchor points - positioned at mask-derived landmarks */}
+        {jewelryLandmarks.map((landmark, i) => (
           <div 
-            className="w-1.5 h-1.5 rounded-full border"
-            style={{ borderColor: themeColors.accent, background: 'transparent' }}
-          />
-        </div>
-        <div className="absolute" style={{ top: '32%', right: '38%' }}>
-          <div 
-            className="w-1.5 h-1.5 rounded-full border"
-            style={{ borderColor: themeColors.accent, background: 'transparent' }}
-          />
-        </div>
-        <div className="absolute" style={{ top: '44%', left: '50%', transform: 'translateX(-50%)' }}>
-          <div 
-            className="w-1.5 h-1.5 rounded-full border"
-            style={{ borderColor: themeColors.accent, background: 'transparent' }}
-          />
-        </div>
-        
-        {/* Corner registration marks */}
-        <svg className="absolute" style={{ top: '28%', left: '35%' }} width="10" height="10">
-          <path d="M0 8 L0 0 L8 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
-        </svg>
-        <svg className="absolute" style={{ top: '28%', right: '35%' }} width="10" height="10">
-          <path d="M10 0 L10 8 M2 0 L10 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
-        </svg>
-        <svg className="absolute" style={{ bottom: '52%', left: '35%' }} width="10" height="10">
-          <path d="M0 0 L0 8 L8 8" fill="none" stroke={themeColors.accent} strokeWidth="1" />
-        </svg>
-        <svg className="absolute" style={{ bottom: '52%', right: '35%' }} width="10" height="10">
-          <path d="M2 8 L10 8 L10 0" fill="none" stroke={themeColors.accent} strokeWidth="1" />
-        </svg>
+            key={i}
+            className="absolute"
+            style={{ 
+              left: `${landmark.x}%`, 
+              top: `${landmark.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div 
+              className={`rounded-full border ${landmark.type === 'corner' ? 'w-1 h-1' : 'w-1.5 h-1.5'}`}
+              style={{ 
+                borderColor: themeColors.accent, 
+                borderWidth: landmark.type === 'corner' ? '1px' : '1.5px',
+                background: 'transparent' 
+              }}
+            />
+          </div>
+        ))}
       </motion.div>
     );
   };
 
-  // Ghost reference - faint outline that stays fixed
+  // Ghost reference - faint fixed outline of input jewelry
   const GhostReference = () => (
     <motion.div
       className="absolute inset-0 pointer-events-none"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 0.15 }}
+      animate={{ opacity: 0.12 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
       <img 
         src={mannequinInput} 
         alt="" 
-        className="w-full h-full object-contain opacity-30 mix-blend-overlay"
-        style={{ filter: 'grayscale(1) contrast(0.5)' }}
+        className="w-full h-full object-contain mix-blend-overlay"
+        style={{ filter: 'grayscale(1) contrast(0.4) brightness(1.1)' }}
       />
     </motion.div>
   );
@@ -329,7 +385,7 @@ export function CinematicShowcase() {
           <AnimatePresence>
             {showBrackets && zeroAltPhase !== 'complete' && (
               <>
-                <PhysicsReferenceOverlay />
+                <MaskDerivedReferenceOverlay />
                 {!zeroAltShowInput && <GhostReference />}
               </>
             )}
