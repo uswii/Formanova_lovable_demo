@@ -32,26 +32,35 @@ export function CinematicShowcase() {
   
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
-  const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase: mannequin-raw -> mannequin-overlay -> generated-overlay -> generated-clean -> next gen overlay -> clean...
-  const [displayPhase, setDisplayPhase] = useState<'mannequin-raw' | 'mannequin-overlay' | 'generated-overlay' | 'generated-clean'>('mannequin-raw');
+  
+  // Total steps: mannequin-raw (0), mannequin-overlay (1), then for each image: overlay, clean
+  // For 3 images: 0, 1, 2, 3, 4, 5, 6, 7 = 8 steps total
+  const totalSteps = 2 + generatedImages.length * 2;
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Derive phase and image index from step
+  const getPhaseAndIndex = (step: number) => {
+    if (step === 0) return { phase: 'mannequin-raw' as const, index: 0 };
+    if (step === 1) return { phase: 'mannequin-overlay' as const, index: 0 };
+    const genStep = step - 2;
+    const imageIndex = Math.floor(genStep / 2);
+    const isOverlay = genStep % 2 === 0;
+    return { 
+      phase: isOverlay ? 'generated-overlay' as const : 'generated-clean' as const, 
+      index: imageIndex 
+    };
+  };
+  
+  const { phase: displayPhase, index: zeroAltOutputIndex } = getPhaseAndIndex(currentStep);
 
-  // Cycle: mannequin raw -> mannequin overlay -> gen1 overlay -> gen1 clean -> gen2 overlay -> gen2 clean -> ... -> back to mannequin
+  // Cycle through all steps
   useEffect(() => {
     const interval = setInterval(() => {
-      setDisplayPhase(prev => {
-        if (prev === 'mannequin-raw') return 'mannequin-overlay';
-        if (prev === 'mannequin-overlay') return 'generated-overlay';
-        if (prev === 'generated-overlay') return 'generated-clean';
-        // After generated-clean, move to next image's overlay or back to mannequin if all done
-        const nextIndex = (zeroAltOutputIndex + 1) % generatedImages.length;
-        setZeroAltOutputIndex(nextIndex);
-        return nextIndex === 0 ? 'mannequin-raw' : 'generated-overlay';
-      });
+      setCurrentStep(prev => (prev + 1) % totalSteps);
     }, 2500);
     
     return () => clearInterval(interval);
-  }, [zeroAltOutputIndex]);
+  }, [totalSteps]);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -199,47 +208,7 @@ export function CinematicShowcase() {
     extractLandmarks();
   }, [themeColors]);
 
-  // Zero Alteration flow: start -> verify (with overlay cycling through outputs) -> complete -> restart
-  useEffect(() => {
-    if (zeroAltPhase === 'start') {
-      // Show original for 2 seconds, then move to verify
-      const timeout = setTimeout(() => {
-        setZeroAltPhase('verify');
-      }, 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [zeroAltPhase]);
-
-  useEffect(() => {
-    if (zeroAltPhase === 'verify') {
-      // Cycle through all outputs with overlay
-      const cycleInterval = setInterval(() => {
-        setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
-      }, 1500);
-
-      // After cycling through all, complete
-      const completeTimeout = setTimeout(() => {
-        clearInterval(cycleInterval);
-        setZeroAltPhase('complete');
-      }, 1500 * generatedImages.length + 500);
-
-      return () => {
-        clearInterval(cycleInterval);
-        clearTimeout(completeTimeout);
-      };
-    }
-  }, [zeroAltPhase]);
-
-  useEffect(() => {
-    if (zeroAltPhase === 'complete') {
-      // Show tick for 2 seconds, then restart
-      const timeout = setTimeout(() => {
-        setZeroAltOutputIndex(0);
-        setZeroAltPhase('start');
-      }, 2500);
-      return () => clearTimeout(timeout);
-    }
-  }, [zeroAltPhase]);
+  // Old zeroAltPhase effects removed - now using single step counter above
 
   // Section B toggle
   useEffect(() => {
