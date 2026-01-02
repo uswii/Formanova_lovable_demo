@@ -397,10 +397,13 @@ export function CinematicShowcase() {
                 transition={{ type: 'spring', stiffness: 200, damping: 15 }}
               >
                 <div 
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{ background: themeColors.jewelryColor }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center border-2"
+                  style={{ 
+                    background: themeColors.jewelryColor,
+                    borderColor: themeColors.accent
+                  }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-background">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
@@ -464,19 +467,23 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output (synced with Section A) */}
+        {/* SECTION C — Final Output (synced with Section A, left-to-right reveal) */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="wait">
-            <motion.img
+            <motion.div
               key={zeroAltOutputIndex}
-              src={generatedImages[zeroAltOutputIndex]}
-              alt="Final result"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="absolute inset-0"
+              initial={{ clipPath: 'inset(0 100% 0 0)' }}
+              animate={{ clipPath: 'inset(0 0% 0 0)' }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full h-full object-contain"
-            />
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            >
+              <img
+                src={generatedImages[zeroAltOutputIndex]}
+                alt="Final result"
+                className="w-full h-full object-contain"
+              />
+            </motion.div>
           </AnimatePresence>
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
