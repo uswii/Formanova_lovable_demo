@@ -447,23 +447,13 @@ export function CinematicShowcase() {
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={zeroAltPhase}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-                  zeroAltPhase === 'complete'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background/90 text-foreground border border-border'
-                }`}
-              >
-                {zeroAltPhase === 'start' && 'Original'}
-                {zeroAltPhase === 'verify' && 'Checking... did it shift?'}
-                {zeroAltPhase === 'complete' && 'No. Never shifted, never altered.'}
-              </motion.div>
-            </AnimatePresence>
+            <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
+              showMannequin
+                ? 'bg-background/90 text-foreground border border-border'
+                : 'bg-primary text-primary-foreground'
+            }`}>
+              {showMannequin ? 'Original' : 'Zero Alteration'}
+            </div>
           </div>
         </div>
 
