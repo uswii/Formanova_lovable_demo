@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 
 // Import images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -33,6 +35,25 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
+
+  // Auto-play carousel setup
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, align: 'start' },
+    [Autoplay({ delay: 3000, stopOnInteraction: false })]
+  );
+
+  // Sync carousel index with zeroAltOutputIndex
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setZeroAltOutputIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi, onSelect]);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -505,13 +526,21 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output */}
+        {/* SECTION C — Final Output with auto-cycling carousel */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <img
-            src={generatedImages[zeroAltOutputIndex]}
-            alt="Final result"
-            className="w-full h-full object-contain"
-          />
+          <div ref={emblaRef} className="h-full overflow-hidden">
+            <div className="flex h-full">
+              {generatedImages.map((img, idx) => (
+                <div key={idx} className="flex-[0_0_100%] min-w-0 h-full">
+                  <img
+                    src={img}
+                    alt={`Result ${idx + 1}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
