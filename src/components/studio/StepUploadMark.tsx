@@ -304,9 +304,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     setProcessingStep('');
   };
 
-  const MAX_DOTS = 10;
-  const WARN_DOTS = 6;
-  const [showDotWarning, setShowDotWarning] = useState(false);
+  const MAX_DOTS = 6;
 
   const handleCanvasClick = (x: number, y: number) => {
     // Check if we've reached max
@@ -317,11 +315,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         description: `You can only place up to ${MAX_DOTS} dots. Remove some to add more.`,
       });
       return;
-    }
-    
-    // Show warning when reaching threshold (after adding this dot)
-    if (redDots.length + 1 === WARN_DOTS) {
-      setShowDotWarning(true);
     }
     
     setUndoStack((prev) => [...prev, redDots]);
@@ -414,11 +407,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <Circle className="h-3 w-3 fill-red-500 text-red-500" />
                   <span className="text-sm font-medium">{redDots.length}/{MAX_DOTS}</span>
                 </div>
-                {redDots.length >= WARN_DOTS && (
-                  <span className="text-xs text-amber-500 font-medium">
-                    Getting close to limit
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -454,39 +442,17 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center relative">
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && state.originalImage && (
-                <>
-                  <MaskCanvas
-                    image={state.originalImage}
-                    dots={redDots}
-                    brushColor="#FF0000"
-                    brushSize={markerSize}
-                    mode="dot"
-                    canvasSize={Math.min(window.innerHeight * 0.7, 700)}
-                    onCanvasClick={handleCanvasClick}
-                  />
-                  {/* Dot warning overlay - centered on canvas in fullscreen */}
-                  {showDotWarning && (
-                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/40">
-                      <div className="bg-background border-2 border-primary rounded-lg px-6 py-5 shadow-xl max-w-[80%] text-center relative">
-                        <button
-                          onClick={() => setShowDotWarning(false)}
-                          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                          aria-label="Close warning"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-base font-semibold text-foreground">
-                          Too many marks can reduce quality
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          3-5 dots usually work best
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </>
+                <MaskCanvas
+                  image={state.originalImage}
+                  dots={redDots}
+                  brushColor="#FF0000"
+                  brushSize={markerSize}
+                  mode="dot"
+                  canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                  onCanvasClick={handleCanvasClick}
+                />
               )}
             </div>
             <div className="p-4 border-t border-border/20 flex justify-center">
@@ -557,35 +523,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                     mode="dot"
                     canvasSize={400}
                   />
-                  
-                  {/* Dot warning overlay - centered on canvas */}
-                  {showDotWarning && !isProcessing && (
-                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/40">
-                      <div className="bg-background border-2 border-primary rounded-lg px-6 py-5 shadow-xl max-w-[80%] text-center relative">
-                        <button
-                          onClick={() => setShowDotWarning(false)}
-                          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                          aria-label="Close warning"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-base font-semibold text-foreground">
-                          {WARN_DOTS} dots placed
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Usually 3-5 dots are enough for good results
-                        </p>
-                        <Button
-                          size="default"
-                          variant="default"
-                          className="mt-4 px-6 font-medium"
-                          onClick={() => setShowDotWarning(false)}
-                        >
-                          Continue
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                   
                   {/* Processing overlay - shows on top of canvas with dots visible */}
                   {isProcessing && (
