@@ -32,12 +32,8 @@ export function CinematicShowcase() {
   const [jewelryBounds, setJewelryBounds] = useState({ minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 });
   
   // Zero Alteration state
-  const [zeroAltPhase, setZeroAltPhase] = useState<'toggle' | 'lock' | 'complete'>('toggle');
-  const [zeroAltShowInput, setZeroAltShowInput] = useState(true);
-  const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0); // Cycle through all outputs
-  const [toggleCount, setToggleCount] = useState(0);
-  const [showBrackets, setShowBrackets] = useState(false);
-  const [matchPercent, setMatchPercent] = useState(0);
+  const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
+  const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
 
   // Theme colors - jewelry color and background overlay color
   const themeColors = useMemo(() => {
@@ -151,76 +147,44 @@ export function CinematicShowcase() {
     return () => observer.disconnect();
   }, [themeColors]);
 
-  // Phase 1: Toggle through all outputs
+  // Zero Alteration flow: start -> verify (with overlay cycling through outputs) -> complete -> restart
   useEffect(() => {
-    if (zeroAltPhase === 'toggle') {
-      const interval = setInterval(() => {
-        setZeroAltShowInput(prev => {
-          if (!prev) {
-            // When switching back from output to input, advance to next output
-            setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
-          }
-          return !prev;
-        });
-        setToggleCount(c => c + 1);
-      }, 1000);
-      return () => clearInterval(interval);
+    if (zeroAltPhase === 'start') {
+      // Show original for 2 seconds, then move to verify
+      const timeout = setTimeout(() => {
+        setZeroAltPhase('verify');
+      }, 2000);
+      return () => clearTimeout(timeout);
     }
   }, [zeroAltPhase]);
 
-  // Transition to lock phase
   useEffect(() => {
-    if (toggleCount >= 6 && zeroAltPhase === 'toggle') {
-      setShowBrackets(true);
-      setZeroAltPhase('lock');
-    }
-  }, [toggleCount, zeroAltPhase]);
+    if (zeroAltPhase === 'verify') {
+      // Cycle through all outputs with overlay
+      const cycleInterval = setInterval(() => {
+        setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
+      }, 1500);
 
-  // Phase 2: Lock with match percentage - cycle through outputs
-  useEffect(() => {
-    if (zeroAltPhase === 'lock') {
-      // Continue toggling through all outputs
-      const toggleInterval = setInterval(() => {
-        setZeroAltShowInput(prev => {
-          if (!prev) {
-            setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
-          }
-          return !prev;
-        });
-      }, 1200);
-
-      // Animate match percentage
-      let percent = 0;
-      const percentInterval = setInterval(() => {
-        percent += 2;
-        setMatchPercent(Math.min(percent, 100));
-        if (percent >= 100) clearInterval(percentInterval);
-      }, 40);
-
-      // Complete after animation
+      // After cycling through all, complete
       const completeTimeout = setTimeout(() => {
-        clearInterval(toggleInterval);
-        setZeroAltShowInput(true);
+        clearInterval(cycleInterval);
         setZeroAltPhase('complete');
-      }, 5000);
+      }, 1500 * generatedImages.length + 500);
 
       return () => {
-        clearInterval(toggleInterval);
-        clearInterval(percentInterval);
+        clearInterval(cycleInterval);
         clearTimeout(completeTimeout);
       };
     }
   }, [zeroAltPhase]);
 
-  // Reset cycle
   useEffect(() => {
     if (zeroAltPhase === 'complete') {
+      // Show tick for 2 seconds, then restart
       const timeout = setTimeout(() => {
-        setZeroAltPhase('toggle');
-        setToggleCount(0);
-        setShowBrackets(false);
-        setMatchPercent(0);
-      }, 4000);
+        setZeroAltOutputIndex(0);
+        setZeroAltPhase('start');
+      }, 2500);
       return () => clearTimeout(timeout);
     }
   }, [zeroAltPhase]);
@@ -364,23 +328,6 @@ export function CinematicShowcase() {
     );
   };
 
-  // Ghost reference - faint fixed outline of input jewelry
-  const GhostReference = () => (
-    <motion.div
-      className="absolute inset-0 pointer-events-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 0.12 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <img 
-        src={mannequinInput} 
-        alt="" 
-        className="w-full h-full object-contain mix-blend-overlay"
-        style={{ filter: 'grayscale(1) contrast(0.4) brightness(1.1)' }}
-      />
-    </motion.div>
-  );
 
   return (
     <div className="w-full">
@@ -390,66 +337,69 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          {/* Base image - original at start/complete, output during verify */}
           <AnimatePresence mode="sync">
             <motion.img
-              key={zeroAltShowInput ? 'za-input' : `za-output-${zeroAltOutputIndex}`}
-              src={zeroAltShowInput ? mannequinInput : generatedImages[zeroAltOutputIndex]}
-              alt={zeroAltShowInput ? "Input" : `Output ${zeroAltOutputIndex + 1}`}
+              key={zeroAltPhase === 'verify' ? `za-output-${zeroAltOutputIndex}` : 'za-input'}
+              src={zeroAltPhase === 'verify' ? generatedImages[zeroAltOutputIndex] : mannequinInput}
+              alt={zeroAltPhase === 'verify' ? `Output ${zeroAltOutputIndex + 1}` : "Original"}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
+              transition={{ duration: 0.2 }}
               className="absolute inset-0 w-full h-full object-contain"
             />
           </AnimatePresence>
 
-          {/* Physics reference graphics - only during verification phases */}
+          {/* Overlay + Landmarks only during verify phase */}
           <AnimatePresence>
-            {showBrackets && zeroAltPhase !== 'complete' && (
+            {zeroAltPhase === 'verify' && (
               <>
+                {/* Two-color overlay: jewelry highlighted, background dimmed */}
+                {jewelryEmphasisUrl && (
+                  <motion.img
+                    src={jewelryEmphasisUrl}
+                    alt=""
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                  />
+                )}
+                {/* Landmarks */}
                 <MaskDerivedReferenceOverlay />
-                {!zeroAltShowInput && <GhostReference />}
               </>
             )}
           </AnimatePresence>
 
-          {/* Solid jewelry emphasis overlay */}
-          {showBrackets && jewelryEmphasisUrl && zeroAltPhase !== 'complete' && (
-            <motion.img
-              src={jewelryEmphasisUrl}
-              alt=""
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.9 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            />
-          )}
-
-
           {/* Complete checkmark */}
-          {zeroAltPhase === 'complete' && (
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            >
-              <div 
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: themeColors.accent }}
+          <AnimatePresence>
+            {zeroAltPhase === 'complete' && (
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
               >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-            </motion.div>
-          )}
+                <div 
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: themeColors.jewelryColor }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <AnimatePresence mode="wait">
               <motion.div
-                key={zeroAltPhase + (zeroAltPhase === 'toggle' ? zeroAltShowInput : '')}
+                key={zeroAltPhase}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
@@ -459,9 +409,9 @@ export function CinematicShowcase() {
                     : 'bg-background/90 text-foreground border border-border'
                 }`}
               >
-                {zeroAltPhase === 'toggle' && (zeroAltShowInput ? 'Before' : 'After')}
-                {zeroAltPhase === 'lock' && 'Verifying...'}
-                {zeroAltPhase === 'complete' && 'Identical ✓'}
+                {zeroAltPhase === 'start' && 'Original'}
+                {zeroAltPhase === 'verify' && 'Verifying...'}
+                {zeroAltPhase === 'complete' && 'Verified ✓'}
               </motion.div>
             </AnimatePresence>
           </div>
