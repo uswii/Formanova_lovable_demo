@@ -7,6 +7,7 @@ import { Paintbrush, Lightbulb, Loader2, ArrowLeft, ArrowRight, Undo, Redo, Spar
 import { StudioState } from '@/pages/Studio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { a100Api } from '@/lib/a100-api';
 
 interface Props {
@@ -188,11 +189,11 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               <div className="flex justify-center">
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   {state.maskBinary ? (
-                    <div className="relative">
-                      <img src={state.maskBinary} alt="Binary mask" className="max-w-full h-auto max-h-[400px] object-contain" />
-                      {/* Overlay to prevent interaction */}
-                      <div className="absolute inset-0 cursor-not-allowed" title="Switch to Overlay View to edit" />
-                    </div>
+                    <BinaryMaskPreview
+                      maskImage={state.maskBinary}
+                      strokes={effectiveStrokes}
+                      canvasSize={400}
+                    />
                   ) : (
                     <div className="aspect-[4/3] bg-muted flex items-center justify-center">
                       <p className="text-muted-foreground">No mask generated yet</p>
