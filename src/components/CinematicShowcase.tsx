@@ -278,46 +278,46 @@ export function CinematicShowcase() {
         transition={{ duration: 0.4 }}
       >
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Alignment guides - vertical and horizontal through jewelry center */}
+          {/* Alignment guides - vertical and horizontal through jewelry center - more prominent */}
           <line 
-            x1={centerX} y1={Math.max(0, minY - 8)} 
-            x2={centerX} y2={Math.min(100, maxY + 8)} 
-            stroke={themeColors.muted} 
-            strokeWidth="0.12" 
-            strokeDasharray="0.8,0.8"
+            x1={centerX} y1={Math.max(0, minY - 12)} 
+            x2={centerX} y2={Math.min(100, maxY + 12)} 
+            stroke={themeColors.accent} 
+            strokeWidth="0.35" 
+            strokeDasharray="1.5,1"
           />
           <line 
-            x1={Math.max(0, minX - 8)} y1={centerY} 
-            x2={Math.min(100, maxX + 8)} y2={centerY} 
-            stroke={themeColors.muted} 
-            strokeWidth="0.12" 
-            strokeDasharray="0.8,0.8"
+            x1={Math.max(0, minX - 12)} y1={centerY} 
+            x2={Math.min(100, maxX + 12)} y2={centerY} 
+            stroke={themeColors.accent} 
+            strokeWidth="0.35" 
+            strokeDasharray="1.5,1"
           />
           
-          {/* Corner registration marks - locked to jewelry bounding box */}
+          {/* Corner registration marks - locked to jewelry bounding box - thicker */}
           {/* Top-left */}
           <path 
-            d={`M${minX - padding} ${minY - padding + 3} L${minX - padding} ${minY - padding} L${minX - padding + 3} ${minY - padding}`} 
-            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+            d={`M${minX - padding} ${minY - padding + 4} L${minX - padding} ${minY - padding} L${minX - padding + 4} ${minY - padding}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.5" 
           />
           {/* Top-right */}
           <path 
-            d={`M${maxX + padding - 3} ${minY - padding} L${maxX + padding} ${minY - padding} L${maxX + padding} ${minY - padding + 3}`} 
-            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+            d={`M${maxX + padding - 4} ${minY - padding} L${maxX + padding} ${minY - padding} L${maxX + padding} ${minY - padding + 4}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.5" 
           />
           {/* Bottom-left */}
           <path 
-            d={`M${minX - padding} ${maxY + padding - 3} L${minX - padding} ${maxY + padding} L${minX - padding + 3} ${maxY + padding}`} 
-            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+            d={`M${minX - padding} ${maxY + padding - 4} L${minX - padding} ${maxY + padding} L${minX - padding + 4} ${maxY + padding}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.5" 
           />
           {/* Bottom-right */}
           <path 
-            d={`M${maxX + padding - 3} ${maxY + padding} L${maxX + padding} ${maxY + padding} L${maxX + padding} ${maxY + padding - 3}`} 
-            fill="none" stroke={themeColors.accent} strokeWidth="0.25" 
+            d={`M${maxX + padding - 4} ${maxY + padding} L${maxX + padding} ${maxY + padding} L${maxX + padding} ${maxY + padding - 4}`} 
+            fill="none" stroke={themeColors.accent} strokeWidth="0.5" 
           />
         </svg>
         
-        {/* Anchor points - positioned at mask-derived landmarks */}
+        {/* Anchor points - positioned at mask-derived landmarks - more prominent with fill */}
         {jewelryLandmarks.map((landmark, i) => (
           <div 
             key={i}
@@ -329,11 +329,10 @@ export function CinematicShowcase() {
             }}
           >
             <div 
-              className={`rounded-full border ${landmark.type === 'corner' ? 'w-1 h-1' : 'w-1.5 h-1.5'}`}
+              className={`rounded-full ${landmark.type === 'corner' ? 'w-2 h-2' : 'w-2.5 h-2.5'}`}
               style={{ 
-                borderColor: themeColors.accent, 
-                borderWidth: landmark.type === 'corner' ? '1px' : '1.5px',
-                background: 'transparent' 
+                backgroundColor: themeColors.accent,
+                boxShadow: `0 0 6px 1px ${themeColors.accent}`
               }}
             />
           </div>
@@ -397,36 +396,12 @@ export function CinematicShowcase() {
               src={jewelryEmphasisUrl}
               alt=""
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
+              animate={{ opacity: 0.75 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
 
-          {/* Verification text label - only during lock phase */}
-          <AnimatePresence>
-            {zeroAltPhase === 'lock' && (
-              <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-              >
-                <div 
-                  className="px-4 py-2.5 rounded-lg backdrop-blur-md text-[11px] font-medium tracking-wide leading-relaxed"
-                  style={{ 
-                    background: 'rgba(0,0,0,0.6)',
-                    color: 'rgba(255,255,255,0.95)',
-                    border: `1px solid ${themeColors.muted}`
-                  }}
-                >
-                  Same pixels. Same position.<br/>
-                  <span className="text-[10px] opacity-70">Never re-rendered.</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Complete checkmark */}
           {zeroAltPhase === 'complete' && (
