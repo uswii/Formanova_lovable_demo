@@ -199,7 +199,7 @@ export function CinematicShowcase() {
           <AnimatePresence mode="sync">
             <motion.img
               key={showInput ? 'input' : `output-${currentIndex}`}
-              src={showInput ? (overlayDataUrl || mannequinInput) : generatedImages[currentIndex]}
+              src={showInput ? mannequinInput : generatedImages[currentIndex]}
               alt={showInput ? "Input" : "Output"}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
