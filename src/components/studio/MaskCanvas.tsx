@@ -176,20 +176,17 @@ export function MaskCanvas({
       ctx.stroke();
     };
 
-    // Use full opacity for binary mode (white/black brushes), translucent for overlay mode (green/black)
-    const isBinaryMode = brushColor === '#FFFFFF' || brushColor === '#000000';
-    const addColor = isBinaryMode 
-      ? (brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)')
-      : 'rgba(0, 255, 0, 0.35)';
-    const removeColor = isBinaryMode ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.35)';
+    // Always use consistent colors for strokes based on their type - NOT current brush
+    const addColor = 'rgba(0, 255, 0, 0.35)';  // Green for add
+    const removeColor = 'rgba(0, 0, 0, 0.35)'; // Black for remove
     
-    // Draw all initial strokes as smooth lines
+    // Draw all initial strokes as smooth lines - use stroke's own type for color
     initialStrokes.forEach((stroke) => {
       const color = stroke.type === 'add' ? addColor : removeColor;
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
 
-    // Draw active stroke for live preview
+    // Draw active stroke for live preview - use stroke's own type for color
     if (activeStroke && activeStroke.points.length > 0) {
       const color = activeStroke.type === 'add' ? addColor : removeColor;
       drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
@@ -264,10 +261,8 @@ export function MaskCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    // Use translucent colors (35% opacity)
-    const drawColor = brushColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.35)' : 
-                      brushColor === '#000000' ? 'rgba(0, 0, 0, 0.35)' : 
-                      'rgba(0, 255, 0, 0.35)';
+    // Use consistent colors based on brush type (green for add, black for remove)
+    const drawColor = brushColor === '#00FF00' ? 'rgba(0, 255, 0, 0.35)' : 'rgba(0, 0, 0, 0.35)';
     
     if (lastPointRef.current) {
       // Draw line from last point to current point for smooth strokes
