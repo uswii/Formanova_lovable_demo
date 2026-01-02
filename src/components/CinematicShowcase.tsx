@@ -33,25 +33,31 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase: 'overlay' -> 'clean' for each image, then next
-  const [displayPhase, setDisplayPhase] = useState<'overlay' | 'clean'>('overlay');
+  // Phase: 'mannequin' -> 'overlay' -> 'clean' for each generated image
+  const [displayPhase, setDisplayPhase] = useState<'mannequin' | 'overlay' | 'clean'>('mannequin');
 
-  // Cycle: show overlay -> show clean -> move to next image -> repeat
+  // Cycle: mannequin with dots -> generated with overlay -> generated clean -> next generated...
   useEffect(() => {
     const interval = setInterval(() => {
       setDisplayPhase(prev => {
+        if (prev === 'mannequin') {
+          // Show first generated image with overlay
+          return 'overlay';
+        }
         if (prev === 'overlay') {
-          // Just switch to clean, keep same image
+          // Show clean generated image
           return 'clean';
         }
-        // After showing clean, move to next image and show its overlay
-        setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
-        return 'overlay';
+        // After clean, move to next image and show its overlay (skip mannequin for subsequent)
+        const nextIndex = (zeroAltOutputIndex + 1) % generatedImages.length;
+        setZeroAltOutputIndex(nextIndex);
+        // Only show mannequin at the start of the full cycle
+        return nextIndex === 0 ? 'mannequin' : 'overlay';
       });
     }, 2500);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [zeroAltOutputIndex]);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -382,31 +388,34 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - always generated image */}
+          {/* Base image - mannequin or generated based on phase */}
           <img
-            src={generatedImages[zeroAltOutputIndex]}
-            alt={`Output ${zeroAltOutputIndex + 1}`}
+            src={displayPhase === 'mannequin' ? mannequinInput : generatedImages[zeroAltOutputIndex]}
+            alt={displayPhase === 'mannequin' ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* Overlay only during 'overlay' phase */}
-          {displayPhase === 'overlay' && jewelryEmphasisUrl && (
+          {/* Overlay during 'mannequin' and 'overlay' phases */}
+          {(displayPhase === 'mannequin' || displayPhase === 'overlay') && jewelryEmphasisUrl && (
             <img
               src={jewelryEmphasisUrl}
               alt=""
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
-          {/* Landmarks - visible only during overlay phase */}
-          {displayPhase === 'overlay' && <MaskDerivedReferenceOverlay />}
+          {/* Landmarks - visible during mannequin and overlay phases */}
+          {(displayPhase === 'mannequin' || displayPhase === 'overlay') && <MaskDerivedReferenceOverlay />}
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-              displayPhase === 'overlay'
+              displayPhase === 'mannequin'
+                ? 'bg-background/90 text-foreground border border-border'
+                : displayPhase === 'overlay'
                 ? 'bg-primary/80 text-primary-foreground'
                 : 'bg-primary text-primary-foreground'
             }`}>
+              {displayPhase === 'mannequin' && 'Original Input'}
               {displayPhase === 'overlay' && 'Zero Alteration'}
               {displayPhase === 'clean' && 'Generated'}
             </div>
