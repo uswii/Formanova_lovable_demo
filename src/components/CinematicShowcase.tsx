@@ -7,17 +7,20 @@ import jewelryMask from '@/assets/showcase/jewelry-mask.png';
 import modelBlackDress from '@/assets/showcase/model-black-dress.png';
 import modelWhiteDress from '@/assets/showcase/model-white-dress.png';
 import modelBlackTank from '@/assets/showcase/model-black-tank.png';
-import metrics1 from '@/assets/showcase/metrics-1.png';
-import metrics2 from '@/assets/showcase/metrics-2.png';
-import metrics3 from '@/assets/showcase/metrics-3.png';
 
 const generatedImages = [modelBlackDress, modelWhiteDress, modelBlackTank];
-const metricsImages = [metrics1, metrics2, metrics3];
+
+const metrics = [
+  { label: 'Precision', value: 99.2, suffix: '%' },
+  { label: 'Recall', value: 98.7, suffix: '%' },
+  { label: 'IoU', value: 97.4, suffix: '%' },
+];
 
 export function CinematicShowcase() {
-  const [toggleIndex, setToggleIndex] = useState(0); // 0 = input, 1-3 = generated
-  const [metricsIndex, setMetricsIndex] = useState(0);
+  const [showInput, setShowInput] = useState(true);
+  const [outputIndex, setOutputIndex] = useState(0);
   const [finalIndex, setFinalIndex] = useState(0);
+  const [animatedMetrics, setAnimatedMetrics] = useState([0, 0, 0]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [overlayDataUrl, setOverlayDataUrl] = useState<string>('');
 
@@ -37,34 +40,24 @@ export function CinematicShowcase() {
       loaded++;
       if (loaded < 2) return;
 
-      // Set canvas size to match images
       canvas.width = baseImg.naturalWidth;
       canvas.height = baseImg.naturalHeight;
-
-      // Draw base mannequin image
       ctx.drawImage(baseImg, 0, 0);
 
-      // Get computed primary color from CSS
       const computedStyle = getComputedStyle(document.documentElement);
       const primaryHsl = computedStyle.getPropertyValue('--primary').trim();
-      
-      // Parse HSL and create overlay color with transparency
       const [h, s, l] = primaryHsl.split(' ').map(v => parseFloat(v));
-      const overlayColor = `hsla(${h}, ${s}%, ${l}%, 0.4)`;
+      const overlayColor = `hsla(${h}, ${s}%, ${l}%, 0.35)`;
 
-      // Create temporary canvas for mask processing
       const maskCanvas = document.createElement('canvas');
       maskCanvas.width = canvas.width;
       maskCanvas.height = canvas.height;
       const maskCtx = maskCanvas.getContext('2d');
       if (!maskCtx) return;
 
-      // Draw mask scaled to match
       maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
       const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-      // Create overlay only where mask is white
-      ctx.save();
       for (let y = 0; y < canvas.height; y++) {
         for (let x = 0; x < canvas.width; x++) {
           const idx = (y * canvas.width + x) * 4;
@@ -72,25 +65,12 @@ export function CinematicShowcase() {
           const g = maskData.data[idx + 1];
           const b = maskData.data[idx + 2];
           
-          // Check if pixel is white (jewelry area)
           if (r > 200 && g > 200 && b > 200) {
             ctx.fillStyle = overlayColor;
             ctx.fillRect(x, y, 1, 1);
           }
         }
       }
-      ctx.restore();
-
-      // Add a subtle glow border around jewelry area
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = `hsla(${h}, ${s}%, ${l}%, 0.6)`;
-      ctx.lineWidth = 2;
-      ctx.filter = 'blur(2px)';
-      
-      // Trace around white areas (simplified approach - just add glow effect)
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.restore();
 
       setOverlayDataUrl(canvas.toDataURL('image/png'));
     };
@@ -100,7 +80,6 @@ export function CinematicShowcase() {
     maskImg.src = jewelryMask;
     baseImg.src = mannequinInput;
 
-    // Re-generate when theme changes
     const observer = new MutationObserver(() => {
       loaded = 0;
       maskImg.src = jewelryMask;
@@ -115,19 +94,20 @@ export function CinematicShowcase() {
     return () => observer.disconnect();
   }, []);
 
-  // Section A: Toggle animation
+  // Section A: Clean toggle between input and outputs
   useEffect(() => {
     const interval = setInterval(() => {
-      setToggleIndex(prev => (prev + 1) % 4);
-    }, 800);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Section B: Metrics cycle
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMetricsIndex(prev => (prev + 1) % metricsImages.length);
-    }, 2000);
+      setShowInput(prev => {
+        if (prev) {
+          // Was showing input, now show output
+          return false;
+        } else {
+          // Was showing output, cycle to next output then show input
+          setOutputIndex(i => (i + 1) % generatedImages.length);
+          return true;
+        }
+      });
+    }, 1200);
     return () => clearInterval(interval);
   }, []);
 
@@ -139,139 +119,120 @@ export function CinematicShowcase() {
     return () => clearInterval(interval);
   }, []);
 
-  const getSectionAImage = () => {
-    if (toggleIndex === 0) {
-      return overlayDataUrl || mannequinInput;
-    }
-    return generatedImages[toggleIndex - 1];
-  };
+  // Animate metrics on mount
+  useEffect(() => {
+    const duration = 2000;
+    const steps = 60;
+    const stepTime = duration / steps;
+    
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      
+      setAnimatedMetrics(metrics.map(m => m.value * eased));
+      
+      if (step >= steps) clearInterval(interval);
+    }, stepTime);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="w-full">
-      {/* Hidden canvas for overlay generation */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Landscape 3-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
         
-        {/* SECTION A — Zero Alterations (Toggle) */}
-        <div className="relative">
-          <div className="text-center mb-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-              Zero Alterations
-            </span>
-          </div>
-          <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/30 border border-border">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={toggleIndex}
-                src={getSectionAImage()}
-                alt={toggleIndex === 0 ? "Input with jewelry highlight" : "Generated output"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="w-full h-full object-contain"
-              />
-            </AnimatePresence>
-            
-            {/* Toggle label */}
-            <motion.div 
-              key={toggleIndex === 0 ? 'input' : 'output'}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2"
-            >
-              <div className={`px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm ${
-                toggleIndex === 0 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-background/80 text-foreground border border-border'
-              }`}>
-                {toggleIndex === 0 ? 'INPUT' : 'OUTPUT'}
-              </div>
-            </motion.div>
-
-            {/* Jewelry unchanged indicator */}
-            <div className="absolute top-3 right-3">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        {/* SECTION A — Toggle Effect */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          <AnimatePresence mode="sync">
+            <motion.img
+              key={showInput ? 'input' : `output-${outputIndex}`}
+              src={showInput ? (overlayDataUrl || mannequinInput) : generatedImages[outputIndex]}
+              alt={showInput ? "Input" : "Output"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          </AnimatePresence>
+          
+          {/* Minimal label */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <div className={`px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider transition-colors duration-150 ${
+              showInput 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-background/90 text-foreground border border-border'
+            }`}>
+              {showInput ? 'Input' : 'Output'}
             </div>
           </div>
         </div>
 
-        {/* SECTION B — Verified Accuracy (Metrics) */}
-        <div className="relative">
-          <div className="text-center mb-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-              Verified Accuracy
-            </span>
+        {/* SECTION B — Metrics Display */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border flex flex-col items-center justify-center p-6">
+          <div className="space-y-6 w-full max-w-[200px]">
+            {metrics.map((metric, i) => (
+              <div key={metric.label} className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                    {metric.label}
+                  </span>
+                  <span className="text-lg font-mono font-semibold text-foreground">
+                    {animatedMetrics[i].toFixed(1)}{metric.suffix}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${animatedMetrics[i]}%` }}
+                    transition={{ duration: 2, ease: "easeOut" }}
+                    className="h-full bg-primary rounded-full"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/30 border border-border flex items-center justify-center p-4">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={metricsIndex}
-                src={metricsImages[metricsIndex]}
-                alt="Quality verification metrics"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-              />
-            </AnimatePresence>
-
-            {/* Metrics dots indicator */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {metricsImages.map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                    metricsIndex === i ? 'bg-primary w-4' : 'bg-muted-foreground/40'
-                  }`}
-                />
-              ))}
+          
+          {/* Verified badge */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wider">
+                Verified
+              </span>
             </div>
           </div>
         </div>
 
-        {/* SECTION C — Realistic Imagery (Final) */}
-        <div className="relative">
-          <div className="text-center mb-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-              Realistic Imagery
-            </span>
-          </div>
-          <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/30 border border-border">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={finalIndex}
-                src={generatedImages[finalIndex]}
-                alt="Final photorealistic result"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full h-full object-contain"
+        {/* SECTION C — Final Clean Output */}
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={finalIndex}
+              src={generatedImages[finalIndex]}
+              alt="Final result"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="w-full h-full object-contain"
+            />
+          </AnimatePresence>
+
+          {/* Dots indicator */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {generatedImages.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  finalIndex === i ? 'bg-primary w-4' : 'bg-foreground/20 w-1.5'
+                }`}
               />
-            </AnimatePresence>
-
-            {/* Clean result badge */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-              <div className="px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border text-xs font-medium text-foreground">
-                100% Preserved
-              </div>
-            </div>
-
-            {/* Final images dots */}
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {generatedImages.map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                    finalIndex === i ? 'bg-primary' : 'bg-muted-foreground/30'
-                  }`}
-                />
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
