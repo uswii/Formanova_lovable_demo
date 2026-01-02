@@ -34,6 +34,7 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'toggle' | 'lock' | 'complete'>('toggle');
   const [zeroAltShowInput, setZeroAltShowInput] = useState(true);
+  const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0); // Cycle through all outputs
   const [toggleCount, setToggleCount] = useState(0);
   const [showBrackets, setShowBrackets] = useState(false);
   const [matchPercent, setMatchPercent] = useState(0);
@@ -141,11 +142,17 @@ export function CinematicShowcase() {
     return () => observer.disconnect();
   }, [themeColors]);
 
-  // Phase 1: Toggle
+  // Phase 1: Toggle through all outputs
   useEffect(() => {
     if (zeroAltPhase === 'toggle') {
       const interval = setInterval(() => {
-        setZeroAltShowInput(prev => !prev);
+        setZeroAltShowInput(prev => {
+          if (!prev) {
+            // When switching back from output to input, advance to next output
+            setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
+          }
+          return !prev;
+        });
         setToggleCount(c => c + 1);
       }, 1000);
       return () => clearInterval(interval);
@@ -160,12 +167,17 @@ export function CinematicShowcase() {
     }
   }, [toggleCount, zeroAltPhase]);
 
-  // Phase 2: Lock with match percentage
+  // Phase 2: Lock with match percentage - cycle through outputs
   useEffect(() => {
     if (zeroAltPhase === 'lock') {
-      // Continue toggling
+      // Continue toggling through all outputs
       const toggleInterval = setInterval(() => {
-        setZeroAltShowInput(prev => !prev);
+        setZeroAltShowInput(prev => {
+          if (!prev) {
+            setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
+          }
+          return !prev;
+        });
       }, 1200);
 
       // Animate match percentage
@@ -317,7 +329,7 @@ export function CinematicShowcase() {
           />
         </svg>
         
-        {/* Anchor points - positioned at mask-derived landmarks - more prominent with fill */}
+        {/* Intuitive crosshair-style anchor points at mask-derived landmarks */}
         {jewelryLandmarks.map((landmark, i) => (
           <div 
             key={i}
@@ -328,13 +340,15 @@ export function CinematicShowcase() {
               transform: 'translate(-50%, -50%)'
             }}
           >
-            <div 
-              className={`rounded-full ${landmark.type === 'corner' ? 'w-2 h-2' : 'w-2.5 h-2.5'}`}
-              style={{ 
-                backgroundColor: themeColors.accent,
-                boxShadow: `0 0 6px 1px ${themeColors.accent}`
-              }}
-            />
+            {/* Crosshair style marker */}
+            <svg width="16" height="16" viewBox="0 0 16 16" className="overflow-visible">
+              {/* Horizontal line */}
+              <line x1="0" y1="8" x2="16" y2="8" stroke={themeColors.accent} strokeWidth="1.5" />
+              {/* Vertical line */}
+              <line x1="8" y1="0" x2="8" y2="16" stroke={themeColors.accent} strokeWidth="1.5" />
+              {/* Center dot */}
+              <circle cx="8" cy="8" r="2.5" fill={themeColors.accent} />
+            </svg>
           </div>
         ))}
       </motion.div>
@@ -369,9 +383,9 @@ export function CinematicShowcase() {
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="sync">
             <motion.img
-              key={zeroAltShowInput ? 'za-input' : 'za-output'}
-              src={zeroAltShowInput ? mannequinInput : generatedImages[0]}
-              alt={zeroAltShowInput ? "Input" : "Output"}
+              key={zeroAltShowInput ? 'za-input' : `za-output-${zeroAltOutputIndex}`}
+              src={zeroAltShowInput ? mannequinInput : generatedImages[zeroAltOutputIndex]}
+              alt={zeroAltShowInput ? "Input" : `Output ${zeroAltOutputIndex + 1}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -390,13 +404,13 @@ export function CinematicShowcase() {
             )}
           </AnimatePresence>
 
-          {/* Subtle jewelry emphasis */}
+          {/* Solid jewelry emphasis overlay */}
           {showBrackets && jewelryEmphasisUrl && zeroAltPhase !== 'complete' && (
             <motion.img
               src={jewelryEmphasisUrl}
               alt=""
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.75 }}
+              animate={{ opacity: 0.9 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
