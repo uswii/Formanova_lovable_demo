@@ -414,7 +414,7 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   <Circle className="h-3 w-3 fill-red-500 text-red-500" />
                   <span className="text-sm font-medium">{redDots.length}/{MAX_DOTS}</span>
                 </div>
-                {showDotWarning && redDots.length >= WARN_DOTS && (
+                {redDots.length >= WARN_DOTS && (
                   <span className="text-xs text-amber-500 font-medium">
                     Getting close to limit
                   </span>

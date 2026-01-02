@@ -7,16 +7,18 @@ interface Props {
   onDismiss: () => void;
 }
 
-// Dot positions based on the jewelry mask (normalized 0-1 coordinates)
-// These positions correspond to key points on the necklace
+// Dot positions exactly on the jewelry (normalized 0-1 coordinates based on mask)
+// Left chain, center pendant, right chain
 const DOT_POSITIONS = [
-  { x: 0.35, y: 0.52, delay: 0 },    // Left side of necklace
-  { x: 0.50, y: 0.62, delay: 800 },  // Center pendant
-  { x: 0.65, y: 0.52, delay: 1600 }, // Right side of necklace
+  { x: 0.38, y: 0.44 },  // Left side of necklace chain
+  { x: 0.50, y: 0.58 },  // Center pendant (blue gem)
+  { x: 0.62, y: 0.44 },  // Right side of necklace chain
 ];
 
 export function MarkingTutorial({ onDismiss }: Props) {
-  const [visibleDots, setVisibleDots] = useState<number>(0);
+  const [currentDotIndex, setCurrentDotIndex] = useState(-1); // -1 = cursor moving, 0+ = dot placed
+  const [cursorPos, setCursorPos] = useState({ x: 0.2, y: 0.3 });
+  const [placedDots, setPlacedDots] = useState<number[]>([]);
   const [cycleKey, setCycleKey] = useState(0);
 
   // Get current theme
@@ -42,78 +44,83 @@ export function MarkingTutorial({ onDismiss }: Props) {
   const dotStyle = useMemo(() => {
     switch (currentTheme) {
       case 'cyberpunk':
-        return { 
-          fill: 'rgb(255, 0, 180)', 
-          stroke: 'rgba(255, 0, 180, 0.5)',
-          glow: '0 0 20px rgba(255, 0, 180, 0.8), 0 0 40px rgba(255, 0, 180, 0.4)'
-        };
+        return { fill: 'rgb(255, 0, 180)', glow: '0 0 12px rgba(255, 0, 180, 0.8)' };
       case 'vintage':
-        return { 
-          fill: 'rgb(180, 90, 60)', 
-          stroke: 'rgba(180, 90, 60, 0.5)',
-          glow: '0 0 15px rgba(180, 90, 60, 0.6)'
-        };
+        return { fill: 'rgb(180, 90, 60)', glow: '0 0 10px rgba(180, 90, 60, 0.6)' };
       case 'nature':
-        return { 
-          fill: 'rgb(80, 180, 100)', 
-          stroke: 'rgba(80, 180, 100, 0.5)',
-          glow: '0 0 15px rgba(80, 180, 100, 0.6)'
-        };
+        return { fill: 'rgb(80, 180, 100)', glow: '0 0 10px rgba(80, 180, 100, 0.6)' };
       case 'ocean':
-        return { 
-          fill: 'rgb(0, 180, 200)', 
-          stroke: 'rgba(0, 180, 200, 0.5)',
-          glow: '0 0 15px rgba(0, 180, 200, 0.6)'
-        };
+        return { fill: 'rgb(0, 180, 200)', glow: '0 0 10px rgba(0, 180, 200, 0.6)' };
       case 'kawaii':
-        return { 
-          fill: 'rgb(240, 120, 160)', 
-          stroke: 'rgba(240, 120, 160, 0.5)',
-          glow: '0 0 15px rgba(240, 120, 160, 0.6)'
-        };
+        return { fill: 'rgb(240, 120, 160)', glow: '0 0 10px rgba(240, 120, 160, 0.6)' };
       case 'fashion':
-        return { 
-          fill: 'rgb(220, 180, 80)', 
-          stroke: 'rgba(220, 180, 80, 0.5)',
-          glow: '0 0 20px rgba(220, 180, 80, 0.7)'
-        };
+        return { fill: 'rgb(220, 180, 80)', glow: '0 0 12px rgba(220, 180, 80, 0.7)' };
       case 'luxury':
-        return { 
-          fill: 'rgb(200, 160, 140)', 
-          stroke: 'rgba(200, 160, 140, 0.5)',
-          glow: '0 0 15px rgba(200, 160, 140, 0.6)'
-        };
+        return { fill: 'rgb(200, 160, 140)', glow: '0 0 10px rgba(200, 160, 140, 0.6)' };
       case 'dark':
       default:
-        return { 
-          fill: 'rgb(255, 80, 80)', 
-          stroke: 'rgba(255, 80, 80, 0.5)',
-          glow: '0 0 15px rgba(255, 80, 80, 0.6)'
-        };
+        return { fill: 'rgb(255, 80, 80)', glow: '0 0 10px rgba(255, 80, 80, 0.6)' };
     }
   }, [currentTheme]);
 
-  // Animate dots appearing one by one, then reset
+  // Animation: move cursor to each dot position, then place dot
   useEffect(() => {
-    setVisibleDots(0);
+    setCurrentDotIndex(-1);
+    setPlacedDots([]);
+    setCursorPos({ x: 0.2, y: 0.3 });
     
-    const timers: NodeJS.Timeout[] = [];
+    let dotIndex = 0;
+    let phase: 'moving' | 'placing' = 'moving';
     
-    // Show dots one by one
-    DOT_POSITIONS.forEach((_, index) => {
-      const timer = setTimeout(() => {
-        setVisibleDots(index + 1);
-      }, DOT_POSITIONS[index].delay);
-      timers.push(timer);
-    });
-
-    // After all dots shown, wait 2s then restart
-    const resetTimer = setTimeout(() => {
-      setCycleKey(k => k + 1);
-    }, DOT_POSITIONS[DOT_POSITIONS.length - 1].delay + 2500);
-    timers.push(resetTimer);
-
-    return () => timers.forEach(t => clearTimeout(t));
+    const animate = () => {
+      if (dotIndex >= DOT_POSITIONS.length) {
+        // All dots placed, wait then restart
+        setTimeout(() => setCycleKey(k => k + 1), 2000);
+        return;
+      }
+      
+      const targetDot = DOT_POSITIONS[dotIndex];
+      
+      if (phase === 'moving') {
+        // Animate cursor moving to target
+        const startPos = dotIndex === 0 ? { x: 0.2, y: 0.3 } : DOT_POSITIONS[dotIndex - 1];
+        const duration = 600;
+        const startTime = Date.now();
+        
+        const moveCursor = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease out cubic
+          const eased = 1 - Math.pow(1 - progress, 3);
+          
+          setCursorPos({
+            x: startPos.x + (targetDot.x - startPos.x) * eased,
+            y: startPos.y + (targetDot.y - startPos.y) * eased,
+          });
+          
+          if (progress < 1) {
+            requestAnimationFrame(moveCursor);
+          } else {
+            // Cursor arrived, now place dot
+            phase = 'placing';
+            setTimeout(animate, 150);
+          }
+        };
+        
+        requestAnimationFrame(moveCursor);
+      } else {
+        // Place the dot
+        setPlacedDots(prev => [...prev, dotIndex]);
+        dotIndex++;
+        phase = 'moving';
+        setTimeout(animate, 400);
+      }
+    };
+    
+    // Start animation after a short delay
+    const timer = setTimeout(animate, 500);
+    
+    return () => clearTimeout(timer);
   }, [cycleKey]);
 
   return (
@@ -133,73 +140,49 @@ export function MarkingTutorial({ onDismiss }: Props) {
         </div>
 
         {/* Animated demo */}
-        <div className="relative aspect-[3/4] bg-muted/30 border border-border/50 mb-4 overflow-hidden rounded-lg">
+        <div className="relative aspect-[3/4] bg-muted/30 border border-border/50 mb-4 overflow-hidden rounded-lg cursor-none">
           <img
             src={mannequinJewelry}
             alt="Mannequin with jewelry"
             className="w-full h-full object-contain"
           />
           
-          {/* Animated dots */}
+          {/* Placed dots */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {DOT_POSITIONS.slice(0, visibleDots).map((dot, index) => (
-              <g key={`${cycleKey}-${index}`}>
-                {/* Outer pulse ring */}
+            {placedDots.map((dotIdx) => {
+              const dot = DOT_POSITIONS[dotIdx];
+              return (
                 <circle
+                  key={`${cycleKey}-${dotIdx}`}
                   cx={`${dot.x * 100}%`}
                   cy={`${dot.y * 100}%`}
-                  r="20"
-                  fill="none"
-                  stroke={dotStyle.stroke}
-                  strokeWidth="2"
-                  className="animate-ping"
-                  style={{ 
-                    animationDuration: '1.5s',
-                    transformOrigin: `${dot.x * 100}% ${dot.y * 100}%`
-                  }}
-                />
-                {/* Main dot */}
-                <circle
-                  cx={`${dot.x * 100}%`}
-                  cy={`${dot.y * 100}%`}
-                  r="8"
+                  r="7"
                   fill={dotStyle.fill}
                   stroke="white"
                   strokeWidth="2"
-                  style={{ 
-                    filter: `drop-shadow(${dotStyle.glow})`,
-                    animation: 'scale-in 0.3s ease-out'
-                  }}
+                  style={{ filter: `drop-shadow(${dotStyle.glow})` }}
                 />
-                {/* Dot number */}
-                <text
-                  x={`${dot.x * 100}%`}
-                  y={`${dot.y * 100}%`}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="white"
-                  fontSize="10"
-                  fontWeight="bold"
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-                >
-                  {index + 1}
-                </text>
-              </g>
-            ))}
+              );
+            })}
           </svg>
 
-          {/* Progress indicator */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-            {DOT_POSITIONS.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index < visibleDots 
-                    ? 'bg-primary scale-100' 
-                    : 'bg-muted-foreground/30 scale-75'
-                }`}
+          {/* Animated cursor */}
+          <div 
+            className="absolute pointer-events-none transition-none"
+            style={{
+              left: `${cursorPos.x * 100}%`,
+              top: `${cursorPos.y * 100}%`,
+              transform: 'translate(-2px, -2px)',
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path 
+                d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.48 0 .72-.58.38-.92L6.35 2.85a.5.5 0 0 0-.85.36Z" 
+                fill="white" 
+                stroke="black" 
+                strokeWidth="1.5"
               />
-            ))}
+            </svg>
           </div>
         </div>
 
