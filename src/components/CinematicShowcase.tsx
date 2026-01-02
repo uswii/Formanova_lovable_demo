@@ -33,23 +33,23 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  const [showMannequin, setShowMannequin] = useState(true);
+  // Phase: 'mannequin' -> 'overlay' -> 'clean' -> next image
+  const [displayPhase, setDisplayPhase] = useState<'mannequin' | 'overlay' | 'clean'>('mannequin');
 
-  // Toggle between mannequin and generated image, then cycle to next
+  // Cycle through: mannequin -> overlay -> clean generated image -> next
   useEffect(() => {
     const interval = setInterval(() => {
-      if (showMannequin) {
-        // Switch from mannequin to generated image
-        setShowMannequin(false);
-      } else {
-        // Switch back to mannequin and advance to next image
-        setShowMannequin(true);
-        setZeroAltOutputIndex(prev => (prev + 1) % generatedImages.length);
-      }
+      setDisplayPhase(prev => {
+        if (prev === 'mannequin') return 'overlay';
+        if (prev === 'overlay') return 'clean';
+        // After clean, go back to mannequin and advance to next image
+        setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
+        return 'mannequin';
+      });
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [showMannequin]);
+  }, []);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -376,61 +376,40 @@ export function CinematicShowcase() {
     <div className="w-full">
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - instant swap between mannequin and generated outputs */}
+          {/* Base image - mannequin or generated based on phase */}
           <img
-            src={showMannequin ? mannequinInput : generatedImages[zeroAltOutputIndex]}
-            alt={showMannequin ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
+            src={displayPhase === 'mannequin' ? mannequinInput : generatedImages[zeroAltOutputIndex]}
+            alt={displayPhase === 'mannequin' ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* Overlay only on generated images, not on mannequin */}
-          {!showMannequin && jewelryEmphasisUrl && (
+          {/* Overlay only during 'overlay' phase */}
+          {displayPhase === 'overlay' && jewelryEmphasisUrl && (
             <img
               src={jewelryEmphasisUrl}
               alt=""
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             />
           )}
-          {/* Landmarks - always visible */}
-          <MaskDerivedReferenceOverlay />
-
-          {/* Complete checkmark */}
-          <AnimatePresence>
-            {zeroAltPhase === 'complete' && (
-              <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              >
-                <div 
-                  className="w-14 h-14 rounded-full flex items-center justify-center border-2"
-                  style={{ 
-                    background: themeColors.jewelryColor,
-                    borderColor: themeColors.accent
-                  }}
-                >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-background">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Landmarks - visible on mannequin and overlay phases */}
+          {displayPhase !== 'clean' && <MaskDerivedReferenceOverlay />}
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-              showMannequin
+              displayPhase === 'mannequin'
                 ? 'bg-background/90 text-foreground border border-border'
+                : displayPhase === 'overlay'
+                ? 'bg-primary/80 text-primary-foreground'
                 : 'bg-primary text-primary-foreground'
             }`}>
-              {showMannequin ? 'Original' : 'Zero Alteration'}
+              {displayPhase === 'mannequin' && 'Original'}
+              {displayPhase === 'overlay' && 'Zero Alteration'}
+              {displayPhase === 'clean' && 'Realistic Imagery'}
             </div>
           </div>
         </div>
@@ -494,39 +473,6 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output with continuous carousel */}
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <div className="absolute inset-0 overflow-hidden">
-            <motion.div
-              className="flex h-full"
-              animate={{ x: ['0%', '-300%'] }}
-              transition={{
-                x: {
-                  duration: 30,
-                  repeat: Infinity,
-                  ease: 'linear',
-                },
-              }}
-              style={{ width: '400%' }}
-            >
-              {[...generatedImages, ...generatedImages].map((img, idx) => (
-                <div key={idx} className="flex-shrink-0 w-1/4 h-full">
-                  <img
-                    src={img}
-                    alt={`Result ${(idx % generatedImages.length) + 1}`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-            <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
-              Realistic Imagery
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
