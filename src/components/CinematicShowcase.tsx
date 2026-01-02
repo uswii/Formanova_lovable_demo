@@ -33,19 +33,22 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase: 'overlay' -> 'clean' -> next image
+  // Phase: 'overlay' -> 'clean' for each image, then next
   const [displayPhase, setDisplayPhase] = useState<'overlay' | 'clean'>('overlay');
 
-  // Cycle through: overlay -> clean generated image -> next overlay
+  // Cycle: show overlay -> show clean -> move to next image -> repeat
   useEffect(() => {
     const interval = setInterval(() => {
       setDisplayPhase(prev => {
-        if (prev === 'overlay') return 'clean';
-        // After clean, advance to next image and show overlay
+        if (prev === 'overlay') {
+          // Just switch to clean, keep same image
+          return 'clean';
+        }
+        // After showing clean, move to next image and show its overlay
         setZeroAltOutputIndex(i => (i + 1) % generatedImages.length);
         return 'overlay';
       });
-    }, 3000);
+    }, 2500);
     
     return () => clearInterval(interval);
   }, []);
