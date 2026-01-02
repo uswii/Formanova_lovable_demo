@@ -52,27 +52,27 @@ export function CinematicShowcase() {
         const theme = document.documentElement.getAttribute('data-theme') || 
                       (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         
-        // Translucent overlay colors (< 60% opacity)
+        // More solid overlay colors (~45-50% opacity)
         let overlayColor: string;
         
         switch(theme) {
           case 'dark':
-            overlayColor = 'rgba(255, 255, 255, 0.15)';
+            overlayColor = 'rgba(255, 255, 255, 0.45)';
             break;
           case 'cyberpunk':
-            overlayColor = 'rgba(255, 0, 200, 0.2)';
+            overlayColor = 'rgba(255, 0, 200, 0.5)';
             break;
           case 'vintage':
-            overlayColor = 'rgba(180, 140, 80, 0.2)';
+            overlayColor = 'rgba(180, 140, 80, 0.5)';
             break;
           case 'nature':
-            overlayColor = 'rgba(100, 180, 100, 0.18)';
+            overlayColor = 'rgba(100, 180, 100, 0.45)';
             break;
           case 'ocean':
-            overlayColor = 'rgba(0, 150, 200, 0.18)';
+            overlayColor = 'rgba(0, 150, 200, 0.45)';
             break;
           default: // light
-            overlayColor = 'rgba(0, 0, 0, 0.12)';
+            overlayColor = 'rgba(0, 0, 0, 0.4)';
         }
 
         const maskCanvas = document.createElement('canvas');
