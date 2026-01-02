@@ -42,17 +42,17 @@ export function CinematicShowcase() {
     
     switch(theme) {
       case 'dark':
-        return { accent: 'rgba(255, 255, 255, 0.9)', muted: 'rgba(255, 255, 255, 0.3)', jewelryColor: 'rgba(0, 200, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.6)' };
+        return { accent: 'rgba(100, 200, 255, 0.95)', muted: 'rgba(100, 200, 255, 0.4)', jewelryColor: 'rgba(100, 200, 255, 0.9)', bgOverlay: 'rgba(0, 0, 0, 0.55)' };
       case 'cyberpunk':
-        return { accent: 'rgba(255, 0, 200, 0.9)', muted: 'rgba(255, 0, 200, 0.3)', jewelryColor: 'rgba(0, 255, 200, 0.85)', bgOverlay: 'rgba(20, 0, 40, 0.6)' };
+        return { accent: 'rgba(255, 0, 200, 0.95)', muted: 'rgba(255, 0, 200, 0.4)', jewelryColor: 'rgba(255, 0, 200, 0.9)', bgOverlay: 'rgba(20, 0, 40, 0.55)' };
       case 'vintage':
-        return { accent: 'rgba(180, 140, 80, 0.9)', muted: 'rgba(180, 140, 80, 0.3)', jewelryColor: 'rgba(255, 200, 100, 0.85)', bgOverlay: 'rgba(40, 30, 20, 0.5)' };
+        return { accent: 'rgba(220, 180, 100, 0.95)', muted: 'rgba(220, 180, 100, 0.4)', jewelryColor: 'rgba(220, 180, 100, 0.9)', bgOverlay: 'rgba(40, 30, 20, 0.5)' };
       case 'nature':
-        return { accent: 'rgba(100, 180, 100, 0.9)', muted: 'rgba(100, 180, 100, 0.3)', jewelryColor: 'rgba(150, 255, 150, 0.85)', bgOverlay: 'rgba(20, 40, 20, 0.5)' };
+        return { accent: 'rgba(80, 200, 120, 0.95)', muted: 'rgba(80, 200, 120, 0.4)', jewelryColor: 'rgba(80, 200, 120, 0.9)', bgOverlay: 'rgba(20, 40, 20, 0.5)' };
       case 'ocean':
-        return { accent: 'rgba(0, 150, 200, 0.9)', muted: 'rgba(0, 150, 200, 0.3)', jewelryColor: 'rgba(100, 255, 255, 0.85)', bgOverlay: 'rgba(0, 30, 50, 0.5)' };
+        return { accent: 'rgba(0, 180, 220, 0.95)', muted: 'rgba(0, 180, 220, 0.4)', jewelryColor: 'rgba(0, 180, 220, 0.9)', bgOverlay: 'rgba(0, 30, 50, 0.5)' };
       default:
-        return { accent: 'rgba(0, 0, 0, 0.8)', muted: 'rgba(0, 0, 0, 0.2)', jewelryColor: 'rgba(0, 150, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.4)' };
+        return { accent: 'rgba(59, 130, 246, 0.95)', muted: 'rgba(59, 130, 246, 0.4)', jewelryColor: 'rgba(59, 130, 246, 0.9)', bgOverlay: 'rgba(0, 0, 0, 0.45)' };
     }
   }, []);
 
