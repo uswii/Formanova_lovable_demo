@@ -387,21 +387,16 @@ export function CinematicShowcase() {
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* Overlay + Landmarks after mannequin phase - instant, no fade */}
-          {!showMannequin && (
-            <>
-              {/* Two-color overlay: jewelry highlighted, background dimmed */}
-              {jewelryEmphasisUrl && (
-                <img
-                  src={jewelryEmphasisUrl}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
-              )}
-              {/* Landmarks */}
-              <MaskDerivedReferenceOverlay />
-            </>
+          {/* Overlay + Landmarks - always visible */}
+          {jewelryEmphasisUrl && (
+            <img
+              src={jewelryEmphasisUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+            />
           )}
+          {/* Landmarks */}
+          <MaskDerivedReferenceOverlay />
 
           {/* Complete checkmark */}
           <AnimatePresence>
