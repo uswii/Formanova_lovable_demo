@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import images
@@ -17,17 +17,106 @@ const metricsPerOutput = [
   { precision: 99.5, recall: 98.4, iou: 97.9, growth: 93.8 },
 ];
 
+// Anchor points for jewelry verification (normalized 0-1 positions)
+const jewelryAnchors = [
+  { id: 'top', x: 0.5, y: 0.28, label: 'Clasp' },
+  { id: 'left', x: 0.42, y: 0.35, label: 'Left Edge' },
+  { id: 'right', x: 0.58, y: 0.35, label: 'Right Edge' },
+  { id: 'center', x: 0.5, y: 0.38, label: 'Center' },
+  { id: 'bottom', x: 0.5, y: 0.42, label: 'Pendant' },
+];
+
+// Guide lines connecting anchors
+const guideLines = [
+  { from: 'top', to: 'left' },
+  { from: 'top', to: 'right' },
+  { from: 'left', to: 'center' },
+  { from: 'right', to: 'center' },
+  { from: 'center', to: 'bottom' },
+];
+
 export function CinematicShowcase() {
   const [showInput, setShowInput] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [finalIndex, setFinalIndex] = useState(0);
   const [animatedValues, setAnimatedValues] = useState({ precision: 0, recall: 0, iou: 0, growth: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [overlayDataUrl, setOverlayDataUrl] = useState<string>('');
+  const [jewelryEmphasisUrl, setJewelryEmphasisUrl] = useState<string>('');
+  
+  // Zero Alteration specific state
+  const [zeroAltPhase, setZeroAltPhase] = useState<'toggle' | 'verify' | 'scan' | 'complete'>('toggle');
+  const [zeroAltShowInput, setZeroAltShowInput] = useState(true);
+  const [toggleCount, setToggleCount] = useState(0);
+  const [showDiagram, setShowDiagram] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanActive, setScanActive] = useState(false);
 
-  // Create themed overlay from mask - translucent, no filters
+  // Get theme-adaptive colors
+  const themeColors = useMemo(() => {
+    const theme = document.documentElement.getAttribute('data-theme') || 
+                  (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    
+    switch(theme) {
+      case 'dark':
+        return {
+          primary: 'rgb(255, 255, 255)',
+          primaryMuted: 'rgba(255, 255, 255, 0.3)',
+          accent: 'rgba(255, 255, 255, 0.8)',
+          scan: 'rgba(255, 255, 255, 0.15)',
+          scanLine: 'rgba(255, 255, 255, 0.9)',
+          emphasis: 'rgba(255, 255, 255, 0.08)',
+        };
+      case 'cyberpunk':
+        return {
+          primary: 'rgb(255, 0, 200)',
+          primaryMuted: 'rgba(255, 0, 200, 0.3)',
+          accent: 'rgba(255, 0, 200, 0.8)',
+          scan: 'rgba(255, 0, 200, 0.12)',
+          scanLine: 'rgba(255, 0, 200, 0.9)',
+          emphasis: 'rgba(255, 0, 200, 0.06)',
+        };
+      case 'vintage':
+        return {
+          primary: 'rgb(180, 140, 80)',
+          primaryMuted: 'rgba(180, 140, 80, 0.3)',
+          accent: 'rgba(180, 140, 80, 0.8)',
+          scan: 'rgba(180, 140, 80, 0.12)',
+          scanLine: 'rgba(180, 140, 80, 0.9)',
+          emphasis: 'rgba(180, 140, 80, 0.06)',
+        };
+      case 'nature':
+        return {
+          primary: 'rgb(100, 180, 100)',
+          primaryMuted: 'rgba(100, 180, 100, 0.3)',
+          accent: 'rgba(100, 180, 100, 0.8)',
+          scan: 'rgba(100, 180, 100, 0.12)',
+          scanLine: 'rgba(100, 180, 100, 0.9)',
+          emphasis: 'rgba(100, 180, 100, 0.06)',
+        };
+      case 'ocean':
+        return {
+          primary: 'rgb(0, 150, 200)',
+          primaryMuted: 'rgba(0, 150, 200, 0.3)',
+          accent: 'rgba(0, 150, 200, 0.8)',
+          scan: 'rgba(0, 150, 200, 0.12)',
+          scanLine: 'rgba(0, 150, 200, 0.9)',
+          emphasis: 'rgba(0, 150, 200, 0.06)',
+        };
+      default: // light
+        return {
+          primary: 'rgb(0, 0, 0)',
+          primaryMuted: 'rgba(0, 0, 0, 0.25)',
+          accent: 'rgba(0, 0, 0, 0.7)',
+          scan: 'rgba(0, 0, 0, 0.08)',
+          scanLine: 'rgba(0, 0, 0, 0.8)',
+          emphasis: 'rgba(0, 0, 0, 0.04)',
+        };
+    }
+  }, []);
+
+  // Create soft emphasis overlay from mask (subtle glow effect)
   useEffect(() => {
-    const generateOverlay = () => {
+    const generateEmphasis = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -35,91 +124,143 @@ export function CinematicShowcase() {
       if (!ctx) return;
 
       const maskImg = new Image();
-      const baseImg = new Image();
 
-      let loaded = 0;
-      const onLoad = () => {
-        loaded++;
-        if (loaded < 2) return;
-
-        canvas.width = baseImg.naturalWidth;
-        canvas.height = baseImg.naturalHeight;
+      maskImg.onload = () => {
+        canvas.width = maskImg.naturalWidth;
+        canvas.height = maskImg.naturalHeight;
         
-        // Draw base image without any filters
-        ctx.drawImage(baseImg, 0, 0);
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Get theme info
-        const theme = document.documentElement.getAttribute('data-theme') || 
-                      (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-        
-        // More solid overlay colors (~45-50% opacity)
-        let overlayColor: string;
-        
-        switch(theme) {
-          case 'dark':
-            overlayColor = 'rgba(255, 255, 255, 0.45)';
-            break;
-          case 'cyberpunk':
-            overlayColor = 'rgba(255, 0, 200, 0.5)';
-            break;
-          case 'vintage':
-            overlayColor = 'rgba(180, 140, 80, 0.5)';
-            break;
-          case 'nature':
-            overlayColor = 'rgba(100, 180, 100, 0.45)';
-            break;
-          case 'ocean':
-            overlayColor = 'rgba(0, 150, 200, 0.45)';
-            break;
-          default: // light
-            overlayColor = 'rgba(0, 0, 0, 0.4)';
-        }
+        // Draw mask and create soft emphasis
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
 
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = canvas.width;
-        maskCanvas.height = canvas.height;
-        const maskCtx = maskCanvas.getContext('2d');
-        if (!maskCtx) return;
+        tempCtx.drawImage(maskImg, 0, 0);
+        const maskData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-        maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-        const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
-
-        // Simple overlay on white mask areas only
+        // Create soft glow effect on jewelry areas
         for (let y = 0; y < canvas.height; y++) {
           for (let x = 0; x < canvas.width; x++) {
             const idx = (y * canvas.width + x) * 4;
-            const r = maskData.data[idx];
-            const g = maskData.data[idx + 1];
-            const b = maskData.data[idx + 2];
+            const brightness = maskData.data[idx];
             
-            if (r > 200 && g > 200 && b > 200) {
-              ctx.fillStyle = overlayColor;
-              ctx.fillRect(x, y, 1, 1);
+            if (brightness > 200) {
+              // Soft radial gradient effect
+              ctx.fillStyle = themeColors.emphasis;
+              ctx.beginPath();
+              ctx.arc(x, y, 3, 0, Math.PI * 2);
+              ctx.fill();
             }
           }
         }
 
-        setOverlayDataUrl(canvas.toDataURL('image/png'));
+        // Apply blur for soft edges
+        ctx.filter = 'blur(8px)';
+        ctx.drawImage(canvas, 0, 0);
+        ctx.filter = 'none';
+
+        setJewelryEmphasisUrl(canvas.toDataURL('image/png'));
       };
 
-      maskImg.onload = onLoad;
-      baseImg.onload = onLoad;
       maskImg.src = jewelryMask;
-      baseImg.src = mannequinInput;
     };
 
-    generateOverlay();
+    generateEmphasis();
 
-    const observer = new MutationObserver(generateOverlay);
+    const observer = new MutationObserver(generateEmphasis);
     observer.observe(document.documentElement, { 
       attributes: true, 
       attributeFilter: ['data-theme', 'class'] 
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [themeColors]);
 
-  // Section A: Toggle between input and outputs
+  // Zero Alteration Phase Controller
+  useEffect(() => {
+    // Phase 1: Toggle 3 times
+    if (zeroAltPhase === 'toggle') {
+      const toggleInterval = setInterval(() => {
+        setZeroAltShowInput(prev => !prev);
+        setToggleCount(c => c + 1);
+      }, 1200);
+
+      return () => clearInterval(toggleInterval);
+    }
+  }, [zeroAltPhase]);
+
+  // Progress through phases
+  useEffect(() => {
+    if (toggleCount >= 6 && zeroAltPhase === 'toggle') {
+      // After 3 full toggles, show diagram
+      setShowDiagram(true);
+      setZeroAltPhase('verify');
+    }
+  }, [toggleCount, zeroAltPhase]);
+
+  useEffect(() => {
+    if (zeroAltPhase === 'verify') {
+      // Toggle with diagram overlay
+      const verifyInterval = setInterval(() => {
+        setZeroAltShowInput(prev => !prev);
+      }, 1500);
+
+      // After verification, trigger scan
+      const scanTimeout = setTimeout(() => {
+        clearInterval(verifyInterval);
+        setZeroAltPhase('scan');
+        setScanActive(true);
+      }, 6000);
+
+      return () => {
+        clearInterval(verifyInterval);
+        clearTimeout(scanTimeout);
+      };
+    }
+  }, [zeroAltPhase]);
+
+  // Scan animation
+  useEffect(() => {
+    if (zeroAltPhase === 'scan' && scanActive) {
+      let progress = 0;
+      const scanInterval = setInterval(() => {
+        progress += 1.5;
+        setScanProgress(progress);
+        
+        if (progress >= 100) {
+          clearInterval(scanInterval);
+          setScanActive(false);
+          // End on input frame and clean up
+          setTimeout(() => {
+            setZeroAltShowInput(true);
+            setShowDiagram(false);
+            setZeroAltPhase('complete');
+          }, 500);
+        }
+      }, 25);
+
+      return () => clearInterval(scanInterval);
+    }
+  }, [zeroAltPhase, scanActive]);
+
+  // Reset cycle after complete
+  useEffect(() => {
+    if (zeroAltPhase === 'complete') {
+      const resetTimeout = setTimeout(() => {
+        setZeroAltPhase('toggle');
+        setToggleCount(0);
+        setScanProgress(0);
+      }, 4000);
+
+      return () => clearTimeout(resetTimeout);
+    }
+  }, [zeroAltPhase]);
+
+  // Section B: Regular toggle between input and outputs (for metrics)
   useEffect(() => {
     const interval = setInterval(() => {
       setShowInput(prev => {
@@ -134,14 +275,13 @@ export function CinematicShowcase() {
     return () => clearInterval(interval);
   }, []);
 
-  // Animate metrics like real-time calculation
+  // Animate metrics
   useEffect(() => {
     const target = metricsPerOutput[currentIndex];
     const duration = 1200;
     const steps = 40;
     const stepTime = duration / steps;
     
-    // Start from slightly lower values to simulate calculation
     const startValues = {
       precision: target.precision - 15 - Math.random() * 10,
       recall: target.recall - 15 - Math.random() * 10,
@@ -153,7 +293,6 @@ export function CinematicShowcase() {
     const interval = setInterval(() => {
       step++;
       const progress = step / steps;
-      // Easing with some "jitter" to look like calculation
       const jitter = step < steps - 5 ? (Math.random() - 0.5) * 2 : 0;
       const eased = 1 - Math.pow(1 - progress, 2);
       
@@ -166,7 +305,7 @@ export function CinematicShowcase() {
       
       if (step >= steps) {
         clearInterval(interval);
-        setAnimatedValues(target); // Ensure final values are exact
+        setAnimatedValues(target);
       }
     }, stepTime);
 
@@ -188,19 +327,23 @@ export function CinematicShowcase() {
     { label: 'Growth', value: animatedValues.growth },
   ];
 
+  // Get anchor position by id
+  const getAnchor = (id: string) => jewelryAnchors.find(a => a.id === id);
+
   return (
     <div className="w-full">
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
         
-        {/* SECTION A — Toggle Effect */}
+        {/* SECTION A — Zero Alteration Verification */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          {/* Base Image */}
           <AnimatePresence mode="sync">
             <motion.img
-              key={showInput ? 'input' : `output-${currentIndex}`}
-              src={showInput ? mannequinInput : generatedImages[currentIndex]}
-              alt={showInput ? "Input" : "Output"}
+              key={zeroAltShowInput ? 'za-input' : 'za-output'}
+              src={zeroAltShowInput ? mannequinInput : generatedImages[0]}
+              alt={zeroAltShowInput ? "Input" : "Output"}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -208,15 +351,211 @@ export function CinematicShowcase() {
               className="absolute inset-0 w-full h-full object-contain"
             />
           </AnimatePresence>
+
+          {/* Soft Emphasis Overlay (only during verify phase) */}
+          {(zeroAltPhase === 'verify' || zeroAltPhase === 'scan') && jewelryEmphasisUrl && (
+            <motion.img
+              src={jewelryEmphasisUrl}
+              alt=""
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none mix-blend-overlay"
+            />
+          )}
+
+          {/* Scientific Diagram Overlay */}
+          {showDiagram && zeroAltPhase !== 'complete' && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+              <defs>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Guide Lines */}
+              {guideLines.map((line, i) => {
+                const from = getAnchor(line.from);
+                const to = getAnchor(line.to);
+                if (!from || !to) return null;
+                
+                return (
+                  <motion.line
+                    key={`line-${i}`}
+                    x1={`${from.x * 100}%`}
+                    y1={`${from.y * 100}%`}
+                    x2={`${to.x * 100}%`}
+                    y2={`${to.y * 100}%`}
+                    stroke={themeColors.primaryMuted}
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.8, delay: i * 0.1 }}
+                    filter="url(#glow)"
+                  />
+                );
+              })}
+
+              {/* Anchor Points */}
+              {jewelryAnchors.map((anchor, i) => (
+                <motion.g key={anchor.id}>
+                  {/* Outer ring */}
+                  <motion.circle
+                    cx={`${anchor.x * 100}%`}
+                    cy={`${anchor.y * 100}%`}
+                    r="8"
+                    fill="none"
+                    stroke={themeColors.primaryMuted}
+                    strokeWidth="1"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.5 + i * 0.08 }}
+                  />
+                  {/* Inner dot */}
+                  <motion.circle
+                    cx={`${anchor.x * 100}%`}
+                    cy={`${anchor.y * 100}%`}
+                    r="3"
+                    fill={themeColors.accent}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.2, 1] }}
+                    transition={{ duration: 0.3, delay: 0.6 + i * 0.08 }}
+                    filter="url(#glow)"
+                  />
+                  {/* Crosshair lines */}
+                  <motion.line
+                    x1={`${(anchor.x - 0.02) * 100}%`}
+                    y1={`${anchor.y * 100}%`}
+                    x2={`${(anchor.x + 0.02) * 100}%`}
+                    y2={`${anchor.y * 100}%`}
+                    stroke={themeColors.accent}
+                    strokeWidth="1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6 }}
+                    transition={{ delay: 0.8 + i * 0.08 }}
+                  />
+                  <motion.line
+                    x1={`${anchor.x * 100}%`}
+                    y1={`${(anchor.y - 0.015) * 100}%`}
+                    x2={`${anchor.x * 100}%`}
+                    y2={`${(anchor.y + 0.015) * 100}%`}
+                    stroke={themeColors.accent}
+                    strokeWidth="1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6 }}
+                    transition={{ delay: 0.8 + i * 0.08 }}
+                  />
+                </motion.g>
+              ))}
+
+              {/* Bounding Box */}
+              <motion.rect
+                x="40%"
+                y="26%"
+                width="20%"
+                height="18%"
+                fill="none"
+                stroke={themeColors.primaryMuted}
+                strokeWidth="1"
+                strokeDasharray="6 3"
+                rx="2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ delay: 1.2 }}
+              />
+
+              {/* Scale/Position indicators at corners */}
+              {[
+                { x: 40, y: 26 },
+                { x: 60, y: 26 },
+                { x: 40, y: 44 },
+                { x: 60, y: 44 }
+              ].map((corner, i) => (
+                <motion.g key={`corner-${i}`}>
+                  <motion.line
+                    x1={`${corner.x}%`}
+                    y1={`${corner.y - 1.5}%`}
+                    x2={`${corner.x}%`}
+                    y2={`${corner.y + 1.5}%`}
+                    stroke={themeColors.accent}
+                    strokeWidth="1.5"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.8 }}
+                    transition={{ delay: 1.3 + i * 0.05 }}
+                  />
+                  <motion.line
+                    x1={`${corner.x - 1.5}%`}
+                    y1={`${corner.y}%`}
+                    x2={`${corner.x + 1.5}%`}
+                    y2={`${corner.y}%`}
+                    stroke={themeColors.accent}
+                    strokeWidth="1.5"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.8 }}
+                    transition={{ delay: 1.3 + i * 0.05 }}
+                  />
+                </motion.g>
+              ))}
+            </svg>
+          )}
+
+          {/* Verification Scan Effect */}
+          {zeroAltPhase === 'scan' && (
+            <>
+              {/* Scan overlay that follows the line */}
+              <motion.div
+                className="absolute left-0 right-0 pointer-events-none"
+                style={{
+                  top: 0,
+                  height: `${scanProgress}%`,
+                  background: `linear-gradient(to bottom, transparent 0%, ${themeColors.scan} 80%, transparent 100%)`,
+                }}
+              />
+              
+              {/* Scan line */}
+              <motion.div
+                className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                style={{
+                  top: `${scanProgress}%`,
+                  background: `linear-gradient(90deg, transparent, ${themeColors.scanLine}, transparent)`,
+                  boxShadow: `0 0 20px 4px ${themeColors.scan}`,
+                }}
+              />
+            </>
+          )}
           
+          {/* Status Label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-            <div className={`px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider transition-colors duration-150 ${
-              showInput 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-background/90 text-foreground border border-border'
-            }`}>
-              {showInput ? 'Input' : 'Output'}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={zeroAltPhase}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className={`px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider ${
+                  zeroAltPhase === 'complete'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background/90 text-foreground border border-border'
+                }`}
+              >
+                {zeroAltPhase === 'toggle' && (zeroAltShowInput ? 'Input' : 'Output')}
+                {zeroAltPhase === 'verify' && 'Verifying Position'}
+                {zeroAltPhase === 'scan' && 'Scanning Integrity'}
+                {zeroAltPhase === 'complete' && 'Zero Alteration ✓'}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Section Title */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2">
+            <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-widest text-muted-foreground bg-background/60 backdrop-blur-sm">
+              Zero Alteration
+            </span>
           </div>
         </div>
 
@@ -245,7 +584,7 @@ export function CinematicShowcase() {
             ))}
           </div>
           
-          {/* Bottom label like other sections */}
+          {/* Bottom label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -268,7 +607,7 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Clean Output */}
+        {/* SECTION C — Final Clean Output (Realistic Imagery) */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           <AnimatePresence mode="wait">
             <motion.img
@@ -290,7 +629,14 @@ export function CinematicShowcase() {
             </div>
           </div>
 
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {/* Section Title */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2">
+            <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-widest text-muted-foreground bg-background/60 backdrop-blur-sm">
+              Realistic Imagery
+            </span>
+          </div>
+
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-1.5 mt-2">
             {generatedImages.map((_, i) => (
               <div
                 key={i}
