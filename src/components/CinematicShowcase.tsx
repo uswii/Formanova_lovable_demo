@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
 
 // Import images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -37,12 +35,6 @@ export function CinematicShowcase() {
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
   const [showMannequin, setShowMannequin] = useState(true);
 
-  // Auto-play carousel setup
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true, align: 'start' },
-    [Autoplay({ delay: 3000, stopOnInteraction: false })]
-  );
-
   // Show mannequin only at very start, then switch to generated images
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -51,18 +43,16 @@ export function CinematicShowcase() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Sync carousel index with zeroAltOutputIndex
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setZeroAltOutputIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
-
+  // Auto-cycle through images - both sections use same index
   useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on('select', onSelect);
-    return () => { emblaApi.off('select', onSelect); };
-  }, [emblaApi, onSelect]);
+    if (showMannequin) return; // Don't start cycling until mannequin is done
+    
+    const interval = setInterval(() => {
+      setZeroAltOutputIndex(prev => (prev + 1) % generatedImages.length);
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [showMannequin]);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -548,25 +538,24 @@ export function CinematicShowcase() {
           </div>
         </div>
 
-        {/* SECTION C — Final Output with auto-cycling carousel */}
+        {/* SECTION C — Final Output synced with Section A */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <div ref={emblaRef} className="h-full overflow-hidden">
-            <div className="flex h-full">
-              {generatedImages.map((img, idx) => (
-                <div key={idx} className="flex-[0_0_100%] min-w-0 h-full">
-                  <img
-                    src={img}
-                    alt={`Result ${idx + 1}`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <AnimatePresence mode="sync">
+            <motion.img
+              key={`result-${zeroAltOutputIndex}`}
+              src={generatedImages[zeroAltOutputIndex]}
+              alt={`Result ${zeroAltOutputIndex + 1}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full h-full object-contain"
+            />
+          </AnimatePresence>
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
-              Final Result
+              Realistic Imagery
             </div>
           </div>
         </div>
