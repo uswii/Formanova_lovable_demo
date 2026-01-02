@@ -384,31 +384,19 @@ export function CinematicShowcase() {
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Base image - mannequin at start, then generated outputs */}
-          <AnimatePresence mode="sync">
-            {showMannequin ? (
-              <motion.img
-                key="mannequin"
-                src={mannequinInput}
-                alt="Original mannequin"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : (
-              <motion.img
-                key={`za-output-${zeroAltOutputIndex}`}
-                src={generatedImages[zeroAltOutputIndex]}
-                alt={`Output ${zeroAltOutputIndex + 1}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            )}
-          </AnimatePresence>
+          {showMannequin ? (
+            <img
+              src={mannequinInput}
+              alt="Original mannequin"
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          ) : (
+            <img
+              src={generatedImages[zeroAltOutputIndex]}
+              alt={`Output ${zeroAltOutputIndex + 1}`}
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          )}
 
           {/* Overlay + Landmarks after mannequin phase */}
           <AnimatePresence>
@@ -540,18 +528,11 @@ export function CinematicShowcase() {
 
         {/* SECTION C — Final Output synced with Section A */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <AnimatePresence mode="sync">
-            <motion.img
-              key={`result-${zeroAltOutputIndex}`}
-              src={generatedImages[zeroAltOutputIndex]}
-              alt={`Result ${zeroAltOutputIndex + 1}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full h-full object-contain"
-            />
-          </AnimatePresence>
+          <img
+            src={generatedImages[zeroAltOutputIndex]}
+            alt={`Result ${zeroAltOutputIndex + 1}`}
+            className="w-full h-full object-contain"
+          />
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
