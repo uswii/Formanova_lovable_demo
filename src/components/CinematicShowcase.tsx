@@ -482,22 +482,11 @@ export function CinematicShowcase() {
 
         {/* SECTION C — Final Output (synced with Section A, left-to-right reveal) */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={zeroAltOutputIndex}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
-            >
-              <img
-                src={generatedImages[zeroAltOutputIndex]}
-                alt="Final result"
-                className="w-full h-full object-contain"
-              />
-            </motion.div>
-          </AnimatePresence>
+          <img
+            src={generatedImages[zeroAltOutputIndex]}
+            alt="Final result"
+            className="w-full h-full object-contain"
+          />
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
