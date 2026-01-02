@@ -33,18 +33,17 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   const [zeroAltOutputIndex, setZeroAltOutputIndex] = useState(0);
-  // Phase sequence: mannequin-raw -> mannequin-overlay -> mannequin-clean -> generated-overlay -> generated-clean
-  const [displayPhase, setDisplayPhase] = useState<'mannequin-raw' | 'mannequin-overlay' | 'mannequin-clean' | 'generated-overlay' | 'generated-clean'>('mannequin-raw');
+  // Phase: mannequin-raw -> mannequin-overlay -> generated-overlay -> generated-clean -> next gen overlay -> clean...
+  const [displayPhase, setDisplayPhase] = useState<'mannequin-raw' | 'mannequin-overlay' | 'generated-overlay' | 'generated-clean'>('mannequin-raw');
 
-  // Cycle: raw -> overlay -> clean for mannequin, then overlay -> clean for each generated
+  // Cycle: mannequin raw -> mannequin overlay -> gen1 overlay -> gen1 clean -> gen2 overlay -> gen2 clean -> ... -> back to mannequin
   useEffect(() => {
     const interval = setInterval(() => {
       setDisplayPhase(prev => {
         if (prev === 'mannequin-raw') return 'mannequin-overlay';
-        if (prev === 'mannequin-overlay') return 'mannequin-clean';
-        if (prev === 'mannequin-clean') return 'generated-overlay';
+        if (prev === 'mannequin-overlay') return 'generated-overlay';
         if (prev === 'generated-overlay') return 'generated-clean';
-        // After generated-clean, move to next image's overlay (or back to mannequin-raw if cycle complete)
+        // After generated-clean, move to next image's overlay or back to mannequin if all done
         const nextIndex = (zeroAltOutputIndex + 1) % generatedImages.length;
         setZeroAltOutputIndex(nextIndex);
         return nextIndex === 0 ? 'mannequin-raw' : 'generated-overlay';
@@ -386,7 +385,7 @@ export function CinematicShowcase() {
           {/* Base image - mannequin or generated based on phase */}
           <img
             key={`${displayPhase}-${zeroAltOutputIndex}`}
-            src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' || displayPhase === 'mannequin-clean'
+            src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay'
               ? mannequinInput 
               : generatedImages[zeroAltOutputIndex]}
             alt={displayPhase.startsWith('mannequin') 
@@ -409,13 +408,12 @@ export function CinematicShowcase() {
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wide text-center ${
-              displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-clean' || displayPhase === 'generated-clean'
+              displayPhase === 'mannequin-raw' || displayPhase === 'generated-clean'
                 ? 'bg-background/90 text-foreground border border-border'
                 : 'bg-primary/80 text-primary-foreground'
             }`}>
               {displayPhase === 'mannequin-raw' && 'Original Input'}
               {displayPhase === 'mannequin-overlay' && 'Zero Alteration'}
-              {displayPhase === 'mannequin-clean' && 'Original Input'}
               {displayPhase === 'generated-overlay' && 'Zero Alteration'}
               {displayPhase === 'generated-clean' && 'Generated'}
             </div>
