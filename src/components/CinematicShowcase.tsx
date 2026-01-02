@@ -39,24 +39,24 @@ export function CinematicShowcase() {
   const [showBrackets, setShowBrackets] = useState(false);
   const [matchPercent, setMatchPercent] = useState(0);
 
-  // Theme colors
+  // Theme colors - jewelry color and background overlay color
   const themeColors = useMemo(() => {
     const theme = document.documentElement.getAttribute('data-theme') || 
                   (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
     
     switch(theme) {
       case 'dark':
-        return { accent: 'rgba(255, 255, 255, 0.9)', muted: 'rgba(255, 255, 255, 0.3)', emphasis: 'rgba(255, 255, 255, 0.12)' };
+        return { accent: 'rgba(255, 255, 255, 0.9)', muted: 'rgba(255, 255, 255, 0.3)', jewelryColor: 'rgba(0, 200, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.6)' };
       case 'cyberpunk':
-        return { accent: 'rgba(255, 0, 200, 0.9)', muted: 'rgba(255, 0, 200, 0.3)', emphasis: 'rgba(255, 0, 200, 0.1)' };
+        return { accent: 'rgba(255, 0, 200, 0.9)', muted: 'rgba(255, 0, 200, 0.3)', jewelryColor: 'rgba(0, 255, 200, 0.85)', bgOverlay: 'rgba(20, 0, 40, 0.6)' };
       case 'vintage':
-        return { accent: 'rgba(180, 140, 80, 0.9)', muted: 'rgba(180, 140, 80, 0.3)', emphasis: 'rgba(180, 140, 80, 0.1)' };
+        return { accent: 'rgba(180, 140, 80, 0.9)', muted: 'rgba(180, 140, 80, 0.3)', jewelryColor: 'rgba(255, 200, 100, 0.85)', bgOverlay: 'rgba(40, 30, 20, 0.5)' };
       case 'nature':
-        return { accent: 'rgba(100, 180, 100, 0.9)', muted: 'rgba(100, 180, 100, 0.3)', emphasis: 'rgba(100, 180, 100, 0.1)' };
+        return { accent: 'rgba(100, 180, 100, 0.9)', muted: 'rgba(100, 180, 100, 0.3)', jewelryColor: 'rgba(150, 255, 150, 0.85)', bgOverlay: 'rgba(20, 40, 20, 0.5)' };
       case 'ocean':
-        return { accent: 'rgba(0, 150, 200, 0.9)', muted: 'rgba(0, 150, 200, 0.3)', emphasis: 'rgba(0, 150, 200, 0.1)' };
+        return { accent: 'rgba(0, 150, 200, 0.9)', muted: 'rgba(0, 150, 200, 0.3)', jewelryColor: 'rgba(100, 255, 255, 0.85)', bgOverlay: 'rgba(0, 30, 50, 0.5)' };
       default:
-        return { accent: 'rgba(0, 0, 0, 0.8)', muted: 'rgba(0, 0, 0, 0.2)', emphasis: 'rgba(0, 0, 0, 0.06)' };
+        return { accent: 'rgba(0, 0, 0, 0.8)', muted: 'rgba(0, 0, 0, 0.2)', jewelryColor: 'rgba(0, 150, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.4)' };
     }
   }, []);
 
@@ -122,15 +122,24 @@ export function CinematicShowcase() {
         
         setJewelryLandmarks(landmarks);
         
-        // Create emphasis overlay
+        // Create two-color overlay: jewelry in one color, background in another
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = themeColors.emphasis;
+        
+        // First fill entire canvas with translucent background color
+        ctx.fillStyle = themeColors.bgOverlay;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Then draw jewelry region in solid jewelry color (cut out bg and fill)
+        ctx.globalCompositeOperation = 'destination-out';
         for (const pixel of jewelryPixels) {
           ctx.fillRect(pixel.x, pixel.y, 1, 1);
         }
-        ctx.filter = 'blur(4px)';
-        ctx.drawImage(canvas, 0, 0);
-        ctx.filter = 'none';
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = themeColors.jewelryColor;
+        for (const pixel of jewelryPixels) {
+          ctx.fillRect(pixel.x, pixel.y, 1, 1);
+        }
+        
         setJewelryEmphasisUrl(canvas.toDataURL('image/png'));
       };
       maskImg.src = jewelryMask;
