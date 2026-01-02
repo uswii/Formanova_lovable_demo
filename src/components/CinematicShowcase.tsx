@@ -380,20 +380,19 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - mannequin at start, then generated outputs */}
-          {showMannequin ? (
-            <img
-              src={mannequinInput}
-              alt="Original mannequin"
+          {/* Base image - carousel effect between mannequin and generated outputs */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img
+              key={showMannequin ? 'mannequin' : `output-${zeroAltOutputIndex}`}
+              src={showMannequin ? mannequinInput : generatedImages[zeroAltOutputIndex]}
+              alt={showMannequin ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
               className="absolute inset-0 w-full h-full object-contain"
             />
-          ) : (
-            <img
-              src={generatedImages[zeroAltOutputIndex]}
-              alt={`Output ${zeroAltOutputIndex + 1}`}
-              className="absolute inset-0 w-full h-full object-contain"
-            />
-          )}
+          </AnimatePresence>
 
           {/* Overlay + Landmarks after mannequin phase */}
           <AnimatePresence>
@@ -515,11 +514,18 @@ export function CinematicShowcase() {
 
         {/* SECTION C — Final Output synced with Section A */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          <img
-            src={generatedImages[zeroAltOutputIndex]}
-            alt={`Result ${zeroAltOutputIndex + 1}`}
-            className="w-full h-full object-contain"
-          />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img
+              key={`result-${zeroAltOutputIndex}`}
+              src={generatedImages[zeroAltOutputIndex]}
+              alt={`Result ${zeroAltOutputIndex + 1}`}
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              className="w-full h-full object-contain"
+            />
+          </AnimatePresence>
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="px-3 py-1 rounded-full bg-background/80 border border-border text-[10px] font-medium text-foreground uppercase tracking-wider">
