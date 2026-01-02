@@ -322,7 +322,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     // Show warning when reaching threshold (after adding this dot)
     if (redDots.length + 1 === WARN_DOTS) {
       setShowDotWarning(true);
-      setTimeout(() => setShowDotWarning(false), 3000);
     }
     
     setUndoStack((prev) => [...prev, redDots]);
@@ -534,18 +533,25 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
                   
                   {/* Dot warning overlay - centered on canvas */}
                   {showDotWarning && !isProcessing && (
-                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                      <div className="bg-background/95 backdrop-blur-sm border border-primary/30 rounded-lg px-6 py-4 shadow-lg max-w-[80%] text-center pointer-events-auto">
-                        <p className="text-sm font-medium text-foreground">
+                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/40">
+                      <div className="bg-background border-2 border-primary rounded-lg px-6 py-5 shadow-xl max-w-[80%] text-center relative">
+                        <button
+                          onClick={() => setShowDotWarning(false)}
+                          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                          aria-label="Close warning"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-base font-semibold text-foreground">
                           {WARN_DOTS} dots placed
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-2">
                           Usually 3-5 dots are enough for good results
                         </p>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          className="mt-3 text-xs"
+                          size="default"
+                          variant="default"
+                          className="mt-4 px-6 font-medium"
                           onClick={() => setShowDotWarning(false)}
                         >
                           Continue
