@@ -39,7 +39,7 @@ export function CinematicShowcase() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowMannequin(false);
-    }, 2000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, []);
 
