@@ -388,9 +388,10 @@ export function CinematicShowcase() {
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Base image - mannequin or generated based on phase */}
           <img
+            key={`${displayPhase}-${zeroAltOutputIndex}`}
             src={displayPhase === 'mannequin' ? mannequinInput : generatedImages[zeroAltOutputIndex]}
             alt={displayPhase === 'mannequin' ? "Original mannequin" : `Output ${zeroAltOutputIndex + 1}`}
-            className="absolute inset-0 w-full h-full object-contain"
+            className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
           />
 
           {/* Overlay during 'mannequin' and 'overlay' phases */}
