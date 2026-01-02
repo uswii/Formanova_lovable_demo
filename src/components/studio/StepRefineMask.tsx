@@ -41,7 +41,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
   const [activeStroke, setActiveStroke] = useState<BrushStroke | null>(null);
   
   // Key to force MaskCanvas re-render when undo/redo changes strokes
-  const canvasKey = useMemo(() => `canvas-${historyIndex}-${history.length}-${brushMode}`, [historyIndex, history.length, brushMode]);
+  const canvasKey = useMemo(() => `canvas-${historyIndex}-${history.length}`, [historyIndex, history.length]);
 
   const pushHistory = useCallback((next: BrushStroke[]) => {
     const trimmed = history.slice(0, historyIndex + 1);
@@ -49,22 +49,6 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
     setHistory(trimmed);
     setHistoryIndex(trimmed.length - 1);
   }, [history, historyIndex]);
-
-  // Convert all existing strokes to current brush mode when switching
-  const handleBrushModeChange = useCallback((newMode: 'add' | 'remove') => {
-    if (newMode === brushMode) return;
-    
-    // If there are existing strokes, convert them all to the new mode
-    if (effectiveStrokes.length > 0) {
-      const convertedStrokes = effectiveStrokes.map(stroke => ({
-        ...stroke,
-        type: newMode
-      }));
-      pushHistory(convertedStrokes);
-    }
-    
-    setBrushMode(newMode);
-  }, [brushMode, effectiveStrokes, pushHistory]);
 
   const handleStrokeStart = useCallback(() => {
     setActiveStroke({
@@ -261,7 +245,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
             <div className="grid grid-cols-1 gap-2">
               <Button
                 variant={brushMode === 'add' ? 'default' : 'outline'}
-                onClick={() => handleBrushModeChange('add')}
+                onClick={() => setBrushMode('add')}
                 className={`justify-start h-12 ${brushMode === 'add' ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
               >
                 <div className="h-5 w-5 rounded-full bg-green-500 mr-3 shadow-lg shadow-green-500/50" />
@@ -272,7 +256,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
               </Button>
               <Button
                 variant={brushMode === 'remove' ? 'default' : 'outline'}
-                onClick={() => handleBrushModeChange('remove')}
+                onClick={() => setBrushMode('remove')}
                 className={`justify-start h-12 ${brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900 border-gray-800' : ''}`}
               >
                 <div className="h-5 w-5 rounded-full bg-black border-2 border-white/30 mr-3" />
