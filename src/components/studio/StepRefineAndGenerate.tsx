@@ -58,7 +58,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
   const [prompt, setPrompt] = useState('Necklace worn by female model');
-  const [dagNodeResults, setDagNodeResults] = useState<Record<string, string | null>>({});
+  const [invertMask, setInvertMask] = useState(false);
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -139,7 +139,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         imageBlob,
         maskBase64,
         prompt,
-        false // invertMask
+        invertMask
       );
 
       console.log('[Generation] Started workflow:', workflow_id);
@@ -197,7 +197,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
       }
       
       console.log('[Generation] All node results fetched:', Object.keys(nodeResults));
-      setDagNodeResults(nodeResults);
 
       updateState({
         fluxResult: nodeResults.upscaler || nodeResults.flux_fill || null,
@@ -343,10 +342,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
         {/* Results content - fills remaining space */}
         <div className="flex-1 min-h-0">
           <Tabs defaultValue="standard" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 shrink-0">
+            <TabsList className="grid w-full grid-cols-2 shrink-0">
               <TabsTrigger value="standard">Standard</TabsTrigger>
               <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-              <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
             </TabsList>
 
             <TabsContent value="standard" className="mt-4 flex-1 min-h-0">
@@ -495,78 +493,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
               )}
             </TabsContent>
 
-            <TabsContent value="pipeline" className="mt-4 flex-1 min-h-0 overflow-y-auto">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Pipeline output (backend currently only returns final upscaled result):
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* White BG Segmenter */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-center">1. Background Segmentation</h4>
-                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
-                      {dagNodeResults.white_bg_segmenter ? (
-                        <img 
-                          src={dagNodeResults.white_bg_segmenter} 
-                          alt="Background Segmentation" 
-                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setFullscreenImage({ url: dagNodeResults.white_bg_segmenter!, title: 'Background Segmentation' })}
-                        />
-                      ) : (
-                        <div className="aspect-[3/4] flex flex-col items-center justify-center text-muted-foreground text-xs gap-1">
-                          <span>Not returned by backend</span>
-                          <span className="text-[10px]">(intermediate node)</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Flux Fill (before upscale) */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-center">2. Generated (Pre-Upscale)</h4>
-                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
-                      {dagNodeResults.flux_fill ? (
-                        <img 
-                          src={dagNodeResults.flux_fill} 
-                          alt="Generated Pre-Upscale" 
-                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setFullscreenImage({ url: dagNodeResults.flux_fill!, title: 'Generated (Pre-Upscale)' })}
-                        />
-                      ) : (
-                        <div className="aspect-[3/4] flex flex-col items-center justify-center text-muted-foreground text-xs gap-1">
-                          <span>Not returned by backend</span>
-                          <span className="text-[10px]">(intermediate node)</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Upscaler */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-center">3. Upscaled (Final)</h4>
-                    <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
-                      {dagNodeResults.upscaler ? (
-                        <img 
-                          src={dagNodeResults.upscaler} 
-                          alt="Upscaled Final" 
-                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setFullscreenImage({ url: dagNodeResults.upscaler!, title: 'Upscaled (Final)' })}
-                        />
-                      ) : (
-                        <div className="aspect-[3/4] flex items-center justify-center text-muted-foreground text-xs">
-                          No output
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {Object.keys(dagNodeResults).length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Generate a photoshoot to see pipeline outputs.
-                  </p>
-                )}
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
