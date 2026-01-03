@@ -61,14 +61,17 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400 }: Prop
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, displayWidth, displayHeight);
     
-    // Draw mask image if loaded
+    // Start with white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, displayWidth, displayHeight);
+    
+    // Draw mask image if loaded (will be inverted later)
     if (loadedImage) {
       ctx.drawImage(loadedImage, 0, 0, displayWidth, displayHeight);
     }
     
-    // Draw strokes as binary (white for add, black for remove)
+    // Draw strokes as binary (black for add/jewelry, white for remove)
     const drawSmoothStroke = (points: number[][], radius: number, color: string) => {
       if (points.length === 0) return;
       
@@ -98,11 +101,30 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400 }: Prop
       ctx.stroke();
     };
 
-    // Draw strokes with binary colors (white = add/preserve, black = remove)
+    // Draw strokes: add = black (jewelry), remove = white (background)
     strokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? '#FFFFFF' : '#000000';
+      const color = stroke.type === 'add' ? '#000000' : '#FFFFFF';
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
+
+    // Post-process: invert mask and enforce strict binary (no anti-aliasing grays)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const threshold = 128;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      // Calculate grayscale value
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      // Invert and threshold: dark pixels (jewelry) become black, light pixels become white
+      const inverted = 255 - gray;
+      const binary = inverted >= threshold ? 0 : 255;
+      data[i] = binary;     // R
+      data[i + 1] = binary; // G
+      data[i + 2] = binary; // B
+      // Alpha stays as-is
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
   }, [loadedImage, strokes, displayWidth, displayHeight, toDisplaySpace]);
 
   return (
