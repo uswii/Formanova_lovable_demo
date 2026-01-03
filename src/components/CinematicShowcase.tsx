@@ -351,17 +351,27 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image - mannequin or generated based on phase */}
-          <img
-            key={`${displayPhase}-${zeroAltOutputIndex}`}
-            src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay'
-              ? mannequinInput 
-              : generatedImages[zeroAltOutputIndex]}
-            alt={displayPhase.startsWith('mannequin') 
-              ? "Original mannequin" 
-              : `Output ${zeroAltOutputIndex + 1}`}
-            className="absolute inset-0 w-full h-full object-contain"
-          />
+          {/* Base image with wipe/unfold reveal effect */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${displayPhase}-${zeroAltOutputIndex}`}
+              className="absolute inset-0"
+              initial={{ clipPath: 'inset(0 100% 0 0)' }}
+              animate={{ clipPath: 'inset(0 0% 0 0)' }}
+              exit={{ clipPath: 'inset(0 0 0 100%)' }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <img
+                src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay'
+                  ? mannequinInput 
+                  : generatedImages[zeroAltOutputIndex]}
+                alt={displayPhase.startsWith('mannequin') 
+                  ? "Original mannequin" 
+                  : `Output ${zeroAltOutputIndex + 1}`}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            </motion.div>
+          </AnimatePresence>
 
           {/* Overlay during overlay phases only */}
           {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && jewelryEmphasisUrl && (
