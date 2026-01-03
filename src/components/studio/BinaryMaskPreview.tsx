@@ -115,9 +115,8 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400 }: Prop
     for (let i = 0; i < data.length; i += 4) {
       // Calculate grayscale value
       const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      // Invert and threshold: dark pixels (jewelry) become black, light pixels become white
-      const inverted = 255 - gray;
-      const binary = inverted >= threshold ? 0 : 255;
+      // Threshold: dark pixels (jewelry) become white, light pixels (background) become black
+      const binary = gray < threshold ? 255 : 0;
       data[i] = binary;     // R
       data[i + 1] = binary; // G
       data[i + 2] = binary; // B
