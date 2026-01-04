@@ -33,34 +33,31 @@ export function CinematicShowcase() {
   // Zero Alteration state
   const [zeroAltPhase, setZeroAltPhase] = useState<'start' | 'verify' | 'complete'>('start');
   
-  // Total steps: mannequin-raw (0), mannequin-overlay (1), then for each image: overlay, clean
-  // For 3 images: 0, 1, 2, 3, 4, 5, 6, 7 = 8 steps total
-  const totalSteps = 2 + generatedImages.length * 2;
-  const [currentStep, setCurrentStep] = useState(0);
+  // All images to cycle through: mannequin + all generated
+  const allImages = [mannequinInput, ...generatedImages];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Derive phase and image index from step
-  const getPhaseAndIndex = (step: number) => {
-    if (step === 0) return { phase: 'mannequin-raw' as const, index: 0 };
-    if (step === 1) return { phase: 'mannequin-overlay' as const, index: 0 };
-    const genStep = step - 2;
-    const imageIndex = Math.floor(genStep / 2);
-    const isOverlay = genStep % 2 === 0;
-    return { 
-      phase: isOverlay ? 'generated-overlay' as const : 'generated-clean' as const, 
-      index: imageIndex 
-    };
-  };
-  
-  const { phase: displayPhase, index: zeroAltOutputIndex } = getPhaseAndIndex(currentStep);
-
-  // Cycle through all steps
+  // Simple continuous cycling through all images
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentStep(prev => (prev + 1) % totalSteps);
+      setCurrentImageIndex(prev => (prev + 1) % allImages.length);
     }, 800);
     
     return () => clearInterval(interval);
-  }, [totalSteps]);
+  }, [allImages.length]);
+  
+  // Determine if showing mannequin or generated for overlay logic
+  const isShowingMannequin = currentImageIndex === 0;
+  const zeroAltOutputIndex = isShowingMannequin ? 0 : currentImageIndex - 1;
+  
+  // Toggle overlay visibility
+  const [showOverlay, setShowOverlay] = useState(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowOverlay(prev => !prev);
+    }, 1600);
+    return () => clearInterval(interval);
+  }, []);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
@@ -348,18 +345,16 @@ export function CinematicShowcase() {
           {/* Simple toggle - show current image only */}
           <div className="absolute inset-0">
             <img
-              src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' 
-                ? mannequinInput 
-                : generatedImages[zeroAltOutputIndex]}
+              src={allImages[currentImageIndex]}
               alt="Current"
               className="w-full h-full object-contain"
             />
           </div>
 
-          {/* Overlay during overlay phases only */}
+          {/* Overlay */}
           <div 
             className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-            style={{ opacity: (displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && jewelryEmphasisUrl ? 1 : 0 }}
+            style={{ opacity: showOverlay && jewelryEmphasisUrl ? 1 : 0 }}
           >
             {jewelryEmphasisUrl && (
               <img
@@ -369,19 +364,19 @@ export function CinematicShowcase() {
               />
             )}
           </div>
-          {/* Landmarks - visible during overlay phases only */}
-          {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && <MaskDerivedReferenceOverlay />}
+          {/* Landmarks */}
+          {showOverlay && <MaskDerivedReferenceOverlay />}
           
           {/* Status label */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className={`px-3 py-1.5 rounded-full font-medium tracking-wide text-center ${
-              displayPhase === 'mannequin-raw' || displayPhase === 'generated-clean'
+              !showOverlay
                 ? 'bg-background/90 text-foreground border border-border text-[10px]'
                 : 'bg-primary/80 text-primary-foreground text-[8px]'
             }`}>
-              {displayPhase === 'mannequin-raw' && 'Original Input'}
-              {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && 'Zero Alteration'}
-              {displayPhase === 'generated-clean' && 'Realistic Imagery'}
+              {isShowingMannequin && !showOverlay && 'Original Input'}
+              {showOverlay && 'Zero Alteration'}
+              {!isShowingMannequin && !showOverlay && 'Realistic Imagery'}
             </div>
           </div>
         </div>
