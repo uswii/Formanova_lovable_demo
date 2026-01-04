@@ -82,33 +82,31 @@ export function CinematicShowcase() {
   }, []);
 
   // Theme colors - matching each theme's primary identity
-  // Black overlay always - consistent across all themes
-  const bgOverlay = 'rgba(0, 0, 0, 0.25)';
-  
+  // Overlay color changes based on theme
   const themeColors = useMemo(() => {
     switch(currentTheme) {
       case 'dark':
-        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay };
+        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
       case 'cyberpunk':
-        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay };
+        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay: 'rgba(20, 0, 30, 0.35)' };
       case 'vintage':
-        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay };
+        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay: 'rgba(60, 40, 30, 0.3)' };
       case 'nature':
-        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay };
+        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay: 'rgba(20, 40, 25, 0.3)' };
       case 'ocean':
-        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay };
+        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay: 'rgba(0, 30, 50, 0.35)' };
       case 'kawaii':
-        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay };
+        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay: 'rgba(60, 30, 45, 0.3)' };
       case 'fashion':
-        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay };
+        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay: 'rgba(30, 25, 15, 0.35)' };
       case 'luxury':
-        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay };
+        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay: 'rgba(40, 25, 20, 0.35)' };
       case 'retro':
-        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay };
+        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay: 'rgba(0, 20, 10, 0.35)' };
       case 'synthwave':
-        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay };
+        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay: 'rgba(30, 0, 40, 0.35)' };
       default:
-        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay };
+        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
     }
   }, [currentTheme]);
 
@@ -345,26 +343,32 @@ export function CinematicShowcase() {
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Base image with wipe/unfold reveal effect */}
           {/* Simple fade transition - no sliding/revealing effect */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${displayPhase}-${zeroAltOutputIndex}`}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-            >
-              <img
-                src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay'
-                  ? mannequinInput 
-                  : generatedImages[zeroAltOutputIndex]}
-                alt={displayPhase.startsWith('mannequin') 
-                  ? "Original mannequin" 
-                  : `Output ${zeroAltOutputIndex + 1}`}
+          {/* Seamless crossfade - all images stacked, opacity controlled */}
+          <div className="absolute inset-0">
+            {/* Mannequin base - always present when needed */}
+            <motion.img
+              src={mannequinInput}
+              alt="Original mannequin"
+              className="absolute inset-0 w-full h-full object-contain"
+              animate={{ 
+                opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
+              }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+            />
+            {/* Generated images - crossfade between them */}
+            {generatedImages.map((img, idx) => (
+              <motion.img
+                key={idx}
+                src={img}
+                alt={`Output ${idx + 1}`}
                 className="absolute inset-0 w-full h-full object-contain"
+                animate={{ 
+                  opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
+                }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
               />
-            </motion.div>
-          </AnimatePresence>
+            ))}
+          </div>
 
           {/* Overlay during overlay phases only */}
           {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && jewelryEmphasisUrl && (
