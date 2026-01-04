@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Diamond } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import formanovaLogo from '@/assets/formanova-logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -53,11 +54,10 @@ export default function Auth() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Diamond className="h-10 w-10 text-primary" />
-            <h1 className="font-display text-4xl tracking-wide">FORMANOVA</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img src={formanovaLogo} alt="FormaNova" className="h-12 w-auto object-contain logo-adaptive" />
           </div>
-          <p className="text-muted-foreground">AI-Powered Jewelry Photography</p>
+          <p className="text-muted-foreground text-sm tracking-widest uppercase">Trustable AI Photography for Jewelry</p>
         </div>
 
         <Card className="bg-card/80 backdrop-blur-xl border-primary/20 shadow-2xl">
