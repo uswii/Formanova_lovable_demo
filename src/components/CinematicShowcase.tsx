@@ -345,37 +345,15 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Seamless crossfade - all images always visible, smooth blend */}
+          {/* Simple toggle - show current image only */}
           <div className="absolute inset-0">
-            {/* Mannequin base - always rendered */}
-            <div 
-              className="absolute inset-0 transition-opacity duration-1000 ease-linear"
-              style={{ 
-                opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
-              }}
-            >
-              <img
-                src={mannequinInput}
-                alt="Original mannequin"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            {/* Generated images - stacked, crossfade between them */}
-            {generatedImages.map((img, idx) => (
-              <div
-                key={idx}
-                className="absolute inset-0 transition-opacity duration-1000 ease-linear"
-                style={{ 
-                  opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
-                }}
-              >
-                <img
-                  src={img}
-                  alt={`Output ${idx + 1}`}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            ))}
+            <img
+              src={displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' 
+                ? mannequinInput 
+                : generatedImages[zeroAltOutputIndex]}
+              alt="Current"
+              className="w-full h-full object-contain"
+            />
           </div>
 
           {/* Overlay during overlay phases only */}
