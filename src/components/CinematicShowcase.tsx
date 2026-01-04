@@ -57,7 +57,7 @@ export function CinematicShowcase() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % totalSteps);
-    }, 2000);
+    }, 800);
     
     return () => clearInterval(interval);
   }, [totalSteps]);
