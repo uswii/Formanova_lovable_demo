@@ -108,7 +108,7 @@ export function CinematicShowcase() {
       case 'synthwave':
         return { accent: 'rgba(249, 115, 22, 0.95)', muted: 'rgba(249, 115, 22, 0.4)', jewelryColor: 'rgba(249, 115, 22, 0.85)', bgOverlay: 'rgba(50, 20, 60, 0.4)' };
       case 'light':
-        return { accent: 'rgba(245, 158, 11, 0.95)', muted: 'rgba(245, 158, 11, 0.4)', jewelryColor: 'rgba(245, 158, 11, 0.85)', bgOverlay: 'rgba(100, 80, 50, 0.25)' };
+        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
       default:
         return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(50, 50, 50, 0.3)' };
     }
@@ -344,46 +344,30 @@ export function CinematicShowcase() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
         
         {/* SECTION A — Zero Alteration */}
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border" style={{ perspective: '1000px' }}>
-          {/* Flip container */}
-          <div 
-            className="absolute inset-0 transition-transform duration-500 ease-out"
-            style={{ 
-              transformStyle: 'preserve-3d',
-              transform: `rotateY(${currentStep * 180}deg)`
-            }}
-          >
-            {/* Front face - current image */}
-            <div 
-              className="absolute inset-0"
-              style={{ backfaceVisibility: 'hidden' }}
-            >
-              <img
-                src={currentStep % 2 === 0 
-                  ? (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' ? mannequinInput : generatedImages[zeroAltOutputIndex])
-                  : mannequinInput
-                }
-                alt="Current"
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            </div>
-            {/* Back face - next image */}
-            <div 
-              className="absolute inset-0"
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
+          {/* Simple crossfade - all images stacked */}
+          <div className="absolute inset-0">
+            {/* Mannequin base */}
+            <img
+              src={mannequinInput}
+              alt="Original mannequin"
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out"
               style={{ 
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)'
+                opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
               }}
-            >
+            />
+            {/* Generated images */}
+            {generatedImages.map((img, idx) => (
               <img
-                src={currentStep % 2 === 1 
-                  ? (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' ? mannequinInput : generatedImages[zeroAltOutputIndex])
-                  : generatedImages[Math.min(zeroAltOutputIndex, generatedImages.length - 1)]
-                }
-                alt="Next"
-                className="absolute inset-0 w-full h-full object-contain"
+                key={idx}
+                src={img}
+                alt={`Output ${idx + 1}`}
+                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out"
+                style={{ 
+                  opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
+                }}
               />
-            </div>
+            ))}
           </div>
 
           {/* Overlay during overlay phases only */}
