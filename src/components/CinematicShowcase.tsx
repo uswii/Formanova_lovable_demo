@@ -53,11 +53,11 @@ export function CinematicShowcase() {
   
   const { phase: displayPhase, index: zeroAltOutputIndex } = getPhaseAndIndex(currentStep);
 
-  // Cycle through all steps - faster pace
+  // Cycle through all steps
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % totalSteps);
-    }, 1200);
+    }, 2000);
     
     return () => clearInterval(interval);
   }, [totalSteps]);
@@ -345,28 +345,36 @@ export function CinematicShowcase() {
         
         {/* SECTION A — Zero Alteration */}
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Simple crossfade - all images stacked */}
+          {/* Seamless crossfade - all images always visible, smooth blend */}
           <div className="absolute inset-0">
-            {/* Mannequin base */}
-            <img
-              src={mannequinInput}
-              alt="Original mannequin"
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out"
+            {/* Mannequin base - always rendered */}
+            <div 
+              className="absolute inset-0 transition-opacity duration-1000 ease-linear"
               style={{ 
                 opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
               }}
-            />
-            {/* Generated images */}
-            {generatedImages.map((img, idx) => (
+            >
               <img
+                src={mannequinInput}
+                alt="Original mannequin"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            {/* Generated images - stacked, crossfade between them */}
+            {generatedImages.map((img, idx) => (
+              <div
                 key={idx}
-                src={img}
-                alt={`Output ${idx + 1}`}
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out"
+                className="absolute inset-0 transition-opacity duration-1000 ease-linear"
                 style={{ 
                   opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
                 }}
-              />
+              >
+                <img
+                  src={img}
+                  alt={`Output ${idx + 1}`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             ))}
           </div>
 
