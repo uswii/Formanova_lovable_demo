@@ -58,7 +58,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
   const [prompt, setPrompt] = useState('Necklace worn by female model');
-  const [invertMask, setInvertMask] = useState(false);
+  const [invertMask, setInvertMask] = useState(true);
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];

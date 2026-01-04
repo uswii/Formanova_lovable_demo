@@ -70,7 +70,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         imageBlob,
         maskBase64,
         prompt,
-        false // invert_mask
+        true // invert_mask
       );
 
       console.log('[Generation] Started workflow:', workflow_id);
