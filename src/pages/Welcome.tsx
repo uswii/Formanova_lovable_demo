@@ -144,16 +144,42 @@ export default function Welcome() {
           <div className="marta-container text-center">
             <span className="marta-label">Featured In</span>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mt-12 mb-16">
-              {['CNN', 'TECHCRUNCH', 'THE TELEGRAPH', 'HUFFPOST'].map((brand) => (
-                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/30 hover:text-foreground/60 transition-colors duration-300">{brand}</span>
+              {[
+                { name: 'CNN', url: 'https://cnn.com' },
+                { name: 'TECHCRUNCH', url: 'https://techcrunch.com' },
+                { name: 'THE TELEGRAPH', url: 'https://telegraph.co.uk' },
+                { name: 'HUFFPOST', url: 'https://huffpost.com' },
+              ].map((brand) => (
+                <a 
+                  key={brand.name} 
+                  href={brand.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-display text-2xl md:text-3xl text-foreground/30 hover:text-foreground/60 transition-colors duration-300 cursor-pointer"
+                >
+                  {brand.name}
+                </a>
               ))}
             </div>
             <p className="font-display text-3xl md:text-4xl mb-12">
               Trusted by <span className="hero-accent-text">70+</span> Brands
             </p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-              {['HUGO BOSS', 'ATOIR', 'TULLEEN', 'MANGO'].map((brand) => (
-                <span key={brand} className="font-display text-2xl md:text-3xl text-foreground/20 hover:text-foreground/50 transition-colors duration-300">{brand}</span>
+              {[
+                { name: 'HUGO BOSS', url: 'https://hugoboss.com' },
+                { name: 'ATOIR', url: 'https://atoirthelabel.com' },
+                { name: 'TULLEEN', url: 'https://tulleen.com' },
+                { name: 'MANGO', url: 'https://mango.com' },
+              ].map((brand) => (
+                <a 
+                  key={brand.name} 
+                  href={brand.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-display text-2xl md:text-3xl text-foreground/20 hover:text-foreground/50 transition-colors duration-300 cursor-pointer"
+                >
+                  {brand.name}
+                </a>
               ))}
             </div>
           </div>
