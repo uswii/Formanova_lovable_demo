@@ -35,29 +35,28 @@ export function CinematicShowcase() {
   
   // All images to cycle through: mannequin + all generated
   const allImages = [mannequinInput, ...generatedImages];
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Simple continuous cycling through all images
+  // Each image shown twice: once clean, once with overlay
+  // Total entries = allImages.length * 2
+  const totalEntries = allImages.length * 2;
+  const [currentEntry, setCurrentEntry] = useState(0);
+  
+  // Derive image index and overlay state from single counter
+  const currentImageIndex = Math.floor(currentEntry / 2);
+  const showOverlay = currentEntry % 2 === 1;
+  
+  // Simple continuous cycling
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex(prev => (prev + 1) % allImages.length);
+      setCurrentEntry(prev => (prev + 1) % totalEntries);
     }, 800);
     
     return () => clearInterval(interval);
-  }, [allImages.length]);
+  }, [totalEntries]);
   
-  // Determine if showing mannequin or generated for overlay logic
+  // Determine if showing mannequin
   const isShowingMannequin = currentImageIndex === 0;
   const zeroAltOutputIndex = isShowingMannequin ? 0 : currentImageIndex - 1;
-  
-  // Toggle overlay visibility
-  const [showOverlay, setShowOverlay] = useState(true);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setShowOverlay(prev => !prev);
-    }, 1600);
-    return () => clearInterval(interval);
-  }, []);
 
   // Track current theme for reactivity
   const [currentTheme, setCurrentTheme] = useState(() => 
