@@ -53,11 +53,11 @@ export function CinematicShowcase() {
   
   const { phase: displayPhase, index: zeroAltOutputIndex } = getPhaseAndIndex(currentStep);
 
-  // Cycle through all steps
+  // Cycle through all steps - faster pace
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % totalSteps);
-    }, 2500);
+    }, 1200);
     
     return () => clearInterval(interval);
   }, [totalSteps]);
@@ -344,42 +344,61 @@ export function CinematicShowcase() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
         
         {/* SECTION A — Zero Alteration */}
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
-          {/* Base image with wipe/unfold reveal effect */}
-          {/* Simple fade transition - no sliding/revealing effect */}
-          {/* Seamless crossfade - all images always rendered, opacity animated */}
-          <div className="absolute inset-0">
-            {/* Mannequin base */}
-            <img
-              src={mannequinInput}
-              alt="Original mannequin"
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-in-out"
-              style={{ 
-                opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
-              }}
-            />
-            {/* Generated images - always in DOM, opacity toggled */}
-            {generatedImages.map((img, idx) => (
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border" style={{ perspective: '1000px' }}>
+          {/* Flip container */}
+          <div 
+            className="absolute inset-0 transition-transform duration-500 ease-out"
+            style={{ 
+              transformStyle: 'preserve-3d',
+              transform: `rotateY(${currentStep * 180}deg)`
+            }}
+          >
+            {/* Front face - current image */}
+            <div 
+              className="absolute inset-0"
+              style={{ backfaceVisibility: 'hidden' }}
+            >
               <img
-                key={idx}
-                src={img}
-                alt={`Output ${idx + 1}`}
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-in-out"
-                style={{ 
-                  opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
-                }}
+                src={currentStep % 2 === 0 
+                  ? (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' ? mannequinInput : generatedImages[zeroAltOutputIndex])
+                  : mannequinInput
+                }
+                alt="Current"
+                className="absolute inset-0 w-full h-full object-contain"
               />
-            ))}
+            </div>
+            {/* Back face - next image */}
+            <div 
+              className="absolute inset-0"
+              style={{ 
+                backfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)'
+              }}
+            >
+              <img
+                src={currentStep % 2 === 1 
+                  ? (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay' ? mannequinInput : generatedImages[zeroAltOutputIndex])
+                  : generatedImages[Math.min(zeroAltOutputIndex, generatedImages.length - 1)]
+                }
+                alt="Next"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            </div>
           </div>
 
           {/* Overlay during overlay phases only */}
-          {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && jewelryEmphasisUrl && (
-            <img
-              src={jewelryEmphasisUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            />
-          )}
+          <div 
+            className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+            style={{ opacity: (displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && jewelryEmphasisUrl ? 1 : 0 }}
+          >
+            {jewelryEmphasisUrl && (
+              <img
+                src={jewelryEmphasisUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            )}
+          </div>
           {/* Landmarks - visible during overlay phases only */}
           {(displayPhase === 'mannequin-overlay' || displayPhase === 'generated-overlay') && <MaskDerivedReferenceOverlay />}
           
