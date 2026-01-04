@@ -7,7 +7,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Check, Palette } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { ThemeIcon } from '@/components/icons/ThemeIcons';
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -21,8 +22,7 @@ export function ThemeSwitcher() {
           size="sm" 
           className="h-10 px-4 gap-2.5 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
         >
-          <Palette className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-          <span className="text-lg">{currentTheme?.icon}</span>
+          <ThemeIcon theme={theme} size={18} className="text-primary group-hover:scale-110 transition-transform" />
           <span className="hidden sm:inline text-sm font-medium">
             {currentTheme?.label}
           </span>
@@ -40,13 +40,13 @@ export function ThemeSwitcher() {
             <DropdownMenuItem
               key={t.name}
               onClick={() => setTheme(t.name)}
-              className={`flex flex-col items-center gap-1 cursor-pointer p-3 rounded-lg text-center ${
+              className={`flex flex-col items-center gap-1.5 cursor-pointer p-3 rounded-lg text-center relative ${
                 theme === t.name 
                   ? 'bg-primary/15 border border-primary/30' 
                   : 'hover:bg-secondary/60 border border-transparent'
               }`}
             >
-              <span className="text-2xl">{t.icon}</span>
+              <ThemeIcon theme={t.name} size={20} className="text-foreground" />
               <span className="font-medium text-xs">{t.label}</span>
               {theme === t.name && (
                 <Check className="h-3 w-3 text-primary absolute top-1 right-1" />
