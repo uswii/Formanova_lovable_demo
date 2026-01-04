@@ -86,27 +86,31 @@ export function CinematicShowcase() {
   const themeColors = useMemo(() => {
     switch(currentTheme) {
       case 'dark':
-        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
+        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(30, 41, 59, 0.4)' };
+      case 'neon':
+        return { accent: 'rgba(0, 212, 255, 0.95)', muted: 'rgba(0, 212, 255, 0.4)', jewelryColor: 'rgba(0, 212, 255, 0.85)', bgOverlay: 'rgba(0, 50, 80, 0.4)' };
+      case 'nostalgia':
+        return { accent: 'rgba(217, 119, 6, 0.95)', muted: 'rgba(217, 119, 6, 0.4)', jewelryColor: 'rgba(217, 119, 6, 0.85)', bgOverlay: 'rgba(80, 50, 20, 0.35)' };
+      case 'cutie':
+        return { accent: 'rgba(168, 85, 247, 0.95)', muted: 'rgba(168, 85, 247, 0.4)', jewelryColor: 'rgba(168, 85, 247, 0.85)', bgOverlay: 'rgba(80, 40, 100, 0.35)' };
       case 'cyberpunk':
-        return { accent: 'rgba(255, 0, 180, 0.95)', muted: 'rgba(255, 0, 180, 0.4)', jewelryColor: 'rgba(255, 0, 180, 0.85)', bgOverlay: 'rgba(20, 0, 30, 0.35)' };
+        return { accent: 'rgba(236, 72, 153, 0.95)', muted: 'rgba(236, 72, 153, 0.4)', jewelryColor: 'rgba(236, 72, 153, 0.85)', bgOverlay: 'rgba(60, 0, 80, 0.4)' };
       case 'vintage':
-        return { accent: 'rgba(180, 90, 60, 0.95)', muted: 'rgba(180, 90, 60, 0.4)', jewelryColor: 'rgba(180, 90, 60, 0.85)', bgOverlay: 'rgba(60, 40, 30, 0.3)' };
-      case 'nature':
-        return { accent: 'rgba(80, 180, 100, 0.95)', muted: 'rgba(80, 180, 100, 0.4)', jewelryColor: 'rgba(80, 180, 100, 0.85)', bgOverlay: 'rgba(20, 40, 25, 0.3)' };
-      case 'ocean':
-        return { accent: 'rgba(0, 180, 200, 0.95)', muted: 'rgba(0, 180, 200, 0.4)', jewelryColor: 'rgba(0, 180, 200, 0.85)', bgOverlay: 'rgba(0, 30, 50, 0.35)' };
+        return { accent: 'rgba(180, 83, 9, 0.95)', muted: 'rgba(180, 83, 9, 0.4)', jewelryColor: 'rgba(180, 83, 9, 0.85)', bgOverlay: 'rgba(70, 45, 25, 0.35)' };
       case 'kawaii':
-        return { accent: 'rgba(240, 120, 160, 0.95)', muted: 'rgba(240, 120, 160, 0.4)', jewelryColor: 'rgba(240, 120, 160, 0.85)', bgOverlay: 'rgba(60, 30, 45, 0.3)' };
+        return { accent: 'rgba(244, 114, 182, 0.95)', muted: 'rgba(244, 114, 182, 0.4)', jewelryColor: 'rgba(244, 114, 182, 0.85)', bgOverlay: 'rgba(100, 50, 70, 0.35)' };
       case 'fashion':
-        return { accent: 'rgba(220, 180, 80, 0.95)', muted: 'rgba(220, 180, 80, 0.4)', jewelryColor: 'rgba(220, 180, 80, 0.85)', bgOverlay: 'rgba(30, 25, 15, 0.35)' };
+        return { accent: 'rgba(251, 191, 36, 0.95)', muted: 'rgba(251, 191, 36, 0.4)', jewelryColor: 'rgba(251, 191, 36, 0.85)', bgOverlay: 'rgba(40, 35, 20, 0.4)' };
       case 'luxury':
-        return { accent: 'rgba(210, 140, 120, 0.95)', muted: 'rgba(210, 140, 120, 0.4)', jewelryColor: 'rgba(210, 140, 120, 0.85)', bgOverlay: 'rgba(40, 25, 20, 0.35)' };
+        return { accent: 'rgba(190, 18, 60, 0.95)', muted: 'rgba(190, 18, 60, 0.4)', jewelryColor: 'rgba(190, 18, 60, 0.85)', bgOverlay: 'rgba(60, 20, 30, 0.4)' };
       case 'retro':
-        return { accent: 'rgba(0, 255, 100, 0.95)', muted: 'rgba(0, 255, 100, 0.4)', jewelryColor: 'rgba(0, 255, 100, 0.85)', bgOverlay: 'rgba(0, 20, 10, 0.35)' };
+        return { accent: 'rgba(34, 197, 94, 0.95)', muted: 'rgba(34, 197, 94, 0.4)', jewelryColor: 'rgba(34, 197, 94, 0.85)', bgOverlay: 'rgba(0, 30, 15, 0.4)' };
       case 'synthwave':
-        return { accent: 'rgba(255, 60, 150, 0.95)', muted: 'rgba(255, 60, 150, 0.4)', jewelryColor: 'rgba(255, 60, 150, 0.85)', bgOverlay: 'rgba(30, 0, 40, 0.35)' };
+        return { accent: 'rgba(249, 115, 22, 0.95)', muted: 'rgba(249, 115, 22, 0.4)', jewelryColor: 'rgba(249, 115, 22, 0.85)', bgOverlay: 'rgba(50, 20, 60, 0.4)' };
+      case 'light':
+        return { accent: 'rgba(245, 158, 11, 0.95)', muted: 'rgba(245, 158, 11, 0.4)', jewelryColor: 'rgba(245, 158, 11, 0.85)', bgOverlay: 'rgba(100, 80, 50, 0.25)' };
       default:
-        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
+        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(50, 50, 50, 0.3)' };
     }
   }, [currentTheme]);
 
@@ -343,29 +347,27 @@ export function CinematicShowcase() {
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Base image with wipe/unfold reveal effect */}
           {/* Simple fade transition - no sliding/revealing effect */}
-          {/* Seamless crossfade - all images stacked, opacity controlled */}
+          {/* Seamless crossfade - all images always rendered, opacity animated */}
           <div className="absolute inset-0">
-            {/* Mannequin base - always present when needed */}
-            <motion.img
+            {/* Mannequin base */}
+            <img
               src={mannequinInput}
               alt="Original mannequin"
-              className="absolute inset-0 w-full h-full object-contain"
-              animate={{ 
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-in-out"
+              style={{ 
                 opacity: (displayPhase === 'mannequin-raw' || displayPhase === 'mannequin-overlay') ? 1 : 0 
               }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
             />
-            {/* Generated images - crossfade between them */}
+            {/* Generated images - always in DOM, opacity toggled */}
             {generatedImages.map((img, idx) => (
-              <motion.img
+              <img
                 key={idx}
                 src={img}
                 alt={`Output ${idx + 1}`}
-                className="absolute inset-0 w-full h-full object-contain"
-                animate={{ 
+                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-in-out"
+                style={{ 
                   opacity: (displayPhase === 'generated-overlay' || displayPhase === 'generated-clean') && zeroAltOutputIndex === idx ? 1 : 0 
                 }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
               />
             ))}
           </div>
