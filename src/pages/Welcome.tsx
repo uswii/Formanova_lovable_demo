@@ -5,7 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { CinematicShowcase } from '@/components/CinematicShowcase';
-
+import { BeforeAfterShowcase } from '@/components/BeforeAfterShowcase';
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
 import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.png';
@@ -115,6 +115,15 @@ export default function Welcome() {
           {/* Cinematic Video Showcase */}
           <ScrollRevealSection animation="fade-up" delay={300} className="mt-16 md:mt-24">
             <CinematicShowcase />
+          </ScrollRevealSection>
+        </div>
+      </section>
+
+      {/* Before/After Showcase Section */}
+      <section className="marta-section bg-muted/30">
+        <div className="marta-container">
+          <ScrollRevealSection animation="fade-up">
+            <BeforeAfterShowcase />
           </ScrollRevealSection>
         </div>
       </section>
