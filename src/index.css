@@ -638,13 +638,6 @@
     color: hsl(var(--formanova-hero-accent));
   }
   
-  [data-theme="neon"] .hero-accent-text {
-    text-shadow: 
-      0 0 10px hsl(var(--formanova-hero-accent) / 0.8),
-      0 0 20px hsl(var(--formanova-hero-accent) / 0.6),
-      0 0 40px hsl(var(--formanova-hero-accent) / 0.4),
-      0 0 80px hsl(var(--formanova-hero-accent) / 0.2);
-  }
 
   /* Editorial styling - keeping for backward compat */
   .editorial-caps {

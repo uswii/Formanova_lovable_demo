@@ -59,8 +59,8 @@ export default function Welcome() {
             </span>
 
             <div className="mb-8">
-              <KineticText as="h1" animation="split" className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Your</KineticText>
-              <KineticText as="h1" animation="split" delay={200} className="marta-headline text-white leading-[0.85] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">Jewelry</KineticText>
+              <KineticText as="h1" animation="split" className="marta-headline text-white leading-[0.85]">Your</KineticText>
+              <KineticText as="h1" animation="split" delay={200} className="marta-headline text-white leading-[0.85]">Jewelry</KineticText>
               <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85]">Unchanged</KineticText>
             </div>
 
