@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
-  Sparkles, 
   History, 
   CreditCard, 
   ArrowLeft,
@@ -129,18 +128,18 @@ export default function Dashboard() {
               <img 
                 src={user.user_metadata.avatar_url}
                 alt={user.user_metadata?.full_name || 'User'}
-                className="h-16 w-16 rounded-full object-cover border-2 border-border"
+                className="h-14 w-14 rounded-full object-cover border border-border"
               />
             ) : (
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                <User className="h-8 w-8 text-muted-foreground" />
+              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-7 w-7 text-muted-foreground" />
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-xl font-semibold text-foreground">
                 {user.user_metadata?.full_name || user.email?.split('@')[0]}
               </h1>
-              <p className="text-muted-foreground">{user.email}</p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
           </div>
 
@@ -152,36 +151,35 @@ export default function Dashboard() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Credits</CardDescription>
-              <CardTitle className="text-3xl flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-primary" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardDescription className="text-xs uppercase tracking-wide">Total</CardDescription>
+              <CardTitle className="text-2xl font-semibold text-foreground">
                 {creditsLoading ? '-' : totalCredits}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Free Remaining</CardDescription>
-              <CardTitle className="text-3xl">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardDescription className="text-xs uppercase tracking-wide">Free</CardDescription>
+              <CardTitle className="text-2xl font-semibold text-foreground">
                 {creditsLoading ? '-' : freeRemaining}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Paid Credits</CardDescription>
-              <CardTitle className="text-3xl">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardDescription className="text-xs uppercase tracking-wide">Paid</CardDescription>
+              <CardTitle className="text-2xl font-semibold text-foreground">
                 {creditsLoading ? '-' : paidAvailable}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Generations</CardDescription>
-              <CardTitle className="text-3xl">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardDescription className="text-xs uppercase tracking-wide">Generated</CardDescription>
+              <CardTitle className="text-2xl font-semibold text-foreground">
                 {loadingHistory ? '-' : generations.length}
               </CardTitle>
             </CardHeader>
