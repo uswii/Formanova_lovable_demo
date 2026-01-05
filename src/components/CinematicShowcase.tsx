@@ -77,37 +77,43 @@ export function CinematicShowcase() {
     return () => observer.disconnect();
   }, []);
 
-  // Theme colors - matching each theme's primary identity
-  // Overlay color changes based on theme
+  // Theme colors - read directly from CSS variables for consistency
   const themeColors = useMemo(() => {
-    switch(currentTheme) {
-      case 'dark':
-        return { accent: 'rgba(255, 255, 255, 0.95)', muted: 'rgba(255, 255, 255, 0.4)', jewelryColor: 'rgba(255, 255, 255, 0.85)', bgOverlay: 'rgba(30, 41, 59, 0.4)' };
-      case 'neon':
-        return { accent: 'rgba(0, 212, 255, 0.95)', muted: 'rgba(0, 212, 255, 0.4)', jewelryColor: 'rgba(0, 212, 255, 0.85)', bgOverlay: 'rgba(0, 50, 80, 0.4)' };
-      case 'nostalgia':
-        return { accent: 'rgba(217, 119, 6, 0.95)', muted: 'rgba(217, 119, 6, 0.4)', jewelryColor: 'rgba(217, 119, 6, 0.85)', bgOverlay: 'rgba(80, 50, 20, 0.35)' };
-      case 'cutie':
-        return { accent: 'rgba(168, 85, 247, 0.95)', muted: 'rgba(168, 85, 247, 0.4)', jewelryColor: 'rgba(168, 85, 247, 0.85)', bgOverlay: 'rgba(80, 40, 100, 0.35)' };
-      case 'cyberpunk':
-        return { accent: 'rgba(236, 72, 153, 0.95)', muted: 'rgba(236, 72, 153, 0.4)', jewelryColor: 'rgba(236, 72, 153, 0.85)', bgOverlay: 'rgba(60, 0, 80, 0.4)' };
-      case 'vintage':
-        return { accent: 'rgba(180, 83, 9, 0.95)', muted: 'rgba(180, 83, 9, 0.4)', jewelryColor: 'rgba(180, 83, 9, 0.85)', bgOverlay: 'rgba(70, 45, 25, 0.35)' };
-      case 'kawaii':
-        return { accent: 'rgba(244, 114, 182, 0.95)', muted: 'rgba(244, 114, 182, 0.4)', jewelryColor: 'rgba(244, 114, 182, 0.85)', bgOverlay: 'rgba(100, 50, 70, 0.35)' };
-      case 'fashion':
-        return { accent: 'rgba(251, 191, 36, 0.95)', muted: 'rgba(251, 191, 36, 0.4)', jewelryColor: 'rgba(251, 191, 36, 0.85)', bgOverlay: 'rgba(40, 35, 20, 0.4)' };
-      case 'luxury':
-        return { accent: 'rgba(190, 18, 60, 0.95)', muted: 'rgba(190, 18, 60, 0.4)', jewelryColor: 'rgba(190, 18, 60, 0.85)', bgOverlay: 'rgba(60, 20, 30, 0.4)' };
-      case 'retro':
-        return { accent: 'rgba(34, 197, 94, 0.95)', muted: 'rgba(34, 197, 94, 0.4)', jewelryColor: 'rgba(34, 197, 94, 0.85)', bgOverlay: 'rgba(0, 30, 15, 0.4)' };
-      case 'synthwave':
-        return { accent: 'rgba(249, 115, 22, 0.95)', muted: 'rgba(249, 115, 22, 0.4)', jewelryColor: 'rgba(249, 115, 22, 0.85)', bgOverlay: 'rgba(50, 20, 60, 0.4)' };
-      case 'light':
-        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(0, 0, 0, 0.25)' };
-      default:
-        return { accent: 'rgba(0, 0, 0, 0.9)', muted: 'rgba(0, 0, 0, 0.35)', jewelryColor: 'rgba(0, 0, 0, 0.8)', bgOverlay: 'rgba(50, 50, 50, 0.3)' };
-    }
+    const style = getComputedStyle(document.documentElement);
+    const primaryHsl = style.getPropertyValue('--primary').trim();
+    const bgHsl = style.getPropertyValue('--background').trim();
+    
+    // Parse HSL values and convert to rgba
+    const parseHsl = (hslStr: string): { h: number; s: number; l: number } => {
+      const parts = hslStr.split(' ').map(p => parseFloat(p));
+      return { h: parts[0] || 0, s: parts[1] || 0, l: parts[2] || 0 };
+    };
+    
+    const hslToRgba = (h: number, s: number, l: number, a: number): string => {
+      s = s / 100;
+      l = l / 100;
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      const m = l - c / 2;
+      let r = 0, g = 0, b = 0;
+      if (h < 60) { r = c; g = x; b = 0; }
+      else if (h < 120) { r = x; g = c; b = 0; }
+      else if (h < 180) { r = 0; g = c; b = x; }
+      else if (h < 240) { r = 0; g = x; b = c; }
+      else if (h < 300) { r = x; g = 0; b = c; }
+      else { r = c; g = 0; b = x; }
+      return `rgba(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)}, ${a})`;
+    };
+    
+    const primary = parseHsl(primaryHsl);
+    const bg = parseHsl(bgHsl);
+    
+    return {
+      accent: hslToRgba(primary.h, primary.s, primary.l, 0.95),
+      muted: hslToRgba(primary.h, primary.s, primary.l, 0.4),
+      jewelryColor: hslToRgba(primary.h, primary.s, primary.l, 0.85),
+      bgOverlay: hslToRgba(bg.h, Math.min(bg.s + 10, 100), Math.max(bg.l - 10, 10), 0.35),
+    };
   }, [currentTheme]);
 
   // Extract jewelry region and landmarks from mask
