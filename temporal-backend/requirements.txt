@@ -7,3 +7,7 @@ python-multipart==0.0.9
 azure-storage-blob==12.19.0
 pydantic==2.6.1
 python-dotenv==1.0.1
+
+# Database
+asyncpg==0.29.0
+psycopg2-binary==2.9.9

@@ -11,6 +11,14 @@ class Config:
     temporal_address: str = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     temporal_namespace: str = os.getenv("TEMPORAL_NAMESPACE", "default")
     
+    # Database
+    db_host: str = os.getenv("DB_HOST", "localhost")
+    db_port: int = int(os.getenv("DB_PORT", "5432"))
+    db_name: str = os.getenv("DB_NAME", "formanova")
+    db_user: str = os.getenv("DB_USER", "postgres")
+    db_password: str = os.getenv("DB_PASSWORD", "")
+    database_url: str = os.getenv("DATABASE_URL", "")
+    
     # Azure Storage
     azure_account_name: str = os.getenv("AZURE_ACCOUNT_NAME", "")
     azure_account_key: str = os.getenv("AZURE_ACCOUNT_KEY", "")

@@ -22,6 +22,15 @@ from .config import config
 from .models import WorkflowInput, MaskPoint, BrushStroke, StrokePoint, WorkflowProgress
 from .workflows import JewelryGenerationWorkflow, PreprocessingWorkflow, GenerationWorkflow
 
+# Database imports (optional - gracefully handle if not available)
+try:
+    from .database import init_database, close_database
+    from .database.api import router as db_router
+    HAS_DATABASE = True
+except ImportError:
+    HAS_DATABASE = False
+    db_router = None
+
 # Simple logging format
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -39,6 +48,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include database routes if available
+if HAS_DATABASE and db_router:
+    app.include_router(db_router)
+    logger.info("✓ Database API routes enabled")
 
 temporal_client: Optional[Client] = None
 
@@ -146,6 +160,8 @@ class HealthResponse(BaseModel):
 @app.on_event("startup")
 async def startup():
     global temporal_client
+    
+    # Connect to Temporal
     try:
         temporal_client = await Client.connect(
             config.temporal_address, namespace=config.temporal_namespace
@@ -154,11 +170,27 @@ async def startup():
     except Exception as e:
         logger.error(f"✗ Temporal connection failed: {e}")
         raise
+    
+    # Initialize database if available
+    if HAS_DATABASE:
+        try:
+            await init_database()
+            logger.info("✓ Database initialized")
+        except Exception as e:
+            logger.warning(f"✗ Database initialization failed: {e}")
 
 
 @app.on_event("shutdown")
 async def shutdown():
     logger.info("Shutting down")
+    
+    # Close database connection
+    if HAS_DATABASE:
+        try:
+            await close_database()
+            logger.info("✓ Database connection closed")
+        except Exception as e:
+            logger.warning(f"✗ Database close failed: {e}")
 
 
 @app.get("/health", response_model=HealthResponse)
