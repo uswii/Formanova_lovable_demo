@@ -2,10 +2,33 @@
 -- FORMANOVA DATABASE SCHEMA
 -- ============================================================
 --
--- PURPOSE:
--- This schema defines the complete database structure for the FormaNova
--- jewelry virtual try-on platform. It runs on an EXTERNAL PostgreSQL server
--- (not in Lovable Cloud/Supabase).
+-- HOW TO RUN THIS SCHEMA:
+-- ========================
+--
+-- Option 1: Using psql (command line)
+--   psql -h YOUR_HOST -U postgres -d formanova -f schema.sql
+--
+-- Option 2: Connect first, then run
+--   psql -h YOUR_HOST -U postgres -d formanova
+--   \i schema.sql
+--
+-- Option 3: Using Docker
+--   docker exec -i postgres_container psql -U postgres -d formanova < schema.sql
+--
+-- Option 4: Create database first if it doesn't exist
+--   psql -h YOUR_HOST -U postgres -c "CREATE DATABASE formanova;"
+--   psql -h YOUR_HOST -U postgres -d formanova -f schema.sql
+--
+-- ENVIRONMENT VARIABLES NEEDED (in .env):
+--   DATABASE_URL=postgresql://postgres:password@YOUR_HOST:5432/formanova
+--   or individual vars:
+--   DB_HOST=YOUR_HOST
+--   DB_PORT=5432
+--   DB_NAME=formanova
+--   DB_USER=postgres
+--   DB_PASSWORD=your_password
+--
+-- ============================================================
 --
 -- ARCHITECTURE:
 -- ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
@@ -25,7 +48,6 @@
 -- - After that, they must purchase credits ($19 each)
 -- - Credits are tracked in users.free_generations_* and paid_generations_*
 --
--- Run this SQL to create all tables on your PostgreSQL server
 -- ============================================================
 
 
