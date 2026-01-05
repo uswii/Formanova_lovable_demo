@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, LayoutDashboard, CreditCard, History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { CreditsDisplay } from '@/components/CreditsDisplay';
+import { useUserCredits } from '@/hooks/use-user-credits';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { totalCredits, freeRemaining, loading: creditsLoading } = useUserCredits();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -88,52 +89,56 @@ export function Header() {
             
             {/* User Profile / Auth Button */}
             {user ? (
-              <div className="flex items-center gap-3">
-                {/* Credits Display */}
-                <CreditsDisplay variant="compact" />
-                
-                {/* Avatar Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
-                      {user.user_metadata?.avatar_url ? (
-                        <img 
-                          src={user.user_metadata.avatar_url} 
-                          alt={user.user_metadata?.full_name || 'User'} 
-                          className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
-                    <div className="px-3 py-2 border-b border-border">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    </div>
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/dashboard')}
-                      className="cursor-pointer text-sm"
-                    >
-                      <LayoutDashboard className="h-4 w-4 mr-2" />
-                      Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => signOut()}
-                      className="cursor-pointer text-sm text-destructive focus:text-destructive"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
+                    {user.user_metadata?.avatar_url ? (
+                      <img 
+                        src={user.user_metadata.avatar_url} 
+                        alt={user.user_metadata?.full_name || 'User'} 
+                        className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/dashboard')}
+                    className="cursor-pointer text-sm"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    My Credits
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {creditsLoading ? '...' : totalCredits}
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/dashboard')}
+                    className="cursor-pointer text-sm"
+                  >
+                    <History className="h-4 w-4 mr-2" />
+                    Generations
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => signOut()}
+                    className="cursor-pointer text-sm text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button
                 variant="default"
@@ -195,11 +200,9 @@ export function Header() {
           {/* Mobile User Profile / Auth Button */}
           {user ? (
             <div 
-              className={`flex flex-col items-center gap-4 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
-              <CreditsDisplay variant="default" />
-              
               <Link to="/dashboard" className="flex items-center gap-3">
                 {user.user_metadata?.avatar_url ? (
                   <img 
@@ -217,6 +220,10 @@ export function Header() {
                 </span>
               </Link>
               
+              <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                <span>Credits: {creditsLoading ? '...' : totalCredits}</span>
+              </div>
+              
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -224,8 +231,8 @@ export function Header() {
                   asChild
                 >
                   <Link to="/dashboard" className="gap-2">
-                    <LayoutDashboard className="h-5 w-5" />
-                    Dashboard
+                    <CreditCard className="h-5 w-5" />
+                    My Credits
                   </Link>
                 </Button>
                 <Button
