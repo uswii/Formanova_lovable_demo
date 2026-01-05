@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { CinematicShowcase } from '@/components/CinematicShowcase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -20,6 +21,14 @@ import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  // Redirect logged-in users to studio
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/studio');
+    }
+  }, [user, loading, navigate]);
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
