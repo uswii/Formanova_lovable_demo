@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { CreditsDisplay } from '@/components/CreditsDisplay';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
@@ -80,23 +81,23 @@ export function Header() {
             {/* User Profile / Auth Button */}
             {user ? (
               <div className="flex items-center gap-3">
-                {/* User Avatar & Name */}
-                <div className="flex items-center gap-2">
+                {/* Credits Display */}
+                <CreditsDisplay variant="compact" />
+                
+                {/* Dashboard Link */}
+                <Link to="/dashboard">
                   {user.user_metadata?.avatar_url ? (
                     <img 
                       src={user.user_metadata.avatar_url} 
                       alt={user.user_metadata?.full_name || 'User'} 
-                      className="h-8 w-8 rounded-full object-cover border border-border"
+                      className="h-8 w-8 rounded-full object-cover border border-border hover:border-primary transition-colors"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
-                  <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                  </span>
-                </div>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -170,7 +171,9 @@ export function Header() {
               className={`flex flex-col items-center gap-4 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
-              <div className="flex items-center gap-3">
+              <CreditsDisplay variant="default" />
+              
+              <Link to="/dashboard" className="flex items-center gap-3">
                 {user.user_metadata?.avatar_url ? (
                   <img 
                     src={user.user_metadata.avatar_url} 
@@ -185,16 +188,29 @@ export function Header() {
                 <span className="text-lg font-medium text-foreground">
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
+              </Link>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  asChild
+                >
+                  <Link to="/dashboard" className="gap-2">
+                    <LayoutDashboard className="h-5 w-5" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => signOut()}
+                  className="gap-2"
+                >
+                  <LogOut className="h-5 w-5" />
+                  Sign Out
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => signOut()}
-                className="gap-2"
-              >
-                <LogOut className="h-5 w-5" />
-                Sign Out
-              </Button>
             </div>
           ) : (
             <Link
