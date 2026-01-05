@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditsDisplay } from '@/components/CreditsDisplay';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -63,12 +71,12 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Marta Style */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link 
                 key={link.path}
                 to={link.path}
-                className={`marta-label marta-link transition-colors duration-300 ${
+                className={`text-sm font-medium transition-colors ${
                   location.pathname === link.path 
                     ? 'text-foreground' 
                     : 'text-muted-foreground hover:text-foreground'
@@ -84,28 +92,47 @@ export function Header() {
                 {/* Credits Display */}
                 <CreditsDisplay variant="compact" />
                 
-                {/* Dashboard Link */}
-                <Link to="/dashboard">
-                  {user.user_metadata?.avatar_url ? (
-                    <img 
-                      src={user.user_metadata.avatar_url} 
-                      alt={user.user_metadata?.full_name || 'User'} 
-                      className="h-8 w-8 rounded-full object-cover border border-border hover:border-primary transition-colors"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                {/* Avatar Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
+                      {user.user_metadata?.avatar_url ? (
+                        <img 
+                          src={user.user_metadata.avatar_url} 
+                          alt={user.user_metadata?.full_name || 'User'} 
+                          className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
-                  )}
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => signOut()}
-                  className="gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/dashboard')}
+                      className="cursor-pointer text-sm"
+                    >
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => signOut()}
+                      className="cursor-pointer text-sm text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Button
