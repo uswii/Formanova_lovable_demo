@@ -25,6 +25,15 @@ class WorkflowStep(str, Enum):
     COMPLETED = "COMPLETED"
 
 
+class JewelryType(str, Enum):
+    """Types of jewelry for folder organization."""
+    NECKLACE = "necklace"
+    BRACELET = "bracelet"
+    EARRING = "earring"
+    RING = "ring"
+    OTHER = "other"
+
+
 @dataclass
 class MaskPoint:
     """A point marked by the user for SAM3 segmentation."""
@@ -56,6 +65,7 @@ class WorkflowInput:
     brush_strokes: Optional[List[BrushStroke]] = None
     session_id: Optional[str] = None
     user_id: Optional[str] = None
+    jewelry_type: str = "necklace"  # Default to necklace
 
 
 @dataclass
@@ -108,6 +118,7 @@ class UploadInput:
     base64_data: str
     content_type: str = "image/jpeg"
     filename_prefix: str = "image"
+    jewelry_type: str = "necklace"  # Folder path prefix
 
 
 @dataclass
@@ -124,6 +135,7 @@ class ResizeInput:
     image_uri: str
     target_width: int = 2000
     target_height: int = 2667
+    jewelry_type: str = "necklace"
 
 
 @dataclass
@@ -149,6 +161,7 @@ class ZoomCheckOutput:
 class BackgroundRemoveInput:
     """Input for background removal activity."""
     image_uri: str
+    jewelry_type: str = "necklace"
 
 
 @dataclass
@@ -162,6 +175,7 @@ class GenerateMaskInput:
     """Input for mask generation activity."""
     image_uri: str
     points: List[MaskPoint]
+    jewelry_type: str = "necklace"
 
 
 @dataclass
@@ -176,6 +190,7 @@ class RefineMaskInput:
     image_uri: str
     mask_uri: str
     strokes: List[BrushStroke]
+    jewelry_type: str = "necklace"
 
 
 @dataclass
@@ -192,6 +207,7 @@ class GenerateImagesInput:
     mask_uri: str
     gender: str = "female"
     scaled_points: Optional[List[List[float]]] = None  # For fidelity analysis
+    jewelry_type: str = "necklace"
 
 
 @dataclass

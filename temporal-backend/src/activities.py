@@ -98,11 +98,14 @@ async def poll_job(base_url: str, job_id: str, poll_interval: float = 2.0, timeo
 
 @activity.defn
 async def upload_to_azure(input: UploadInput) -> UploadOutput:
-    """Upload an image to Azure Blob Storage."""
+    """Upload an image to Azure Blob Storage with category-based folder structure."""
     try:
         image_data = base64.b64decode(input.base64_data)
         ext = "jpg" if input.content_type == "image/jpeg" else "png"
-        blob_name = f"{input.filename_prefix}-{uuid.uuid4()}.{ext}"
+        
+        # Category-based folder structure: {jewelry_type}/uploads/{prefix}-{uuid}.{ext}
+        jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
+        blob_name = f"{jewelry_type}/uploads/{input.filename_prefix}-{uuid.uuid4()}.{ext}"
         
         blob_service_client = get_blob_service_client()
         container_client = blob_service_client.get_container_client(config.azure_container_name)
@@ -113,7 +116,7 @@ async def upload_to_azure(input: UploadInput) -> UploadOutput:
         https_url = f"https://{config.azure_account_name}.blob.core.windows.net/{config.azure_container_name}/{blob_name}"
         sas_url = generate_sas_url(blob_name)
         
-        activity.logger.info(f"✓ Upload: {input.filename_prefix}")
+        activity.logger.info(f"✓ Upload: {jewelry_type}/{input.filename_prefix}")
         
         return UploadOutput(azure_uri=azure_uri, https_url=https_url, sas_url=sas_url)
     except Exception as e:
@@ -143,10 +146,12 @@ async def resize_image(input: ResizeInput) -> ResizeOutput:
         if resized_base64.startswith("data:"):
             resized_base64 = resized_base64.split(",", 1)[1]
         
+        jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
         upload_result = await upload_to_azure(UploadInput(
             base64_data=resized_base64,
             content_type="image/png",
-            filename_prefix="resized"
+            filename_prefix="processed/resized",
+            jewelry_type=jewelry_type
         ))
         
         activity.logger.info(f"✓ Resize: {input.target_width}x{input.target_height}")
@@ -284,10 +289,12 @@ async def refine_mask(input: RefineMaskInput) -> RefineMaskOutput:
         refined_mask_base64 = data.get("mask_base64", "")
         
         if refined_mask_base64:
+            jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=refined_mask_base64,
                 content_type="image/png",
-                filename_prefix="refined-mask"
+                filename_prefix="processed/refined-mask",
+                jewelry_type=jewelry_type
             ))
             refined_uri = upload_result.azure_uri
         else:
@@ -327,12 +334,15 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
         data = response.json()
         
         # Upload results to Azure to avoid Temporal payload size limits
+        jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
+        
         flux_result_uri = None
         if data.get("result_base64"):
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=data["result_base64"],
                 content_type="image/png",
-                filename_prefix="flux-result"
+                filename_prefix="generated/flux-result",
+                jewelry_type=jewelry_type
             ))
             flux_result_uri = upload_result.azure_uri
         
@@ -341,7 +351,8 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=data["result_gemini_base64"],
                 content_type="image/png",
-                filename_prefix="gemini-result"
+                filename_prefix="generated/gemini-result",
+                jewelry_type=jewelry_type
             ))
             gemini_result_uri = upload_result.azure_uri
         
@@ -350,7 +361,8 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=data["fidelity_viz_base64"],
                 content_type="image/png",
-                filename_prefix="flux-fidelity"
+                filename_prefix="generated/flux-fidelity",
+                jewelry_type=jewelry_type
             ))
             flux_viz_uri = upload_result.azure_uri
         
@@ -359,7 +371,8 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
             upload_result = await upload_to_azure(UploadInput(
                 base64_data=data["fidelity_viz_gemini_base64"],
                 content_type="image/png",
-                filename_prefix="gemini-fidelity"
+                filename_prefix="generated/gemini-fidelity",
+                jewelry_type=jewelry_type
             ))
             gemini_viz_uri = upload_result.azure_uri
         
