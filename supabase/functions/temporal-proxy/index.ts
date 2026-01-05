@@ -1,16 +1,58 @@
+/**
+ * ============================================================
+ * TEMPORAL PROXY - Edge Function
+ * ============================================================
+ * 
+ * PURPOSE:
+ * This Edge Function acts as a secure bridge between the React frontend
+ * (running in browser) and the Python Temporal backend (running on external server).
+ * 
+ * WHY WE NEED THIS:
+ * 1. The Temporal API server runs on an external VM (20.106.235.80:8000)
+ * 2. Browsers can't directly call external servers (CORS, security)
+ * 3. This proxy runs on Supabase Edge (Deno) and forwards requests
+ * 4. Keeps API URLs and internal architecture hidden from frontend
+ * 
+ * ARCHITECTURE FLOW:
+ * ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
+ * │  React Frontend │ ──► │  This Edge Function  │ ──► │  DAG Pipeline API   │
+ * │  (Browser)      │     │  (Supabase Edge)     │     │  (20.106.235.80)    │
+ * └─────────────────┘     └──────────────────────┘     └─────────────────────┘
+ * 
+ * ENDPOINTS HANDLED:
+ * - /process      → Start a new workflow (FormData with image)
+ * - /status/:id   → Get workflow status
+ * - /result/:id   → Get completed workflow results
+ * - /health       → Check if DAG server is online
+ * - /images/fetch → Fetch images from Azure storage
+ * - /db/*         → Database operations (users, payments, generations)
+ * 
+ * USAGE FROM FRONTEND:
+ * ```typescript
+ * const response = await fetch(
+ *   `${SUPABASE_URL}/functions/v1/temporal-proxy?endpoint=/process`,
+ *   { method: 'POST', body: formData }
+ * );
+ * ```
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// CORS headers - allow any origin for development
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// DAG Pipeline API at 20.106.235.80:8000
+// DAG Pipeline API server running on Azure VM
 const DAG_API_URL = 'http://20.106.235.80:8000';
 
+/**
+ * Main request handler.
+ * Routes requests based on the 'endpoint' query parameter.
+ */
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -33,7 +75,7 @@ serve(async (req) => {
     } else if (endpoint === '/tcp-test') {
       return await handleTcpTest();
     } else {
-      // Legacy Temporal endpoints - fall back to old behavior
+      // Legacy Temporal endpoints and /db/* routes
       return await handleLegacy(req, endpoint);
     }
   } catch (error) {
@@ -51,6 +93,18 @@ serve(async (req) => {
 
 // ========== DAG Pipeline Handlers ==========
 
+/**
+ * Handle /process endpoint - Start a new workflow.
+ * 
+ * Accepts either:
+ * 1. multipart/form-data with 'file', 'workflow_name', 'overrides'
+ * 2. JSON with 'image_base64', 'workflow_name', 'overrides'
+ * 
+ * The DAG server will:
+ * 1. Upload the image to Azure
+ * 2. Start the specified workflow
+ * 3. Return a workflow_id for status polling
+ */
 async function handleProcess(req: Request): Promise<Response> {
   console.log('[DAG] Processing workflow request');
   
@@ -134,6 +188,12 @@ async function handleProcess(req: Request): Promise<Response> {
   }
 }
 
+/**
+ * Handle /status/:workflow_id endpoint.
+ * Returns the current status of a running workflow.
+ * 
+ * Status values: 'running', 'completed', 'failed', 'cancelled'
+ */
 async function handleStatus(endpoint: string): Promise<Response> {
   const workflowId = endpoint.replace('/status/', '');
   console.log('[DAG] Getting status for workflow:', workflowId);
@@ -155,6 +215,12 @@ async function handleStatus(endpoint: string): Promise<Response> {
   });
 }
 
+/**
+ * Handle /result/:workflow_id endpoint.
+ * Returns the final output of a completed workflow.
+ * 
+ * Includes: generated image URIs, fidelity metrics, etc.
+ */
 async function handleResult(endpoint: string): Promise<Response> {
   const workflowId = endpoint.replace('/result/', '');
   console.log('[DAG] Getting result for workflow:', workflowId);
@@ -176,6 +242,11 @@ async function handleResult(endpoint: string): Promise<Response> {
   });
 }
 
+/**
+ * Handle /health endpoint.
+ * Checks if the DAG pipeline server is reachable.
+ * Used by the frontend to show server status indicator.
+ */
 async function handleHealth(): Promise<Response> {
   console.log('[DAG] Health check');
   
@@ -194,7 +265,7 @@ async function handleHealth(): Promise<Response> {
       },
     });
   } catch (error) {
-    // DAG server not reachable
+    // DAG server not reachable - return offline status
     return new Response(
       JSON.stringify({ 
         status: 'offline',
@@ -205,6 +276,10 @@ async function handleHealth(): Promise<Response> {
   }
 }
 
+/**
+ * Handle /images/fetch endpoint.
+ * Fetches images from Azure storage and returns them as base64.
+ */
 async function handleImageFetch(req: Request): Promise<Response> {
   console.log('[DAG] Fetching images');
   
@@ -228,6 +303,11 @@ async function handleImageFetch(req: Request): Promise<Response> {
   });
 }
 
+/**
+ * Handle /tcp-test endpoint.
+ * Low-level TCP connectivity test to the DAG server.
+ * Useful for debugging network issues.
+ */
 async function handleTcpTest(): Promise<Response> {
   console.log('[DAG] TCP connection test');
   
@@ -262,8 +342,19 @@ async function handleTcpTest(): Promise<Response> {
   }
 }
 
-// ========== Legacy Temporal Handlers ==========
+// ========== Legacy Temporal & Database Handlers ==========
 
+/**
+ * Handle legacy endpoints and /db/* routes.
+ * 
+ * Routes to TEMPORAL_API_URL (Python backend) for:
+ * - /db/users/* - User CRUD operations
+ * - /db/payments/* - Payment operations  
+ * - /db/generations/* - Generation tracking
+ * - /workflow/* - Direct Temporal workflow operations
+ * 
+ * The TEMPORAL_API_URL is set in Supabase secrets.
+ */
 async function handleLegacy(req: Request, endpoint: string): Promise<Response> {
   const TEMPORAL_API_URL = Deno.env.get('TEMPORAL_API_URL');
   

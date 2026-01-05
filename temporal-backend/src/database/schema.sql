@@ -1,18 +1,76 @@
--- FormaNova Database Schema
+-- ============================================================
+-- FORMANOVA DATABASE SCHEMA
+-- ============================================================
+--
+-- PURPOSE:
+-- This schema defines the complete database structure for the FormaNova
+-- jewelry virtual try-on platform. It runs on an EXTERNAL PostgreSQL server
+-- (not in Lovable Cloud/Supabase).
+--
+-- ARCHITECTURE:
+-- ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
+-- │  React Frontend │ ──► │  Edge Function Proxy │ ──► │  This PostgreSQL DB │
+-- │  (Lovable)      │     │  (temporal-proxy)    │     │  (External Server)  │
+-- └─────────────────┘     └──────────────────────┘     └─────────────────────┘
+--
+-- KEY TABLES:
+-- 1. users           - User profiles and credit balances
+-- 2. user_roles      - Role assignments (separate for security)
+-- 3. payments        - Payment records for credit purchases
+-- 4. generations     - Each jewelry try-on attempt
+-- 5. generation_images - Images produced by generations
+--
+-- CREDIT SYSTEM:
+-- - Each user gets 2 FREE generations on signup
+-- - After that, they must purchase credits ($19 each)
+-- - Credits are tracked in users.free_generations_* and paid_generations_*
+--
 -- Run this SQL to create all tables on your PostgreSQL server
+-- ============================================================
+
 
 -- ============================================
--- ENUMS
+-- ENUMS - Custom Types for Type Safety
 -- ============================================
 
+-- User account status
 DO $$ BEGIN
     CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended', 'deleted');
 EXCEPTION
     WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Status of a jewelry generation workflow
 DO $$ BEGIN
     CREATE TYPE generation_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Payment processing status
+DO $$ BEGIN
+    CREATE TYPE payment_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- User permission levels (stored in separate table for security)
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('user', 'pro', 'admin', 'moderator');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Types of jewelry the platform supports
+DO $$ BEGIN
+    CREATE TYPE jewelry_type AS ENUM ('necklace', 'bracelet', 'ring', 'earring', 'pendant', 'other');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Types of images stored per generation
+DO $$ BEGIN
+    CREATE TYPE image_type AS ENUM ('original', 'processed', 'mask', 'flux_result', 'flux_fidelity', 'gemini_result', 'gemini_fidelity');
 EXCEPTION
     WHEN duplicate_object THEN NULL;
 END $$;
