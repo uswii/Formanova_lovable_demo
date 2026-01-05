@@ -2,7 +2,7 @@
  * Credits Display Component
  * Shows user's remaining generation credits with purchase option
  */
-import { Sparkles, Coins, ShoppingCart, Loader2 } from 'lucide-react';
+import { ShoppingCart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -58,16 +58,20 @@ export function CreditsDisplay({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge 
-              variant={canGenerate ? "secondary" : "destructive"}
-              className={cn("gap-1 cursor-help", className)}
+            <div 
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded border cursor-help",
+                canGenerate 
+                  ? "bg-muted text-foreground border-border" 
+                  : "bg-destructive/10 text-destructive border-destructive/30",
+                className
+              )}
             >
-              <Sparkles className="h-3 w-3" />
-              {totalCredits}
-            </Badge>
+              {totalCredits} credits
+            </div>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>{freeRemaining} free + {paidAvailable} paid credits</p>
+          <TooltipContent className="bg-popover border-border text-popover-foreground">
+            <p className="text-sm">{freeRemaining} free + {paidAvailable} paid</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -77,42 +81,44 @@ export function CreditsDisplay({
   // Detailed variant - shows breakdown
   if (variant === 'detailed') {
     return (
-      <div className={cn("space-y-3 p-4 rounded-lg border bg-card", className)}>
+      <div className={cn("space-y-3 p-4 rounded-lg border border-border bg-card", className)}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Coins className="h-4 w-4 text-primary" />
-            Generation Credits
+          <h3 className="text-sm font-medium text-foreground">
+            Credits
           </h3>
-          <Badge variant={canGenerate ? "default" : "destructive"}>
+          <span className={cn(
+            "text-sm font-semibold",
+            canGenerate ? "text-foreground" : "text-destructive"
+          )}>
             {totalCredits} available
-          </Badge>
+          </span>
         </div>
         
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="p-2 rounded bg-muted/50">
-            <div className="text-muted-foreground">Free Credits</div>
-            <div className="text-lg font-semibold">{freeRemaining}</div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="p-2 rounded bg-muted">
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">Free</div>
+            <div className="text-base font-semibold text-foreground">{freeRemaining}</div>
           </div>
-          <div className="p-2 rounded bg-muted/50">
-            <div className="text-muted-foreground">Paid Credits</div>
-            <div className="text-lg font-semibold">{paidAvailable}</div>
+          <div className="p-2 rounded bg-muted">
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">Paid</div>
+            <div className="text-base font-semibold text-foreground">{paidAvailable}</div>
           </div>
         </div>
 
         {!canGenerate && (
-          <p className="text-sm text-muted-foreground">
-            You've used all your free credits. Purchase more to continue generating.
+          <p className="text-xs text-muted-foreground">
+            No credits remaining. Purchase more to continue.
           </p>
         )}
 
         {onPurchase && (
           <Button 
             onClick={onPurchase} 
-            className="w-full gap-2"
+            size="sm"
+            className="w-full"
             variant={canGenerate ? "outline" : "default"}
           >
-            <ShoppingCart className="h-4 w-4" />
-            Buy Credits ($19/generation)
+            Buy Credits
           </Button>
         )}
       </div>
@@ -125,28 +131,26 @@ export function CreditsDisplay({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border">
-              <Sparkles className={cn(
-                "h-4 w-4",
-                canGenerate ? "text-primary" : "text-destructive"
-              )} />
-              <span className="text-sm font-medium">
-                {totalCredits} credit{totalCredits !== 1 ? 's' : ''}
-              </span>
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm font-medium",
+              canGenerate 
+                ? "bg-muted text-foreground border-border" 
+                : "bg-destructive/10 text-destructive border-destructive/30"
+            )}>
+              {totalCredits} credit{totalCredits !== 1 ? 's' : ''}
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <div className="text-xs space-y-1">
-              <div>Free: {freeRemaining} remaining</div>
-              <div>Paid: {paidAvailable} available</div>
+          <TooltipContent side="bottom" className="bg-popover border-border text-popover-foreground">
+            <div className="text-xs space-y-0.5">
+              <div>Free: {freeRemaining}</div>
+              <div>Paid: {paidAvailable}</div>
             </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
       {onPurchase && !canGenerate && (
-        <Button size="sm" onClick={onPurchase} className="gap-1">
-          <ShoppingCart className="h-3 w-3" />
+        <Button size="sm" onClick={onPurchase}>
           Buy
         </Button>
       )}
