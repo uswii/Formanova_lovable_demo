@@ -77,17 +77,35 @@ export function Header() {
               </Link>
             ))}
             
-            {/* Auth Button */}
+            {/* User Profile / Auth Button */}
             {user ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => signOut()}
-                className="gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* User Avatar & Name */}
+                <div className="flex items-center gap-2">
+                  {user.user_metadata?.avatar_url ? (
+                    <img 
+                      src={user.user_metadata.avatar_url} 
+                      alt={user.user_metadata?.full_name || 'User'} 
+                      className="h-8 w-8 rounded-full object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
+                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => signOut()}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             ) : (
               <Button
                 variant="default"
@@ -146,18 +164,38 @@ export function Header() {
             </Link>
           ))}
           
-          {/* Mobile Auth Button */}
+          {/* Mobile User Profile / Auth Button */}
           {user ? (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => signOut()}
-              className={`gap-2 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            <div 
+              className={`flex flex-col items-center gap-4 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
-              <LogOut className="h-5 w-5" />
-              Sign Out
-            </Button>
+              <div className="flex items-center gap-3">
+                {user.user_metadata?.avatar_url ? (
+                  <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt={user.user_metadata?.full_name || 'User'} 
+                    className="h-12 w-12 rounded-full object-cover border border-border"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <span className="text-lg font-medium text-foreground">
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => signOut()}
+                className="gap-2"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </Button>
+            </div>
           ) : (
             <Link
               to="/auth"
