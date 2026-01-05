@@ -53,13 +53,15 @@ class JewelryGenerationWorkflow:
         
         try:
             # Step 1: Upload original image
+            jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
             self._set_progress(5, WorkflowStep.UPLOADING_IMAGE)
             upload_result = await workflow.execute_activity(
                 "upload_to_azure",
                 UploadInput(
                     base64_data=input.original_image_base64,
                     content_type="image/jpeg",
-                    filename_prefix="original"
+                    filename_prefix="uploads/original",
+                    jewelry_type=jewelry_type
                 ),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
@@ -73,7 +75,7 @@ class JewelryGenerationWorkflow:
             self._set_progress(15, WorkflowStep.RESIZING_IMAGE)
             resize_result = await workflow.execute_activity(
                 "resize_image",
-                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667),
+                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667, jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
@@ -103,7 +105,7 @@ class JewelryGenerationWorkflow:
                 self._set_progress(30, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
                     "remove_background",
-                    BackgroundRemoveInput(image_uri=resized_uri),
+                    BackgroundRemoveInput(image_uri=resized_uri, jewelry_type=jewelry_type),
                     start_to_close_timeout=timedelta(seconds=120),
                     retry_policy=ML_SERVICE_RETRY
                 )
@@ -117,7 +119,7 @@ class JewelryGenerationWorkflow:
             self._set_progress(45, WorkflowStep.GENERATING_MASK)
             mask_result = await workflow.execute_activity(
                 "generate_mask",
-                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points),
+                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points, jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
@@ -133,7 +135,7 @@ class JewelryGenerationWorkflow:
                 self._set_progress(55, WorkflowStep.REFINING_MASK)
                 refine_result = await workflow.execute_activity(
                     "refine_mask",
-                    RefineMaskInput(image_uri=image_for_segmentation, mask_uri=mask_uri, strokes=input.brush_strokes),
+                    RefineMaskInput(image_uri=image_for_segmentation, mask_uri=mask_uri, strokes=input.brush_strokes, jewelry_type=jewelry_type),
                     start_to_close_timeout=timedelta(seconds=60),
                     retry_policy=ML_SERVICE_RETRY
                 )
@@ -149,7 +151,7 @@ class JewelryGenerationWorkflow:
             self._set_progress(70, WorkflowStep.GENERATING_IMAGES)
             generate_result = await workflow.execute_activity(
                 "generate_images",
-                GenerateImagesInput(image_uri=resized_uri, mask_uri=final_mask_uri),
+                GenerateImagesInput(image_uri=resized_uri, mask_uri=final_mask_uri, jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=ML_SERVICE_RETRY
             )
@@ -224,12 +226,13 @@ class PreprocessingWorkflow:
         
         try:
             session_id = str(workflow.uuid4())
+            jewelry_type = getattr(input, 'jewelry_type', 'necklace') or 'necklace'
             
             # Step 1: Upload
             self._set_progress(10, WorkflowStep.UPLOADING_IMAGE)
             upload_result = await workflow.execute_activity(
                 "upload_to_azure",
-                UploadInput(base64_data=input.original_image_base64, content_type="image/jpeg", filename_prefix="original"),
+                UploadInput(base64_data=input.original_image_base64, content_type="image/jpeg", filename_prefix="uploads/original", jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
@@ -239,7 +242,7 @@ class PreprocessingWorkflow:
             self._set_progress(30, WorkflowStep.RESIZING_IMAGE)
             resize_result = await workflow.execute_activity(
                 "resize_image",
-                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667),
+                ResizeInput(image_uri=original_uri, target_width=2000, target_height=2667, jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=IMAGE_PROCESSING_RETRY
             )
@@ -264,7 +267,7 @@ class PreprocessingWorkflow:
                 self._set_progress(60, WorkflowStep.REMOVING_BACKGROUND)
                 bg_result = await workflow.execute_activity(
                     "remove_background",
-                    BackgroundRemoveInput(image_uri=resized_uri),
+                    BackgroundRemoveInput(image_uri=resized_uri, jewelry_type=jewelry_type),
                     start_to_close_timeout=timedelta(seconds=120),
                     retry_policy=ML_SERVICE_RETRY
                 )
@@ -275,7 +278,7 @@ class PreprocessingWorkflow:
             self._set_progress(80, WorkflowStep.GENERATING_MASK)
             mask_result = await workflow.execute_activity(
                 "generate_mask",
-                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points),
+                GenerateMaskInput(image_uri=image_for_segmentation, points=input.mask_points, jewelry_type=jewelry_type),
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=ML_SERVICE_RETRY
             )
