@@ -208,6 +208,7 @@ class GenerateImagesInput:
     gender: str = "female"
     scaled_points: Optional[List[List[float]]] = None  # For fidelity analysis
     jewelry_type: str = "necklace"
+    invert_mask: bool = True  # Invert the mask for Flux generation
 
 
 @dataclass
