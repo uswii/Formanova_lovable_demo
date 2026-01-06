@@ -237,7 +237,8 @@ async def generate_mask(input: GenerateMaskInput) -> GenerateMaskOutput:
                 "data": {
                     "image": {"uri": input.image_uri},
                     "points": points,
-                    "point_labels": point_labels
+                    "point_labels": point_labels,
+                    "invert_mask": input.invert_mask
                 }
             }
         )
@@ -319,8 +320,7 @@ async def generate_images(input: GenerateImagesInput) -> GenerateImagesOutput:
             "image_base64": image_base64,
             "mask_base64": mask_base64,
             "gender": input.gender,
-            "use_gemini": True,
-            "invert_mask": input.invert_mask
+            "use_gemini": True
         }
         
         if input.scaled_points:
