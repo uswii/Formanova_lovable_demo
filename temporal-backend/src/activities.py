@@ -237,7 +237,8 @@ async def generate_mask(input: GenerateMaskInput) -> GenerateMaskOutput:
                 "data": {
                     "image": {"uri": input.image_uri},
                     "points": points,
-                    "point_labels": point_labels
+                    "point_labels": point_labels,
+                    "invert_mask": input.invert_mask
                 }
             }
         )
