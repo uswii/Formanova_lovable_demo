@@ -176,6 +176,7 @@ class GenerateMaskInput:
     image_uri: str
     points: List[MaskPoint]
     jewelry_type: str = "necklace"
+    invert_mask: bool = True  # Invert the generated mask for SAM3
 
 
 @dataclass
@@ -208,7 +209,6 @@ class GenerateImagesInput:
     gender: str = "female"
     scaled_points: Optional[List[List[float]]] = None  # For fidelity analysis
     jewelry_type: str = "necklace"
-    invert_mask: bool = True  # Invert the mask for Flux generation
 
 
 @dataclass
