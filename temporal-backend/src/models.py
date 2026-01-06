@@ -176,7 +176,6 @@ class GenerateMaskInput:
     image_uri: str
     points: List[MaskPoint]
     jewelry_type: str = "necklace"
-    invert_mask: bool = True  # Invert the generated mask
 
 
 @dataclass
