@@ -8,7 +8,7 @@
  * (running in browser) and the Python Temporal backend (running on external server).
  * 
  * WHY WE NEED THIS:
- * 1. The Temporal API server runs on an external VM (20.106.235.80:8000)
+ * 1. The Temporal API server runs on an external VM (172.203.97.22:8000)
  * 2. Browsers can't directly call external servers (CORS, security)
  * 3. This proxy runs on Supabase Edge (Deno) and forwards requests
  * 4. Keeps API URLs and internal architecture hidden from frontend
@@ -16,7 +16,7 @@
  * ARCHITECTURE FLOW:
  * ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
  * │  React Frontend │ ──► │  This Edge Function  │ ──► │  DAG Pipeline API   │
- * │  (Browser)      │     │  (Supabase Edge)     │     │  (20.106.235.80)    │
+ * │  (Browser)      │     │  (Supabase Edge)     │     │  (172.203.97.22)    │
  * └─────────────────┘     └──────────────────────┘     └─────────────────────┘
  * 
  * ENDPOINTS HANDLED:
@@ -45,7 +45,7 @@ const corsHeaders = {
 };
 
 // DAG Pipeline API server running on Azure VM
-const DAG_API_URL = 'http://20.106.235.80:8000';
+const DAG_API_URL = 'http://172.203.97.22:8000';
 
 /**
  * Main request handler.
@@ -311,7 +311,7 @@ async function handleImageFetch(req: Request): Promise<Response> {
 async function handleTcpTest(): Promise<Response> {
   console.log('[DAG] TCP connection test');
   
-  const host = '20.106.235.80';
+  const host = '172.203.97.22';
   const port = 8000;
   
   try {
