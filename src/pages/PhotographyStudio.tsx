@@ -118,7 +118,7 @@ const PhotographyStudio = () => {
             <img
               src={category.image}
               alt={category.name}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 ${category.id === 'necklace' ? 'object-[center_30%]' : ''}`}
             />
             
             {/* Subtle gradient at bottom for text readability */}
