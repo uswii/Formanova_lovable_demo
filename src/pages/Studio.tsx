@@ -5,8 +5,6 @@ import {
 } from 'lucide-react';
 import { StepUploadMark } from '@/components/studio/StepUploadMark';
 import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
-import { ServerOffline } from '@/components/studio/ServerOffline';
-import { useA100Status } from '@/hooks/use-a100-status';
 
 export type StudioStep = 'upload' | 'generate';
 
@@ -74,9 +72,6 @@ export default function Studio() {
     redDots: [],
   });
 
-  // Check A100 server status
-  const { isOnline, isChecking, retry } = useA100Status();
-
   const updateState = (updates: Partial<StudioState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
@@ -85,21 +80,6 @@ export default function Studio() {
     { id: 'upload' as const, label: 'Upload & Mark', icon: Upload, step: 1 },
     { id: 'generate' as const, label: 'Refine & Generate', icon: null, step: 2 },
   ];
-
-  // Show offline screen if server is not available
-  if (isOnline === false) {
-    return (
-      <div className="min-h-screen bg-background relative overflow-hidden">
-        <div className="px-6 md:px-12 py-8 relative z-10">
-          <div className="max-w-2xl mx-auto">
-            <div className="marta-frame p-8 md:p-12">
-              <ServerOffline onRetry={retry} isChecking={isChecking} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
 
   return (
