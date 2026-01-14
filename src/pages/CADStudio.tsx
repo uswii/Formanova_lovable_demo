@@ -32,13 +32,6 @@ const categories: JewelryCategory[] = [
     available: false,
   },
   {
-    id: 'earrings',
-    name: 'Earrings',
-    subtitle: 'Studs & drops',
-    image: heroGreenEarrings,
-    available: false,
-  },
-  {
     id: 'bracelets',
     name: 'Bracelets',
     subtitle: 'Bangles & cuffs',
