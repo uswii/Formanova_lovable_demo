@@ -78,13 +78,13 @@ const PhotographyStudio = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-4 md:px-6 lg:px-8 flex flex-col">
+    <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-6 flex items-end justify-between"
+        className="max-w-7xl mx-auto mb-6 flex items-end justify-between"
       >
         <div>
           <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
@@ -101,7 +101,7 @@ const PhotographyStudio = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 content-center"
+        className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4"
       >
         {categories.map((category, index) => (
           <motion.button
@@ -110,7 +110,9 @@ const PhotographyStudio = () => {
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleCategoryClick(category)}
-            className="group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+            className={`group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)] ${
+              index === 4 ? 'col-span-2 md:col-span-1 aspect-[8/3] md:aspect-[4/3]' : ''
+            }`}
           >
             {/* Background Image */}
             <img
