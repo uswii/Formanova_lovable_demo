@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { 
   Upload, 
   Sparkles, 
@@ -16,6 +17,8 @@ export interface ProcessingState {
   padding?: { top: number; bottom: number; left: number; right: number };
 }
 
+export type SkinTone = 'light' | 'fair' | 'medium' | 'olive' | 'brown' | 'dark';
+
 export interface StudioState {
   originalImage: string | null;
   markedImage: string | null;
@@ -24,6 +27,7 @@ export interface StudioState {
   originalMask: string | null;
   editedMask: string | null;
   gender: 'female' | 'male';
+  skinTone: SkinTone;
   fluxResult: string | null;
   geminiResult: string | null;
   fidelityViz: string | null;
@@ -49,6 +53,7 @@ export interface StudioState {
 }
 
 export default function JewelryStudio() {
+  const { type } = useParams<{ type: string }>();
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
   const [state, setState] = useState<StudioState>({
     originalImage: null,
@@ -58,6 +63,7 @@ export default function JewelryStudio() {
     originalMask: null,
     editedMask: null,
     gender: 'female',
+    skinTone: 'medium',
     fluxResult: null,
     geminiResult: null,
     fidelityViz: null,
@@ -71,6 +77,8 @@ export default function JewelryStudio() {
     processingState: {},
     redDots: [],
   });
+
+  const jewelryType = type || 'necklace';
 
   const updateState = (updates: Partial<StudioState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -136,6 +144,7 @@ export default function JewelryStudio() {
               state={state} 
               updateState={updateState}
               onBack={() => setCurrentStep('upload')}
+              jewelryType={jewelryType}
             />
           )}
         </div>
