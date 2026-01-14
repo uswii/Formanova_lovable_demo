@@ -136,6 +136,7 @@ export default function JewelryStudio() {
               state={state} 
               updateState={updateState}
               onNext={() => setCurrentStep('generate')}
+              jewelryType={jewelryType}
             />
           )}
           
