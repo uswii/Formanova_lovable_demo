@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 // Import jewelry images
@@ -70,15 +70,33 @@ const itemVariants = {
   },
 };
 
-const Studio = () => {
+const PhotographyStudio = () => {
   const navigate = useNavigate();
 
   const handleCategoryClick = (category: JewelryCategory) => {
-    navigate(`/studio/photography/${category.id}`);
+    navigate(`/studio/${category.id}`);
   };
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
+      {/* Studio Tabs */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex items-center gap-1 mb-4">
+          <Link
+            to="/studio"
+            className="px-4 py-2 font-mono text-xs tracking-[0.15em] uppercase bg-formanova-hero-accent text-primary-foreground"
+          >
+            Photography Studio
+          </Link>
+          <Link
+            to="/studio-cad"
+            className="px-4 py-2 font-mono text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            CAD Studio
+          </Link>
+        </div>
+      </div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -90,9 +108,6 @@ const Studio = () => {
           <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
             Select Category
           </span>
-          <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight text-foreground">
-            Photography <span className="text-formanova-hero-accent">Studio</span>
-          </h1>
         </div>
         <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
           AI-powered try-on
@@ -148,4 +163,4 @@ const Studio = () => {
   );
 };
 
-export default Studio;
+export default PhotographyStudio;
