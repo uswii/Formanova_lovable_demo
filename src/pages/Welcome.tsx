@@ -21,14 +21,6 @@ import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-
-  // Redirect logged-in users to studio
-  useEffect(() => {
-    if (user && !loading) {
-      navigate('/studio');
-    }
-  }, [user, loading, navigate]);
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
