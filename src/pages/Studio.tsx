@@ -110,25 +110,19 @@ const Studio = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="max-w-7xl mx-auto"
+          className="max-w-5xl mx-auto"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-            {categories.map((category, index) => (
+          {/* Clean 2-column grid on desktop, single column on mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {categories.map((category) => (
               <motion.div
                 key={category.id}
                 variants={itemVariants}
-                className={`group relative ${
-                  index === 0 ? 'md:col-span-2 lg:col-span-2 lg:row-span-2' : ''
-                }`}
+                className="group relative"
               >
                 <button
                   onClick={() => handleCategoryClick(category)}
-                  className={`
-                    w-full h-full marta-frame overflow-hidden
-                    cursor-pointer hover:border-foreground/40
-                    transition-all duration-500
-                    ${index === 0 ? 'min-h-[500px] md:min-h-[600px]' : 'min-h-[280px] md:min-h-[320px]'}
-                  `}
+                  className="w-full aspect-[4/3] marta-frame overflow-hidden cursor-pointer hover:border-foreground/40 transition-all duration-500"
                 >
                   {/* Background Image */}
                   <div className="absolute inset-0 overflow-hidden">
@@ -138,34 +132,27 @@ const Studio = () => {
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                     {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
                   </div>
 
                   {/* Content */}
                   <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
                     {/* Category Info */}
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase block">
                         {category.subtitle}
                       </span>
-                      <h2 className={`
-                        font-display uppercase tracking-wide text-foreground
-                        ${index === 0 ? 'text-5xl md:text-7xl' : 'text-3xl md:text-4xl'}
-                      `}>
+                      <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide text-foreground">
                         {category.name}
                       </h2>
                     </div>
 
                     {/* Arrow indicator */}
-                    <motion.div
-                      className="absolute bottom-6 right-6 md:bottom-8 md:right-8"
-                      initial={{ x: 0, opacity: 0.5 }}
-                      whileHover={{ x: 5, opacity: 1 }}
-                    >
-                      <div className="w-12 h-12 marta-frame flex items-center justify-center bg-background/80 backdrop-blur-sm group-hover:bg-formanova-hero-accent group-hover:border-formanova-hero-accent transition-all duration-300">
-                        <ArrowRight className="w-5 h-5 text-foreground group-hover:text-primary-foreground transition-colors duration-300" />
+                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8">
+                      <div className="w-10 h-10 marta-frame flex items-center justify-center bg-background/80 backdrop-blur-sm group-hover:bg-formanova-hero-accent group-hover:border-formanova-hero-accent transition-all duration-300">
+                        <ArrowRight className="w-4 h-4 text-foreground group-hover:text-primary-foreground transition-colors duration-300" />
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
                 </button>
               </motion.div>
