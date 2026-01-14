@@ -7,7 +7,7 @@ import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
 import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
-import heroChokerBack from '@/assets/jewelry/hero-choker-back.png';
+import heroWatch from '@/assets/jewelry/hero-watch.png';
 
 interface JewelryCategory {
   id: string;
@@ -45,7 +45,7 @@ const categories: JewelryCategory[] = [
     id: 'watches',
     name: 'Watches',
     subtitle: 'Timepieces',
-    image: heroChokerBack,
+    image: heroWatch,
   },
 ];
 
