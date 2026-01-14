@@ -12,6 +12,7 @@ import { FloatingElements } from '@/components/FloatingElements';
 
 // Pages
 import Welcome from "./pages/Welcome";
+import Categories from "./pages/Categories";
 import Tutorial from "./pages/Tutorial";
 import Studio from "./pages/Studio";
 import Dashboard from "./pages/Dashboard";
@@ -37,6 +38,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/categories" element={<Categories />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   <Route path="/studio" element={<Studio />} />
                   <Route path="/dashboard" element={<Dashboard />} />
