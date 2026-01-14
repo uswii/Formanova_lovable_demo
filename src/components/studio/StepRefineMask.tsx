@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Paintbrush, Lightbulb, Loader2, ArrowLeft, ArrowRight, Undo, Redo, Sparkles, Expand, X } from 'lucide-react';
-import { StudioState } from '@/pages/Studio';
+import { StudioState } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';

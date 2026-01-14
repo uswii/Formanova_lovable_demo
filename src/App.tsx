@@ -12,9 +12,9 @@ import { FloatingElements } from '@/components/FloatingElements';
 
 // Pages
 import Welcome from "./pages/Welcome";
-import Categories from "./pages/Categories";
 import Tutorial from "./pages/Tutorial";
 import Studio from "./pages/Studio";
+import JewelryStudio from "./pages/JewelryStudio";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -38,9 +38,9 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/categories" element={<Categories />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   <Route path="/studio" element={<Studio />} />
+                  <Route path="/studio/:type" element={<JewelryStudio />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
