@@ -12,9 +12,7 @@ import formanovaLogo from '@/assets/formanova-logo.png';
 import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.png';
 import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.png';
 import heroChokerBack from '@/assets/jewelry/hero-choker-back.png';
-import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
 import heroHandDiamonds from '@/assets/jewelry/hero-hand-diamonds.png';
-import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroBlueBracelets from '@/assets/jewelry/hero-blue-bracelets.png';
 import heroGoldPendant from '@/assets/jewelry/hero-gold-pendant.png';
 
@@ -25,9 +23,7 @@ export default function Welcome() {
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
     { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
     { src: heroChokerBack, alt: 'Diamond choker from back' },
-    { src: heroHandsBracelets, alt: 'Gold bracelets on hands' },
     { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
-    { src: heroGreenEarrings, alt: 'Green statement earrings' },
     { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
     { src: heroGoldPendant, alt: 'Gold pendant necklace' },
   ];
