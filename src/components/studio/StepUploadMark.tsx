@@ -507,27 +507,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
           <p className="text-muted-foreground mt-2">Upload your image and click on the jewelry to mark it</p>
         </div>
         
-        {/* Model Skin Tone - Only for non-necklace categories */}
-        {jewelryType !== 'necklace' && (
-          <div className="flex items-center gap-4 p-4 bg-muted/30 border border-border/30 rounded-lg">
-            <label className="text-sm font-medium whitespace-nowrap">Model Skin Tone</label>
-            <Select
-              value={state.skinTone}
-              onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
-            >
-              <SelectTrigger className="w-48 bg-background border-border">
-                <SelectValue placeholder="Select skin tone" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border z-50">
-                {SKIN_TONES.map((tone) => (
-                  <SelectItem key={tone.value} value={tone.value}>
-                    {tone.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
         <div className="space-y-4">
           {!state.originalImage ? (
             <div
@@ -664,7 +643,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                         <span className="text-muted-foreground"> marks placed</span>
                       </p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-3">
                       <Button variant="outline" size="default" onClick={handleUndo} disabled={undoStack.length === 0} title="Undo">
                         <Undo2 className="h-5 w-5" />
                       </Button>
@@ -683,6 +662,29 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                       >
                         Clear All
                       </Button>
+                      
+                      {/* Model Skin Tone - Only for non-necklace categories */}
+                      {jewelryType !== 'necklace' && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-bold whitespace-nowrap">Model Skin Tone</label>
+                          <Select
+                            value={state.skinTone}
+                            onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+                          >
+                            <SelectTrigger className="w-32 bg-background border-border">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border-border z-50">
+                              {SKIN_TONES.map((tone) => (
+                                <SelectItem key={tone.value} value={tone.value}>
+                                  {tone.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
                       <Button 
                         size="lg" 
                         onClick={handleProceed} 
