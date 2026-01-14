@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 
 // Import jewelry images
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
-import heroEarringsRuby from '@/assets/jewelry/hero-earrings-ruby.png';
+import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
 import heroWatch from '@/assets/jewelry/hero-watch.png';
@@ -27,7 +27,7 @@ const categories: JewelryCategory[] = [
     id: 'earrings',
     name: 'Earrings',
     subtitle: 'Studs & drops',
-    image: heroEarringsRuby,
+    image: heroGreenEarrings,
   },
   {
     id: 'rings',
