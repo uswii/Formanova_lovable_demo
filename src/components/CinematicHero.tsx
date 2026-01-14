@@ -70,10 +70,10 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      if (now - lastScrollTime.current > 5000) {
+      if (now - lastScrollTime.current > 2500) {
         setCurrentIndex(prev => (prev + 1) % images.length);
       }
-    }, 5000);
+    }, 2500);
     
     return () => clearInterval(interval);
   }, [images.length]);
