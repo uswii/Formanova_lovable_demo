@@ -37,7 +37,7 @@ export function Header() {
 
   const navLinks = [
     { path: '/', label: 'Home' },
-    { path: '/studio', label: 'Photography Studio' },
+    { path: '/studio', label: 'Photo Studio' },
     { path: '/studio-cad', label: 'CAD Studio' },
     { path: '/tutorial', label: 'Tutorial' },
   ];
