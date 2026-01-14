@@ -2,13 +2,23 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
-import { StudioState } from '@/pages/JewelryStudio';
+import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
+
+const SKIN_TONES: { value: SkinTone; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'olive', label: 'Olive' },
+  { value: 'brown', label: 'Brown' },
+  { value: 'dark', label: 'Dark' },
+];
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
 async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
@@ -87,9 +97,10 @@ interface Props {
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
   onNext: () => void;
+  jewelryType?: string;
 }
 
-export function StepUploadMark({ state, updateState, onNext }: Props) {
+export function StepUploadMark({ state, updateState, onNext, jewelryType = 'necklace' }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
@@ -496,6 +507,27 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           <p className="text-muted-foreground mt-2">Upload your image and click on the jewelry to mark it</p>
         </div>
         
+        {/* Model Skin Tone - Only for non-necklace categories */}
+        {jewelryType !== 'necklace' && (
+          <div className="flex items-center gap-4 p-4 bg-muted/30 border border-border/30 rounded-lg">
+            <label className="text-sm font-medium whitespace-nowrap">Model Skin Tone</label>
+            <Select
+              value={state.skinTone}
+              onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+            >
+              <SelectTrigger className="w-48 bg-background border-border">
+                <SelectValue placeholder="Select skin tone" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                {SKIN_TONES.map((tone) => (
+                  <SelectItem key={tone.value} value={tone.value}>
+                    {tone.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="space-y-4">
           {!state.originalImage ? (
             <div
