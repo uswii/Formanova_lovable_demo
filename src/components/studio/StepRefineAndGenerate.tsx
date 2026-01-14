@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Lightbulb, 
   ArrowLeft, 
@@ -17,7 +18,7 @@ import {
   Gem,
   XOctagon,
 } from 'lucide-react';
-import { StudioState } from '@/pages/JewelryStudio';
+import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
@@ -26,6 +27,7 @@ interface Props {
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
   onBack: () => void;
+  jewelryType?: string;
 }
 
 type BrushStroke = {
@@ -36,7 +38,16 @@ type BrushStroke = {
 
 type ViewState = 'refine' | 'generating' | 'results';
 
-export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
+const SKIN_TONES: { value: SkinTone; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'olive', label: 'Olive' },
+  { value: 'brown', label: 'Brown' },
+  { value: 'dark', label: 'Dark' },
+];
+
+export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType = 'necklace' }: Props) {
   const { toast } = useToast();
   
   // View state
@@ -650,6 +661,46 @@ export function StepRefineAndGenerate({ state, updateState, onBack }: Props) {
             <span className="marta-label mb-3 block">Tools</span>
             <h3 className="font-display text-2xl uppercase tracking-tight">Controls</h3>
           </div>
+          
+          {/* Model Options - Only for non-necklace categories */}
+          {jewelryType !== 'necklace' && (
+            <div className="space-y-4 pb-4 border-b border-border/30">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Model Skin Tone</label>
+                <Select
+                  value={state.skinTone}
+                  onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+                >
+                  <SelectTrigger className="w-full bg-background border-border">
+                    <SelectValue placeholder="Select skin tone" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border z-50">
+                    {SKIN_TONES.map((tone) => (
+                      <SelectItem key={tone.value} value={tone.value}>
+                        {tone.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Model Gender</label>
+                <Select
+                  value={state.gender}
+                  onValueChange={(value: 'female' | 'male') => updateState({ gender: value })}
+                >
+                  <SelectTrigger className="w-full bg-background border-border">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border z-50">
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-5">
             <div className="space-y-3">
