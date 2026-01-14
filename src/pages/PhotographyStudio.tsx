@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 // Import jewelry images
-import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
 import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
@@ -18,10 +17,10 @@ interface JewelryCategory {
 
 const categories: JewelryCategory[] = [
   {
-    id: 'necklace',
-    name: 'Necklaces',
-    subtitle: 'Chains & pendants',
-    image: heroNecklace,
+    id: 'earrings',
+    name: 'Earrings',
+    subtitle: 'Studs & drops',
+    image: heroGreenEarrings,
   },
   {
     id: 'earrings',
@@ -118,7 +117,7 @@ const PhotographyStudio = () => {
             <img
               src={category.image}
               alt={category.name}
-              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 ${category.id === 'necklace' ? 'object-[center_30%]' : ''}`}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             />
             
             {/* Subtle gradient at bottom for text readability */}
