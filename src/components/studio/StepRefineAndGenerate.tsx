@@ -17,7 +17,7 @@ import {
   Gem,
   XOctagon,
 } from 'lucide-react';
-import { StudioState } from '@/pages/Studio';
+import { StudioState } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';

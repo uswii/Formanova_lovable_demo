@@ -18,7 +18,7 @@ import {
   X,
   XOctagon,
 } from 'lucide-react';
-import { StudioState } from '@/pages/Studio';
+import { StudioState } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { temporalApi, base64ToBlob, pollDAGUntilComplete, getDAGStepLabel } from '@/lib/temporal-api';
 

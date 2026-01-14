@@ -1,145 +1,200 @@
-import React, { useState } from 'react';
-import { 
-  Upload, 
-  Sparkles, 
-} from 'lucide-react';
-import { StepUploadMark } from '@/components/studio/StepUploadMark';
-import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
-export type StudioStep = 'upload' | 'generate';
+// Import jewelry images
+import heroNecklace from '@/assets/jewelry/hero-necklace.jpg';
+import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
+import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
+import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
+import heroChokerBack from '@/assets/jewelry/hero-choker-back.png';
 
-export interface ProcessingState {
-  resizedUri?: string;
-  bgRemovedUri?: string;
-  maskUri?: string;  // Azure URI of the generated mask
-  overlayUri?: string;  // Azure URI of the overlay
-  padding?: { top: number; bottom: number; left: number; right: number };
+interface JewelryCategory {
+  id: string;
+  name: string;
+  subtitle: string;
+  image: string;
 }
 
-export interface StudioState {
-  originalImage: string | null;
-  markedImage: string | null;
-  maskOverlay: string | null;
-  maskBinary: string | null;
-  originalMask: string | null;
-  editedMask: string | null;
-  gender: 'female' | 'male';
-  fluxResult: string | null;
-  geminiResult: string | null;
-  fidelityViz: string | null;
-  fidelityVizGemini: string | null;
-  metrics: {
-    precision: number;
-    recall: number;
-    iou: number;
-    growthRatio: number;
-  } | null;
-  metricsGemini: {
-    precision: number;
-    recall: number;
-    iou: number;
-    growthRatio: number;
-  } | null;
-  status: 'good' | 'bad' | null;
-  isGenerating: boolean;
-  sessionId: string | null;
-  scaledPoints: number[][] | null;
-  processingState: ProcessingState;
-  redDots: { x: number; y: number }[];
-}
+const categories: JewelryCategory[] = [
+  {
+    id: 'necklace',
+    name: 'Necklaces',
+    subtitle: 'Elegant chains & pendants',
+    image: heroNecklace,
+  },
+  {
+    id: 'earrings',
+    name: 'Earrings',
+    subtitle: 'Studs, hoops & drops',
+    image: heroGreenEarrings,
+  },
+  {
+    id: 'rings',
+    name: 'Rings',
+    subtitle: 'Bands & statement pieces',
+    image: heroModelRings,
+  },
+  {
+    id: 'bracelets',
+    name: 'Bracelets',
+    subtitle: 'Bangles & cuffs',
+    image: heroHandsBracelets,
+  },
+  {
+    id: 'watches',
+    name: 'Watches',
+    subtitle: 'Timepieces & smart accessories',
+    image: heroChokerBack,
+  },
+];
 
-export default function Studio() {
-  const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
-  const [state, setState] = useState<StudioState>({
-    originalImage: null,
-    markedImage: null,
-    maskOverlay: null,
-    maskBinary: null,
-    originalMask: null,
-    editedMask: null,
-    gender: 'female',
-    fluxResult: null,
-    geminiResult: null,
-    fidelityViz: null,
-    fidelityVizGemini: null,
-    metrics: null,
-    metricsGemini: null,
-    status: null,
-    isGenerating: false,
-    sessionId: null,
-    scaledPoints: null,
-    processingState: {},
-    redDots: [],
-  });
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
 
-  const updateState = (updates: Partial<StudioState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+const itemVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94] as const,
+    },
+  },
+};
+
+const Studio = () => {
+  const navigate = useNavigate();
+
+  const handleCategoryClick = (category: JewelryCategory) => {
+    navigate(`/studio/${category.id}`);
   };
 
-  const stepConfig = [
-    { id: 'upload' as const, label: 'Upload & Mark', icon: Upload, step: 1 },
-    { id: 'generate' as const, label: 'Refine & Generate', icon: null, step: 2 },
-  ];
-
-
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="px-6 md:px-12 py-8 relative z-10">
-        {/* Step Progress */}
-        <div className="flex items-center justify-center mb-6">
-          {stepConfig.map((step, index) => (
-            <React.Fragment key={step.id}>
-              <button
-                onClick={() => {
-                  // Only allow going back, not forward (unless step is complete)
-                  if (stepConfig.findIndex(s => s.id === step.id) <= stepConfig.findIndex(s => s.id === currentStep)) {
-                    setCurrentStep(step.id);
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  currentStep === step.id
-                    ? 'bg-primary text-primary-foreground'
-                    : stepConfig.findIndex(s => s.id === step.id) < stepConfig.findIndex(s => s.id === currentStep)
-                    ? 'bg-primary/20 text-primary cursor-pointer hover:bg-primary/30'
-                    : 'bg-muted text-muted-foreground'
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="pt-24 pb-12 px-6 md:px-12 lg:px-24">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="max-w-7xl mx-auto"
+        >
+          <div className="marta-frame p-8 md:p-12 mb-8">
+            <span className="font-mono text-xs tracking-[0.3em] text-muted-foreground uppercase mb-4 block">
+              Select Category
+            </span>
+            <h1 className="marta-headline text-foreground">
+              Jewelry
+              <span className="block text-formanova-hero-accent">Studio</span>
+            </h1>
+            <p className="font-body text-muted-foreground text-lg mt-6 max-w-xl">
+              Choose your jewelry type to begin the AI-powered virtual try-on experience.
+            </p>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Categories Grid */}
+      <section className="px-6 md:px-12 lg:px-24 pb-24">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="max-w-7xl mx-auto"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                variants={itemVariants}
+                className={`group relative ${
+                  index === 0 ? 'md:col-span-2 lg:col-span-2 lg:row-span-2' : ''
                 }`}
               >
-                <div className="h-6 w-6 rounded-full bg-current/20 flex items-center justify-center text-sm font-bold">
-                  {step.step}
-                </div>
-                {step.icon && <step.icon className="h-4 w-4" />}
-                <span className="hidden sm:inline font-medium">{step.label}</span>
-              </button>
-              {index < stepConfig.length - 1 && (
-                <div className={`w-12 h-0.5 mx-2 ${
-                  stepConfig.findIndex(s => s.id === currentStep) > index
-                    ? 'bg-primary'
-                    : 'bg-muted'
-                }`} />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+                <button
+                  onClick={() => handleCategoryClick(category)}
+                  className={`
+                    w-full h-full marta-frame overflow-hidden
+                    cursor-pointer hover:border-foreground/40
+                    transition-all duration-500
+                    ${index === 0 ? 'min-h-[500px] md:min-h-[600px]' : 'min-h-[280px] md:min-h-[320px]'}
+                  `}
+                >
+                  {/* Background Image */}
+                  <div className="absolute inset-0 overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+                  </div>
 
-        {/* Step Content */}
-        <div className="grid lg:grid-cols-1 gap-6">
-          {currentStep === 'upload' && (
-            <StepUploadMark 
-              state={state} 
-              updateState={updateState}
-              onNext={() => setCurrentStep('generate')}
-            />
-          )}
-          
-          {currentStep === 'generate' && (
-            <StepRefineAndGenerate 
-              state={state} 
-              updateState={updateState}
-              onBack={() => setCurrentStep('upload')}
-            />
-          )}
-        </div>
-      </div>
+                  {/* Content */}
+                  <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
+                    {/* Category Info */}
+                    <div className="space-y-2">
+                      <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase block">
+                        {category.subtitle}
+                      </span>
+                      <h2 className={`
+                        font-display uppercase tracking-wide text-foreground
+                        ${index === 0 ? 'text-5xl md:text-7xl' : 'text-3xl md:text-4xl'}
+                      `}>
+                        {category.name}
+                      </h2>
+                    </div>
+
+                    {/* Arrow indicator */}
+                    <motion.div
+                      className="absolute bottom-6 right-6 md:bottom-8 md:right-8"
+                      initial={{ x: 0, opacity: 0.5 }}
+                      whileHover={{ x: 5, opacity: 1 }}
+                    >
+                      <div className="w-12 h-12 marta-frame flex items-center justify-center bg-background/80 backdrop-blur-sm group-hover:bg-formanova-hero-accent group-hover:border-formanova-hero-accent transition-all duration-300">
+                        <ArrowRight className="w-5 h-5 text-foreground group-hover:text-primary-foreground transition-colors duration-300" />
+                      </div>
+                    </motion.div>
+                  </div>
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Bottom Info Section */}
+      <section className="px-6 md:px-12 lg:px-24 pb-24">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
+          className="max-w-7xl mx-auto"
+        >
+          <div className="marta-divider mb-8" />
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
+              AI-Powered Virtual Try-On
+            </p>
+            <p className="font-body text-sm text-muted-foreground">
+              Professional jewelry visualization for fashion brands
+            </p>
+          </div>
+        </motion.div>
+      </section>
     </div>
   );
-}
+};
+
+export default Studio;
