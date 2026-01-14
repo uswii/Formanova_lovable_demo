@@ -664,39 +664,37 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                       </Button>
                     </div>
                     
-                    {/* Model Skin Tone & Generate Button */}
-                    <div className="flex items-center gap-4 mt-4">
-                      {/* Model Skin Tone - Only for non-necklace categories */}
-                      {jewelryType !== 'necklace' && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm font-bold whitespace-nowrap">Model Skin Tone</label>
-                          <Select
-                            value={state.skinTone}
-                            onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
-                          >
-                            <SelectTrigger className="w-32 bg-background border-border">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border-border z-50">
-                              {SKIN_TONES.map((tone) => (
-                                <SelectItem key={tone.value} value={tone.value}>
-                                  {tone.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      
-                      <Button 
-                        size="lg" 
-                        onClick={handleProceed} 
-                        disabled={redDots.length === 0 || isProcessing} 
-                        className="font-semibold"
-                      >
-                        Generate Mask
-                      </Button>
-                    </div>
+                    {/* Generate Mask Button */}
+                    <Button 
+                      size="lg" 
+                      onClick={handleProceed} 
+                      disabled={redDots.length === 0 || isProcessing} 
+                      className="font-semibold mt-4"
+                    >
+                      Generate Mask
+                    </Button>
+                    
+                    {/* Model Skin Tone - After mask marking, for non-necklace categories */}
+                    {jewelryType !== 'necklace' && (
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/30">
+                        <label className="text-sm font-bold whitespace-nowrap">Model Skin Tone</label>
+                        <Select
+                          value={state.skinTone}
+                          onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+                        >
+                          <SelectTrigger className="w-32 bg-background border-border">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-border z-50">
+                            {SKIN_TONES.map((tone) => (
+                              <SelectItem key={tone.value} value={tone.value}>
+                                {tone.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
