@@ -491,9 +491,6 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
         <div>
           <div className="flex items-center gap-4 mb-3">
             <span className="marta-label">Step 1</span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-              💎 Necklaces Only
-            </span>
           </div>
           <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload & Mark</h2>
           <p className="text-muted-foreground mt-2">Upload your image and click on the jewelry to mark it</p>

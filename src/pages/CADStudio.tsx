@@ -4,7 +4,6 @@ import { ArrowRight, Lock } from 'lucide-react';
 
 // Import jewelry images
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
-import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
 import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
 import heroWatch from '@/assets/jewelry/hero-watch.png';
@@ -26,10 +25,10 @@ const categories: JewelryCategory[] = [
     available: true,
   },
   {
-    id: 'necklace',
-    name: 'Necklaces',
-    subtitle: 'Chains & pendants',
-    image: heroNecklace,
+    id: 'earrings',
+    name: 'Earrings',
+    subtitle: 'Studs & drops',
+    image: heroGreenEarrings,
     available: false,
   },
   {
@@ -133,7 +132,7 @@ const CADStudio = () => {
               alt={category.name}
               className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out ${
                 category.available ? 'group-hover:scale-110' : 'grayscale'
-              } ${category.id === 'necklace' ? 'object-[center_30%]' : ''}`}
+              }`}
             />
             
             {/* Subtle gradient at bottom for text readability */}
