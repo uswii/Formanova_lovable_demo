@@ -20,19 +20,19 @@ const categories: JewelryCategory[] = [
   {
     id: 'necklace',
     name: 'Necklaces',
-    subtitle: 'Elegant chains & pendants',
+    subtitle: 'Chains & pendants',
     image: heroNecklace,
   },
   {
     id: 'earrings',
     name: 'Earrings',
-    subtitle: 'Studs, hoops & drops',
+    subtitle: 'Studs & drops',
     image: heroGreenEarrings,
   },
   {
     id: 'rings',
     name: 'Rings',
-    subtitle: 'Bands & statement pieces',
+    subtitle: 'Bands & pieces',
     image: heroModelRings,
   },
   {
@@ -44,7 +44,7 @@ const categories: JewelryCategory[] = [
   {
     id: 'watches',
     name: 'Watches',
-    subtitle: 'Timepieces & smart accessories',
+    subtitle: 'Timepieces',
     image: heroChokerBack,
   },
 ];
@@ -54,19 +54,19 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.6,
+      duration: 0.4,
       ease: [0.25, 0.46, 0.45, 0.94] as const,
     },
   },
@@ -80,40 +80,39 @@ const Studio = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="pt-24 pb-12 px-6 md:px-12 lg:px-24">
+    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col overflow-hidden">
+      {/* Compact Header */}
+      <div className="flex-shrink-0 px-6 md:px-12 pt-6 pb-4">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="max-w-7xl mx-auto"
+          transition={{ duration: 0.5 }}
+          className="flex items-center justify-between"
         >
-          <div className="marta-frame p-8 md:p-12 mb-8">
-            <span className="font-mono text-xs tracking-[0.3em] text-muted-foreground uppercase mb-4 block">
+          <div>
+            <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
               Select Category
             </span>
-            <h1 className="marta-headline text-foreground">
-              Jewelry
-              <span className="block text-formanova-hero-accent">Studio</span>
+            <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight text-foreground">
+              Jewelry <span className="text-formanova-hero-accent">Studio</span>
             </h1>
-            <p className="font-body text-muted-foreground text-lg mt-6 max-w-xl">
-              Choose your jewelry type to begin the AI-powered virtual try-on experience.
-            </p>
           </div>
+          <p className="hidden md:block font-body text-sm text-muted-foreground max-w-xs text-right">
+            AI-powered virtual try-on
+          </p>
         </motion.div>
-      </section>
+      </div>
 
-      {/* Categories Grid */}
-      <section className="px-6 md:px-12 lg:px-24 pb-24">
+      {/* Categories Grid - Fills remaining space */}
+      <div className="flex-1 px-6 md:px-12 pb-6 min-h-0">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="max-w-5xl mx-auto"
+          className="h-full max-w-6xl mx-auto"
         >
-          {/* Clean 2-column grid on desktop, single column on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 5 columns on large screens, 3 on medium, 2 on small */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 h-full">
             {categories.map((category) => (
               <motion.div
                 key={category.id}
@@ -122,35 +121,35 @@ const Studio = () => {
               >
                 <button
                   onClick={() => handleCategoryClick(category)}
-                  className="w-full aspect-[4/3] marta-frame overflow-hidden cursor-pointer hover:border-foreground/40 transition-all duration-500"
+                  className="w-full h-full marta-frame overflow-hidden cursor-pointer hover:border-foreground/40 transition-all duration-300"
                 >
                   {/* Background Image */}
                   <div className="absolute inset-0 overflow-hidden">
                     <img
                       src={category.image}
                       alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                     />
                     {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                   </div>
 
                   {/* Content */}
-                  <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
+                  <div className="relative h-full flex flex-col justify-end p-4">
                     {/* Category Info */}
-                    <div className="space-y-1">
-                      <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase block">
+                    <div className="space-y-0.5">
+                      <span className="font-mono text-[8px] md:text-[9px] tracking-[0.2em] text-muted-foreground uppercase block">
                         {category.subtitle}
                       </span>
-                      <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide text-foreground">
+                      <h2 className="font-display text-lg md:text-xl lg:text-2xl uppercase tracking-wide text-foreground">
                         {category.name}
                       </h2>
                     </div>
 
                     {/* Arrow indicator */}
-                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8">
-                      <div className="w-10 h-10 marta-frame flex items-center justify-center bg-background/80 backdrop-blur-sm group-hover:bg-formanova-hero-accent group-hover:border-formanova-hero-accent transition-all duration-300">
-                        <ArrowRight className="w-4 h-4 text-foreground group-hover:text-primary-foreground transition-colors duration-300" />
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-8 h-8 marta-frame flex items-center justify-center bg-formanova-hero-accent border-formanova-hero-accent">
+                        <ArrowRight className="w-3 h-3 text-primary-foreground" />
                       </div>
                     </div>
                   </div>
@@ -159,27 +158,7 @@ const Studio = () => {
             ))}
           </div>
         </motion.div>
-      </section>
-
-      {/* Bottom Info Section */}
-      <section className="px-6 md:px-12 lg:px-24 pb-24">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="max-w-7xl mx-auto"
-        >
-          <div className="marta-divider mb-8" />
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              AI-Powered Virtual Try-On
-            </p>
-            <p className="font-body text-sm text-muted-foreground">
-              Professional jewelry visualization for fashion brands
-            </p>
-          </div>
-        </motion.div>
-      </section>
+      </div>
     </div>
   );
 };
