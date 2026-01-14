@@ -107,8 +107,10 @@ const PhotographyStudio = () => {
           <motion.button
             key={category.id}
             variants={itemVariants}
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => handleCategoryClick(category)}
-            className={`group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer hover:border-foreground/50 transition-all duration-300 ${
+            className={`group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)] ${
               index === 4 ? 'col-span-2 md:col-span-1 aspect-[8/3] md:aspect-[4/3]' : ''
             }`}
           >
@@ -116,25 +118,28 @@ const PhotographyStudio = () => {
             <img
               src={category.image}
               alt={category.name}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             />
             
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+            {/* Gradient Overlay - intensifies on hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent transition-opacity duration-300 group-hover:opacity-80" />
+            
+            {/* Glow overlay on hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-formanova-hero-accent/10 via-transparent to-transparent" />
 
             {/* Content */}
             <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6 text-left">
-              <span className="font-mono text-[9px] md:text-[10px] tracking-[0.2em] text-muted-foreground uppercase block mb-1">
+              <span className="font-mono text-[9px] md:text-[10px] tracking-[0.2em] text-muted-foreground uppercase block mb-1 transition-colors duration-300 group-hover:text-formanova-hero-accent">
                 {category.subtitle}
               </span>
-              <h2 className="font-display text-xl md:text-2xl lg:text-3xl uppercase tracking-wide text-foreground">
+              <h2 className="font-display text-xl md:text-2xl lg:text-3xl uppercase tracking-wide text-foreground transition-transform duration-300 group-hover:translate-x-1">
                 {category.name}
               </h2>
             </div>
 
             {/* Arrow indicator */}
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <div className="w-9 h-9 flex items-center justify-center bg-formanova-hero-accent">
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 translate-x-2">
+              <div className="w-9 h-9 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
                 <ArrowRight className="w-4 h-4 text-primary-foreground" />
               </div>
             </div>
