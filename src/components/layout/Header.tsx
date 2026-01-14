@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, LayoutDashboard, CreditCard, History } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserCredits } from '@/hooks/use-user-credits';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,6 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { totalCredits, freeRemaining, loading: creditsLoading } = useUserCredits();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -113,23 +111,6 @@ export function Header() {
                     </p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/dashboard')}
-                    className="cursor-pointer text-sm"
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    My Credits
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {creditsLoading ? '...' : totalCredits}
-                    </span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/dashboard')}
-                    className="cursor-pointer text-sm"
-                  >
-                    <History className="h-4 w-4 mr-2" />
-                    Generations
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => signOut()}
@@ -204,7 +185,7 @@ export function Header() {
               className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
-              <Link to="/dashboard" className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 {user.user_metadata?.avatar_url ? (
                   <img 
                     src={user.user_metadata.avatar_url} 
@@ -219,33 +200,17 @@ export function Header() {
                 <span className="text-lg font-medium text-foreground">
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
-              </Link>
-              
-              <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
-                <span>Credits: {creditsLoading ? '...' : totalCredits}</span>
               </div>
               
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  asChild
-                >
-                  <Link to="/dashboard" className="gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    My Credits
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => signOut()}
-                  className="gap-2"
-                >
-                  <LogOut className="h-5 w-5" />
-                  Sign Out
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => signOut()}
+                className="gap-2"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </Button>
             </div>
           ) : (
             <Link
