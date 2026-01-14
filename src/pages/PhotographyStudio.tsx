@@ -129,9 +129,6 @@ const PhotographyStudio = () => {
 
             {/* Content */}
             <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6 text-left">
-              <span className="font-mono text-[9px] md:text-[10px] tracking-[0.2em] text-muted-foreground uppercase block mb-1 transition-colors duration-300 group-hover:text-formanova-hero-accent">
-                {category.subtitle}
-              </span>
               <h2 className="font-display text-xl md:text-2xl lg:text-3xl uppercase tracking-wide text-foreground transition-transform duration-300 group-hover:translate-x-1">
                 {category.name}
               </h2>
