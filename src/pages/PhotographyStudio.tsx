@@ -23,12 +23,6 @@ const categories: JewelryCategory[] = [
     image: heroGreenEarrings,
   },
   {
-    id: 'earrings',
-    name: 'Earrings',
-    subtitle: 'Studs & drops',
-    image: heroGreenEarrings,
-  },
-  {
     id: 'rings',
     name: 'Rings',
     subtitle: 'Bands & statement',
