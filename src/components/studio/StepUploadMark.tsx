@@ -662,7 +662,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                       >
                         Clear All
                       </Button>
-                      
+                    </div>
+                    
+                    {/* Model Skin Tone & Generate Button */}
+                    <div className="flex items-center gap-4 mt-4">
                       {/* Model Skin Tone - Only for non-necklace categories */}
                       {jewelryType !== 'necklace' && (
                         <div className="flex items-center gap-2">
