@@ -664,41 +664,23 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           
           {/* Model Options - Only for non-necklace categories */}
           {jewelryType !== 'necklace' && (
-            <div className="space-y-4 pb-4 border-b border-border/30">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Model Skin Tone</label>
-                <Select
-                  value={state.skinTone}
-                  onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
-                >
-                  <SelectTrigger className="w-full bg-background border-border">
-                    <SelectValue placeholder="Select skin tone" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border z-50">
-                    {SKIN_TONES.map((tone) => (
-                      <SelectItem key={tone.value} value={tone.value}>
-                        {tone.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Model Gender</label>
-                <Select
-                  value={state.gender}
-                  onValueChange={(value: 'female' | 'male') => updateState({ gender: value })}
-                >
-                  <SelectTrigger className="w-full bg-background border-border">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border z-50">
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="male">Male</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2 pb-4 border-b border-border/30">
+              <label className="text-sm font-medium">Model Skin Tone</label>
+              <Select
+                value={state.skinTone}
+                onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+              >
+                <SelectTrigger className="w-full bg-background border-border">
+                  <SelectValue placeholder="Select skin tone" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
+                  {SKIN_TONES.map((tone) => (
+                    <SelectItem key={tone.value} value={tone.value}>
+                      {tone.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           
