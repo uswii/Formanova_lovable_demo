@@ -121,11 +121,8 @@ const PhotographyStudio = () => {
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             />
             
-            {/* Gradient Overlay - intensifies on hover */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent transition-opacity duration-300 group-hover:opacity-80" />
-            
-            {/* Glow overlay on hover */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-formanova-hero-accent/10 via-transparent to-transparent" />
+            {/* Subtle gradient at bottom for text readability */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/80 to-transparent" />
 
             {/* Content */}
             <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6 text-left">
