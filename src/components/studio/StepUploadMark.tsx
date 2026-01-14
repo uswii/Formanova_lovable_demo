@@ -115,11 +115,23 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
     }
   };
 
+  const [examplesError, setExamplesError] = useState(false);
+  
   useEffect(() => {
     const loadExamples = async () => {
       setIsLoadingExamples(true);
-      const examples = await a100Api.getExamples();
-      setExampleImages(examples);
+      setExamplesError(false);
+      try {
+        const examples = await a100Api.getExamples();
+        setExampleImages(examples);
+        // If we got empty array but no error, server might be offline
+        if (examples.length === 0) {
+          setExamplesError(true);
+        }
+      } catch (error) {
+        console.error('Failed to load examples:', error);
+        setExamplesError(true);
+      }
       setIsLoadingExamples(false);
     };
     loadExamples();
@@ -680,9 +692,10 @@ export function StepUploadMark({ state, updateState, onNext }: Props) {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : exampleImages.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground text-center">No examples available</p>
+        ) : examplesError || exampleImages.length === 0 ? (
+          <div className="space-y-3 text-center py-4">
+            <p className="text-sm text-muted-foreground">Example server unavailable</p>
+            <p className="text-xs text-muted-foreground/70">Upload your own image to continue</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
