@@ -4,6 +4,7 @@ import { ArrowRight, Lock } from 'lucide-react';
 
 // Import jewelry images
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
+import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
 import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
 import heroWatch from '@/assets/jewelry/hero-watch.png';
@@ -23,6 +24,13 @@ const categories: JewelryCategory[] = [
     subtitle: 'Bands & statement',
     image: heroModelRings,
     available: true,
+  },
+  {
+    id: 'necklace',
+    name: 'Necklaces',
+    subtitle: 'Chains & pendants',
+    image: heroNecklace,
+    available: false,
   },
   {
     id: 'earrings',

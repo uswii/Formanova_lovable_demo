@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 // Import jewelry images
+import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
 import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
 import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
@@ -16,6 +17,12 @@ interface JewelryCategory {
 }
 
 const categories: JewelryCategory[] = [
+  {
+    id: 'necklace',
+    name: 'Necklaces',
+    subtitle: 'Chains & pendants',
+    image: heroNecklace,
+  },
   {
     id: 'earrings',
     name: 'Earrings',
