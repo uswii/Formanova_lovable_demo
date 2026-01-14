@@ -14,6 +14,3 @@ verify_jwt = false
 
 [functions.azure-fetch-image]
 verify_jwt = false
-
-[functions.temporal-proxy]
-verify_jwt = false
