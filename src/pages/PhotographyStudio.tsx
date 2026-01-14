@@ -74,7 +74,7 @@ const Studio = () => {
   const navigate = useNavigate();
 
   const handleCategoryClick = (category: JewelryCategory) => {
-    navigate(`/studio/${category.id}`);
+    navigate(`/studio/photography/${category.id}`);
   };
 
   return (
@@ -91,7 +91,7 @@ const Studio = () => {
             Select Category
           </span>
           <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight text-foreground">
-            Jewelry <span className="text-formanova-hero-accent">Studio</span>
+            Photography <span className="text-formanova-hero-accent">Studio</span>
           </h1>
         </div>
         <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">

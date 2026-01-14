@@ -13,7 +13,8 @@ import { FloatingElements } from '@/components/FloatingElements';
 // Pages
 import Welcome from "./pages/Welcome";
 import Tutorial from "./pages/Tutorial";
-import Studio from "./pages/Studio";
+import StudioSelection from "./pages/StudioSelection";
+import PhotographyStudio from "./pages/PhotographyStudio";
 import JewelryStudio from "./pages/JewelryStudio";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -39,8 +40,9 @@ const App = () => (
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/tutorial" element={<Tutorial />} />
-                  <Route path="/studio" element={<Studio />} />
-                  <Route path="/studio/:type" element={<JewelryStudio />} />
+                  <Route path="/studio" element={<StudioSelection />} />
+                  <Route path="/studio/photography" element={<PhotographyStudio />} />
+                  <Route path="/studio/photography/:type" element={<JewelryStudio />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
