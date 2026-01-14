@@ -15,6 +15,7 @@ import Welcome from "./pages/Welcome";
 import Tutorial from "./pages/Tutorial";
 import PhotographyStudio from "./pages/PhotographyStudio";
 import JewelryStudio from "./pages/JewelryStudio";
+import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -40,7 +41,7 @@ const App = () => (
                   <Route path="/tutorial" element={<Tutorial />} />
                   <Route path="/studio" element={<PhotographyStudio />} />
                   <Route path="/studio/:type" element={<JewelryStudio />} />
-                  <Route path="/studio-cad" element={<div className="min-h-screen flex items-center justify-center text-muted-foreground">CAD Studio - Coming Soon</div>} />
+                  <Route path="/studio-cad" element={<CADStudio />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
