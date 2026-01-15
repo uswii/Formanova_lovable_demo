@@ -182,6 +182,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       setCurrentStepLabel('Complete!');
 
       console.log('[Generation] Complete, session:', result.session_id);
+      console.log('[Generation] has_two_modes:', result.has_two_modes);
+      console.log('[Generation] fidelity_viz_base64:', !!result.fidelity_viz_base64);
+      console.log('[Generation] metrics:', result.metrics);
 
       // Update state with results
       const hasTwoModes = result.has_two_modes ?? false;
@@ -206,6 +209,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         status: result.metrics && result.metrics.precision > 0.9 ? 'good' : 'bad',
         isGenerating: false,
         sessionId: result.session_id,
+        hasTwoModes: hasTwoModes,
       });
 
       setCurrentView('results');
@@ -340,159 +344,191 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         {/* Results content - fills remaining space */}
         <div className="flex-1 min-h-0">
-          <Tabs defaultValue="standard" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 shrink-0">
-              <TabsTrigger value="standard">Standard</TabsTrigger>
-              <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-            </TabsList>
+          {/* For necklace (hasTwoModes), show tabs. For other jewelry, show single result */}
+          {state.hasTwoModes ? (
+            // NECKLACE: Two modes with tabs (Standard + Enhanced)
+            <Tabs defaultValue="standard" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2 shrink-0">
+                <TabsTrigger value="standard">Standard</TabsTrigger>
+                <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="standard" className="mt-4 flex-1 min-h-0">
-              {state.fluxResult && (
-                <div className="grid lg:grid-cols-3 gap-4 h-full">
-                  {/* Main image - constrained height */}
-                  <div className="lg:col-span-2 h-full min-h-0">
-                    <div 
-                      className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
-                      onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
-                    >
-                      <img src={state.fluxResult} alt="Standard result" className="max-w-full max-h-full object-contain" />
-                      {/* Top-right corner buttons */}
-                      <div className="absolute top-3 right-3 z-10 flex gap-2">
-                        <button
-                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' }); }}
-                          title="Fullscreen"
-                        >
-                          <Expand className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                          onClick={(e) => { e.stopPropagation(); handleDownload(state.fluxResult!, 'standard_result.jpg'); }}
-                          title="Download"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
+              <TabsContent value="standard" className="mt-4 flex-1 min-h-0">
+                {state.fluxResult && (
+                  <div className="grid lg:grid-cols-3 gap-4 h-full">
+                    <div className="lg:col-span-2 h-full min-h-0">
+                      <div 
+                        className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
+                        onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
+                      >
+                        <img src={state.fluxResult} alt="Standard result" className="max-w-full max-h-full object-contain" />
+                        <div className="absolute top-3 right-3 z-10 flex gap-2">
+                          <button
+                            className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' }); }}
+                            title="Fullscreen"
+                          >
+                            <Expand className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleDownload(state.fluxResult!, 'standard_result.jpg'); }}
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  {/* Side panel - scrollable if needed */}
-                  <div className="space-y-6 overflow-y-auto max-h-full">
-                    {state.fidelityViz && (
-                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
-                          Jewelry Accuracy
-                        </h4>
-                        <div className="overflow-hidden border border-border/50 rounded-lg">
-                          <img src={state.fidelityViz} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
-                        </div>
-                        <div className="flex flex-wrap gap-6 text-base pt-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded bg-green-500" />
-                            <span className="text-foreground font-medium">Original</span>
+                    <div className="space-y-6 overflow-y-auto max-h-full">
+                      {state.fidelityViz && (
+                        <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                          <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
+                          <div className="overflow-hidden border border-border/50 rounded-lg">
+                            <img src={state.fidelityViz} alt="Jewelry Accuracy" className="w-full h-auto" />
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded bg-blue-500" />
-                            <span className="text-foreground font-medium">Extended</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded bg-red-500" />
-                            <span className="text-foreground font-medium">Shrunk</span>
+                          <div className="flex flex-wrap gap-6 text-base pt-2">
+                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
+                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-blue-500" /><span className="text-foreground font-medium">Extended</span></div>
+                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-red-500" /><span className="text-foreground font-medium">Shrunk</span></div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {state.metrics && (
-                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
-                          Quality Metrics
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <MetricCard label="Precision" value={state.metrics.precision} />
-                          <MetricCard label="Recall" value={state.metrics.recall} />
-                          <MetricCard label="IoU" value={state.metrics.iou} />
-                          <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                      )}
+                      {state.metrics && (
+                        <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                          <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Quality Metrics</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <MetricCard label="Precision" value={state.metrics.precision} />
+                            <MetricCard label="Recall" value={state.metrics.recall} />
+                            <MetricCard label="IoU" value={state.metrics.iou} />
+                            <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="enhanced" className="mt-4 flex-1 min-h-0">
-              {(state.geminiResult || state.fluxResult) && (
-                <div className="grid lg:grid-cols-3 gap-4 h-full">
-                  {/* Main image - constrained height */}
-                  <div className="lg:col-span-2 h-full min-h-0">
-                    <div 
-                      className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
-                      onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
-                    >
-                      <img src={state.geminiResult || state.fluxResult!} alt="Enhanced result" className="max-w-full max-h-full object-contain" />
-                      {/* Top-right corner buttons */}
-                      <div className="absolute top-3 right-3 z-10 flex gap-2">
-                        <button
-                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' }); }}
-                          title="Fullscreen"
-                        >
-                          <Expand className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                          onClick={(e) => { e.stopPropagation(); handleDownload(state.geminiResult || state.fluxResult!, 'enhanced_result.jpg'); }}
-                          title="Download"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </div>
+                      )}
                     </div>
                   </div>
-                  {/* Side panel - scrollable if needed */}
-                  <div className="space-y-3 overflow-y-auto max-h-full">
-                    {state.fidelityVizGemini && (
-                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
-                          Jewelry Accuracy
-                        </h4>
-                        <div className="overflow-hidden border border-border/50 rounded">
-                          <img src={state.fidelityVizGemini} alt="Jewelry Accuracy Visualization" className="w-full h-auto" />
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-green-500" />
-                            <span className="text-foreground font-medium">Original</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-blue-500" />
-                            <span className="text-foreground font-medium">Extended</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-red-500" />
-                            <span className="text-foreground font-medium">Shrunk</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {state.metricsGemini && (
-                      <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
-                        <h4 className="font-display text-xl uppercase tracking-tight text-foreground">
-                          Quality Metrics
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          <MetricCard label="Precision" value={state.metricsGemini.precision} />
-                          <MetricCard label="Recall" value={state.metricsGemini.recall} />
-                          <MetricCard label="IoU" value={state.metricsGemini.iou} />
-                          <MetricCard label="Growth" value={state.metricsGemini.growthRatio} format="ratio" />
+                )}
+              </TabsContent>
+
+              <TabsContent value="enhanced" className="mt-4 flex-1 min-h-0">
+                {state.geminiResult && (
+                  <div className="grid lg:grid-cols-3 gap-4 h-full">
+                    <div className="lg:col-span-2 h-full min-h-0">
+                      <div 
+                        className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
+                        onClick={() => setFullscreenImage({ url: state.geminiResult!, title: 'Enhanced Result' })}
+                      >
+                        <img src={state.geminiResult} alt="Enhanced result" className="max-w-full max-h-full object-contain" />
+                        <div className="absolute top-3 right-3 z-10 flex gap-2">
+                          <button
+                            className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: state.geminiResult!, title: 'Enhanced Result' }); }}
+                            title="Fullscreen"
+                          >
+                            <Expand className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleDownload(state.geminiResult!, 'enhanced_result.jpg'); }}
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                    )}
+                    </div>
+                    <div className="space-y-3 overflow-y-auto max-h-full">
+                      {state.fidelityVizGemini && (
+                        <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                          <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
+                          <div className="overflow-hidden border border-border/50 rounded">
+                            <img src={state.fidelityVizGemini} alt="Jewelry Accuracy" className="w-full h-auto" />
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-blue-500" /><span className="text-foreground font-medium">Extended</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-red-500" /><span className="text-foreground font-medium">Shrunk</span></div>
+                          </div>
+                        </div>
+                      )}
+                      {state.metricsGemini && (
+                        <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                          <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Quality Metrics</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            <MetricCard label="Precision" value={state.metricsGemini.precision} />
+                            <MetricCard label="Recall" value={state.metricsGemini.recall} />
+                            <MetricCard label="IoU" value={state.metricsGemini.iou} />
+                            <MetricCard label="Growth" value={state.metricsGemini.growthRatio} format="ratio" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            // OTHER JEWELRY (earrings, bracelets, etc.): Single result view
+            <div className="grid lg:grid-cols-3 gap-4 h-full">
+              <div className="lg:col-span-2 h-full min-h-0">
+                <div 
+                  className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
+                  onClick={() => state.fluxResult && setFullscreenImage({ url: state.fluxResult, title: 'Generated Result' })}
+                >
+                  {state.fluxResult && (
+                    <img src={state.fluxResult} alt="Generated result" className="max-w-full max-h-full object-contain" />
+                  )}
+                  <div className="absolute top-3 right-3 z-10 flex gap-2">
+                    <button
+                      className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      onClick={(e) => { e.stopPropagation(); state.fluxResult && setFullscreenImage({ url: state.fluxResult, title: 'Generated Result' }); }}
+                      title="Fullscreen"
+                    >
+                      <Expand className="h-4 w-4" />
+                    </button>
+                    <button
+                      className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      onClick={(e) => { e.stopPropagation(); state.fluxResult && handleDownload(state.fluxResult, 'generated_result.jpg'); }}
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              )}
-            </TabsContent>
-
-          </Tabs>
+              </div>
+              <div className="space-y-6 overflow-y-auto max-h-full">
+                {state.fidelityViz && (
+                  <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                    <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
+                    <div className="overflow-hidden border border-border/50 rounded-lg">
+                      <img src={state.fidelityViz} alt="Jewelry Accuracy" className="w-full h-auto" />
+                    </div>
+                    <div className="flex flex-wrap gap-6 text-base pt-2">
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-blue-500" /><span className="text-foreground font-medium">Extended</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-red-500" /><span className="text-foreground font-medium">Shrunk</span></div>
+                    </div>
+                  </div>
+                )}
+                {state.metrics && (
+                  <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
+                    <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Quality Metrics</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <MetricCard label="Precision" value={state.metrics.precision} />
+                      <MetricCard label="Recall" value={state.metrics.recall} />
+                      <MetricCard label="IoU" value={state.metrics.iou} />
+                      <MetricCard label="Growth" value={state.metrics.growthRatio} format="ratio" />
+                    </div>
+                  </div>
+                )}
+                {!state.fidelityViz && !state.metrics && (
+                  <div className="border border-border bg-card/50 p-6 rounded-xl">
+                    <p className="text-muted-foreground text-sm">Metrics and accuracy visualization will appear here when available.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
