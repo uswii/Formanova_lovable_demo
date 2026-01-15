@@ -19,7 +19,6 @@ import heroEmeraldEarrings from '@/assets/jewelry/hero-emerald-earrings.png';
 import heroGemstoneRings from '@/assets/jewelry/hero-gemstone-rings.png';
 import heroAquamarineRings from '@/assets/jewelry/hero-aquamarine-rings.png';
 import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.png';
-import heroEmeraldNecklace from '@/assets/jewelry/hero-emerald-necklace.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -35,7 +34,6 @@ export default function Welcome() {
     { src: heroGemstoneRings, alt: 'Colorful gemstone rings' },
     { src: heroAquamarineRings, alt: 'Aquamarine rings on hands' },
     { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
-    { src: heroEmeraldNecklace, alt: 'Emerald layered necklace' },
   ];
 
   const handleStart = () => navigate('/studio');
