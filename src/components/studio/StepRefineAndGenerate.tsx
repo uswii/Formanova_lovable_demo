@@ -184,18 +184,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] Complete, session:', result.session_id);
 
       // Update state with results
+      const hasTwoModes = result.has_two_modes ?? false;
+      
       updateState({
         fluxResult: result.result_base64 ? `data:image/jpeg;base64,${result.result_base64}` : null,
-        geminiResult: null,
+        geminiResult: result.result_gemini_base64 ? `data:image/jpeg;base64,${result.result_gemini_base64}` : null,
         fidelityViz: result.fidelity_viz_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_base64}` : null,
-        fidelityVizGemini: null,
+        fidelityVizGemini: result.fidelity_viz_gemini_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_gemini_base64}` : null,
         metrics: result.metrics ? {
           precision: result.metrics.precision,
           recall: result.metrics.recall,
           iou: result.metrics.iou,
           growthRatio: result.metrics.growth_ratio,
         } : null,
-        metricsGemini: null,
+        metricsGemini: result.metrics_gemini ? {
+          precision: result.metrics_gemini.precision,
+          recall: result.metrics_gemini.recall,
+          iou: result.metrics_gemini.iou,
+          growthRatio: result.metrics_gemini.growth_ratio,
+        } : null,
         status: result.metrics && result.metrics.precision > 0.9 ? 'good' : 'bad',
         isGenerating: false,
         sessionId: result.session_id,
