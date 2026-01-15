@@ -11,7 +11,7 @@ import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
-// Import embedded example images (768x1024)
+// Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
 import exampleTeardropBlue from '@/assets/examples/necklace-teardrop-blue.jpg';
 import exampleBowChoker from '@/assets/examples/necklace-bow-choker.jpg';
@@ -22,6 +22,12 @@ import exampleSilverChoker from '@/assets/examples/necklace-silver-choker.png';
 import exampleRedGems from '@/assets/examples/necklace-red-gems.png';
 import exampleTennisDiamond from '@/assets/examples/necklace-tennis-diamond.png';
 import exampleGoldPendant from '@/assets/examples/necklace-gold-pendant.png';
+
+// Import embedded example images (768x1024) - Earrings
+import exampleEarringGoldInfinity from '@/assets/examples/earring-gold-infinity.jpg';
+import exampleEarringBlackCrystal from '@/assets/examples/earring-black-crystal.jpg';
+import exampleEarringColorfulDrop from '@/assets/examples/earring-colorful-drop.png';
+import exampleEarringDiamondStuds from '@/assets/examples/earring-diamond-studs.jpg';
 
 // Static example images for necklaces
 const NECKLACE_EXAMPLES = [
@@ -35,6 +41,14 @@ const NECKLACE_EXAMPLES = [
   { id: 'ex-8', name: 'Sapphire Pearl', src: exampleSapphirePearl },
   { id: 'ex-9', name: 'Tennis Diamond', src: exampleTennisDiamond },
   { id: 'ex-10', name: 'Gold Pendant', src: exampleGoldPendant },
+];
+
+// Static example images for earrings
+const EARRING_EXAMPLES = [
+  { id: 'ear-1', name: 'Gold Infinity', src: exampleEarringGoldInfinity },
+  { id: 'ear-2', name: 'Black Crystal', src: exampleEarringBlackCrystal },
+  { id: 'ear-3', name: 'Colorful Drop', src: exampleEarringColorfulDrop },
+  { id: 'ear-4', name: 'Diamond Studs', src: exampleEarringDiamondStuds },
 ];
 
 const SKIN_TONES: { value: SkinTone; label: string }[] = [
@@ -723,6 +737,23 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         {jewelryType === 'necklace' ? (
           <div className="grid grid-cols-3 gap-2">
             {NECKLACE_EXAMPLES.map((example) => (
+              <button
+                key={example.id}
+                onClick={() => loadStaticExample(example)}
+                className="group relative aspect-[3/4] overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
+              >
+                <img
+                  src={example.src}
+                  alt={example.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
+        ) : jewelryType === 'earring' || jewelryType === 'earrings' ? (
+          <div className="grid grid-cols-2 gap-2">
+            {EARRING_EXAMPLES.map((example) => (
               <button
                 key={example.id}
                 onClick={() => loadStaticExample(example)}
