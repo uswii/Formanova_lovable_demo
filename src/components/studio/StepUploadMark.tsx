@@ -457,6 +457,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                    jewelryType={jewelryType}
                     onCanvasClick={handleCanvasClick}
                   />
                   {/* Max dots warning overlay */}
@@ -535,6 +536,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={400}
+                    jewelryType={jewelryType}
                   />
                   
                   {/* Max dots warning overlay */}

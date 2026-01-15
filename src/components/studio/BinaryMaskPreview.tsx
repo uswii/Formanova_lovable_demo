@@ -1,8 +1,11 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 
-// Fixed SAM dimensions - backend resizes all images to this exact size
-const SAM_WIDTH = 2000;
-const SAM_HEIGHT = 2667;
+// SAM dimensions based on jewelry type
+// Necklaces use 2000x2667 (Flux pipeline), other jewelry uses 912x1168 (Gemini pipeline)
+const NECKLACE_SAM_WIDTH = 2000;
+const NECKLACE_SAM_HEIGHT = 2667;
+const OTHER_SAM_WIDTH = 912;
+const OTHER_SAM_HEIGHT = 1168;
 
 interface BrushStroke {
   type: 'add' | 'remove';
@@ -14,13 +17,19 @@ interface Props {
   maskImage: string;
   strokes: BrushStroke[];
   canvasSize?: number;
+  jewelryType?: string;
 }
 
-export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400 }: Props) {
+export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelryType = 'necklace' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
   
-  // Fixed 3:4 aspect ratio to match SAM's 2000x2667 dimensions
+  // Compute SAM dimensions based on jewelry type
+  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+  const SAM_WIDTH = isNecklace ? NECKLACE_SAM_WIDTH : OTHER_SAM_WIDTH;
+  const SAM_HEIGHT = isNecklace ? NECKLACE_SAM_HEIGHT : OTHER_SAM_HEIGHT;
+  
+  // Aspect ratio matches the SAM dimensions for this jewelry type
   const displayWidth = canvasSize * (SAM_WIDTH / SAM_HEIGHT);
   const displayHeight = canvasSize;
 
@@ -30,7 +39,7 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400 }: Prop
       x: (xSam / SAM_WIDTH) * displayWidth,
       y: (ySam / SAM_HEIGHT) * displayHeight,
     };
-  }, [displayWidth, displayHeight]);
+  }, [SAM_WIDTH, SAM_HEIGHT, displayWidth, displayHeight]);
 
   // Load image when maskImage changes
   useEffect(() => {
