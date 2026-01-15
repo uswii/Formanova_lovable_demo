@@ -56,6 +56,7 @@ export interface StudioState {
   scaledPoints: number[][] | null;
   processingState: ProcessingState;
   redDots: { x: number; y: number }[];
+  hasTwoModes: boolean;  // true for necklace (has Standard + Enhanced), false for others
 }
 
 export default function JewelryStudio() {
@@ -82,6 +83,7 @@ export default function JewelryStudio() {
     scaledPoints: null,
     processingState: {},
     redDots: [],
+    hasTwoModes: false,
   });
 
   const jewelryType = type || 'necklace';
