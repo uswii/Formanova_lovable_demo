@@ -15,6 +15,12 @@ export interface ProcessingState {
   maskUri?: string;  // Azure URI of the generated mask
   overlayUri?: string;  // Azure URI of the overlay
   padding?: { top: number; bottom: number; left: number; right: number };
+  // A100 API fields
+  originalMaskBase64?: string;
+  scaledPoints?: number[][];
+  sessionId?: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export type SkinTone = 'light' | 'fair' | 'medium' | 'olive' | 'brown' | 'dark';
