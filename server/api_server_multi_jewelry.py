@@ -1,0 +1,823 @@
+#!/usr/bin/env python3
+"""
+FormaNova API Server - Multi-Jewelry Support
+Run on A100 server to expose jewelry generation endpoints.
+
+Supports: Necklaces, Earrings, Bracelets, Rings, Watches
+
+Usage:
+    cd /home/bilal/uswa/viton_jewelry_model
+    /home/bilal/viton_jewelry_model/.venv/bin/python api_server_multi_jewelry.py
+
+Endpoints:
+    GET  /health              - Check if server is online
+    GET  /examples            - Get example gallery images
+    POST /segment             - Run SAM segmentation on image with click points
+    POST /refine-mask         - Apply brush edits to mask
+    POST /generate            - Generate photoshoot from image + mask (multi-jewelry)
+"""
+
+import os
+import sys
+import subprocess
+from pathlib import Path
+
+# ═════════════════════════════════════════════════════════════════════
+# AUTO-INSTALL DEPENDENCIES
+# ═════════════════════════════════════════════════════════════════════
+def auto_install():
+    """Auto-install required packages if missing"""
+    required = ["fastapi", "uvicorn", "python-multipart"]
+    pip_path = Path("/home/bilal/viton_jewelry_model/.venv/bin/pip")
+    
+    for pkg in required:
+        try:
+            __import__(pkg.replace("-", "_"))
+        except ImportError:
+            print(f"Installing {pkg}...")
+            subprocess.check_call([str(pip_path), "install", "-q", pkg])
+
+auto_install()
+
+import base64
+import io
+import logging
+import time
+import uuid
+import glob
+from typing import List, Optional, Dict, Any
+
+# ═════════════════════════════════════════════════════════════════════
+# VENV ISOLATION (same as your app_nb.py)
+# ═════════════════════════════════════════════════════════════════════
+APP_VENV_PY = Path("/home/bilal/viton_jewelry_model/.venv/bin/python").resolve()
+if Path(sys.executable).resolve() != APP_VENV_PY:
+    os.environ["PYTHONNOUSERSITE"] = "1"
+    os.environ.pop("PYTHONPATH", None)
+    os.execv(str(APP_VENV_PY), [str(APP_VENV_PY), __file__, *sys.argv[1:]])
+
+os.environ["PYTHONNOUSERSITE"] = "1"
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
+# Now import everything
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+import uvicorn
+import numpy as np
+from PIL import Image
+import torch
+import cv2
+
+# Import your existing modules
+from models_init import get_flux_pipeline, get_sam_predictor, get_birefnet_model, upscale_with_external_script
+from utils import (
+    TransformTracker,
+    segment_image_on_transparent_background,
+    segment_image_on_white_background,
+    process_mask,
+    resize_to_fixed_dimensions,
+    remove_background_birefnet,
+    downscale_for_flux,
+    extract_masked_region,
+    paste_masked_region_on_upscaled,
+    binarize_mask,
+    adjust_mask,
+    composite_zero_transformation_improved,
+    get_jewelry_only_mask,
+    compare_masks,
+    run_sam_on_image,
+)
+from gemini_refinement import refine_with_gemini
+
+# Import prompts configuration for multi-jewelry support
+from prompts_config import SKETCH_PROMPTS, get_vton_prompt, INPAINT_PROMPT
+
+# ═════════════════════════════════════════════════════════════════════
+# LOGGING
+# ═════════════════════════════════════════════════════════════════════
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+log = logging.getLogger(__name__)
+
+# ═════════════════════════════════════════════════════════════════════
+# CONSTANTS
+# ═════════════════════════════════════════════════════════════════════
+DILATION_PX = 1
+
+# Use the viton_jewelry_model directory as root (not the script location)
+APP_ROOT = Path("/home/bilal/viton_jewelry_model")
+OUTPUT_DIR = APP_ROOT / "api_outputs"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Example gallery path - use the actual path on the A100 server
+EXAMPLES_DIR = Path("/home/bilal/uswa/viton_jewelry_model/EXAMPLES")
+
+# Supported jewelry types
+SUPPORTED_JEWELRY_TYPES = {"necklace", "earring", "earrings", "bracelet", "ring", "watch"}
+
+# Map plural to singular
+JEWELRY_TYPE_NORMALIZE = {
+    "necklaces": "necklace",
+    "earrings": "earring",  # Note: prompts_config uses "earrings" key
+    "bracelets": "bracelet",
+    "rings": "ring",
+    "watches": "watch",
+    "necklace": "necklace",
+    "earring": "earring",
+    "bracelet": "bracelet",
+    "ring": "ring",
+    "watch": "watch",
+}
+
+# For prompts_config which uses "earrings" as key
+JEWELRY_TYPE_TO_PROMPT_KEY = {
+    "necklace": "necklace",
+    "earring": "earrings",  # prompts_config uses "earrings"
+    "bracelet": "bracelet",
+    "ring": "ring",
+    "watch": "bracelet",  # fallback to bracelet style for watch
+}
+
+# ═════════════════════════════════════════════════════════════════════
+# GLOBAL MODELS (loaded once at startup)
+# ═════════════════════════════════════════════════════════════════════
+inference_pipe = None
+sam_predictor = None
+birefnet_model = None
+models_loaded = False
+
+def load_models():
+    global inference_pipe, sam_predictor, birefnet_model, models_loaded
+    if models_loaded:
+        return
+    
+    log.info("Loading models...")
+    log.info("Loading Flux...")
+    inference_pipe = get_flux_pipeline()
+    log.info("Loading SAM...")
+    sam_predictor = get_sam_predictor()
+    log.info("Loading BiRefNet...")
+    birefnet_model = get_birefnet_model()
+    log.info("✓ All models loaded!")
+    models_loaded = True
+
+# ═════════════════════════════════════════════════════════════════════
+# FASTAPI APP
+# ═════════════════════════════════════════════════════════════════════
+app = FastAPI(
+    title="FormaNova API - Multi-Jewelry",
+    description="AI Jewelry Photography API with support for necklaces, earrings, bracelets, rings",
+    version="2.0.0"
+)
+
+# CORS - allow all origins for the Lovable frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ═════════════════════════════════════════════════════════════════════
+# PYDANTIC MODELS
+# ═════════════════════════════════════════════════════════════════════
+class HealthResponse(BaseModel):
+    status: str
+    models_loaded: bool
+    gpu_available: bool
+    gpu_name: Optional[str] = None
+    message: str
+    supported_jewelry_types: List[str] = ["necklace", "earring", "bracelet", "ring", "watch"]
+
+class ExampleImage(BaseModel):
+    id: str
+    name: str
+    image_base64: str
+    thumbnail_base64: Optional[str] = None
+    jewelry_type: Optional[str] = None  # NEW: jewelry type detection
+
+class ExamplesResponse(BaseModel):
+    examples: List[ExampleImage]
+
+class SegmentRequest(BaseModel):
+    image_base64: str  # Base64 encoded image
+    points: List[List[float]]  # [[x1, y1], [x2, y2], ...]
+
+class SegmentResponse(BaseModel):
+    mask_base64: str
+    mask_overlay_base64: str
+    processed_image_base64: str
+    original_mask_base64: str  # Before dilation
+    scaled_points: List[List[float]]  # Points transformed into 2000x2667 space
+    session_id: str
+    image_width: int
+    image_height: int
+
+class RefineMaskRequest(BaseModel):
+    original_image_base64: str
+    current_mask_base64: str
+    brush_strokes: List[Dict[str, Any]]  # [{type: "add"|"remove", points: [[x,y]...], radius: int}]
+
+class RefineMaskResponse(BaseModel):
+    mask_base64: str
+    mask_overlay_base64: str
+
+class GenerateRequest(BaseModel):
+    image_base64: str  # Original image (base64) - 2000x2667
+    mask_base64: str   # Edited mask image (base64)
+    original_mask_base64: Optional[str] = None  # Original SAM mask before edits
+    jewelry_type: str = "necklace"  # NEW: "necklace", "earring", "bracelet", "ring", "watch"
+    skin_tone: str = "medium"  # NEW: "light", "medium", "dark"
+    gender: str = "female"  # "male" or "female"
+    use_gemini: bool = True  # Whether to use Gemini refinement
+    scaled_points: Optional[List[List[float]]] = None  # For remask analysis
+    enable_quality_check: bool = True  # NEW: enable quality check
+    enable_transformation: bool = True  # NEW: enable transformation compositing
+
+class GenerateResponse(BaseModel):
+    result_base64: str  # Final Flux result image
+    result_gemini_base64: Optional[str] = None  # Gemini refined result
+    fidelity_viz_base64: Optional[str] = None  # Fidelity visualization for Standard
+    fidelity_viz_gemini_base64: Optional[str] = None  # Fidelity visualization for Enhanced
+    metrics: Optional[Dict[str, float]] = None  # Fidelity metrics for Standard
+    metrics_gemini: Optional[Dict[str, float]] = None  # Fidelity metrics for Enhanced
+    session_id: str
+    jewelry_type: str  # Echo back the jewelry type used
+    has_two_modes: bool = False  # True if both standard and enhanced available
+
+class UpscaleRequest(BaseModel):
+    image_base64: str  # Base64 encoded image to upscale
+    target_width: int = 2000
+    target_height: int = 2667
+
+class UpscaleResponse(BaseModel):
+    image_base64: str  # Upscaled image
+
+# ═════════════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS
+# ═════════════════════════════════════════════════════════════════════
+def base64_to_pil(base64_str: str) -> Image.Image:
+    """Convert base64 string to PIL Image"""
+    if "," in base64_str:
+        base64_str = base64_str.split(",")[1]
+    image_data = base64.b64decode(base64_str)
+    return Image.open(io.BytesIO(image_data))
+
+def pil_to_base64(image: Image.Image, format: str = "PNG") -> str:
+    """Convert PIL Image to base64 string"""
+    if image is None:
+        return None
+    buffered = io.BytesIO()
+    if format.upper() == "JPEG" and image.mode == "RGBA":
+        image = image.convert("RGB")
+    image.save(buffered, format=format, quality=95 if format.upper() == "JPEG" else None)
+    return base64.b64encode(buffered.getvalue()).decode()
+
+def normalize_jewelry_type(jewelry_type: str) -> str:
+    """Normalize jewelry type to singular form"""
+    jt = jewelry_type.lower().strip()
+    return JEWELRY_TYPE_NORMALIZE.get(jt, "necklace")
+
+def get_prompt_key(jewelry_type: str) -> str:
+    """Get the key to use in prompts_config"""
+    normalized = normalize_jewelry_type(jewelry_type)
+    return JEWELRY_TYPE_TO_PROMPT_KEY.get(normalized, "necklace")
+
+def should_remove_background(image: Image.Image) -> bool:
+    """Detect if image has a removable background"""
+    try:
+        img_array = np.array(image.convert("RGB"))
+        h, w = img_array.shape[:2]
+        sample_size = min(20, h // 10, w // 10)
+        
+        edge_pixels = []
+        edge_pixels.extend(img_array[0:sample_size, :].reshape(-1, 3))
+        edge_pixels.extend(img_array[h - sample_size:h, :].reshape(-1, 3))
+        edge_pixels.extend(img_array[:, 0:sample_size].reshape(-1, 3))
+        edge_pixels.extend(img_array[:, w - sample_size:w].reshape(-1, 3))
+        
+        edge_pixels = np.array(edge_pixels)
+        edge_std = np.std(edge_pixels, axis=0).mean()
+        
+        return edge_std < 90
+    except:
+        return False
+
+def create_overlay_visualization(image: Image.Image, mask: Image.Image) -> Image.Image:
+    """Create green overlay visualization"""
+    img_rgb = image.convert("RGB")
+    bin_mask = binarize_mask(mask, 128)
+    overlay = img_rgb.copy()
+    arr = np.array(overlay)
+    mask_arr = np.array(bin_mask)
+    
+    green_layer = np.zeros_like(arr)
+    green_layer[mask_arr == 255] = [0, 255, 0]
+    arr = cv2.addWeighted(arr, 0.7, green_layer, 0.3, 0)
+    
+    return Image.fromarray(arr)
+
+def create_binary_mask_display(mask: Image.Image) -> Image.Image:
+    """Create binary black/white mask display"""
+    binary = binarize_mask(mask, 128)
+    display = Image.new("RGB", binary.size, (0, 0, 0))
+    white_pixels = np.array(binary) == 255
+    arr = np.array(display)
+    arr[white_pixels] = [255, 255, 255]
+    return Image.fromarray(arr)
+
+def create_fidelity_visualization(original, generated, mask_input, mask_generated):
+    """Create overlay showing correct (green) and expansion (blue) areas"""
+    mask_input_arr = np.array(mask_input.convert("L")) > 128
+    mask_generated_arr = np.array(mask_generated.convert("L")) > 128
+    
+    generated_rgb = np.array(generated.convert("RGB"))
+    overlay = generated_rgb.copy()
+    
+    # GREEN: Correct regions
+    correct = mask_input_arr & mask_generated_arr
+    overlay[correct] = cv2.addWeighted(
+        overlay[correct], 0.7,
+        np.full_like(overlay[correct], [0, 255, 0]), 0.3, 0
+    )
+    
+    # BLUE: Expansion
+    expansion = (~mask_input_arr) & mask_generated_arr
+    overlay[expansion] = cv2.addWeighted(
+        overlay[expansion], 0.5,
+        np.full_like(overlay[expansion], [0, 191, 255]), 0.5, 0
+    )
+    
+    return Image.fromarray(overlay)
+
+def detect_jewelry_type_from_filename(filename: str) -> Optional[str]:
+    """Detect jewelry type from filename"""
+    filename_lower = filename.lower()
+    if any(kw in filename_lower for kw in ['earring', 'ear']):
+        return "earring"
+    elif any(kw in filename_lower for kw in ['bracelet', 'bangle', 'wrist']):
+        return "bracelet"
+    elif any(kw in filename_lower for kw in ['ring', 'finger']):
+        return "ring"
+    elif any(kw in filename_lower for kw in ['necklace', 'pendant', 'chain', 'choker']):
+        return "necklace"
+    elif any(kw in filename_lower for kw in ['watch']):
+        return "watch"
+    return None
+
+def get_flux_prompt(jewelry_type: str, skin_tone: str, gender: str) -> str:
+    """
+    Get the Flux inpainting prompt based on jewelry type.
+    Uses prompts_config.get_vton_prompt for full prompt.
+    For Flux, we use a simplified version.
+    """
+    normalized_type = normalize_jewelry_type(jewelry_type)
+    
+    # Jewelry-specific model descriptions
+    jewelry_descriptions = {
+        "necklace": f"Necklace worn by {gender} model, beautiful realistic eyes, {skin_tone} skin tone",
+        "earring": f"Earrings worn by {gender} model with elegant updo hairstyle, ears visible, {skin_tone} skin tone",
+        "bracelet": f"Bracelet on {gender} wrist, elegant hand pose, {skin_tone} skin tone",
+        "ring": f"Ring on {gender} finger, elegant hand pose, {skin_tone} skin tone",
+        "watch": f"Watch on {gender} wrist, elegant pose, {skin_tone} skin tone",
+    }
+    
+    return jewelry_descriptions.get(normalized_type, jewelry_descriptions["necklace"])
+
+# ═════════════════════════════════════════════════════════════════════
+# ENDPOINTS
+# ═════════════════════════════════════════════════════════════════════
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Check if the API server is running and models are loaded"""
+    gpu_available = torch.cuda.is_available()
+    gpu_name = torch.cuda.get_device_name(0) if gpu_available else None
+    
+    return HealthResponse(
+        status="online",
+        models_loaded=models_loaded,
+        gpu_available=gpu_available,
+        gpu_name=gpu_name,
+        message="FormaNova Multi-Jewelry API is ready" if models_loaded else "Models loading...",
+        supported_jewelry_types=["necklace", "earring", "bracelet", "ring", "watch"]
+    )
+
+@app.get("/examples", response_model=ExamplesResponse)
+async def get_examples():
+    """Get example gallery images"""
+    examples = []
+    
+    if EXAMPLES_DIR.exists():
+        for i, img_path in enumerate(sorted(EXAMPLES_DIR.glob("*.jpg")) + sorted(EXAMPLES_DIR.glob("*.png"))):
+            try:
+                img = Image.open(img_path)
+                
+                # Create thumbnail
+                thumb = img.copy()
+                thumb.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                
+                # Detect jewelry type from filename
+                detected_type = detect_jewelry_type_from_filename(img_path.stem)
+                
+                examples.append(ExampleImage(
+                    id=f"example_{i}",
+                    name=img_path.stem,
+                    image_base64=pil_to_base64(img, "JPEG"),
+                    thumbnail_base64=pil_to_base64(thumb, "JPEG"),
+                    jewelry_type=detected_type
+                ))
+            except Exception as e:
+                log.warning(f"Failed to load example {img_path}: {e}")
+    
+    return ExamplesResponse(examples=examples)
+
+@app.post("/segment", response_model=SegmentResponse)
+async def segment_jewelry(request: SegmentRequest):
+    """
+    Run SAM segmentation on the uploaded image with click points.
+    Returns the mask and overlay visualization.
+    """
+    if not models_loaded:
+        raise HTTPException(status_code=503, detail="Models not loaded yet. Please wait.")
+    
+    session_id = f"api_{uuid.uuid4().hex[:8]}"
+    log.info(f"[{session_id}] Starting segmentation with {len(request.points)} points")
+    
+    try:
+        # Decode image
+        image_pil = base64_to_pil(request.image_base64)
+        points = request.points
+        
+        if not points:
+            raise HTTPException(status_code=400, detail="No click points provided")
+        
+        original_image = image_pil.copy()
+        
+        # Background removal if needed
+        if should_remove_background(image_pil):
+            log.info(f"[{session_id}] Removing background...")
+            image_no_bg = remove_background_birefnet(image_pil, birefnet_model, bg_color=(250, 250, 250))
+        else:
+            log.info(f"[{session_id}] Skipping background removal (close-up detected)")
+            image_no_bg = image_pil.copy()
+        
+        # Resize to fixed dimensions (2000x2667)
+        image_highres_nobg, tracker = resize_to_fixed_dimensions(image_no_bg, 2000, 2667)
+        image_highres_original, _ = resize_to_fixed_dimensions(original_image, 2000, 2667)
+        
+        # Points are already in 2000x2667 space from frontend - no transformation needed
+        scaled_points = points
+        log.info(f"[{session_id}] Using points directly (already in SAM space): {scaled_points}")
+        
+        # Run SAM
+        log.info(f"[{session_id}] Running SAM...")
+        sam_predictor.set_image(np.array(image_highres_nobg))
+        
+        scaled_points_np = np.array(scaled_points)
+        labels = np.ones(len(scaled_points), dtype=int)
+        
+        masks, scores, logits = sam_predictor.predict(
+            point_coords=scaled_points_np,
+            point_labels=labels,
+            multimask_output=False
+        )
+        
+        log.info(f"[{session_id}] SAM complete, score: {scores[0]:.3f}")
+        
+        # Process mask
+        mask_array = (masks[0] * 255).astype(np.uint8)
+        mask_pil_original = Image.fromarray(mask_array).convert("L")
+        mask_pil_original = process_mask(mask_pil_original, invert=False)
+        
+        # Dilate mask
+        mask_dilated = adjust_mask(mask_pil_original, DILATION_PX)
+        
+        # Create overlay visualization
+        overlay = create_overlay_visualization(image_highres_original, mask_dilated)
+        
+        log.info(f"[{session_id}] Segmentation complete!")
+        
+        return SegmentResponse(
+            mask_base64=pil_to_base64(mask_dilated, "PNG"),
+            mask_overlay_base64=pil_to_base64(overlay, "JPEG"),
+            processed_image_base64=pil_to_base64(image_highres_original, "JPEG"),
+            original_mask_base64=pil_to_base64(mask_pil_original, "PNG"),
+            scaled_points=scaled_points,
+            session_id=session_id,
+            image_width=2000,
+            image_height=2667
+        )
+        
+    except Exception as e:
+        log.error(f"[{session_id}] Segmentation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/refine-mask", response_model=RefineMaskResponse)
+async def refine_mask(request: RefineMaskRequest):
+    """
+    Apply brush edits to the mask.
+    Brush strokes: add (green) or remove (black) regions.
+    """
+    try:
+        original_image = base64_to_pil(request.original_image_base64).convert("RGB")
+        current_mask = base64_to_pil(request.current_mask_base64).convert("L")
+        
+        mask_arr = np.array(current_mask)
+        
+        for stroke in request.brush_strokes:
+            stroke_type = stroke.get("type", "add")
+            points = stroke.get("points", [])
+            radius = stroke.get("radius", 10)
+            
+            for point in points:
+                x, y = int(point[0]), int(point[1])
+                cv2.circle(
+                    mask_arr,
+                    (x, y),
+                    radius,
+                    255 if stroke_type == "add" else 0,
+                    -1  # Filled
+                )
+        
+        refined_mask = Image.fromarray(mask_arr)
+        overlay = create_overlay_visualization(original_image, refined_mask)
+        
+        return RefineMaskResponse(
+            mask_base64=pil_to_base64(refined_mask, "PNG"),
+            mask_overlay_base64=pil_to_base64(overlay, "JPEG")
+        )
+        
+    except Exception as e:
+        log.error(f"Mask refinement failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upscale", response_model=UpscaleResponse)
+async def upscale_image(request: UpscaleRequest):
+    """
+    Upscale an image to target dimensions using the external upscaler script.
+    """
+    try:
+        log.info(f"Upscaling image to {request.target_width}x{request.target_height}")
+        
+        # Decode image
+        image_pil = base64_to_pil(request.image_base64).convert("RGB")
+        
+        # Upscale
+        upscaled = upscale_with_external_script(image_pil, request.target_width, request.target_height)
+        
+        log.info("Upscale complete!")
+        
+        return UpscaleResponse(
+            image_base64=pil_to_base64(upscaled, "JPEG")
+        )
+        
+    except Exception as e:
+        log.error(f"Upscale failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate", response_model=GenerateResponse)
+async def generate_photoshoot(request: GenerateRequest):
+    """
+    Generate a photoshoot from the image and mask.
+    Supports multiple jewelry types: necklace, earring, bracelet, ring, watch
+    Returns the final result with jewelry composited.
+    """
+    if not models_loaded:
+        raise HTTPException(status_code=503, detail="Models not loaded yet. Please wait.")
+    
+    # Normalize jewelry type
+    jewelry_type = normalize_jewelry_type(request.jewelry_type)
+    skin_tone = request.skin_tone.lower() if request.skin_tone else "medium"
+    
+    session_id = f"gen_{jewelry_type}_{uuid.uuid4().hex[:8]}"
+    log.info(f"[{session_id}] Starting generation:")
+    log.info(f"  - Jewelry type: {request.jewelry_type} -> {jewelry_type}")
+    log.info(f"  - Skin tone: {skin_tone}")
+    log.info(f"  - Gender: {request.gender}")
+    log.info(f"  - Use Gemini: {request.use_gemini}")
+    
+    try:
+        # Decode inputs
+        original_2667 = base64_to_pil(request.image_base64).convert("RGB")
+        mask_edited_2667 = base64_to_pil(request.mask_base64).convert("L")
+        
+        # Get original mask if provided
+        if request.original_mask_base64:
+            mask_original = base64_to_pil(request.original_mask_base64).convert("L")
+        else:
+            mask_original = mask_edited_2667.copy()
+        
+        # Ensure correct size
+        if original_2667.size != (2000, 2667):
+            original_2667 = original_2667.resize((2000, 2667), Image.Resampling.LANCZOS)
+        if mask_edited_2667.size != (2000, 2667):
+            mask_edited_2667 = mask_edited_2667.resize((2000, 2667), Image.Resampling.LANCZOS)
+        
+        # Expand mask for Flux (11px dilation for blend region)
+        log.info(f"[{session_id}] Expanding mask for Flux...")
+        mask_dilated_expanded = adjust_mask(mask_edited_2667, 11)
+        
+        # ═════════════════════════════════════════════════════════════
+        # FLUX GENERATION - Using jewelry-specific prompt
+        # ═════════════════════════════════════════════════════════════
+        image_1024 = downscale_for_flux(original_2667, 768, 1024)
+        mask_1024 = mask_dilated_expanded.resize((768, 1024), Image.Resampling.NEAREST)
+        mask_1024_inverted = Image.eval(mask_1024, lambda x: 255 - x)
+        image_1024_segmented = segment_image_on_white_background(image_1024, mask_1024)
+        
+        # Get jewelry-specific prompt
+        prompt = get_flux_prompt(jewelry_type, skin_tone, request.gender)
+        log.info(f"[{session_id}] Running Flux with prompt: {prompt}")
+        
+        flux_output_768 = inference_pipe(
+            prompt=prompt,
+            image=image_1024_segmented,
+            mask_image=mask_1024_inverted,
+            width=768,
+            height=1024,
+            guidance_scale=40,
+            num_inference_steps=40
+        ).images[0]
+        
+        # Upscale to 2000x2667
+        log.info(f"[{session_id}] Upscaling...")
+        flux_enhanced_2667 = upscale_with_external_script(flux_output_768, 2000, 2667)
+        
+        # ═════════════════════════════════════════════════════════════
+        # NON-COMPOSITE (strict jewelry paste)
+        # ═════════════════════════════════════════════════════════════
+        strict_alpha = binarize_mask(mask_edited_2667, 128)
+        strict_rgba = original_2667.convert("RGBA")
+        strict_rgba.putalpha(strict_alpha)
+        
+        result_flux = paste_masked_region_on_upscaled(
+            strict_rgba,
+            flux_enhanced_2667,
+            mode='non-composite'
+        )
+        
+        # ═════════════════════════════════════════════════════════════
+        # GEMINI REFINEMENT (optional)
+        # ═════════════════════════════════════════════════════════════
+        result_gemini = None
+        if request.use_gemini:
+            try:
+                log.info(f"[{session_id}] Running Gemini refinement...")
+                gemini_bg = refine_with_gemini(
+                    generated_image_2667=result_flux,
+                    original_image_2667=original_2667,
+                    mask_edited_2667=mask_edited_2667,
+                    upscale_fn=upscale_with_external_script,
+                    composite_fn=composite_zero_transformation_improved,
+                    session_id=session_id,
+                    session_dirs=None,
+                    # Pass jewelry-specific context if needed
+                    jewelry_type=jewelry_type,
+                    skin_tone=skin_tone
+                )
+                
+                result_gemini = paste_masked_region_on_upscaled(
+                    strict_rgba,
+                    gemini_bg,
+                    mode='non-composite'
+                )
+                log.info(f"[{session_id}] Gemini refinement complete!")
+            except Exception as e:
+                log.warning(f"[{session_id}] Gemini failed: {e}")
+                result_gemini = None
+        
+        # ═════════════════════════════════════════════════════════════
+        # FIDELITY ANALYSIS (for both Standard and Enhanced)
+        # ═════════════════════════════════════════════════════════════
+        fidelity_viz_flux = None
+        fidelity_viz_gemini = None
+        metrics_flux = None
+        metrics_gemini = None
+        
+        if request.scaled_points:
+            # Precompute brush edit arrays
+            input_original_arr = np.array(mask_original.resize((2000, 2667), Image.Resampling.NEAREST))
+            input_edited_arr = np.array(mask_edited_2667)
+            additions = (input_edited_arr > input_original_arr)
+            removals = (input_edited_arr < input_original_arr)
+            
+            # Fidelity for Standard (Flux) result
+            try:
+                log.info(f"[{session_id}] Running fidelity analysis for Standard...")
+                mask_gen_flux = run_sam_on_image(result_flux, request.scaled_points, sam_predictor)
+                mask_gen_flux_dilated = adjust_mask(mask_gen_flux, DILATION_PX)
+                mask_gen_flux_arr = np.array(mask_gen_flux_dilated)
+                mask_gen_flux_arr[additions] = 255
+                mask_gen_flux_arr[removals] = 0
+                mask_gen_flux_edited = Image.fromarray(mask_gen_flux_arr.astype(np.uint8))
+                
+                metrics_flux = compare_masks(mask_edited_2667, mask_gen_flux_edited)
+                fidelity_viz_flux = create_fidelity_visualization(
+                    original_2667, result_flux, mask_edited_2667, mask_gen_flux_edited
+                )
+            except Exception as e:
+                log.warning(f"[{session_id}] Fidelity analysis for Standard failed: {e}")
+            
+            # Fidelity for Enhanced (Gemini) result
+            if result_gemini:
+                try:
+                    log.info(f"[{session_id}] Running fidelity analysis for Enhanced...")
+                    mask_gen_gemini = run_sam_on_image(result_gemini, request.scaled_points, sam_predictor)
+                    mask_gen_gemini_dilated = adjust_mask(mask_gen_gemini, DILATION_PX)
+                    mask_gen_gemini_arr = np.array(mask_gen_gemini_dilated)
+                    mask_gen_gemini_arr[additions] = 255
+                    mask_gen_gemini_arr[removals] = 0
+                    mask_gen_gemini_edited = Image.fromarray(mask_gen_gemini_arr.astype(np.uint8))
+                    
+                    metrics_gemini = compare_masks(mask_edited_2667, mask_gen_gemini_edited)
+                    fidelity_viz_gemini = create_fidelity_visualization(
+                        original_2667, result_gemini, mask_edited_2667, mask_gen_gemini_edited
+                    )
+                except Exception as e:
+                    log.warning(f"[{session_id}] Fidelity analysis for Enhanced failed: {e}")
+        
+        # ═════════════════════════════════════════════════════════════
+        # SAVE OUTPUTS
+        # ═════════════════════════════════════════════════════════════
+        try:
+            session_output_dir = OUTPUT_DIR / session_id
+            session_output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save inputs
+            original_2667.save(session_output_dir / "input_original.jpg", quality=95)
+            mask_edited_2667.save(session_output_dir / "input_mask.png")
+            
+            # Save outputs
+            result_flux.save(session_output_dir / "output_standard.jpg", quality=95)
+            if result_gemini:
+                result_gemini.save(session_output_dir / "output_enhanced.jpg", quality=95)
+            if fidelity_viz_flux:
+                fidelity_viz_flux.save(session_output_dir / "fidelity_standard.jpg", quality=95)
+            if fidelity_viz_gemini:
+                fidelity_viz_gemini.save(session_output_dir / "fidelity_enhanced.jpg", quality=95)
+            
+            # Save metadata
+            metadata = {
+                "jewelry_type": jewelry_type,
+                "skin_tone": skin_tone,
+                "gender": request.gender,
+                "use_gemini": request.use_gemini,
+            }
+            with open(session_output_dir / "metadata.json", "w") as f:
+                import json
+                json.dump(metadata, f, indent=2)
+            
+            log.info(f"[{session_id}] Saved outputs to {session_output_dir}")
+        except Exception as e:
+            log.warning(f"[{session_id}] Failed to save outputs: {e}")
+        
+        log.info(f"[{session_id}] Generation complete!")
+        
+        return GenerateResponse(
+            result_base64=pil_to_base64(result_flux, "JPEG"),
+            result_gemini_base64=pil_to_base64(result_gemini, "JPEG") if result_gemini else None,
+            fidelity_viz_base64=pil_to_base64(fidelity_viz_flux, "JPEG") if fidelity_viz_flux else None,
+            fidelity_viz_gemini_base64=pil_to_base64(fidelity_viz_gemini, "JPEG") if fidelity_viz_gemini else None,
+            metrics=metrics_flux,
+            metrics_gemini=metrics_gemini,
+            session_id=session_id,
+            jewelry_type=jewelry_type,
+            has_two_modes=result_gemini is not None
+        )
+        
+    except Exception as e:
+        log.error(f"[{session_id}] Generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ═════════════════════════════════════════════════════════════════════
+# STARTUP
+# ═════════════════════════════════════════════════════════════════════
+@app.on_event("startup")
+async def startup_event():
+    """Load models on startup"""
+    log.info("=" * 60)
+    log.info("FormaNova Multi-Jewelry API Server Starting...")
+    log.info("=" * 60)
+    load_models()
+    log.info("=" * 60)
+    log.info("Server ready! Endpoints available:")
+    log.info("  GET  /health      - Health check")
+    log.info("  GET  /examples    - Example gallery")
+    log.info("  POST /segment     - SAM segmentation")
+    log.info("  POST /refine-mask - Brush mask editing")
+    log.info("  POST /upscale     - Upscale image")
+    log.info("  POST /generate    - Generate photoshoot (multi-jewelry)")
+    log.info("")
+    log.info("Supported jewelry types: necklace, earring, bracelet, ring, watch")
+    log.info("=" * 60)
+
+if __name__ == "__main__":
+    # Run with: python api_server_multi_jewelry.py
+    # Or: uvicorn api_server_multi_jewelry:app --host 0.0.0.0 --port 8000
+    uvicorn.run(app, host="0.0.0.0", port=8000)
