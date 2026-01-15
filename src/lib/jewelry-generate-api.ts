@@ -25,7 +25,8 @@ export interface GenerateRequest {
   imageBase64: string;      // Original/resized image
   maskBase64: string;       // Edited mask (user may have brush edited)
   jewelryType: string;      // Will be converted to singular
-  skinTone: string;
+  skinTone: string;         // For non-necklace types
+  gender?: string;          // For necklace type (always "female")
   enableQualityCheck?: boolean;
   enableTransformation?: boolean;
 }
@@ -94,16 +95,22 @@ class JewelryGenerateApi {
       return b64;
     };
 
-    const body = {
+    // For necklace, send gender="female"; for others, send skin_tone
+    const body: Record<string, unknown> = {
       image_base64: cleanBase64(request.imageBase64),
       mask_base64: cleanBase64(request.maskBase64),
       jewelry_type: singularType,
-      skin_tone: request.skinTone,
       enable_quality_check: request.enableQualityCheck ?? true,
       enable_transformation: request.enableTransformation ?? true,
     };
 
-    console.log(`[JewelryAPI] Sending request, image size: ${body.image_base64.length}, mask size: ${body.mask_base64.length}`);
+    if (singularType === 'necklace') {
+      body.gender = 'female';
+    } else {
+      body.skin_tone = request.skinTone;
+    }
+
+    console.log(`[JewelryAPI] Sending request, image size: ${(body.image_base64 as string).length}, mask size: ${(body.mask_base64 as string).length}`);
 
     const response = await fetch(this.getProxyUrl('/generate'), {
       method: 'POST',
