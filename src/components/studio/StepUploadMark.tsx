@@ -53,6 +53,42 @@ const EARRING_EXAMPLES = [
 
 // Skin tone selection moved to StepRefineAndGenerate
 
+// Invert a binary mask image (black -> white, white -> black)
+// Used for non-necklace jewelry where SAM returns inverted masks
+async function invertMaskImage(maskDataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Cannot create canvas context'));
+        return;
+      }
+      
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Invert each pixel
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = 255 - data[i];       // R
+        data[i + 1] = 255 - data[i + 1]; // G
+        data[i + 2] = 255 - data[i + 2]; // B
+        // Alpha stays the same
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load mask image for inversion'));
+    img.src = maskDataUrl;
+  });
+}
+
 // Create an overlay by compositing the binary mask (green tint) over the original image
 async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -271,9 +307,16 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       setProcessingStep('Processing mask...');
 
       // Convert base64 responses to data URLs
-      const maskBinary = `data:image/png;base64,${segmentResult.mask_base64}`;
+      let maskBinary = `data:image/png;base64,${segmentResult.mask_base64}`;
       const maskOverlay = `data:image/jpeg;base64,${segmentResult.mask_overlay_base64}`;
       const processedImage = `data:image/jpeg;base64,${segmentResult.processed_image_base64}`;
+
+      // Invert mask for non-necklace jewelry (SAM returns inverted for these)
+      const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+      if (!isNecklace) {
+        console.log('[Masking] Inverting mask for non-necklace jewelry:', jewelryType);
+        maskBinary = await invertMaskImage(maskBinary);
+      }
 
       console.log('[Masking] Got mask and overlay');
 
