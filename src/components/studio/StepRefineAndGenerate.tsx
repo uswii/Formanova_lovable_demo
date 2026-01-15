@@ -650,27 +650,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
             <h3 className="font-display text-2xl uppercase tracking-tight">Controls</h3>
           </div>
           
-          {/* Model Options - Only for non-necklace categories */}
-          {jewelryType !== 'necklace' && (
-            <div className="space-y-2 pb-4 border-b border-border/30">
-              <label className="text-sm font-medium">Model Skin Tone</label>
-              <Select
-                value={state.skinTone}
-                onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
-              >
-                <SelectTrigger className="w-full bg-background border-border">
-                  <SelectValue placeholder="Select skin tone" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
-                  {SKIN_TONES.map((tone) => (
-                    <SelectItem key={tone.value} value={tone.value}>
-                      {tone.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Model Skin Tone Selection */}
+          <div className="space-y-2 pb-4 border-b border-border/30">
+            <label className="text-sm font-medium">Model Skin Tone</label>
+            <Select
+              value={state.skinTone}
+              onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
+            >
+              <SelectTrigger className="w-full bg-background border-border">
+                <SelectValue placeholder="Select skin tone" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                {SKIN_TONES.map((tone) => (
+                  <SelectItem key={tone.value} value={tone.value}>
+                    {tone.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <div className="space-y-5">
             <div className="space-y-3">
