@@ -173,6 +173,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         maskBase64: maskToUse,
         jewelryType: jewelryType, // Will be converted to singular in API
         skinTone: state.skinTone,
+        scaledPoints: state.processingState?.scaledPoints, // Pass scaled points for fidelity
         enableQualityCheck: true,
         enableTransformation: true,
       });
