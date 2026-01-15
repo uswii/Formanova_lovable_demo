@@ -591,6 +591,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                           brushSize={brushSize}
                           mode="brush"
                           canvasSize={400}
+                          jewelryType={jewelryType}
                           initialStrokes={effectiveStrokes}
                           activeStroke={activeStroke}
                           onBrushStrokeStart={handleStrokeStart}
@@ -629,6 +630,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                           brushSize={brushSize}
                           mode="brush"
                           canvasSize={400}
+                          jewelryType={jewelryType}
                           initialStrokes={effectiveStrokes}
                           activeStroke={activeStroke}
                           onBrushStrokeStart={handleStrokeStart}

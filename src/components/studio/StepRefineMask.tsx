@@ -16,6 +16,7 @@ interface Props {
   updateState: (updates: Partial<StudioState>) => void;
   onNext: () => void;
   onBack: () => void;
+  jewelryType?: string;
 }
 
 type BrushStroke = {
@@ -24,7 +25,7 @@ type BrushStroke = {
   radius: number;
 };
 
-export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
+export function StepRefineMask({ state, updateState, onNext, onBack, jewelryType = 'necklace' }: Props) {
   const [brushMode, setBrushMode] = useState<'add' | 'remove'>('add');
   const [brushSize, setBrushSize] = useState(30);
   const [isApplying, setIsApplying] = useState(false);
@@ -177,6 +178,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                   brushSize={brushSize}
                   mode="brush"
                   canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                  jewelryType={jewelryType}
                   initialStrokes={effectiveStrokes}
                   activeStroke={activeStroke}
                   onBrushStrokeStart={handleStrokeStart}
@@ -189,6 +191,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                   maskImage={state.maskBinary}
                   strokes={effectiveStrokes}
                   canvasSize={Math.min(window.innerHeight * 0.7, 700)}
+                  jewelryType={jewelryType}
                 />
               )}
             </div>
@@ -253,6 +256,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                         brushSize={brushSize}
                         mode="brush"
                         canvasSize={400}
+                        jewelryType={jewelryType}
                         initialStrokes={effectiveStrokes}
                         activeStroke={activeStroke}
                         onBrushStrokeStart={handleStrokeStart}
@@ -288,6 +292,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack }: Props) {
                         maskImage={state.maskBinary}
                         strokes={effectiveStrokes}
                         canvasSize={400}
+                        jewelryType={jewelryType}
                       />
                       <button
                         className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"

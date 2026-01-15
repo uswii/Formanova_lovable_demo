@@ -1,8 +1,11 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 
-// Fixed SAM dimensions - backend resizes all images to this exact size
-const SAM_WIDTH = 2000;
-const SAM_HEIGHT = 2667;
+// SAM dimensions based on jewelry type
+// Necklaces use 2000x2667 (Flux pipeline), other jewelry uses 912x1168 (Gemini pipeline)
+const NECKLACE_SAM_WIDTH = 2000;
+const NECKLACE_SAM_HEIGHT = 2667;
+const OTHER_SAM_WIDTH = 912;
+const OTHER_SAM_HEIGHT = 1168;
 
 interface BrushStroke {
   type: 'add' | 'remove';
@@ -20,6 +23,10 @@ interface Props {
    * Maximum canvas display size in pixels.
    */
   canvasSize?: number;
+  /**
+   * Jewelry type determines SAM dimensions: necklaces use 2000x2667, others use 912x1168
+   */
+  jewelryType?: string;
   /**
    * Initial strokes to render on the canvas (for undo/redo support)
    */
@@ -42,6 +49,7 @@ export function MaskCanvas({
   brushSize = 10,
   mode,
   canvasSize = 400,
+  jewelryType = 'necklace',
   initialStrokes = [],
   activeStroke = null,
   onCanvasClick,
@@ -56,8 +64,13 @@ export function MaskCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Fixed 3:4 aspect ratio to match SAM's 2000x2667 dimensions
-  const displayWidth = canvasSize * (SAM_WIDTH / SAM_HEIGHT); // 3:4 ratio
+  // Compute SAM dimensions based on jewelry type
+  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+  const SAM_WIDTH = isNecklace ? NECKLACE_SAM_WIDTH : OTHER_SAM_WIDTH;
+  const SAM_HEIGHT = isNecklace ? NECKLACE_SAM_HEIGHT : OTHER_SAM_HEIGHT;
+  
+  // Aspect ratio matches the SAM dimensions for this jewelry type
+  const displayWidth = canvasSize * (SAM_WIDTH / SAM_HEIGHT);
   const displayHeight = canvasSize;
 
   // Load and draw image - stretched to 3:4 to match backend resize
