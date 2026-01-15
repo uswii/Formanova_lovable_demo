@@ -184,7 +184,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] Complete, session:', result.session_id);
       console.log('[Generation] has_two_modes:', result.has_two_modes);
       console.log('[Generation] fidelity_viz_base64:', !!result.fidelity_viz_base64);
+      console.log('[Generation] fidelity_viz_gemini_base64:', !!result.fidelity_viz_gemini_base64);
       console.log('[Generation] metrics:', result.metrics);
+      console.log('[Generation] metrics_gemini:', result.metrics_gemini);
+      console.log('[Generation] Full response keys:', Object.keys(result));
 
       // Update state with results
       const hasTwoModes = result.has_two_modes ?? false;
