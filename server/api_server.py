@@ -116,107 +116,271 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 log = logging.getLogger(__name__)
 
 # ═════════════════════════════════════════════════════════════════════
-# PROMPTS FOR MULTI-JEWELRY
+# PROMPTS FOR MULTI-JEWELRY (from prompts_config.py)
 # ═════════════════════════════════════════════════════════════════════
 SKETCH_PROMPTS = {
     "earring": """Create a simple white outline sketch on black solid background showing ONLY the body outline where the jewelry will be placed.
+
 CRITICAL POSITIONING AND FRAMING:
 - Preserve the EXACT framing, crop, and composition of the original image
 - Match the original image zoom level and boundaries PRECISELY
-Draw simple white outline sketch of EXACTLY what is visible in the original image:
-- Ears outline at EXACT position where earrings sit
-Use thin white lines only, no shading, no texture. Black solid background. Do NOT include jewelry in the sketch.""",
+- DO NOT add or complete body parts that are cropped out of the frame
+- The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image
+
+- Draw simple white outline sketch of EXACTLY what is visible in the original image:
+- Match the original framing exactly (whether it's ears only, half face, or full face)
+- Draw ALL visible parts (ear, face portions, neck, etc.) at their exact positions
+- Ears outline at EXACT position where earrings sit (match original ear position precisely)
+- DO NOT extend beyond the original frame boundaries
+- DO NOT add parts that are outside the original crop
+
+Use thin white lines only, no shading, no texture, no facial details. Black solid background. Abstract minimal map. Do NOT include jewelry in the sketch - only the body outline that is actually visible in the original image.""",
 
     "bracelet": """Create a simple white outline sketch on black solid background showing ONLY the body outline where the jewelry will be placed.
-CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image.
+
+CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image. Preserve spatial relationships.
+
 Draw simple white outline sketch of:
 - Hand shape and position (exact size and location as original)
-- Wrist outline at EXACT position where bracelet sits
-- Fingers outline if visible
-Use thin white lines only, no shading, no texture. Black solid background. Do NOT include jewelry in the sketch.""",
+- Wrist outline at EXACT position where bracelet sits (match original wrist position precisely)
+- Fingers outline if visible (exact position as original)
+
+Use thin white lines only, no shading, no texture. Black solid background. Abstract minimal map. Do NOT include jewelry in the sketch - only the body outline.""",
 
     "ring": """Create a simple white outline sketch on black solid background showing ONLY the body outline where the jewelry will be placed.
-CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image.
+
+CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image. Preserve spatial relationships.
+
 Draw simple white outline sketch of:
 - Hand shape and position (exact size and location as original)
-- Fingers outline at EXACT position where ring sits
-Use thin white lines only, no shading, no texture. Black solid background. Do NOT include jewelry in the sketch.""",
+- Fingers outline at EXACT position where ring sits (match original finger position precisely)
+- Finger placement and spacing (exact as original)
+
+Use thin white lines only, no shading, no texture. Black solid background. Abstract minimal map. Do NOT include jewelry in the sketch - only the body outline.""",
 
     "watch": """Create a simple white outline sketch on black solid background showing ONLY the body outline where the jewelry will be placed.
-CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image.
+
+CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image. Preserve spatial relationships.
+
 Draw simple white outline sketch of:
 - Hand shape and position (exact size and location as original)
-- Wrist outline at EXACT position where watch sits
-Use thin white lines only, no shading, no texture. Black solid background. Do NOT include jewelry in the sketch."""
+- Wrist outline at EXACT position where watch sits (match original wrist position precisely)
+- Arm outline if visible (exact position as original)
+
+Use thin white lines only, no shading, no texture. Black solid background. Abstract minimal map. Do NOT include jewelry in the sketch - only the body outline.""",
+
+    "necklace": """Create a simple white outline sketch on black solid background showing ONLY the body outline where the jewelry will be placed.
+
+CRITICAL POSITIONING: The body part outline must be drawn at the EXACT position, scale, and orientation as in the original image. Preserve spatial relationships.
+
+Draw simple white outline sketch of:
+- Neck shape and position (exact size and location as original)
+- Chest and collarbone outline (exact position as original)
+- Shoulders outline at EXACT position where necklace sits (match original shoulder position precisely)
+
+Use thin white lines only, no shading, no texture. Black solid background. Abstract minimal map. Do NOT include jewelry in the sketch - only the body outline."""
 }
 
-VTON_BASE_PROMPT = """Lock the jewelry area completely so its pixels remain 100% identical.
-CRITICAL MASK INFORMATION (SAM3-GENERATED):
-- A binary mask is attached where WHITE PIXELS (255) = JEWELRY LOCATION
-- This mask was generated by SAM3 and defines the EXACT jewelry boundaries
-JEWELRY PRESERVATION RULES:
-- Use jewelry boundary (white pixels in mask) as IMMUTABLE, LOCKED, FIXED edges
-- Copy jewelry pixels from composite EXACTLY - pixel-for-pixel, no modifications
-GENERATION INSTRUCTIONS:
-Convert this sketch into a realistic {skin_color} woman model by generating realistic human features ONLY in the BLACK mask areas.
-Keep the same exact zoom level. No change in jewelry structure."""
+# VTON Base Prompt - common for all jewelry types
+VTON_BASE_PROMPT = """Lock the jewelry area completely so its pixels
+remain 100% identical. Treat the jewelry region as a hard constraint. You are not allowed to make edits to this area. The model is not allowed to reinterpret or regenerate this region in any way.
 
+CRITICAL MASK INFORMATION (SAM3-GENERATED):
+- A binary mask is attached where WHITE PIXELS (255) = JEWELRY LOCATION, BLACK PIXELS (0) = BACKGROUND
+- This mask was generated by SAM3 (Segment Anything Model) and defines the EXACT jewelry boundaries
+- The jewelry segment PNG is also attached showing the exact jewelry pixels to preserve
+- The composite image already contains the jewelry pasted at the correct location - DO NOT move or modify it
+
+JEWELRY PRESERVATION RULES (ABSOLUTE REQUIREMENTS):
+- Use the jewelry boundary (white pixels in mask) as IMMUTABLE, LOCKED, FIXED edges
+- Copy the jewelry pixels from the composite image EXACTLY to the output - pixel-for-pixel, no modifications
+- Do NOT regenerate, reinterpret, redraw, or modify ANY pixels within the white mask area
+- Do NOT create your own mask or guess where jewelry is - use ONLY the provided SAM3 mask
+- Do NOT add, extend, or complete any jewelry parts - use only what's in the mask
+- The jewelry in the composite is the FINAL jewelry - do not alter its shape, color, or boundaries
+
+GENERATION INSTRUCTIONS:
+Convert this sketch into a realistic {skin_color} woman model by generating realistic human features ONLY in the BLACK mask areas (background/body areas).
+The jewelry must remain at exact same position, orientation, scale, and axis. Zero movement, zero
+reshaping, zero re-rendering, zero extending, zero rotation or flip. Only pixels OUTSIDE the white mask area
+may be changed. Final output must reproduce the jewelry pixels exactly as they appear in the composite image.
+Generate new realistic {skin_color} female model pixels only in the BLACK mask areas.
+Keep the same exact zoom level. No change in jewelry structure, no addition to jewelry, no body hair, no facial hair, no chubby body parts."""
+
+# Type-specific VTON prompts
 VTON_TYPE_PROMPTS = {
     "earring": """
+JEWELRY LOCKING (ABSOLUTE PRIORITY):
+- Lock the jewelry area completely so its pixels remain 100% identical to the reference
+- Use the jewelry boundary (white pixels in mask) as the FIXED edge
+- Convert this into realistic human by expanding OUTWARD from jewelry boundary to generate the woman
+- Jewelry must remain at same position, orientation, scale, axis
+- NO movement, NO reshaping, NO re-rendering of jewelry
+- ONLY outside pixels are changed - jewelry boundary is the starting point
+- Final output must reproduce the jewelry pixels EXACTLY as in source
+- Woman is generated by replacing pixels BEYOND the jewelry edges
+- Generate realistic {skin_color} female model in areas outside jewelry mask ONLY
+
 FACE/HEAD SPECIFICATIONS:
+- CRITICAL: Match the framing and composition from the sketch EXACTLY
+- Generate EXACTLY what is shown in the sketch (ears only, half face, or full face)
+- Preserve the EXACT zoom level, crop, and frame boundaries from the sketch
+- DO NOT change the framing - DO NOT add parts outside the sketch boundaries
 - Generate beautiful, professional model features ({skin_color} skin tone, 20-25 years old)
 - Clean, elegant makeup - Tiffany & Co. catalog style
-- Hair styled AWAY from ears
-- Earrings MUST be fully visible
-INTEGRATION:
-- Integrate ears seamlessly with earrings
-- Off-white/pure white background""",
+- Face/head angled same as sketch to match earring position
+- Neutral, elegant expression
+- Professional beauty photography standard
+- Ears must look natural, anatomically correct, and properly positioned
+- Generate realistic ear structure that naturally holds the earrings
+- Hair must be styled AWAY from ears (pulled back, updo, slicked back, or short cut)
+- Earrings MUST be fully visible - no hair covering or touching earrings
+- Hair style: elegant updo, sleek ponytail, or short professional cut
+- NO loose hair strands near ears
+
+INTEGRATION & GENERATION METHOD:
+- Integrate ears seamlessly with earrings as in real-life jewelry photography
+- Earrings should appear to be naturally worn through ear piercings
+- No gaps between earring posts/hooks and ears
+- Treat jewelry mask boundary as fixed starting edge - generate woman outward from there
+- Replace ONLY background pixels with new woman pixels
+- Off-white/pure white background - same exact zoom level
+- NO change in jewelry structure, NO addition in jewelry, NO extending, NO rotation or flip
+- Realistic jewelry/accessories integration""",
 
     "bracelet": """
 HAND/WRIST SPECIFICATIONS:
 - Generate beautiful, professional female hand/wrist ({skin_color} skin tone, 20-25 years old)
 - Clean, soft skin - no body hair
 - Elegant, natural hand pose
+- Wrist should look natural and proportional
+- No nails details if hand is visible
+- Professional jewelry photography standard
+- Think Tiffany & Co. catalog - clean, elegant presentation
+
 INTEGRATION:
 - Integrate wrist naturally with bracelet
+- Bracelet should sit naturally on wrist as in real life
 - No gaps between bracelet and wrist""",
 
     "ring": """
 HAND/FINGER SPECIFICATIONS:
 - Generate beautiful, professional female hand/fingers ({skin_color} skin tone, 20-25 years old)
 - Clean, soft skin - no body hair
-- Simple, clean fingernails
+- Elegant, natural finger pose
+- Fingers should look natural and proportional
+- Simple, clean fingertips (no elaborate nail art)
+- Professional jewelry photography standard
+- Think Tiffany & Co. catalog - clean, elegant presentation
+
 INTEGRATION:
-- Ring should sit naturally on finger
+- Integrate fingers naturally with ring(s)
+- Ring should sit naturally on finger as in real life
+- Show proper ring placement at finger base
 - No gaps between ring and finger""",
 
     "watch": """
 WRIST/ARM SPECIFICATIONS:
 - Generate beautiful, professional wrist/arm ({skin_color} skin tone, 20-25 years old)
 - Clean, soft skin - no body hair
+- Natural arm/wrist pose
+- Wrist should look natural and proportional
+- Professional watch photography standard
+- Think luxury watch catalog - clean, elegant presentation
+
 INTEGRATION:
-- Watch should sit naturally on wrist
-- Proper watch band fitting"""
+- Integrate wrist naturally with watch
+- Watch should sit naturally on wrist as in real life
+- Watch band should fit properly around wrist
+- No gaps between watch and wrist""",
+
+    "necklace": """
+NECK/CHEST SPECIFICATIONS:
+- Generate beautiful, professional female neck/chest ({skin_color} skin tone, 20-25 years old)
+- Clean, elegant skin - smooth texture
+- Natural collarbone definition
+- Elegant neck angle matching sketch
+- Professional beauty photography standard
+- Think Tiffany & Co. catalog - clean, elegant presentation
+- Minimal clothing (strapless, off-shoulder, or simple neckline)
+- Hair styled away from necklace area if hair is visible
+
+INTEGRATION:
+- Integrate neck/chest naturally with necklace
+- Necklace should drape naturally on skin/collarbone as in real life
+- Show proper necklace positioning on collarbone/chest
+- No gaps between necklace and skin"""
 }
 
+# Background and final quality check instructions
 VTON_BACKGROUND = """
-BACKGROUND SPECIFICATIONS:
+BACKGROUND SPECIFICATIONS (CRITICAL):
 - SOLID studio background - pure white only
+- NO patterns, textures, fabrics, or busy elements
 - Clean, minimalist, professional studio setting
-FINAL CHECKS:
-- Do not make or extend jewelry pixels"""
+- Premium commercial photography standard
+- Think TIFFANY & CO catalog - pristine and simple
 
+FINAL CHECKS:
+- Do not make or extend jewelry pixels
+- Do not add even a single pixel to jewelry
+- Do not complete, correct, or re-render jewelry pixels
+- Do not add stones or details to jewelry
+- Do not apply any operation on jewelry pixels
+- Make a realistic women model like Tiffany & Co., Bulgari, Cartier, Chaumet
+- After making whole image, check and remove seams/skin artifacts around jewelry boundary"""
+
+# Inpainting prompt for removing jewelry and restoring skin
 INPAINT_PROMPT = """This is an inpainting task to remove jewelry and restore natural skin/body.
-TASK: Remove ALL jewelry from this image and fill the jewelry areas with natural, realistic skin/body.
+
+TASK: Remove ALL jewelry from this image and fill the jewelry areas with natural, realistic skin/body that seamlessly blends with surrounding areas.
+
+INPUT: You will receive:
+1. An image with a model wearing jewelry
+2. A binary mask showing where jewelry is located (white = jewelry area to remove)
+
 OUTPUT REQUIREMENTS:
 - Remove EVERY trace of jewelry in the masked areas
 - Fill removed areas with clean, realistic skin/body texture
-- Generate natural skin that perfectly matches surrounding skin tone"""
+- Generate natural skin that perfectly matches surrounding skin tone and texture
+- Create smooth, seamless transitions at former jewelry boundaries
+- NO jewelry remnants, shadows, reflections, or artifacts
+- NO visible seams or discontinuities
+
+BODY PART GENERATION (where jewelry was):
+- **Wrist/Arm**: Natural wrist shape, smooth skin, proper anatomy
+- **Fingers/Hand**: Natural finger shape, smooth knuckles, anatomically correct
+- **Ear**: Natural ear shape with proper cartilage structure and skin tone
+- **Neck/Chest**: Natural skin draping, collarbone definition, smooth texture
+
+SKIN QUALITY:
+- Match the skin tone of surrounding visible skin exactly
+- Professional model-quality skin texture
+- Natural lighting and shadows
+- No blemishes, marks, or artifacts in filled areas
+- Seamless blending - should look like jewelry was never there
+
+CRITICAL:
+- Do NOT add new jewelry
+- Do NOT leave any jewelry traces
+- Do NOT create visible boundaries between filled and original areas
+- Fill ONLY the masked regions - keep everything else unchanged
+- The result should look completely natural and seamless
+
+FINAL CHECK: The image should look like a professional model photo with no jewelry, where the body/skin is completely natural and continuous."""
 
 QUALITY_CHECK_PROMPT = """Analyze this jewelry virtual try-on image for quality issues.
-Check for: unfinished output, sketch lines visible, long beard, overweight model.
+Check for: unfinished output, sketch lines visible, long beard, overweight model, distorted features.
 Respond in JSON format ONLY:
 {"has_issues": true/false, "issues": {...}, "reason": "Brief explanation"}"""
+
+
+def get_vton_prompt(skin_color: str, jewelry_type: str) -> str:
+    """Combines all VTON prompt components based on jewelry type"""
+    base = VTON_BASE_PROMPT.format(skin_color=skin_color)
+    type_specific = VTON_TYPE_PROMPTS.get(jewelry_type, VTON_TYPE_PROMPTS["bracelet"])
+    type_specific = type_specific.format(skin_color=skin_color)
+    return base + type_specific + VTON_BACKGROUND
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -827,9 +991,8 @@ async def generate_multi_jewelry(request: GenerateRequest, session_id: str, jewe
         composite.paste(jewelry_segment, (0, 0), jewelry_segment)
         
         # STAGE 3: Generate AI Try-On
-        log.info(f"[{session_id}] Generating VTON...")
-        vton_type_prompt = VTON_TYPE_PROMPTS.get(jewelry_type, VTON_TYPE_PROMPTS["bracelet"])
-        full_vton_prompt = VTON_BASE_PROMPT.format(skin_color=skin_tone) + vton_type_prompt.format(skin_color=skin_tone) + VTON_BACKGROUND
+        log.info(f"[{session_id}] Generating VTON with skin_tone={skin_tone}...")
+        full_vton_prompt = get_vton_prompt(skin_tone, jewelry_type)
         
         composite_io = io.BytesIO()
         composite.save(composite_io, format="PNG")
