@@ -25,14 +25,14 @@ import exampleGoldPendant from '@/assets/examples/necklace-gold-pendant.png';
 
 // Static example images for necklaces
 const NECKLACE_EXAMPLES = [
-  { id: 'ex-1', name: 'Sapphire Pearl', src: exampleSapphirePearl },
+  { id: 'ex-1', name: 'Red Gems', src: exampleRedGems },
   { id: 'ex-2', name: 'Teardrop Blue', src: exampleTeardropBlue },
   { id: 'ex-3', name: 'Bow Choker', src: exampleBowChoker },
   { id: 'ex-4', name: 'Layered Pearls', src: exampleLayeredPearls },
   { id: 'ex-5', name: 'Pearl Strand', src: examplePearlStrand },
   { id: 'ex-6', name: 'Ruby Pendant', src: exampleRubyPendant },
   { id: 'ex-7', name: 'Silver Choker', src: exampleSilverChoker },
-  { id: 'ex-8', name: 'Red Gems', src: exampleRedGems },
+  { id: 'ex-8', name: 'Sapphire Pearl', src: exampleSapphirePearl },
   { id: 'ex-9', name: 'Tennis Diamond', src: exampleTennisDiamond },
   { id: 'ex-10', name: 'Gold Pendant', src: exampleGoldPendant },
 ];
