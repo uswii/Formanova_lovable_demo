@@ -67,11 +67,18 @@ serve(async (req) => {
         jewelry_type: singularType,
       };
 
+      // Use AbortController for timeout (5 minutes for necklace generation)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+
       const response = await fetch(`${A100_URL}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(a100Body),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
