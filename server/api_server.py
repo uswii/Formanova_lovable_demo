@@ -33,7 +33,9 @@ auto_install()
 
 import base64
 import io
+import json
 import logging
+import re
 import time
 import uuid
 import glob
@@ -548,7 +550,7 @@ def call_gemini_for_image(client, image_bytes: bytes, mime_type: str, prompt: st
     return generated_data
 
 def check_image_quality(client, image_pil: Image.Image) -> dict:
-    import json, re
+    img_io = io.BytesIO()
     img_io = io.BytesIO()
     image_pil.convert("RGB").save(img_io, format="JPEG", quality=95)
     response = client.models.generate_content(
