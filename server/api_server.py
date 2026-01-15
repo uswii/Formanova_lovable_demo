@@ -695,7 +695,7 @@ async def generate_necklace(request: GenerateRequest, session_id: str) -> Genera
         mask_1024_inverted = Image.eval(mask_1024, lambda x: 255 - x)
         image_1024_segmented = segment_image_on_white_background(image_1024, mask_1024)
         
-        prompt = f"Necklace worn by {request.gender} model, beautiful realistic eyes"
+        prompt = f"Necklace worn by female model, beautiful realistic eyes"
         log.info(f"[{session_id}] Running Flux...")
         
         flux_output_768 = inference_pipe(
