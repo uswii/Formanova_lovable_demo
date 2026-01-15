@@ -11,6 +11,32 @@ import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
+// Import embedded example images (768x1024)
+import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
+import exampleTeardropBlue from '@/assets/examples/necklace-teardrop-blue.jpg';
+import exampleBowChoker from '@/assets/examples/necklace-bow-choker.jpg';
+import exampleLayeredPearls from '@/assets/examples/necklace-layered-pearls.png';
+import examplePearlStrand from '@/assets/examples/necklace-pearl-strand.jpg';
+import exampleRubyPendant from '@/assets/examples/necklace-ruby-pendant.jpg';
+import exampleSilverChoker from '@/assets/examples/necklace-silver-choker.png';
+import exampleRedGems from '@/assets/examples/necklace-red-gems.png';
+import exampleTennisDiamond from '@/assets/examples/necklace-tennis-diamond.png';
+import exampleGoldPendant from '@/assets/examples/necklace-gold-pendant.png';
+
+// Static example images for necklaces
+const NECKLACE_EXAMPLES = [
+  { id: 'ex-1', name: 'Sapphire Pearl', src: exampleSapphirePearl },
+  { id: 'ex-2', name: 'Teardrop Blue', src: exampleTeardropBlue },
+  { id: 'ex-3', name: 'Bow Choker', src: exampleBowChoker },
+  { id: 'ex-4', name: 'Layered Pearls', src: exampleLayeredPearls },
+  { id: 'ex-5', name: 'Pearl Strand', src: examplePearlStrand },
+  { id: 'ex-6', name: 'Ruby Pendant', src: exampleRubyPendant },
+  { id: 'ex-7', name: 'Silver Choker', src: exampleSilverChoker },
+  { id: 'ex-8', name: 'Red Gems', src: exampleRedGems },
+  { id: 'ex-9', name: 'Tennis Diamond', src: exampleTennisDiamond },
+  { id: 'ex-10', name: 'Gold Pendant', src: exampleGoldPendant },
+];
+
 const SKIN_TONES: { value: SkinTone; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'fair', label: 'Fair' },
@@ -104,8 +130,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
   const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
-  const [exampleImages, setExampleImages] = useState<ExampleImage[]>([]);
-  const [isLoadingExamples, setIsLoadingExamples] = useState(true);
   const [markerSize, setMarkerSize] = useState(10);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -125,28 +149,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       updateState({ redDots: dotsOrFn });
     }
   };
-
-  const [examplesError, setExamplesError] = useState(false);
-  
-  useEffect(() => {
-    const loadExamples = async () => {
-      setIsLoadingExamples(true);
-      setExamplesError(false);
-      try {
-        const examples = await a100Api.getExamples();
-        setExampleImages(examples);
-        // If we got empty array but no error, server might be offline
-        if (examples.length === 0) {
-          setExamplesError(true);
-        }
-      } catch (error) {
-        console.error('Failed to load examples:', error);
-        setExamplesError(true);
-      }
-      setIsLoadingExamples(false);
-    };
-    loadExamples();
-  }, []);
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -377,16 +379,14 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     setRedoStack([]);
   };
 
-  const loadExample = (example: ExampleImage) => {
+  const loadStaticExample = (example: { id: string; name: string; src: string }) => {
     setRedDots([]);
     setUndoStack([]);
     setRedoStack([]);
     
-    const previewImage = `data:image/jpeg;base64,${example.image_base64}`;
-    
     // Just show preview - Temporal handles all processing
     updateState({
-      originalImage: previewImage,
+      originalImage: example.src,
       markedImage: null,
       maskOverlay: null,
       maskBinary: null,
@@ -720,31 +720,27 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
           <p className="text-muted-foreground text-sm mt-2">Click any example to try it</p>
         </div>
         
-        {isLoadingExamples ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : examplesError || exampleImages.length === 0 ? (
-          <div className="space-y-3 text-center py-4">
-            <p className="text-sm text-muted-foreground">Example server unavailable</p>
-            <p className="text-xs text-muted-foreground/70">Upload your own image to continue</p>
-          </div>
-        ) : (
+        {jewelryType === 'necklace' ? (
           <div className="grid grid-cols-3 gap-2">
-            {exampleImages.map((example) => (
+            {NECKLACE_EXAMPLES.map((example) => (
               <button
                 key={example.id}
-                onClick={() => loadExample(example)}
-                className="group relative aspect-square overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
+                onClick={() => loadStaticExample(example)}
+                className="group relative aspect-[3/4] overflow-hidden border border-border/30 hover:border-foreground/30 transition-all"
               >
                 <img
-                  src={`data:image/jpeg;base64,${example.thumbnail_base64 || example.image_base64}`}
+                  src={example.src}
                   alt={example.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
               </button>
             ))}
+          </div>
+        ) : (
+          <div className="space-y-3 text-center py-4">
+            <p className="text-sm text-muted-foreground">Upload your {jewelryType} image to get started</p>
+            <p className="text-xs text-muted-foreground/70">Examples coming soon for this category</p>
           </div>
         )}
       </div>
