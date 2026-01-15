@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const A100_BASE_URL = "http://20.106.235.80:8000";
+// Use secret or fallback - check both possible ports
+const A100_BASE_URL = Deno.env.get("A100_JEWELRY_URL") || "http://20.106.235.80:8000";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
