@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api, ExampleImage } from '@/lib/a100-api';
-import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
+import { temporalApi, getDAGStepLabel, getDAGStepProgress, imageSourceToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
 // Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
@@ -230,8 +230,8 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     setProcessingStep('Starting masking workflow...');
 
     try {
-      // Convert image to blob
-      const imageBlob = base64ToBlob(state.originalImage);
+      // Convert image to blob - handles both base64 (from file upload) and URLs (from examples)
+      const imageBlob = await imageSourceToBlob(state.originalImage);
       
       // Send points as absolute pixel coordinates in SAM space (2000x2667)
       // The backend will normalize them internally by dividing by image dimensions

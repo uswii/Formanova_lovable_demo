@@ -632,9 +632,25 @@ export async function pollWorkflowUntilComplete(
 
 // ========== Utilities ==========
 
+/**
+ * Convert base64 string or data URL to Blob.
+ * For URLs (non-base64), use fetchUrlToBlob instead.
+ */
 export function base64ToBlob(base64: string, mimeType: string = 'image/jpeg'): Blob {
+  // Check if this looks like a URL rather than base64
+  if (base64.startsWith('http://') || base64.startsWith('https://') || 
+      base64.startsWith('/') || base64.startsWith('blob:')) {
+    throw new Error('Input appears to be a URL, not base64. Use fetchUrlToBlob instead.');
+  }
+  
   // Remove data URL prefix if present
   const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+  
+  // Validate base64 string
+  if (!base64Data || !/^[A-Za-z0-9+/=]+$/.test(base64Data)) {
+    throw new Error('Invalid base64 string');
+  }
+  
   const byteCharacters = atob(base64Data);
   const byteNumbers = new Array(byteCharacters.length);
   
@@ -644,4 +660,35 @@ export function base64ToBlob(base64: string, mimeType: string = 'image/jpeg'): B
   
   const byteArray = new Uint8Array(byteNumbers);
   return new Blob([byteArray], { type: mimeType });
+}
+
+/**
+ * Fetch an image URL and convert to Blob.
+ * Works for both local asset URLs and remote URLs.
+ */
+export async function fetchUrlToBlob(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status}`);
+  }
+  return await response.blob();
+}
+
+/**
+ * Convert image source to Blob - handles both base64 and URLs.
+ */
+export async function imageSourceToBlob(source: string): Promise<Blob> {
+  // Check if it's a data URL (base64)
+  if (source.startsWith('data:')) {
+    return base64ToBlob(source);
+  }
+  
+  // Check if it's a URL (local or remote)
+  if (source.startsWith('http://') || source.startsWith('https://') || 
+      source.startsWith('/') || source.startsWith('blob:')) {
+    return await fetchUrlToBlob(source);
+  }
+  
+  // Assume it's raw base64
+  return base64ToBlob(source);
 }
