@@ -293,6 +293,7 @@ class ExamplesResponse(BaseModel):
 class SegmentRequest(BaseModel):
     image_base64: str
     points: List[List[float]]
+    jewelry_type: str = "necklace"  # necklace uses 2000x2667, others use 912x1168
 
 class SegmentResponse(BaseModel):
     mask_base64: str
@@ -599,7 +600,16 @@ async def segment_jewelry(request: SegmentRequest):
     if not models_loaded:
         raise HTTPException(status_code=503, detail="Models not loaded yet.")
     session_id = f"seg_{uuid.uuid4().hex[:8]}"
-    log.info(f"[{session_id}] Segmentation with {len(request.points)} points")
+    jewelry_type = request.jewelry_type.lower() if request.jewelry_type else "necklace"
+    
+    # Use different dimensions based on jewelry type
+    if jewelry_type == "necklace":
+        target_width, target_height = NECKLACE_WIDTH, NECKLACE_HEIGHT
+    else:
+        target_width, target_height = MULTI_WIDTH, MULTI_HEIGHT
+    
+    log.info(f"[{session_id}] Segmentation: type={jewelry_type}, dims={target_width}x{target_height}, points={len(request.points)}")
+    
     try:
         image_pil = base64_to_pil(request.image_base64)
         if not request.points:
@@ -610,9 +620,12 @@ async def segment_jewelry(request: SegmentRequest):
             image_no_bg = remove_background_birefnet(image_pil, birefnet_model, bg_color=(250, 250, 250))
         else:
             image_no_bg = image_pil.copy()
-        image_highres_nobg, tracker = resize_to_fixed_dimensions(image_no_bg, NECKLACE_WIDTH, NECKLACE_HEIGHT)
-        image_highres_original, _ = resize_to_fixed_dimensions(original_image, NECKLACE_WIDTH, NECKLACE_HEIGHT)
+        
+        # Resize to appropriate dimensions based on jewelry type
+        image_highres_nobg, tracker = resize_to_fixed_dimensions(image_no_bg, target_width, target_height)
+        image_highres_original, _ = resize_to_fixed_dimensions(original_image, target_width, target_height)
         scaled_points = request.points
+        
         log.info(f"[{session_id}] Running SAM...")
         sam_predictor.set_image(np.array(image_highres_nobg))
         masks, scores, _ = sam_predictor.predict(point_coords=np.array(scaled_points), point_labels=np.ones(len(scaled_points), dtype=int), multimask_output=False)
@@ -629,8 +642,8 @@ async def segment_jewelry(request: SegmentRequest):
             original_mask_base64=pil_to_base64(mask_pil_original, "PNG"),
             scaled_points=scaled_points,
             session_id=session_id,
-            image_width=NECKLACE_WIDTH,
-            image_height=NECKLACE_HEIGHT
+            image_width=target_width,
+            image_height=target_height
         )
     except Exception as e:
         log.error(f"[{session_id}] Segmentation failed: {e}", exc_info=True)

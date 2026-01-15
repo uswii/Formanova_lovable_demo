@@ -37,6 +37,14 @@ serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.text();
       fetchOptions.body = body;
+      
+      // Log jewelry_type for segment requests
+      if (endpoint === '/segment') {
+        try {
+          const parsed = JSON.parse(body);
+          console.log(`[segment] jewelry_type: ${parsed.jewelry_type || 'necklace (default)'}, points: ${parsed.points?.length || 0}`);
+        } catch (e) {}
+      }
     }
 
     console.log(`Proxying ${req.method} to ${a100Url}`);
