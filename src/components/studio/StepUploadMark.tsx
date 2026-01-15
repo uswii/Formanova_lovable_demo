@@ -356,11 +356,12 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
   };
 
   const MAX_DOTS = 6;
+  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
   const [showMaxDotsWarning, setShowMaxDotsWarning] = useState(false);
 
   const handleCanvasClick = (x: number, y: number) => {
-    // Check if we've reached max
-    if (redDots.length >= MAX_DOTS) {
+    // Check if we've reached max - only enforce for necklaces
+    if (isNecklace && redDots.length >= MAX_DOTS) {
       setShowMaxDotsWarning(true);
       // Auto-hide after 2 seconds
       setTimeout(() => setShowMaxDotsWarning(false), 2000);
@@ -453,7 +454,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <Circle className="h-3 w-3 fill-red-500 text-red-500" />
-                  <span className="text-sm font-medium">{redDots.length}/{MAX_DOTS}</span>
+                  <span className="text-sm font-medium">{redDots.length}{isNecklace ? `/${MAX_DOTS}` : ''}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -503,8 +504,8 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                     jewelryType={jewelryType}
                     onCanvasClick={handleCanvasClick}
                   />
-                  {/* Max dots warning overlay */}
-                  {showMaxDotsWarning && (
+                  {/* Max dots warning overlay - only for necklaces */}
+                  {isNecklace && showMaxDotsWarning && (
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                       <div className="bg-destructive text-destructive-foreground rounded-lg px-4 py-3 shadow-xl text-center animate-pulse">
                         <p className="text-sm font-semibold">Maximum {MAX_DOTS} dots allowed</p>
@@ -583,7 +584,8 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                   />
                   
                   {/* Max dots warning overlay */}
-                  {showMaxDotsWarning && !isProcessing && (
+                  {/* Max dots warning - only for necklaces */}
+                  {isNecklace && showMaxDotsWarning && !isProcessing && (
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                       <div className="bg-destructive text-destructive-foreground rounded-lg px-4 py-3 shadow-xl text-center animate-pulse">
                         <p className="text-sm font-semibold">Maximum {MAX_DOTS} dots allowed</p>
