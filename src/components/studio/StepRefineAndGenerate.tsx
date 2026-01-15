@@ -21,6 +21,7 @@ import {
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+import { jewelryGenerateApi, toSingularJewelryType } from '@/lib/jewelry-generate-api';
 import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
 
 interface Props {
@@ -119,7 +120,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   };
 
   const handleGenerate = async () => {
-    if (!state.processingState?.maskUri) {
+    // Use edited mask if available, otherwise use original mask
+    const maskToUse = state.editedMask || state.maskBinary;
+    
+    if (!maskToUse || !state.originalImage) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
@@ -131,93 +135,70 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
-    setCurrentStepLabel('Starting generation...');
+    
+    // Convert plural jewelry type to singular for backend
+    const singularType = toSingularJewelryType(jewelryType);
+    setCurrentStepLabel(`Generating ${singularType} photoshoot...`);
 
     try {
-      // Convert original image to blob
-      const imageBlob = base64ToBlob(state.originalImage || '');
-      
-      // Get mask as base64 (from maskBinary or fetch from URI)
-      let maskBase64 = state.maskBinary || '';
-      if (maskBase64.includes(',')) {
-        maskBase64 = maskBase64.split(',')[1];
-      }
+      console.log('[Generation] Starting multi-jewelry generation');
+      console.log('[Generation] Jewelry type:', jewelryType, '->', singularType);
+      console.log('[Generation] Skin tone:', state.skinTone);
+      console.log('[Generation] Using edited mask:', !!state.editedMask);
 
-      console.log('[Generation] Starting DAG workflow with prompt:', prompt);
+      // Simulate progress steps
+      const progressSteps = [
+        { progress: 10, label: 'Generating sketch...' },
+        { progress: 25, label: 'Creating composite...' },
+        { progress: 45, label: 'Running AI generation...' },
+        { progress: 65, label: 'Quality check...' },
+        { progress: 80, label: 'Applying transformations...' },
+        { progress: 90, label: 'Inpainting background...' },
+        { progress: 95, label: 'Finalizing...' },
+      ];
 
-      // Start DAG generation workflow
-      const { workflow_id } = await temporalApi.startGenerationWorkflow(
-        imageBlob,
-        maskBase64,
-        prompt,
-        invertMask
-      );
+      // Start progress animation
+      let stepIndex = 0;
+      const progressInterval = setInterval(() => {
+        if (stepIndex < progressSteps.length) {
+          setGenerationProgress(progressSteps[stepIndex].progress);
+          setCurrentStepLabel(progressSteps[stepIndex].label);
+          stepIndex++;
+        }
+      }, 3000);
 
-      console.log('[Generation] Started workflow:', workflow_id);
-
-      // Poll for status
-      const result = await pollDAGUntilComplete(workflow_id, 'generation', {
-        intervalMs: 2000,
-        onProgress: (visited, progress) => {
-          const lastStep = visited[visited.length - 1] || null;
-          setCurrentStepLabel(getDAGStepLabel(lastStep, 'generation'));
-          setGenerationProgress(progress);
-          console.log('[Generation] Step:', lastStep, 'Progress:', progress);
-        },
+      // Call the multi-jewelry API with edited mask
+      const result = await jewelryGenerateApi.generate({
+        imageBase64: state.originalImage,
+        maskBase64: maskToUse,
+        jewelryType: jewelryType, // Will be converted to singular in API
+        skinTone: state.skinTone,
+        enableQualityCheck: true,
+        enableTransformation: true,
       });
 
-      console.log('[Generation] Workflow completed, result:', result);
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setCurrentStepLabel('Complete!');
 
-      // Extract all node outputs - handle both { uri: "..." } objects and plain strings
-      const extractUri = (obj: any): string | null => {
-        if (!obj) return null;
-        if (typeof obj === 'string') return obj;
-        if (typeof obj === 'object' && obj.uri) return obj.uri;
-        return null;
-      };
+      console.log('[Generation] Complete, session:', result.session_id);
 
-      const nodeImageUris: Record<string, string | null> = {};
-      
-      // Collect URIs from each node (backend only returns sink nodes, so intermediate nodes may not exist)
-      if (result.resize_image?.[0]?.image) {
-        nodeImageUris.resize_image = extractUri(result.resize_image[0].image);
-      }
-      if (result.resize_mask?.[0]?.mask) {
-        nodeImageUris.resize_mask = extractUri(result.resize_mask[0].mask);
-      }
-      if (result.white_bg_segmenter?.[0]) {
-        const segResult = result.white_bg_segmenter[0];
-        nodeImageUris.white_bg_segmenter = extractUri(segResult.mask) || extractUri(segResult.image);
-      }
-      if (result.flux_fill?.[0]?.image) {
-        nodeImageUris.flux_fill = extractUri(result.flux_fill[0].image);
-      }
-      if (result.upscaler?.[0]?.image) {
-        nodeImageUris.upscaler = extractUri(result.upscaler[0].image);
-      }
-
-      console.log('[Generation] Node URIs to fetch:', nodeImageUris);
-
-      // Fetch all node images
-      const fetchedImages = await temporalApi.fetchImages(nodeImageUris);
-      
-      // Convert to data URIs
-      const nodeResults: Record<string, string | null> = {};
-      for (const [key, base64] of Object.entries(fetchedImages)) {
-        nodeResults[key] = base64 ? `data:image/png;base64,${base64}` : null;
-      }
-      
-      console.log('[Generation] All node results fetched:', Object.keys(nodeResults));
-
+      // Update state with results
       updateState({
-        fluxResult: nodeResults.upscaler || nodeResults.flux_fill || null,
+        fluxResult: result.result_base64 ? `data:image/jpeg;base64,${result.result_base64}` : null,
         geminiResult: null,
-        fidelityViz: null,
+        fidelityViz: result.fidelity_viz_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_base64}` : null,
         fidelityVizGemini: null,
-        metrics: null,
+        metrics: result.metrics ? {
+          precision: result.metrics.precision,
+          recall: result.metrics.recall,
+          iou: result.metrics.iou,
+          growthRatio: result.metrics.growth_ratio,
+        } : null,
         metricsGemini: null,
-        status: null,
+        status: result.metrics && result.metrics.precision > 0.9 ? 'good' : 'bad',
         isGenerating: false,
+        sessionId: result.session_id,
       });
 
       setCurrentView('results');

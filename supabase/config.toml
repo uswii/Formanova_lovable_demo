@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.azure-fetch-image]
 verify_jwt = false
+
+[functions.jewelry-generate]
+verify_jwt = false
