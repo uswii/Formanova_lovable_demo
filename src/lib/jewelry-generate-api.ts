@@ -41,9 +41,13 @@ export interface FidelityMetrics {
 
 export interface GenerateResponse {
   result_base64: string;
+  result_gemini_base64: string | null;  // Only for necklace
   fidelity_viz_base64: string | null;
+  fidelity_viz_gemini_base64: string | null;  // Only for necklace
   metrics: FidelityMetrics | null;
+  metrics_gemini: FidelityMetrics | null;  // Only for necklace
   session_id: string;
+  has_two_modes: boolean;  // True only for necklace
 }
 
 class JewelryGenerateApi {
