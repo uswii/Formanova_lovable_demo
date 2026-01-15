@@ -254,10 +254,12 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       setProcessingStep('Running SAM segmentation...');
       setProcessingProgress(30);
 
-      // Call A100 API directly for segmentation
+      // Call A100 API directly for segmentation - pass jewelry type for correct dimensions
+      console.log('[Masking] Jewelry type:', jewelryType);
       const segmentResult = await a100Api.segment({
         image_base64: imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64,
         points: points,
+        jewelry_type: jewelryType,
       });
 
       if (!segmentResult) {
