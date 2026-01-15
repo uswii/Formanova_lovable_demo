@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// A100 server endpoint for multi-jewelry generation
-const A100_URL = Deno.env.get('A100_JEWELRY_URL') || 'http://20.106.235.80:8001';
+// A100 server endpoint - use same secret as a100-proxy
+const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
 
 // Map plural jewelry types to singular for backend
 const JEWELRY_TYPE_MAP: Record<string, string> = {
