@@ -27,6 +27,7 @@ export interface GenerateRequest {
   jewelryType: string;      // Will be converted to singular
   skinTone: string;         // For non-necklace types
   gender?: string;          // For necklace type (always "female")
+  scaledPoints?: number[][]; // Scaled points from segmentation
   enableQualityCheck?: boolean;
   enableTransformation?: boolean;
 }
@@ -108,6 +109,12 @@ class JewelryGenerateApi {
       body.gender = 'female';
     } else {
       body.skin_tone = request.skinTone;
+    }
+
+    // Include scaled_points if available (needed for fidelity metrics)
+    if (request.scaledPoints && request.scaledPoints.length > 0) {
+      body.scaled_points = request.scaledPoints;
+      console.log(`[JewelryAPI] Sending scaled_points:`, request.scaledPoints.length, 'points');
     }
 
     console.log(`[JewelryAPI] Sending request, image size: ${(body.image_base64 as string).length}, mask size: ${(body.mask_base64 as string).length}`);
