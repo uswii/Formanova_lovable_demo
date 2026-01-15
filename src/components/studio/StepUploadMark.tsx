@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
@@ -51,14 +51,7 @@ const EARRING_EXAMPLES = [
   { id: 'ear-4', name: 'Diamond Studs', src: exampleEarringDiamondStuds },
 ];
 
-const SKIN_TONES: { value: SkinTone; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'fair', label: 'Fair' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'olive', label: 'Olive' },
-  { value: 'brown', label: 'Brown' },
-  { value: 'dark', label: 'Dark' },
-];
+// Skin tone selection moved to StepRefineAndGenerate
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
 async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
@@ -687,28 +680,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                     >
                       Generate Mask
                     </Button>
-                    
-                    {/* Model Skin Tone - After mask marking, for non-necklace categories */}
-                    {jewelryType !== 'necklace' && (
-                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/30">
-                        <label className="text-sm font-bold whitespace-nowrap">Model Skin Tone</label>
-                        <Select
-                          value={state.skinTone}
-                          onValueChange={(value: SkinTone) => updateState({ skinTone: value })}
-                        >
-                          <SelectTrigger className="w-32 bg-background border-border">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border-border z-50">
-                            {SKIN_TONES.map((tone) => (
-                              <SelectItem key={tone.value} value={tone.value}>
-                                {tone.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
