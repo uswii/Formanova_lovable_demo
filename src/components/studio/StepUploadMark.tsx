@@ -425,11 +425,23 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         }
         
         // Handle processed image (resized image from the pipeline)
+        // Note: resize_all_jewelry returns image_base64 which may be an Azure URI or actual base64
         const resizeResult = resultAny.resize_all_jewelry?.[0] || {};
-        if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
+        console.log('[Masking] resize_all_jewelry result:', Object.keys(resizeResult));
+        
+        if (resizeResult.image_base64) {
+          if (typeof resizeResult.image_base64 === 'string' && resizeResult.image_base64.startsWith('azure://')) {
+            // Azure URI stored in image_base64 field
+            processedImage = await fetchAzureImage(resizeResult.image_base64);
+          } else if (typeof resizeResult.image_base64 === 'string' && !resizeResult.image_base64.startsWith('data:')) {
+            // Raw base64 string
+            processedImage = `data:image/jpeg;base64,${resizeResult.image_base64}`;
+          } else {
+            // Already a data URL
+            processedImage = resizeResult.image_base64;
+          }
+        } else if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
           processedImage = await fetchAzureImage(resizeResult.image.uri);
-        } else if (resizeResult.image_base64) {
-          processedImage = `data:image/jpeg;base64,${resizeResult.image_base64}`;
         }
       }
 
