@@ -333,29 +333,27 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] Complete, result keys:', Object.keys(result));
 
       // Extract results from DAG output
-      console.log('[Generation] Full result structure:', JSON.stringify(result, null, 2).substring(0, 5000));
+      // Log critical nodes to debug
+      console.log('[Generation] CRITICAL DEBUG - result structure:');
+      console.log('[Generation] transform_apply exists:', result.transform_apply !== undefined);
+      console.log('[Generation] transform_apply type:', result.transform_apply ? 
+        (Array.isArray(result.transform_apply) ? `array[${(result.transform_apply as unknown[]).length}]` : typeof result.transform_apply) : 'undefined');
+      if (result.transform_apply) {
+        if (Array.isArray(result.transform_apply) && (result.transform_apply as unknown[]).length > 0) {
+          console.log('[Generation] transform_apply[0] keys:', Object.keys((result.transform_apply as Record<string, unknown>[])[0]));
+          console.log('[Generation] transform_apply[0].image_base64 preview:', 
+            String((result.transform_apply as Record<string, unknown>[])[0]?.image_base64 || '').substring(0, 80));
+        } else if (!Array.isArray(result.transform_apply)) {
+          console.log('[Generation] transform_apply keys:', Object.keys(result.transform_apply as Record<string, unknown>));
+        }
+      }
+      console.log('[Generation] composite exists:', result.composite !== undefined);
       console.log('[Generation] ALL result keys:', Object.keys(result));
       
-      // Detect pipeline type based on result structure:
-      // Pipeline detection based on result structure:
-      // 
-      // ALL_JEWELRY pipeline returns ARRAY-INDEXED structure (like necklace but different nodes):
-      //   - transform_apply[0].image_base64 (Azure URI) - final composited image
-      //   - gemini_hand_inpaint[0].image_base64 (Azure URI) - AI inpainted result  
-      //   - quality_metrics[0] - metrics object with iou, precision, recall, dice, etc.
-      //   - mask_invert_final[0].mask_base64 (Azure URI) - output mask
-      //   - transform_mask[0].mask_base64 (Azure URI) - transformed input mask
-      //
-      // NECKLACE pipeline returns ARRAY-INDEXED structure:
-      //   - composite[0].image_base64
-      //   - composite_gemini[0].image_base64
-      //   - quality_metrics[0] or quality_metrics_gemini[0]
-      
-      // Detect all_jewelry by checking for its specific nodes
+      // Detect pipeline type
       const hasAllJewelryNodes = result.transform_apply !== undefined || 
                                   result.gemini_hand_inpaint !== undefined ||
                                   result.gemini_viton !== undefined;
-      // Necklace pipeline has flat objects (not arrays): result.composite.image_base64
       const hasNecklaceNodes = result.composite !== undefined || result.composite_gemini !== undefined;
       
       console.log('[Generation] Pipeline detection:', { 
@@ -364,33 +362,21 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         resultKeys: Object.keys(result),
       });
       
-      // DEBUG: Log full result structure for troubleshooting
-      console.log('[Generation] Full result sample:', {
-        transform_apply: result.transform_apply ? 
-          (Array.isArray(result.transform_apply) ? `array[${(result.transform_apply as unknown[]).length}]` : 'object') : 'undefined',
-        gemini_hand_inpaint: result.gemini_hand_inpaint ?
-          (Array.isArray(result.gemini_hand_inpaint) ? `array[${(result.gemini_hand_inpaint as unknown[]).length}]` : 'object') : 'undefined',
-        composite: result.composite ?
-          (Array.isArray(result.composite) ? `array[${(result.composite as unknown[]).length}]` : 'object') : 'undefined',
-      });
-      
-      // Get nodes for ALL_JEWELRY pipeline (can be array-indexed or flat)
+      // Get nodes for ALL_JEWELRY or NECKLACE pipeline (can be array-indexed or flat)
       const getNode = (key: string): Record<string, unknown> | undefined => {
         const val = result[key];
         if (!val) {
-          console.log(`[getNode] Key "${key}" not found in result`);
           return undefined;
         }
         // Handle both array-indexed and flat structures
         if (Array.isArray(val) && val.length > 0) {
-          console.log(`[getNode] Key "${key}" is array, using first element`);
+          console.log(`[getNode] "${key}" is array[${val.length}], keys:`, Object.keys(val[0]));
           return val[0] as Record<string, unknown>;
         }
         if (typeof val === 'object') {
-          console.log(`[getNode] Key "${key}" is flat object`);
+          console.log(`[getNode] "${key}" is object, keys:`, Object.keys(val as Record<string, unknown>));
           return val as Record<string, unknown>;
         }
-        console.log(`[getNode] Key "${key}" has unexpected type: ${typeof val}`);
         return undefined;
       };
       
