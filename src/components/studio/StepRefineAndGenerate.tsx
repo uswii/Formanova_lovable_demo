@@ -200,6 +200,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           pointLabels,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
+          maskBase64: maskToUse, // Pass edited mask if user refined it
         });
 
         console.log('[Generation] all_jewelry_pipeline started:', startResponse.workflow_id);
