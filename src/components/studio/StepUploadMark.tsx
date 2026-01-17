@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
+import { supabase } from '@/integrations/supabase/client';
 
 // Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
@@ -86,6 +87,27 @@ async function invertMaskImage(maskDataUrl: string): Promise<string> {
     img.onerror = () => reject(new Error('Failed to load mask image for inversion'));
     img.src = maskDataUrl;
   });
+}
+
+// Fetch image from Azure using azure:// URI
+async function fetchAzureImage(azureUri: string): Promise<string> {
+  console.log('[Azure] Fetching image:', azureUri);
+  
+  const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
+    body: { azure_uri: azureUri },
+  });
+  
+  if (error) {
+    console.error('[Azure] Fetch error:', error);
+    throw new Error(`Failed to fetch from Azure: ${error.message}`);
+  }
+  
+  if (!data?.base64) {
+    throw new Error('No image data returned from Azure');
+  }
+  
+  const contentType = data.content_type || 'image/png';
+  return `data:${contentType};base64,${data.base64}`;
 }
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
@@ -306,15 +328,35 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       const resultAny = result as any;
       const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
       
-      let maskBinary = sam3Result.mask_base64 
-        ? `data:image/png;base64,${sam3Result.mask_base64}`
-        : null;
-      const maskOverlay = sam3Result.mask_overlay_base64
-        ? `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`
-        : null;
-      const processedImage = sam3Result.processed_image_base64
-        ? `data:image/jpeg;base64,${sam3Result.processed_image_base64}`
-        : state.originalImage;
+      console.log('[Masking] sam3Result:', sam3Result);
+      
+      // Check if mask is an Azure URI or base64
+      let maskBinary: string | null = null;
+      
+      if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
+        // Fetch from Azure
+        setProcessingStep('Fetching mask from storage...');
+        maskBinary = await fetchAzureImage(sam3Result.mask.uri);
+      } else if (sam3Result.mask_base64) {
+        // Direct base64
+        maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
+      }
+      
+      // Handle overlay - might also be Azure URI
+      let maskOverlay: string | null = null;
+      if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
+        maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
+      } else if (sam3Result.mask_overlay_base64) {
+        maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
+      }
+      
+      // Handle processed image
+      let processedImage = state.originalImage;
+      if (sam3Result.processed_image?.uri && sam3Result.processed_image.uri.startsWith('azure://')) {
+        processedImage = await fetchAzureImage(sam3Result.processed_image.uri);
+      } else if (sam3Result.processed_image_base64) {
+        processedImage = `data:image/jpeg;base64,${sam3Result.processed_image_base64}`;
+      }
 
       if (!maskBinary) {
         throw new Error('No mask returned from workflow');
