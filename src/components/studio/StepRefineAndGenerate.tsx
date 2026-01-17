@@ -21,8 +21,8 @@ import {
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
-import { jewelryGenerateApi, toSingularJewelryType } from '@/lib/jewelry-generate-api';
-import { temporalApi, getDAGStepLabel, getDAGStepProgress, base64ToBlob, pollDAGUntilComplete } from '@/lib/temporal-api';
+import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
+import type { SkinTone as WorkflowSkinTone } from '@/lib/workflow-api';
 
 interface Props {
   state: StudioState;
@@ -135,85 +135,128 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
-    
-    // Convert plural jewelry type to singular for backend
-    const singularType = toSingularJewelryType(jewelryType);
-    setCurrentStepLabel(`Generating ${singularType} photoshoot...`);
+
+    const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
     try {
-      console.log('[Generation] Starting multi-jewelry generation');
-      console.log('[Generation] Jewelry type:', jewelryType, '->', singularType);
+      console.log('[Generation] Starting workflow');
+      console.log('[Generation] Jewelry type:', jewelryType, 'isNecklace:', isNecklace);
       console.log('[Generation] Skin tone:', state.skinTone);
-      console.log('[Generation] Using edited mask:', !!state.editedMask);
 
-      // Simulate progress steps
-      const progressSteps = [
-        { progress: 10, label: 'Generating sketch...' },
-        { progress: 25, label: 'Creating composite...' },
-        { progress: 45, label: 'Running AI generation...' },
-        { progress: 65, label: 'Quality check...' },
-        { progress: 80, label: 'Applying transformations...' },
-        { progress: 90, label: 'Inpainting background...' },
-        { progress: 95, label: 'Finalizing...' },
-      ];
+      // Convert image to Blob
+      const imageBlob = await imageSourceToBlob(state.originalImage);
 
-      // Start progress animation
-      let stepIndex = 0;
-      const progressInterval = setInterval(() => {
-        if (stepIndex < progressSteps.length) {
-          setGenerationProgress(progressSteps[stepIndex].progress);
-          setCurrentStepLabel(progressSteps[stepIndex].label);
-          stepIndex++;
+      let result: Record<string, unknown>;
+
+      if (isNecklace) {
+        // Necklace: Use flux_gen_pipeline
+        setCurrentStepLabel('Starting Flux generation...');
+        
+        const startResponse = await workflowApi.startFluxGen({
+          imageBlob,
+          maskBase64: maskToUse,
+          prompt: 'Necklace worn by female model, luxury editorial portrait, studio lighting',
+        });
+
+        console.log('[Generation] flux_gen_pipeline started:', startResponse.workflow_id);
+
+        // Poll until complete
+        const rawResult = await workflowApi.pollUntilComplete(
+          startResponse.workflow_id,
+          'flux_gen',
+          (progress, label) => {
+            setGenerationProgress(progress);
+            setCurrentStepLabel(label);
+          }
+        );
+
+        result = rawResult as Record<string, unknown>;
+      } else {
+        // Other jewelry: Use all_jewelry_pipeline
+        // Map skin tone to workflow format (light/medium/dark)
+        let workflowSkinTone: WorkflowSkinTone = 'medium';
+        if (state.skinTone === 'light' || state.skinTone === 'fair') {
+          workflowSkinTone = 'light';
+        } else if (state.skinTone === 'dark' || state.skinTone === 'brown') {
+          workflowSkinTone = 'dark';
         }
-      }, 3000);
 
-      // Call the multi-jewelry API with edited mask
-      const result = await jewelryGenerateApi.generate({
-        imageBase64: state.originalImage,
-        maskBase64: maskToUse,
-        jewelryType: jewelryType, // Will be converted to singular in API
-        skinTone: state.skinTone,
-        scaledPoints: state.processingState?.scaledPoints, // Pass scaled points for fidelity
-        enableQualityCheck: true,
-        enableTransformation: true,
-      });
+        // Map jewelry type to singular form
+        let singularType: 'ring' | 'bracelet' | 'earrings' | 'watch' = 'ring';
+        if (jewelryType === 'rings' || jewelryType === 'ring') singularType = 'ring';
+        else if (jewelryType === 'bracelets' || jewelryType === 'bracelet') singularType = 'bracelet';
+        else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
+        else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
-      clearInterval(progressInterval);
+        setCurrentStepLabel(`Starting ${singularType} generation...`);
+
+        // Get points from red dots in state
+        const points = state.redDots.map(dot => [dot.x, dot.y]);
+        const pointLabels = state.redDots.map(() => 1);
+
+        const startResponse = await workflowApi.startAllJewelry({
+          imageBlob,
+          points,
+          pointLabels,
+          jewelryType: singularType,
+          skinTone: workflowSkinTone,
+        });
+
+        console.log('[Generation] all_jewelry_pipeline started:', startResponse.workflow_id);
+
+        // Poll until complete
+        const rawResult = await workflowApi.pollUntilComplete(
+          startResponse.workflow_id,
+          'all_jewelry',
+          (progress, label) => {
+            setGenerationProgress(progress);
+            setCurrentStepLabel(label);
+          }
+        );
+
+        result = rawResult as Record<string, unknown>;
+      }
+
       setGenerationProgress(100);
       setCurrentStepLabel('Complete!');
 
-      console.log('[Generation] Complete, session:', result.session_id);
-      console.log('[Generation] has_two_modes:', result.has_two_modes);
-      console.log('[Generation] fidelity_viz_base64:', !!result.fidelity_viz_base64);
-      console.log('[Generation] fidelity_viz_gemini_base64:', !!result.fidelity_viz_gemini_base64);
-      console.log('[Generation] metrics:', result.metrics);
-      console.log('[Generation] metrics_gemini:', result.metrics_gemini);
-      console.log('[Generation] Full response keys:', Object.keys(result));
+      console.log('[Generation] Complete, result keys:', Object.keys(result));
 
-      // Update state with results
-      const hasTwoModes = result.has_two_modes ?? false;
-      
+      // Extract results from DAG output
+      // Results are keyed by node name, need to find the final output
+      const finalResult = (result.quality_metrics_gemini?.[0] || 
+                          result.quality_metrics?.[0] || 
+                          result.final_composite?.[0] ||
+                          result.composite_gemini?.[0] ||
+                          result.composite?.[0] || {}) as Record<string, unknown>;
+
+      const fluxResult = finalResult.result_base64 as string | undefined;
+      const geminiResult = finalResult.result_gemini_base64 as string | undefined;
+      const fidelityViz = finalResult.fidelity_viz_base64 as string | undefined;
+      const fidelityVizGemini = finalResult.fidelity_viz_gemini_base64 as string | undefined;
+      const metrics = finalResult.metrics as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
+      const metricsGemini = finalResult.metrics_gemini as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
+
       updateState({
-        fluxResult: result.result_base64 ? `data:image/jpeg;base64,${result.result_base64}` : null,
-        geminiResult: result.result_gemini_base64 ? `data:image/jpeg;base64,${result.result_gemini_base64}` : null,
-        fidelityViz: result.fidelity_viz_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_base64}` : null,
-        fidelityVizGemini: result.fidelity_viz_gemini_base64 ? `data:image/jpeg;base64,${result.fidelity_viz_gemini_base64}` : null,
-        metrics: result.metrics ? {
-          precision: result.metrics.precision,
-          recall: result.metrics.recall,
-          iou: result.metrics.iou,
-          growthRatio: result.metrics.growth_ratio,
+        fluxResult: fluxResult ? `data:image/jpeg;base64,${fluxResult}` : null,
+        geminiResult: geminiResult ? `data:image/jpeg;base64,${geminiResult}` : null,
+        fidelityViz: fidelityViz ? `data:image/jpeg;base64,${fidelityViz}` : null,
+        fidelityVizGemini: fidelityVizGemini ? `data:image/jpeg;base64,${fidelityVizGemini}` : null,
+        metrics: metrics ? {
+          precision: metrics.precision,
+          recall: metrics.recall,
+          iou: metrics.iou,
+          growthRatio: metrics.growth_ratio,
         } : null,
-        metricsGemini: result.metrics_gemini ? {
-          precision: result.metrics_gemini.precision,
-          recall: result.metrics_gemini.recall,
-          iou: result.metrics_gemini.iou,
-          growthRatio: result.metrics_gemini.growth_ratio,
+        metricsGemini: metricsGemini ? {
+          precision: metricsGemini.precision,
+          recall: metricsGemini.recall,
+          iou: metricsGemini.iou,
+          growthRatio: metricsGemini.growth_ratio,
         } : null,
-        status: result.metrics && result.metrics.precision > 0.9 ? 'good' : 'bad',
+        status: metrics && metrics.precision > 0.9 ? 'good' : 'bad',
         isGenerating: false,
-        sessionId: result.session_id,
-        hasTwoModes: hasTwoModes,
+        hasTwoModes: isNecklace, // Only necklace has two modes (Standard + Enhanced)
       });
 
       setCurrentView('results');
