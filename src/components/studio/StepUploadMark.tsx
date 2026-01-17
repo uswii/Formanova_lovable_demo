@@ -260,6 +260,27 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       return;
     }
 
+    // For non-necklace jewelry, skip masking here - the all_jewelry_pipeline handles it
+    const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
+    
+    if (!isNecklaceType) {
+      // Just pass through to generation step - no mask needed yet
+      // The all_jewelry_pipeline will handle masking internally
+      console.log('[Masking] Non-necklace type, skipping mask generation');
+      updateState({
+        // Store scaled points for generation step
+        processingState: {
+          scaledPoints: redDots.map(dot => [dot.x, dot.y]),
+        },
+        // Create a placeholder so the UI works
+        maskBinary: null,
+        maskOverlay: null,
+      });
+      onNext();
+      return;
+    }
+
+    // Necklace type: Run necklace_point_masking workflow
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Starting masking workflow...');
@@ -304,7 +325,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       const resultAny = result as any;
       const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
       
-      let maskBinary = sam3Result.mask_base64 
+      const maskBinary = sam3Result.mask_base64 
         ? `data:image/png;base64,${sam3Result.mask_base64}`
         : null;
       const maskOverlay = sam3Result.mask_overlay_base64
@@ -316,13 +337,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
       if (!maskBinary) {
         throw new Error('No mask returned from workflow');
-      }
-
-      // Invert mask for non-necklace jewelry if needed
-      const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
-      if (!isNecklaceType) {
-        console.log('[Masking] Inverting mask for non-necklace jewelry:', jewelryType);
-        maskBinary = await invertMaskImage(maskBinary);
       }
 
       console.log('[Masking] Got mask and overlay');
