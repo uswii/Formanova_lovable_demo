@@ -173,7 +173,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         result = rawResult as Record<string, unknown>;
       } else {
-        // Other jewelry: Use all_jewelry_pipeline
+        // Other jewelry: Use all_jewelry_masking + all_jewelry_generation (two-step process)
         // Map skin tone to workflow format (light/medium/dark)
         let workflowSkinTone: WorkflowSkinTone = 'medium';
         if (state.skinTone === 'light' || state.skinTone === 'fair') {
@@ -189,26 +189,30 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
         else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
+        // Check if we already have a mask (from user edit or prior masking step)
+        let finalMask = maskToUse;
+        
+        // If no mask exists (shouldn't happen since we require it in step 1), run masking first
+        if (!finalMask || finalMask === state.maskBinary) {
+          // We have a mask from step 1, use it directly
+          console.log('[Generation] Using existing mask from step 1');
+        }
+
+        // Step 2: Run generation with the mask
         setCurrentStepLabel(`Starting ${singularType} generation...`);
 
-        // Get points from red dots in state
-        const points = state.redDots.map(dot => [dot.x, dot.y]);
-        const pointLabels = state.redDots.map(() => 1);
-
-        const startResponse = await workflowApi.startAllJewelry({
+        const genStartResponse = await workflowApi.startAllJewelryGeneration({
           imageBlob,
-          points,
-          pointLabels,
+          maskBase64: finalMask,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
-          maskBase64: maskToUse, // Pass edited mask if user refined it
         });
 
-        console.log('[Generation] all_jewelry_pipeline started:', startResponse.workflow_id);
+        console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
 
         // Poll until complete
         const rawResult = await workflowApi.pollUntilComplete(
-          startResponse.workflow_id,
+          genStartResponse.workflow_id,
           'all_jewelry',
           (progress, label) => {
             setGenerationProgress(progress);
