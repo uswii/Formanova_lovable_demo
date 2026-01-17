@@ -291,15 +291,90 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       // For other jewelry: use final_composite
       const fluxResult = await extractImage(composite);
       const geminiResult = await extractImage(compositeGemini) || await extractImage(finalComposite);
-      const fidelityViz = metricsResult.fidelity_viz_base64 as string | undefined;
-      const fidelityVizGemini = metricsResult.fidelity_viz_gemini_base64 as string | undefined;
-      const metrics = metricsResult.metrics as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
-      // metricsResult itself might have the metrics fields directly
-      const metricsGemini = (metricsResult.precision !== undefined ? metricsResult : null) as { precision: number; recall: number; iou: number; growth_ratio: number } | null;
+      
+      // Extract output masks for fidelity visualization
+      const outputMaskGemini = result.output_mask_gemini?.[0] as Record<string, unknown> | undefined;
+      const outputMask = result.output_mask?.[0] as Record<string, unknown> | undefined;
+      const outputMaskAllJewelry = result.output_mask_all_jewelry?.[0] as Record<string, unknown> | undefined;
+      
+      const outputMaskGeminiImage = await extractImage(outputMaskGemini, 'mask_base64') || await extractImage(outputMaskGemini, 'image_base64');
+      const outputMaskImage = await extractImage(outputMask, 'mask_base64') || await extractImage(outputMask, 'image_base64');
+      const outputMaskAllJewelryImage = await extractImage(outputMaskAllJewelry, 'mask_base64') || await extractImage(outputMaskAllJewelry, 'image_base64');
+      
+      console.log('[Generation] Output masks:', {
+        hasOutputMaskGemini: !!outputMaskGeminiImage,
+        hasOutputMask: !!outputMaskImage,
+        hasOutputMaskAllJewelry: !!outputMaskAllJewelryImage,
+      });
+      
+      // Create fidelity visualizations on frontend if we have masks
+      let fidelityViz: string | null = null;
+      let fidelityVizGemini: string | null = null;
+      let calculatedMetrics: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
+      let calculatedMetricsGemini: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
+      
+      const inputMask = state.maskBinary; // User's input mask from marking step
+      
+      if (inputMask && fluxResult && outputMaskImage) {
+        try {
+          const { createFidelityVisualization } = await import('@/lib/mask-visualization');
+          const vizResult = await createFidelityVisualization(fluxResult, inputMask, outputMaskImage, true, false);
+          fidelityViz = vizResult.visualization;
+          calculatedMetrics = {
+            precision: vizResult.metrics.precision,
+            recall: vizResult.metrics.recall,
+            iou: vizResult.metrics.iou,
+            growthRatio: vizResult.metrics.growthRatio,
+          };
+          console.log('[Generation] Created Flux fidelity viz, metrics:', calculatedMetrics);
+        } catch (vizError) {
+          console.error('[Generation] Failed to create Flux fidelity viz:', vizError);
+        }
+      }
+      
+      if (inputMask && geminiResult && (outputMaskGeminiImage || outputMaskAllJewelryImage)) {
+        try {
+          const { createFidelityVisualization } = await import('@/lib/mask-visualization');
+          const outputMaskForGemini = outputMaskGeminiImage || outputMaskAllJewelryImage;
+          const vizResult = await createFidelityVisualization(geminiResult, inputMask, outputMaskForGemini!, true, false);
+          fidelityVizGemini = vizResult.visualization;
+          calculatedMetricsGemini = {
+            precision: vizResult.metrics.precision,
+            recall: vizResult.metrics.recall,
+            iou: vizResult.metrics.iou,
+            growthRatio: vizResult.metrics.growthRatio,
+          };
+          console.log('[Generation] Created Gemini fidelity viz, metrics:', calculatedMetricsGemini);
+        } catch (vizError) {
+          console.error('[Generation] Failed to create Gemini fidelity viz:', vizError);
+        }
+      }
+      
+      // Fallback to backend-provided metrics if we didn't calculate them
+      // Backend metrics are directly on the object (not nested under .metrics)
+      const backendMetrics = (result.quality_metrics?.[0] || {}) as Record<string, unknown>;
+      const backendMetricsGemini = (result.quality_metrics_gemini?.[0] || {}) as Record<string, unknown>;
+      
+      if (!calculatedMetrics && backendMetrics.precision !== undefined) {
+        calculatedMetrics = {
+          precision: backendMetrics.precision as number,
+          recall: backendMetrics.recall as number,
+          iou: backendMetrics.iou as number,
+          growthRatio: backendMetrics.growth_ratio as number,
+        };
+      }
+      
+      if (!calculatedMetricsGemini && backendMetricsGemini.precision !== undefined) {
+        calculatedMetricsGemini = {
+          precision: backendMetricsGemini.precision as number,
+          recall: backendMetricsGemini.recall as number,
+          iou: backendMetricsGemini.iou as number,
+          growthRatio: backendMetricsGemini.growth_ratio as number,
+        };
+      }
       
       console.log('[Generation] Extracted fluxResult:', !!fluxResult, 'geminiResult:', !!geminiResult);
-      console.log('[Generation] fluxResult preview:', fluxResult?.substring(0, 100));
-      console.log('[Generation] geminiResult preview:', geminiResult?.substring(0, 100));
+      console.log('[Generation] Final metrics:', { calculatedMetrics, calculatedMetricsGemini });
 
       // Check if we got at least one result image
       if (!fluxResult && !geminiResult) {
@@ -316,23 +391,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       updateState({
         fluxResult: fluxResult || null,
         geminiResult: geminiResult || null,
-        fidelityViz: fidelityViz ? `data:image/jpeg;base64,${fidelityViz}` : null,
-        fidelityVizGemini: fidelityVizGemini ? `data:image/jpeg;base64,${fidelityVizGemini}` : null,
-        metrics: metrics ? {
-          precision: metrics.precision,
-          recall: metrics.recall,
-          iou: metrics.iou,
-          growthRatio: metrics.growth_ratio,
-        } : null,
-        metricsGemini: metricsGemini ? {
-          precision: metricsGemini.precision,
-          recall: metricsGemini.recall,
-          iou: metricsGemini.iou,
-          growthRatio: metricsGemini.growth_ratio,
-        } : null,
-        status: (metrics && metrics.precision > 0.9) || (metricsGemini && metricsGemini.precision > 0.9) ? 'good' : 'bad',
+        fidelityViz: fidelityViz,
+        fidelityVizGemini: fidelityVizGemini,
+        metrics: calculatedMetrics,
+        metricsGemini: calculatedMetricsGemini,
+        status: (calculatedMetrics && calculatedMetrics.precision > 0.9) || (calculatedMetricsGemini && calculatedMetricsGemini.precision > 0.9) ? 'good' : 'bad',
         isGenerating: false,
-        hasTwoModes: isNecklace,
+        hasTwoModes: isNecklace, // Only necklace has two tabs (Standard + Enhanced)
       });
 
       setCurrentView('results');
