@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
 import type { SkinTone as WorkflowSkinTone } from '@/lib/workflow-api';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   state: StudioState;
@@ -225,22 +226,61 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
       // Extract results from DAG output
       // Results are keyed by node name, need to find the final output
-      const finalResult = (result.quality_metrics_gemini?.[0] || 
-                          result.quality_metrics?.[0] || 
-                          result.final_composite?.[0] ||
-                          result.composite_gemini?.[0] ||
-                          result.composite?.[0] || {}) as Record<string, unknown>;
-
-      const fluxResult = finalResult.result_base64 as string | undefined;
-      const geminiResult = finalResult.result_gemini_base64 as string | undefined;
-      const fidelityViz = finalResult.fidelity_viz_base64 as string | undefined;
-      const fidelityVizGemini = finalResult.fidelity_viz_gemini_base64 as string | undefined;
-      const metrics = finalResult.metrics as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
-      const metricsGemini = finalResult.metrics_gemini as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
+      console.log('[Generation] Full result structure:', JSON.stringify(result, null, 2).substring(0, 3000));
+      
+      // Get quality metrics (separate from image results)
+      const metricsResult = (result.quality_metrics_gemini?.[0] || result.quality_metrics?.[0] || {}) as Record<string, unknown>;
+      
+      // Get image results from composite nodes
+      const compositeGemini = result.composite_gemini?.[0] as Record<string, unknown> | undefined;
+      const composite = result.composite?.[0] as Record<string, unknown> | undefined;
+      const finalComposite = result.final_composite?.[0] as Record<string, unknown> | undefined;
+      
+      console.log('[Generation] compositeGemini:', compositeGemini);
+      console.log('[Generation] composite:', composite);
+      console.log('[Generation] finalComposite:', finalComposite);
+      
+      // Helper to extract image - handles Azure URIs and base64
+      const extractImage = async (node: Record<string, unknown> | undefined, fieldName: string = 'image_base64'): Promise<string | null> => {
+        if (!node) return null;
+        
+        // Check for Azure URI
+        const imageField = node[fieldName] as { uri?: string } | string | undefined;
+        if (typeof imageField === 'object' && imageField?.uri?.startsWith('azure://')) {
+          console.log('[Generation] Fetching image from Azure:', imageField.uri);
+          const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
+            body: { azure_uri: imageField.uri },
+          });
+          if (error || !data?.base64) {
+            console.error('[Generation] Failed to fetch from Azure:', error);
+            return null;
+          }
+          return `data:${data.content_type || 'image/jpeg'};base64,${data.base64}`;
+        }
+        
+        // Check for direct base64 string
+        if (typeof imageField === 'string') {
+          return imageField.startsWith('data:') ? imageField : `data:image/jpeg;base64,${imageField}`;
+        }
+        
+        return null;
+      };
+      
+      // For necklace: use composite_gemini for Enhanced, composite for Standard
+      // For other jewelry: use final_composite
+      const fluxResult = await extractImage(composite);
+      const geminiResult = await extractImage(compositeGemini) || await extractImage(finalComposite);
+      const fidelityViz = metricsResult.fidelity_viz_base64 as string | undefined;
+      const fidelityVizGemini = metricsResult.fidelity_viz_gemini_base64 as string | undefined;
+      const metrics = metricsResult.metrics as { precision: number; recall: number; iou: number; growth_ratio: number } | undefined;
+      // metricsResult itself might have the metrics fields directly
+      const metricsGemini = (metricsResult.precision !== undefined ? metricsResult : null) as { precision: number; recall: number; iou: number; growth_ratio: number } | null;
+      
+      console.log('[Generation] Extracted fluxResult:', !!fluxResult, 'geminiResult:', !!geminiResult);
 
       updateState({
-        fluxResult: fluxResult ? `data:image/jpeg;base64,${fluxResult}` : null,
-        geminiResult: geminiResult ? `data:image/jpeg;base64,${geminiResult}` : null,
+        fluxResult: fluxResult || null, // Already a data URI from extractImage
+        geminiResult: geminiResult || null, // Already a data URI from extractImage
         fidelityViz: fidelityViz ? `data:image/jpeg;base64,${fidelityViz}` : null,
         fidelityVizGemini: fidelityVizGemini ? `data:image/jpeg;base64,${fidelityVizGemini}` : null,
         metrics: metrics ? {
@@ -255,7 +295,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           iou: metricsGemini.iou,
           growthRatio: metricsGemini.growth_ratio,
         } : null,
-        status: metrics && metrics.precision > 0.9 ? 'good' : 'bad',
+        status: (metrics && metrics.precision > 0.9) || (metricsGemini && metricsGemini.precision > 0.9) ? 'good' : 'bad',
         isGenerating: false,
         hasTwoModes: isNecklace, // Only necklace has two modes (Standard + Enhanced)
       });
