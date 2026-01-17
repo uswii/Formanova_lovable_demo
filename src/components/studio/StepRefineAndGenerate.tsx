@@ -251,50 +251,40 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] ALL result keys:', Object.keys(result));
       console.log('[Generation] Available result nodes:', Object.keys(result).filter(k => !k.startsWith('quality_')));
       
-      // Pipeline order: flux_fill → upscaler → composite (jewelry composited on upscaled result)
-      // So COMPOSITE is the FINAL output (after upscaler, jewelry is composited back on)
-      // PRIORITY: composite > upscaler > flux_fill
+      // Pipeline outputs (per backend spec):
+      // - composite.image_base64 = Final Flux result WITH original jewelry (2000x2667)
+      // - composite_gemini.image_base64 = Final Gemini result WITH original jewelry (2000x2667)
+      // - upscaler.image = Upscaled Flux WITHOUT jewelry composite (wrong output!)
+      // - upscaler_gemini.image = Upscaled Gemini WITHOUT jewelry composite (wrong output!)
+      // - flux_fill.image = Raw flux output (768x1024)
+      // PRIORITY: composite > upscaler (fallback only) > flux_fill (last resort)
+      
       const compositeNode = result.composite?.[0] as Record<string, unknown> | undefined;
       const compositeGeminiNode = result.composite_gemini?.[0] as Record<string, unknown> | undefined;
-      const upscaler = result.upscaler?.[0] as Record<string, unknown> | undefined;
-      const upscalerGemini = result.upscaler_gemini?.[0] as Record<string, unknown> | undefined;
-      const fluxFill = result.flux_fill?.[0] as Record<string, unknown> | undefined;
+      const upscalerNode = result.upscaler?.[0] as Record<string, unknown> | undefined;
+      const upscalerGeminiNode = result.upscaler_gemini?.[0] as Record<string, unknown> | undefined;
+      const fluxFillNode = result.flux_fill?.[0] as Record<string, unknown> | undefined;
+      const finalCompositeNode = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
       
       console.log('[Generation] Node availability:', {
         composite: !!compositeNode,
         compositeGemini: !!compositeGeminiNode,
-        upscaler: !!upscaler,
-        upscalerGemini: !!upscalerGemini,
-        fluxFill: !!fluxFill,
+        upscaler: !!upscalerNode,
+        upscalerGemini: !!upscalerGeminiNode,
+        fluxFill: !!fluxFillNode,
+        finalComposite: !!finalCompositeNode,
       });
       
-      // Debug: log the image URIs to compare what we're getting
-      if (compositeNode?.image_base64) {
-        const imgField = compositeNode.image_base64 as Record<string, unknown>;
-        console.log('[Generation] composite URI:', typeof imgField === 'object' ? imgField?.uri : 'base64 string');
+      // Debug: log the image field structure
+      if (compositeNode) {
+        console.log('[Generation] composite.image_base64:', 
+          compositeNode.image_base64 ? 'present' : 'missing',
+          typeof compositeNode.image_base64);
       }
-      if (upscaler?.image_base64) {
-        const imgField = upscaler.image_base64 as Record<string, unknown>;
-        console.log('[Generation] upscaler URI:', typeof imgField === 'object' ? imgField?.uri : 'base64 string');
-      }
-      
-      // Use composite FIRST (final output with jewelry), then fallback to upscaler/flux_fill
-      const compositeGemini = (compositeGeminiNode || upscalerGemini) as Record<string, unknown> | undefined;
-      const composite = (compositeNode || upscaler || fluxFill) as Record<string, unknown> | undefined;
-      const finalComposite = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
-      
-      console.log('[Generation] compositeGemini keys:', compositeGemini ? Object.keys(compositeGemini) : 'null');
-      console.log('[Generation] composite keys:', composite ? Object.keys(composite) : 'null');
-      console.log('[Generation] finalComposite keys:', finalComposite ? Object.keys(finalComposite) : 'null');
-      
-      // Debug: log preview of each node
-      if (compositeGemini) {
-        console.log('[Generation] compositeGemini image_base64 type:', typeof compositeGemini.image_base64, 
-          typeof compositeGemini.image_base64 === 'object' ? JSON.stringify(compositeGemini.image_base64)?.substring(0, 150) : 'string');
-      }
-      if (composite) {
-        console.log('[Generation] composite image_base64 type:', typeof composite.image_base64,
-          typeof composite.image_base64 === 'object' ? JSON.stringify(composite.image_base64)?.substring(0, 150) : 'string');
+      if (compositeGeminiNode) {
+        console.log('[Generation] composite_gemini.image_base64:', 
+          compositeGeminiNode.image_base64 ? 'present' : 'missing',
+          typeof compositeGeminiNode.image_base64);
       }
       
       // Helper to extract image - handles Azure URIs and base64
@@ -371,10 +361,21 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         return null;
       };
       
-      // For necklace: use composite_gemini for Enhanced, composite for Standard
-      // For other jewelry: use final_composite
-      const fluxResult = await extractImage(composite);
-      const geminiResult = await extractImage(compositeGemini) || await extractImage(finalComposite);
+      // Extract images using correct field names per backend spec:
+      // - composite.image_base64 = Final Flux WITH jewelry (PREFERRED)
+      // - composite_gemini.image_base64 = Final Gemini WITH jewelry (PREFERRED)
+      // - upscaler.image = Fallback (no jewelry composite)
+      // - flux_fill.image = Raw fallback
+      
+      // Try composite nodes first (correct output), then fallback to upscaler/flux_fill
+      const fluxResult = await extractImage(compositeNode, 'image_base64') 
+        || await extractImage(upscalerNode, 'image')
+        || await extractImage(fluxFillNode, 'image');
+      
+      const geminiResult = await extractImage(compositeGeminiNode, 'image_base64')
+        || await extractImage(upscalerGeminiNode, 'image')
+        || await extractImage(finalCompositeNode, 'image_base64')
+        || await extractImage(finalCompositeNode, 'image');
       
       // Extract output masks for fidelity visualization
       // DAG returns inverted masks from mask_invert_* nodes (BLACK=jewelry)
@@ -474,11 +475,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       // Check if we got at least one result image
       if (!fluxResult && !geminiResult) {
         console.error('[Generation] No result images extracted! Result structure:', {
-          hasCompositeGemini: !!compositeGemini,
-          hasComposite: !!composite,
-          hasFinalComposite: !!finalComposite,
-          compositeGeminiKeys: compositeGemini ? Object.keys(compositeGemini) : [],
-          compositeKeys: composite ? Object.keys(composite) : [],
+          hasCompositeGemini: !!compositeGeminiNode,
+          hasComposite: !!compositeNode,
+          hasFinalComposite: !!finalCompositeNode,
+          compositeGeminiKeys: compositeGeminiNode ? Object.keys(compositeGeminiNode) : [],
+          compositeKeys: compositeNode ? Object.keys(compositeNode) : [],
         });
         throw new Error('Generation completed but no images could be extracted');
       }
