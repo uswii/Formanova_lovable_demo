@@ -113,6 +113,9 @@ async function fetchAzureImage(azureUri: string): Promise<string> {
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
 async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
+  console.log('[createMaskOverlay] Starting with originalImage length:', originalImage?.length, 'prefix:', originalImage?.substring(0, 50));
+  console.log('[createMaskOverlay] maskBinary length:', maskBinary?.length, 'prefix:', maskBinary?.substring(0, 50));
+  
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -124,9 +127,14 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
     const originalImg = new Image();
     const maskImg = new Image();
     
+    // Set crossOrigin for both images to handle CORS
+    originalImg.crossOrigin = 'anonymous';
+    maskImg.crossOrigin = 'anonymous';
+    
     let loadedCount = 0;
     const onLoad = () => {
       loadedCount++;
+      console.log('[createMaskOverlay] Image loaded, count:', loadedCount);
       if (loadedCount < 2) return;
       
       // Set canvas size to original image size
@@ -176,8 +184,15 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
     
     originalImg.onload = onLoad;
     maskImg.onload = onLoad;
-    originalImg.onerror = () => reject(new Error('Failed to load original image'));
-    maskImg.onerror = () => reject(new Error('Failed to load mask image'));
+    originalImg.onerror = (e) => {
+      console.error('[createMaskOverlay] Failed to load original image:', e);
+      console.error('[createMaskOverlay] originalImage src was:', originalImage?.substring(0, 100));
+      reject(new Error('Failed to load original image'));
+    };
+    maskImg.onerror = (e) => {
+      console.error('[createMaskOverlay] Failed to load mask image:', e);
+      reject(new Error('Failed to load mask image'));
+    };
     
     originalImg.src = originalImage;
     maskImg.src = maskBinary;
