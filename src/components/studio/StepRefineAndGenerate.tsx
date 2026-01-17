@@ -247,14 +247,29 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       // Get quality metrics (separate from image results)
       const metricsResult = (result.quality_metrics_gemini?.[0] || result.quality_metrics?.[0] || {}) as Record<string, unknown>;
       
+      // Log all available node names to debug
+      console.log('[Generation] Available result nodes:', Object.keys(result).filter(k => !k.startsWith('quality_')));
+      
       // Get image results from composite nodes - try multiple possible node names
+      // For flux_gen pipeline: upscaler (flux standard), upscaler_gemini (enhanced)
+      // The "composite" step may not exist - upscaler IS the final composite output
       const compositeGemini = (result.composite_gemini?.[0] || result.upscaler_gemini?.[0]) as Record<string, unknown> | undefined;
       const composite = (result.composite?.[0] || result.upscaler?.[0] || result.flux_fill?.[0]) as Record<string, unknown> | undefined;
       const finalComposite = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
       
-      console.log('[Generation] compositeGemini:', compositeGemini);
-      console.log('[Generation] composite:', composite);
-      console.log('[Generation] finalComposite:', finalComposite);
+      console.log('[Generation] compositeGemini keys:', compositeGemini ? Object.keys(compositeGemini) : 'null');
+      console.log('[Generation] composite keys:', composite ? Object.keys(composite) : 'null');
+      console.log('[Generation] finalComposite keys:', finalComposite ? Object.keys(finalComposite) : 'null');
+      
+      // Debug: log preview of each node
+      if (compositeGemini) {
+        console.log('[Generation] compositeGemini image_base64 type:', typeof compositeGemini.image_base64, 
+          typeof compositeGemini.image_base64 === 'object' ? JSON.stringify(compositeGemini.image_base64)?.substring(0, 150) : 'string');
+      }
+      if (composite) {
+        console.log('[Generation] composite image_base64 type:', typeof composite.image_base64,
+          typeof composite.image_base64 === 'object' ? JSON.stringify(composite.image_base64)?.substring(0, 150) : 'string');
+      }
       
       // Helper to extract image - handles Azure URIs and base64
       const extractImage = async (node: Record<string, unknown> | undefined, fieldName: string = 'image_base64'): Promise<string | null> => {
