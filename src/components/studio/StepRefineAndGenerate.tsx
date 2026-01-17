@@ -242,27 +242,48 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       
       // Helper to extract image - handles Azure URIs and base64
       const extractImage = async (node: Record<string, unknown> | undefined, fieldName: string = 'image_base64'): Promise<string | null> => {
-        if (!node) return null;
+        if (!node) {
+          console.log('[extractImage] Node is null/undefined');
+          return null;
+        }
+        
+        console.log('[extractImage] Node keys:', Object.keys(node), 'fieldName:', fieldName);
         
         // Check for Azure URI
         const imageField = node[fieldName] as { uri?: string } | string | undefined;
+        console.log('[extractImage] imageField type:', typeof imageField, 'value preview:', 
+          typeof imageField === 'object' ? JSON.stringify(imageField)?.substring(0, 200) : 
+          typeof imageField === 'string' ? imageField.substring(0, 100) : imageField);
+        
         if (typeof imageField === 'object' && imageField?.uri?.startsWith('azure://')) {
-          console.log('[Generation] Fetching image from Azure:', imageField.uri);
-          const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-            body: { azure_uri: imageField.uri },
-          });
-          if (error || !data?.base64) {
-            console.error('[Generation] Failed to fetch from Azure:', error);
+          console.log('[extractImage] Fetching image from Azure:', imageField.uri);
+          try {
+            const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
+              body: { azure_uri: imageField.uri },
+            });
+            if (error) {
+              console.error('[extractImage] Azure fetch error:', error);
+              return null;
+            }
+            if (!data?.base64) {
+              console.error('[extractImage] Azure response missing base64:', data);
+              return null;
+            }
+            console.log('[extractImage] Azure fetch success, base64 length:', data.base64.length);
+            return `data:${data.content_type || 'image/jpeg'};base64,${data.base64}`;
+          } catch (fetchError) {
+            console.error('[extractImage] Azure fetch threw:', fetchError);
             return null;
           }
-          return `data:${data.content_type || 'image/jpeg'};base64,${data.base64}`;
         }
         
         // Check for direct base64 string
         if (typeof imageField === 'string') {
+          console.log('[extractImage] Using direct string, length:', imageField.length);
           return imageField.startsWith('data:') ? imageField : `data:image/jpeg;base64,${imageField}`;
         }
         
+        console.log('[extractImage] No valid image found');
         return null;
       };
       
@@ -277,10 +298,24 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       const metricsGemini = (metricsResult.precision !== undefined ? metricsResult : null) as { precision: number; recall: number; iou: number; growth_ratio: number } | null;
       
       console.log('[Generation] Extracted fluxResult:', !!fluxResult, 'geminiResult:', !!geminiResult);
+      console.log('[Generation] fluxResult preview:', fluxResult?.substring(0, 100));
+      console.log('[Generation] geminiResult preview:', geminiResult?.substring(0, 100));
+
+      // Check if we got at least one result image
+      if (!fluxResult && !geminiResult) {
+        console.error('[Generation] No result images extracted! Result structure:', {
+          hasCompositeGemini: !!compositeGemini,
+          hasComposite: !!composite,
+          hasFinalComposite: !!finalComposite,
+          compositeGeminiKeys: compositeGemini ? Object.keys(compositeGemini) : [],
+          compositeKeys: composite ? Object.keys(composite) : [],
+        });
+        throw new Error('Generation completed but no images could be extracted');
+      }
 
       updateState({
-        fluxResult: fluxResult || null, // Already a data URI from extractImage
-        geminiResult: geminiResult || null, // Already a data URI from extractImage
+        fluxResult: fluxResult || null,
+        geminiResult: geminiResult || null,
         fidelityViz: fidelityViz ? `data:image/jpeg;base64,${fidelityViz}` : null,
         fidelityVizGemini: fidelityVizGemini ? `data:image/jpeg;base64,${fidelityVizGemini}` : null,
         metrics: metrics ? {
@@ -297,7 +332,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         } : null,
         status: (metrics && metrics.precision > 0.9) || (metricsGemini && metricsGemini.precision > 0.9) ? 'good' : 'bad',
         isGenerating: false,
-        hasTwoModes: isNecklace, // Only necklace has two modes (Standard + Enhanced)
+        hasTwoModes: isNecklace,
       });
 
       setCurrentView('results');
