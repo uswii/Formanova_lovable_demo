@@ -10,6 +10,8 @@ Our masks use **BLACK = jewelry, WHITE = background**.
 
 SAM outputs WHITE jewelry on BLACK background - so you need to **invert SAM outputs** before comparing with input masks or doing any fidelity analysis.
 
+**UPDATE:** Frontend no longer inverts masks. Backend is fully responsible for returning all masks with black=jewelry convention.
+
 ---
 
 ## Flux Gen Pipeline - What to Return
