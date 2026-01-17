@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { CinematicShowcase } from '@/components/CinematicShowcase';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
