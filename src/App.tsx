@@ -17,6 +17,8 @@ import PhotographyStudio from "./pages/PhotographyStudio";
 import JewelryStudio from "./pages/JewelryStudio";
 import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
+import Generations from "./pages/Generations";
+import Credits from "./pages/Credits";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/generations" element={<Generations />} />
+                  <Route path="/credits" element={<Credits />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   <Route path="/studio" element={<PhotographyStudio />} />
                   <Route path="/studio/:type" element={<JewelryStudio />} />

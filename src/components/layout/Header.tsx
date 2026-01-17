@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, Coins } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -113,6 +113,21 @@ export function Header() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
+                    onClick={() => navigate('/generations')}
+                    className="cursor-pointer text-sm"
+                  >
+                    <Image className="h-4 w-4 mr-2" />
+                    Generations
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/credits')}
+                    className="cursor-pointer text-sm"
+                  >
+                    <Coins className="h-4 w-4 mr-2" />
+                    My Credits
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
                     onClick={() => signOut()}
                     className="cursor-pointer text-sm text-destructive focus:text-destructive"
                   >
@@ -202,15 +217,29 @@ export function Header() {
                 </span>
               </div>
               
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => signOut()}
-                className="gap-2"
-              >
-                <LogOut className="h-5 w-5" />
-                Sign Out
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Link to="/generations">
+                  <Button variant="outline" size="lg" className="gap-2 w-full">
+                    <Image className="h-5 w-5" />
+                    Generations
+                  </Button>
+                </Link>
+                <Link to="/credits">
+                  <Button variant="outline" size="lg" className="gap-2 w-full">
+                    <Coins className="h-5 w-5" />
+                    My Credits
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => signOut()}
+                  className="gap-2"
+                >
+                  <LogOut className="h-5 w-5" />
+                  Sign Out
+                </Button>
+              </div>
             </div>
           ) : (
             <Link
