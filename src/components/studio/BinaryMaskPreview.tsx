@@ -117,8 +117,7 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelr
     });
 
     // Post-process: enforce strict binary (no anti-aliasing grays)
-    // For necklaces: invert (dark->white, light->black)
-    // For other jewelry: don't invert (dark->black, light->white)
+    // No inversion - backend handles mask format (black=jewelry, white=background)
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const threshold = 128;
@@ -127,14 +126,8 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelr
       // Calculate grayscale value
       const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
       
-      let binary: number;
-      if (isNecklace) {
-        // Necklaces: invert - dark pixels (jewelry) become white, light pixels (background) become black
-        binary = gray < threshold ? 255 : 0;
-      } else {
-        // Other jewelry: don't invert - dark pixels stay black, light pixels stay white
-        binary = gray < threshold ? 0 : 255;
-      }
+      // Dark pixels stay black, light pixels stay white (no inversion)
+      const binary = gray < threshold ? 0 : 255;
       
       data[i] = binary;     // R
       data[i + 1] = binary; // G

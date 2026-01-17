@@ -97,7 +97,7 @@ export async function createFidelityVisualization(
   resultImage: string,
   inputMask: string,
   outputMask: string,
-  invertInput: boolean = true,
+  invertInput: boolean = false,
   invertOutput: boolean = false
 ): Promise<{ visualization: string; metrics: FidelityMetrics }> {
   // Load all images
