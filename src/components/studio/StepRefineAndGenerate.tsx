@@ -121,11 +121,95 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     if (historyIndex < history.length - 1) setHistoryIndex(historyIndex + 1);
   };
 
+  /**
+   * Bakes brush strokes into the mask and returns a data URL.
+   * This ensures edited masks are sent to the backend, not just rendered visually.
+   */
+  const bakeMaskWithStrokes = useCallback(async (baseMaskUrl: string, strokes: BrushStroke[]): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+      
+      // Use the actual mask dimensions from backend
+      // Necklaces use 2000x2667 (Flux pipeline), other jewelry uses 912x1168 (Gemini pipeline)
+      const SAM_WIDTH = isNecklace ? 2000 : 912;
+      const SAM_HEIGHT = isNecklace ? 2667 : 1168;
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // Create canvas at SAM dimensions to match backend expectations
+        const canvas = document.createElement('canvas');
+        canvas.width = SAM_WIDTH;
+        canvas.height = SAM_HEIGHT;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+        
+        // Draw original mask scaled to SAM dimensions
+        ctx.drawImage(img, 0, 0, SAM_WIDTH, SAM_HEIGHT);
+        
+        // Apply strokes at SAM coordinate space (strokes are already in SAM coords)
+        const drawStroke = (points: number[][], radius: number, color: string) => {
+          if (points.length === 0) return;
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = radius;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          if (points.length === 1) {
+            ctx.beginPath();
+            ctx.arc(points[0][0], points[0][1], radius / 2, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            return;
+          }
+          
+          ctx.beginPath();
+          ctx.moveTo(points[0][0], points[0][1]);
+          for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i][0], points[i][1]);
+          }
+          ctx.stroke();
+        };
+        
+        // Draw strokes: add = black (jewelry/preserved), remove = white (AI-generated)
+        strokes.forEach((stroke) => {
+          const color = stroke.type === 'add' ? '#000000' : '#FFFFFF';
+          drawStroke(stroke.points, stroke.radius, color);
+        });
+        
+        // Enforce strict binary (no anti-aliasing grays)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const threshold = 128;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          const binary = gray < threshold ? 0 : 255;
+          data[i] = binary;
+          data[i + 1] = binary;
+          data[i + 2] = binary;
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Export as PNG data URL
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load mask image'));
+      img.src = baseMaskUrl;
+    });
+  }, [jewelryType]);
+
   const handleGenerate = async () => {
-    // Use edited mask if available, otherwise use original mask
-    const maskToUse = state.editedMask || state.maskBinary;
+    // Base mask from state
+    const baseMask = state.editedMask || state.maskBinary;
     
-    if (!maskToUse || !state.originalImage) {
+    if (!baseMask || !state.originalImage) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
@@ -137,13 +221,32 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
+    setCurrentStepLabel('Preparing mask...');
 
     const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
     try {
+      // IMPORTANT: If user has made brush edits, bake them into the mask before sending
+      let maskToUse = baseMask;
+      
+      if (effectiveStrokes.length > 0) {
+        console.log('[Generation] Baking', effectiveStrokes.length, 'brush strokes into mask');
+        try {
+          maskToUse = await bakeMaskWithStrokes(baseMask, effectiveStrokes);
+          console.log('[Generation] Baked mask ready, length:', maskToUse.length);
+          
+          // Also update state so user can see the final mask was used
+          updateState({ editedMask: maskToUse });
+        } catch (bakeError) {
+          console.error('[Generation] Failed to bake strokes, using base mask:', bakeError);
+          // Fall back to base mask if baking fails
+        }
+      }
+      
       console.log('[Generation] Starting workflow');
       console.log('[Generation] Jewelry type:', jewelryType, 'isNecklace:', isNecklace);
       console.log('[Generation] Skin tone:', state.skinTone);
+      console.log('[Generation] Mask has strokes baked:', effectiveStrokes.length > 0);
 
       // Convert image to Blob
       const imageBlob = await imageSourceToBlob(state.originalImage);
