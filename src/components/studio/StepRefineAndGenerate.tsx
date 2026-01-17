@@ -251,27 +251,36 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] ALL result keys:', Object.keys(result));
       console.log('[Generation] Available result nodes:', Object.keys(result).filter(k => !k.startsWith('quality_')));
       
-      // Get image results from final output nodes
-      // PRIORITY ORDER for Flux Standard: upscaler > composite > flux_fill (upscaler is the final upscaled result)
-      // PRIORITY ORDER for Gemini Enhanced: upscaler_gemini > composite_gemini
-      // The "composite" step is INTERMEDIATE - "upscaler" is the FINAL composited + upscaled output
-      const upscaler = result.upscaler?.[0] as Record<string, unknown> | undefined;
-      const upscalerGemini = result.upscaler_gemini?.[0] as Record<string, unknown> | undefined;
+      // Pipeline order: flux_fill → upscaler → composite (jewelry composited on upscaled result)
+      // So COMPOSITE is the FINAL output (after upscaler, jewelry is composited back on)
+      // PRIORITY: composite > upscaler > flux_fill
       const compositeNode = result.composite?.[0] as Record<string, unknown> | undefined;
       const compositeGeminiNode = result.composite_gemini?.[0] as Record<string, unknown> | undefined;
+      const upscaler = result.upscaler?.[0] as Record<string, unknown> | undefined;
+      const upscalerGemini = result.upscaler_gemini?.[0] as Record<string, unknown> | undefined;
       const fluxFill = result.flux_fill?.[0] as Record<string, unknown> | undefined;
       
       console.log('[Generation] Node availability:', {
-        upscaler: !!upscaler,
-        upscalerGemini: !!upscalerGemini,
         composite: !!compositeNode,
         compositeGemini: !!compositeGeminiNode,
+        upscaler: !!upscaler,
+        upscalerGemini: !!upscalerGemini,
         fluxFill: !!fluxFill,
       });
       
-      // Use upscaler FIRST (final output), then fallback to composite/flux_fill
-      const compositeGemini = (upscalerGemini || compositeGeminiNode) as Record<string, unknown> | undefined;
-      const composite = (upscaler || compositeNode || fluxFill) as Record<string, unknown> | undefined;
+      // Debug: log the image URIs to compare what we're getting
+      if (compositeNode?.image_base64) {
+        const imgField = compositeNode.image_base64 as Record<string, unknown>;
+        console.log('[Generation] composite URI:', typeof imgField === 'object' ? imgField?.uri : 'base64 string');
+      }
+      if (upscaler?.image_base64) {
+        const imgField = upscaler.image_base64 as Record<string, unknown>;
+        console.log('[Generation] upscaler URI:', typeof imgField === 'object' ? imgField?.uri : 'base64 string');
+      }
+      
+      // Use composite FIRST (final output with jewelry), then fallback to upscaler/flux_fill
+      const compositeGemini = (compositeGeminiNode || upscalerGemini) as Record<string, unknown> | undefined;
+      const composite = (compositeNode || upscaler || fluxFill) as Record<string, unknown> | undefined;
       const finalComposite = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
       
       console.log('[Generation] compositeGemini keys:', compositeGemini ? Object.keys(compositeGemini) : 'null');
