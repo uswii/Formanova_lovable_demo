@@ -440,23 +440,39 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         }
         
         // Handle processed image (resized image from the pipeline)
-        // Note: resize_all_jewelry returns image_base64 which may be an Azure URI or actual base64
+        // Note: resize_all_jewelry returns image_base64 which may be:
+        // - An object with .uri (Azure blob reference)
+        // - A string starting with azure:// 
+        // - A raw base64 string
         const resizeResult = resultAny.resize_all_jewelry?.[0] || {};
-        console.log('[Masking] resize_all_jewelry result:', Object.keys(resizeResult));
+        console.log('[Masking] resize_all_jewelry result keys:', Object.keys(resizeResult));
+        console.log('[Masking] resize_all_jewelry.image_base64 type:', typeof resizeResult.image_base64);
         
         if (resizeResult.image_base64) {
-          if (typeof resizeResult.image_base64 === 'string' && resizeResult.image_base64.startsWith('azure://')) {
-            // Azure URI stored in image_base64 field
-            processedImage = await fetchAzureImage(resizeResult.image_base64);
-          } else if (typeof resizeResult.image_base64 === 'string' && !resizeResult.image_base64.startsWith('data:')) {
+          const imgField = resizeResult.image_base64;
+          
+          if (typeof imgField === 'object' && imgField?.uri && imgField.uri.startsWith('azure://')) {
+            // Object with Azure URI
+            console.log('[Masking] Fetching resized image from Azure URI:', imgField.uri);
+            processedImage = await fetchAzureImage(imgField.uri);
+          } else if (typeof imgField === 'string' && imgField.startsWith('azure://')) {
+            // String Azure URI
+            console.log('[Masking] Fetching resized image from Azure string:', imgField.substring(0, 50));
+            processedImage = await fetchAzureImage(imgField);
+          } else if (typeof imgField === 'string' && !imgField.startsWith('data:')) {
             // Raw base64 string
-            processedImage = `data:image/jpeg;base64,${resizeResult.image_base64}`;
-          } else {
+            console.log('[Masking] Using raw base64 for resized image');
+            processedImage = `data:image/jpeg;base64,${imgField}`;
+          } else if (typeof imgField === 'string') {
             // Already a data URL
-            processedImage = resizeResult.image_base64;
+            console.log('[Masking] Using existing data URL for resized image');
+            processedImage = imgField;
           }
         } else if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
+          console.log('[Masking] Fetching from resizeResult.image.uri');
           processedImage = await fetchAzureImage(resizeResult.image.uri);
+        } else {
+          console.log('[Masking] No resized image found in result, using originalImageDataUrl');
         }
       }
 
