@@ -288,15 +288,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     if (!isNecklaceType) {
       console.log('[Step1] Non-necklace jewelry - skipping masking workflow, will use all_jewelry_pipeline');
       
-      // Store points for Step 2, no masking needed here
+      // Store raw points for Step 2 - no scaling needed, pipeline handles it
       updateState({
         redDots: redDots,
-        processingState: {
-          scaledPoints: redDots.map(dot => [dot.x, dot.y]),
-          sessionId: null,
-          imageWidth: null,
-          imageHeight: null,
-        },
+        // No processingState needed - pipeline does its own preprocessing
       });
       
       toast({
@@ -387,12 +382,11 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         throw new Error('No mask returned from workflow');
       }
 
-      // Always invert the mask - SAM returns black=jewelry, we need white=jewelry for overlay
-      console.log('[Masking] Inverting mask (black jewelry -> white jewelry)');
+      // DON'T invert - SAM returns white=jewelry which is correct for generation
+      console.log('[Masking] Using mask as-is (white=jewelry)');
       setProcessingStep('Processing mask...');
-      maskBinary = await invertMaskImage(maskBinary);
 
-      // Create translucent green overlay on the jewelry area (now white in inverted mask)
+      // Create translucent green overlay on the jewelry area (white in mask)
       console.log('[Masking] Creating overlay with translucent green on jewelry');
       setProcessingStep('Creating overlay...');
       const generatedOverlay = await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
