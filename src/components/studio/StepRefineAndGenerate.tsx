@@ -21,6 +21,7 @@ import {
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
+import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
 import type { SkinTone as WorkflowSkinTone } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -837,19 +838,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   <div className="relative inline-block group">
                     {state.maskBinary ? (
                       <>
-                        <MaskCanvas
-                          key={`binary-${canvasKey}`}
-                          image={state.maskBinary}
-                          brushColor={brushMode === 'add' ? '#000000' : '#FFFFFF'}
-                          brushSize={brushSize}
-                          mode="brush"
+                        <BinaryMaskPreview
+                          maskImage={state.maskBinary}
+                          strokes={effectiveStrokes}
+                          activeStroke={activeStroke}
                           canvasSize={400}
                           jewelryType={jewelryType}
-                          initialStrokes={effectiveStrokes}
-                          activeStroke={activeStroke}
-                          onBrushStrokeStart={handleStrokeStart}
-                          onBrushStrokePoint={handleStrokePoint}
-                          onBrushStrokeEnd={handleStrokeEnd}
                         />
                         <button
                           className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
@@ -866,6 +860,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                     )}
                   </div>
                 </div>
+                <p className="text-sm text-muted-foreground text-center mt-3">
+                  <span className="font-semibold">Black</span> = Jewelry • <span className="font-semibold">White</span> = Background
+                </p>
               </TabsContent>
             </Tabs>
 

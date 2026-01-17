@@ -16,11 +16,12 @@ interface BrushStroke {
 interface Props {
   maskImage: string;
   strokes: BrushStroke[];
+  activeStroke?: BrushStroke | null;
   canvasSize?: number;
   jewelryType?: string;
 }
 
-export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelryType = 'necklace' }: Props) {
+export function BinaryMaskPreview({ maskImage, strokes, activeStroke = null, canvasSize = 400, jewelryType = 'necklace' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
   
@@ -116,6 +117,12 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelr
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
 
+    // Draw active stroke for real-time preview
+    if (activeStroke && activeStroke.points.length > 0) {
+      const color = activeStroke.type === 'add' ? '#000000' : '#FFFFFF';
+      drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
+    }
+
     // Post-process: enforce strict binary (no anti-aliasing grays)
     // No inversion - backend handles mask format (black=jewelry, white=background)
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -136,7 +143,7 @@ export function BinaryMaskPreview({ maskImage, strokes, canvasSize = 400, jewelr
     }
     
     ctx.putImageData(imageData, 0, 0);
-  }, [loadedImage, strokes, displayWidth, displayHeight, toDisplaySpace]);
+  }, [loadedImage, strokes, activeStroke, displayWidth, displayHeight, toDisplaySpace]);
 
   return (
     <div className="relative inline-block pointer-events-none">
