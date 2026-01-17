@@ -85,15 +85,28 @@ export interface FluxGenResult {
   session_id: string;
 }
 
-// ========== Workflow 3: all_jewelry_pipeline ==========
+// ========== Workflow 3a: all_jewelry_masking ==========
 
-export interface AllJewelryRequest {
+export interface AllJewelryMaskingRequest {
   imageBlob: Blob;
   points: number[][];      // [[x, y], ...] in image coordinates
   pointLabels: number[];   // [1, 1, 0, ...] - 1=foreground, 0=background
   jewelryType: 'ring' | 'bracelet' | 'earrings' | 'watch';
+}
+
+export interface AllJewelryMaskingResult {
+  mask_base64: string;
+  mask_overlay_base64?: string;
+  session_id?: string;
+}
+
+// ========== Workflow 3b: all_jewelry_generation ==========
+
+export interface AllJewelryGenerationRequest {
+  imageBlob: Blob;
+  maskBase64: string;      // Required: mask from masking step (data:image/png;base64,...)
+  jewelryType: 'ring' | 'bracelet' | 'earrings' | 'watch';
   skinTone: SkinTone;
-  maskBase64?: string;     // Optional: pre-edited mask (data:image/png;base64,...)
 }
 
 export interface AllJewelryResult {
@@ -137,18 +150,22 @@ export const FLUX_GEN_DAG_STEPS = {
   'quality_metrics_gemini': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
+export const ALL_JEWELRY_MASKING_DAG_STEPS = {
+  'resize_all_jewelry': { progress: 20, label: 'Resizing image...' },
+  'gemini_sketch': { progress: 50, label: 'Generating sketch...' },
+  'sam3_all_jewelry': { progress: 85, label: 'Segmenting jewelry...' },
+} as const;
+
 export const ALL_JEWELRY_DAG_STEPS = {
   'resize_all_jewelry': { progress: 5, label: 'Resizing image...' },
-  'gemini_sketch': { progress: 12, label: 'Generating sketch...' },
-  'sam3_all_jewelry': { progress: 20, label: 'Segmenting jewelry...' },
-  'segment_green_bg': { progress: 28, label: 'Preparing background...' },
-  'composite_all_jewelry': { progress: 35, label: 'Creating composite...' },
-  'gemini_viton': { progress: 50, label: 'AI generation (VITON)...' },
-  'gemini_quality_check': { progress: 55, label: 'Quality check...' },
-  'output_mask_all_jewelry': { progress: 58, label: 'Detecting output mask...' },
-  'mask_invert': { progress: 60, label: 'Processing mask...' },
-  'transform_detect': { progress: 65, label: 'Detecting transforms...' },
-  'transform_mask': { progress: 70, label: 'Transforming mask...' },
+  'segment_green_bg': { progress: 15, label: 'Preparing background...' },
+  'composite_all_jewelry': { progress: 25, label: 'Creating composite...' },
+  'gemini_viton': { progress: 45, label: 'AI generation (VITON)...' },
+  'gemini_quality_check': { progress: 50, label: 'Quality check...' },
+  'output_mask_all_jewelry': { progress: 55, label: 'Detecting output mask...' },
+  'mask_invert': { progress: 58, label: 'Processing mask...' },
+  'transform_detect': { progress: 62, label: 'Detecting transforms...' },
+  'transform_mask': { progress: 68, label: 'Transforming mask...' },
   'gemini_hand_inpaint': { progress: 78, label: 'Inpainting background...' },
   'transform_apply': { progress: 85, label: 'Applying transforms...' },
   'output_mask_final': { progress: 90, label: 'Final mask detection...' },
@@ -156,7 +173,7 @@ export const ALL_JEWELRY_DAG_STEPS = {
   'quality_metrics': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
-export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_gen' | 'all_jewelry'): { progress: number; label: string } {
+export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_gen' | 'all_jewelry' | 'all_jewelry_masking'): { progress: number; label: string } {
   if (!visited || visited.length === 0) {
     return { progress: 0, label: 'Starting workflow...' };
   }
@@ -173,6 +190,9 @@ export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_g
       break;
     case 'all_jewelry':
       steps = ALL_JEWELRY_DAG_STEPS;
+      break;
+    case 'all_jewelry_masking':
+      steps = ALL_JEWELRY_MASKING_DAG_STEPS;
       break;
   }
 
@@ -286,34 +306,22 @@ class WorkflowApi {
   }
 
   /**
-   * Start all_jewelry_pipeline workflow
-   * Complete pipeline for rings, bracelets, earrings, watches
+   * Start all_jewelry_masking workflow
+   * Generates mask for rings, bracelets, earrings, watches using Gemini sketch + SAM3
    */
-  async startAllJewelry(request: AllJewelryRequest): Promise<WorkflowStartResponse> {
+  async startAllJewelryMasking(request: AllJewelryMaskingRequest): Promise<WorkflowStartResponse> {
     const formData = new FormData();
     formData.append('file', request.imageBlob, 'image.jpg');
-    formData.append('workflow_name', 'all_jewelry_pipeline');
+    formData.append('workflow_name', 'all_jewelry_masking');
     
-    // Build overrides - include mask if provided (user edited it)
-    const overrides: Record<string, unknown> = {
+    formData.append('overrides', JSON.stringify({
       points: request.points,
       point_labels: request.pointLabels,
       jewelry_type: request.jewelryType,
-      skin_tone: request.skinTone,
-    };
-    
-    // If mask is provided, include it so DAG can skip mask generation
-    if (request.maskBase64) {
-      overrides.mask = request.maskBase64.startsWith('data:') 
-        ? request.maskBase64 
-        : `data:image/png;base64,${request.maskBase64}`;
-    }
-    
-    formData.append('overrides', JSON.stringify(overrides));
+    }));
 
-    console.log('[WorkflowApi] Starting all_jewelry_pipeline', {
+    console.log('[WorkflowApi] Starting all_jewelry_masking', {
       jewelryType: request.jewelryType,
-      skinTone: request.skinTone,
       points: request.points.length,
     });
 
@@ -325,7 +333,48 @@ class WorkflowApi {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`All jewelry workflow failed: ${error}`);
+      throw new Error(`All jewelry masking workflow failed: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Start all_jewelry_generation workflow
+   * Generates photoshoot for rings, bracelets, earrings, watches with existing mask
+   */
+  async startAllJewelryGeneration(request: AllJewelryGenerationRequest): Promise<WorkflowStartResponse> {
+    const formData = new FormData();
+    formData.append('file', request.imageBlob, 'image.jpg');
+    formData.append('workflow_name', 'all_jewelry_generation');
+    
+    // Ensure mask is in data:image/png;base64,... format
+    let maskDataUri = request.maskBase64;
+    if (!maskDataUri.startsWith('data:')) {
+      maskDataUri = `data:image/png;base64,${maskDataUri}`;
+    }
+    
+    formData.append('overrides', JSON.stringify({
+      mask: maskDataUri,
+      jewelry_type: request.jewelryType,
+      skin_tone: request.skinTone,
+    }));
+
+    console.log('[WorkflowApi] Starting all_jewelry_generation', {
+      jewelryType: request.jewelryType,
+      skinTone: request.skinTone,
+      maskLength: maskDataUri.length,
+    });
+
+    const response = await fetch(getProxyUrl('/process'), {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`All jewelry generation workflow failed: ${error}`);
     }
 
     return await response.json();
