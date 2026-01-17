@@ -8,8 +8,7 @@ import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
-import { a100Api, ExampleImage } from '@/lib/a100-api';
-import { imageSourceToBlob } from '@/lib/temporal-api';
+import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
 
 // Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
@@ -266,54 +265,62 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     setProcessingStep('Starting masking workflow...');
 
     try {
-      // Convert image to base64 for A100 API
-      let imageBase64 = state.originalImage;
+      // Convert image to Blob for workflow API
+      setProcessingStep('Loading image...');
+      const imageBlob = await imageSourceToBlob(state.originalImage);
       
-      // If it's a URL (from examples), fetch and convert to base64
-      if (imageBase64.startsWith('http') || imageBase64.startsWith('/') || imageBase64.startsWith('blob:')) {
-        setProcessingStep('Loading image...');
-        const blob = await imageSourceToBlob(imageBase64);
-        const reader = new FileReader();
-        imageBase64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
-      
-      // Send points as absolute pixel coordinates in SAM space (2000x2667)
+      // Convert points to array format [[x, y], ...]
       const points = redDots.map(dot => [dot.x, dot.y]);
+      // All points are foreground (1) for now
+      const pointLabels = redDots.map(() => 1);
 
-      console.log('[Masking] Starting A100 segment with', points.length, 'points');
-      console.log('[Masking] Points (absolute SAM coords):', points);
+      console.log('[Masking] Starting necklace_point_masking workflow');
+      console.log('[Masking] Points:', points.length, 'Jewelry type:', jewelryType);
 
-      setProcessingStep('Running SAM segmentation...');
-      setProcessingProgress(30);
-
-      // Call A100 API directly for segmentation - pass jewelry type for correct dimensions
-      console.log('[Masking] Jewelry type:', jewelryType);
-      const segmentResult = await a100Api.segment({
-        image_base64: imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64,
-        points: points,
-        jewelry_type: jewelryType,
+      // Start the masking workflow
+      const startResponse = await workflowApi.startMasking({
+        imageBlob,
+        points,
+        pointLabels,
       });
 
-      if (!segmentResult) {
-        throw new Error('Segmentation failed - no result from A100');
+      console.log('[Masking] Workflow started:', startResponse.workflow_id);
+
+      // Poll until complete with progress updates
+      const result = await workflowApi.pollUntilComplete(
+        startResponse.workflow_id,
+        'masking',
+        (progress, label) => {
+          setProcessingProgress(progress);
+          setProcessingStep(label);
+        }
+      );
+
+      console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
+
+      // Extract mask data from result - the DAG returns results keyed by node name
+      // Look for sam3 output which contains the mask
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resultAny = result as any;
+      const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
+      
+      let maskBinary = sam3Result.mask_base64 
+        ? `data:image/png;base64,${sam3Result.mask_base64}`
+        : null;
+      const maskOverlay = sam3Result.mask_overlay_base64
+        ? `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`
+        : null;
+      const processedImage = sam3Result.processed_image_base64
+        ? `data:image/jpeg;base64,${sam3Result.processed_image_base64}`
+        : state.originalImage;
+
+      if (!maskBinary) {
+        throw new Error('No mask returned from workflow');
       }
 
-      console.log('[Masking] Segment complete, session:', segmentResult.session_id);
-      setProcessingProgress(80);
-      setProcessingStep('Processing mask...');
-
-      // Convert base64 responses to data URLs
-      let maskBinary = `data:image/png;base64,${segmentResult.mask_base64}`;
-      const maskOverlay = `data:image/jpeg;base64,${segmentResult.mask_overlay_base64}`;
-      const processedImage = `data:image/jpeg;base64,${segmentResult.processed_image_base64}`;
-
-      // Invert mask for non-necklace jewelry (SAM returns inverted for these)
-      const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
-      if (!isNecklace) {
+      // Invert mask for non-necklace jewelry if needed
+      const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
+      if (!isNecklaceType) {
         console.log('[Masking] Inverting mask for non-necklace jewelry:', jewelryType);
         maskBinary = await invertMaskImage(maskBinary);
       }
@@ -322,15 +329,14 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
       // Update state with results
       updateState({
-        maskOverlay,
+        maskOverlay: maskOverlay || state.originalImage,
         maskBinary,
-        originalImage: processedImage, // Use the processed/resized image
+        originalImage: processedImage,
         processingState: {
-          originalMaskBase64: segmentResult.original_mask_base64,
-          scaledPoints: segmentResult.scaled_points,
-          sessionId: segmentResult.session_id,
-          imageWidth: segmentResult.image_width,
-          imageHeight: segmentResult.image_height,
+          scaledPoints: sam3Result.scaled_points,
+          sessionId: startResponse.workflow_id,
+          imageWidth: sam3Result.image_width,
+          imageHeight: sam3Result.image_height,
         },
       });
 
@@ -343,7 +349,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       toast({
         variant: 'destructive',
         title: 'Masking failed',
-        description: error instanceof Error ? error.message : 'Failed to generate mask. Is the A100 server online?',
+        description: error instanceof Error ? error.message : 'Failed to generate mask. Is the workflow server online?',
       });
       setIsProcessing(false);
     }
