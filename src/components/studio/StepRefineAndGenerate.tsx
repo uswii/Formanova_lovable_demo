@@ -329,7 +329,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       if (inputMask && fluxResult && outputMaskImage) {
         try {
           const { createFidelityVisualization } = await import('@/lib/mask-visualization');
-          const vizResult = await createFidelityVisualization(fluxResult, inputMask, outputMaskImage, true, false);
+          const vizResult = await createFidelityVisualization(fluxResult, inputMask, outputMaskImage, false, false);
           fidelityViz = vizResult.visualization;
           calculatedMetrics = {
             precision: vizResult.metrics.precision,
@@ -347,7 +347,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         try {
           const { createFidelityVisualization } = await import('@/lib/mask-visualization');
           const outputMaskForGemini = outputMaskGeminiImage || outputMaskAllJewelryImage;
-          const vizResult = await createFidelityVisualization(geminiResult, inputMask, outputMaskForGemini!, true, false);
+          const vizResult = await createFidelityVisualization(geminiResult, inputMask, outputMaskForGemini!, false, false);
           fidelityVizGemini = vizResult.visualization;
           calculatedMetricsGemini = {
             precision: vizResult.metrics.precision,

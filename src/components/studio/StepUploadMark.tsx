@@ -53,41 +53,7 @@ const EARRING_EXAMPLES = [
 
 // Skin tone selection moved to StepRefineAndGenerate
 
-// Invert a binary mask image (black -> white, white -> black)
-// Used for non-necklace jewelry where SAM returns inverted masks
-async function invertMaskImage(maskDataUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Cannot create canvas context'));
-        return;
-      }
-      
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Invert each pixel
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = 255 - data[i];       // R
-        data[i + 1] = 255 - data[i + 1]; // G
-        data[i + 2] = 255 - data[i + 2]; // B
-        // Alpha stays the same
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load mask image for inversion'));
-    img.src = maskDataUrl;
-  });
-}
+// Note: Mask inversion is now handled by backend - masks are returned as black=jewelry, white=background
 
 // Fetch image from Azure using azure:// URI
 async function fetchAzureImage(azureUri: string): Promise<string> {
@@ -382,13 +348,11 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         throw new Error('No mask returned from workflow');
       }
 
-      // Invert mask: SAM returns white=jewelry, we want black=jewelry, white=background
-      console.log('[Masking] Inverting mask (white jewelry -> black jewelry)');
-      setProcessingStep('Inverting mask...');
-      maskBinary = await invertMaskImage(maskBinary);
+      // Mask is now returned from backend as black=jewelry, white=background (no frontend inversion needed)
+      console.log('[Masking] Using mask directly from backend (black=jewelry)');
+      setProcessingStep('Processing mask...');
 
-      // Create translucent green overlay on the jewelry area (now black in inverted mask)
-      console.log('[Masking] Creating overlay with translucent green on jewelry');
+      // Create translucent green overlay on the jewelry area (black in mask)
       setProcessingStep('Creating overlay...');
       const generatedOverlay = await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
 
