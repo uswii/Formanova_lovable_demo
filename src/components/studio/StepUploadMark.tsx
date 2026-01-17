@@ -295,6 +295,14 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       setProcessingStep('Loading image...');
       const imageBlob = await imageSourceToBlob(state.originalImage);
       
+      // Also convert to data URL for overlay creation (handles local asset paths)
+      const originalImageDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(imageBlob);
+      });
+      
       // Convert points to array format [[x, y], ...]
       const points = redDots.map(dot => [dot.x, dot.y]);
       // All points are foreground (1) for now
@@ -302,7 +310,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
       let maskBinary: string | null = null;
       let maskOverlay: string | null = null;
-      let processedImage = state.originalImage;
+      let processedImage: string | null = null;
       let workflowId: string;
 
       if (isNecklaceType) {
@@ -436,16 +444,19 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       console.log('[Masking] Mask inverted successfully');
 
       // Create translucent green overlay on the jewelry area (black in inverted mask)
+      // Use processedImage from workflow, or fall back to converted data URL
       setProcessingStep('Creating overlay...');
-      const generatedOverlay = maskOverlay || await createMaskOverlay(processedImage || state.originalImage!, invertedMask);
+      const overlayBaseImage = processedImage || originalImageDataUrl;
+      const generatedOverlay = maskOverlay || await createMaskOverlay(overlayBaseImage, invertedMask);
 
       console.log('[Masking] Got mask and overlay');
 
       // Update state with results - use the INVERTED mask (black=jewelry)
+      // Keep processed image if available, otherwise use original data URL
       updateState({
         maskOverlay: generatedOverlay,
         maskBinary: invertedMask,
-        originalImage: processedImage,
+        originalImage: processedImage || originalImageDataUrl,
         processingState: {
           sessionId: workflowId,
         },
