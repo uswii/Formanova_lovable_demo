@@ -260,27 +260,8 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       return;
     }
 
-    // For non-necklace jewelry, skip masking here - the all_jewelry_pipeline handles it
     const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
-    
-    if (!isNecklaceType) {
-      // Just pass through to generation step - no mask needed yet
-      // The all_jewelry_pipeline will handle masking internally
-      console.log('[Masking] Non-necklace type, skipping mask generation');
-      updateState({
-        // Store scaled points for generation step
-        processingState: {
-          scaledPoints: redDots.map(dot => [dot.x, dot.y]),
-        },
-        // Create a placeholder so the UI works
-        maskBinary: null,
-        maskOverlay: null,
-      });
-      onNext();
-      return;
-    }
 
-    // Necklace type: Run necklace_point_masking workflow
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Starting masking workflow...');
@@ -295,10 +276,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       // All points are foreground (1) for now
       const pointLabels = redDots.map(() => 1);
 
-      console.log('[Masking] Starting necklace_point_masking workflow');
-      console.log('[Masking] Points:', points.length, 'Jewelry type:', jewelryType);
+      console.log('[Masking] Starting necklace_point_masking workflow for:', jewelryType);
+      console.log('[Masking] Points:', points.length);
 
-      // Start the masking workflow
+      // Start the masking workflow - works for ALL jewelry types (it's just SAM3 with points)
       const startResponse = await workflowApi.startMasking({
         imageBlob,
         points,
@@ -325,7 +306,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       const resultAny = result as any;
       const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
       
-      const maskBinary = sam3Result.mask_base64 
+      let maskBinary = sam3Result.mask_base64 
         ? `data:image/png;base64,${sam3Result.mask_base64}`
         : null;
       const maskOverlay = sam3Result.mask_overlay_base64
@@ -337,6 +318,13 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
       if (!maskBinary) {
         throw new Error('No mask returned from workflow');
+      }
+
+      // Invert mask for non-necklace jewelry if needed
+      // SAM returns inverted masks for some jewelry types
+      if (!isNecklaceType) {
+        console.log('[Masking] Inverting mask for non-necklace jewelry:', jewelryType);
+        maskBinary = await invertMaskImage(maskBinary);
       }
 
       console.log('[Masking] Got mask and overlay');
