@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -60,7 +70,7 @@ export function Header() {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Marta Style */}
           <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link 
@@ -75,6 +85,55 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            
+            {/* User Profile / Auth Button */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
+                    {user.user_metadata?.avatar_url ? (
+                      <img 
+                        src={user.user_metadata.avatar_url} 
+                        alt={user.user_metadata?.full_name || 'User'} 
+                        className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => signOut()}
+                    className="cursor-pointer text-sm text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                asChild
+                className="gap-2"
+              >
+                <Link to="/auth">
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </Link>
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -96,7 +155,7 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Marta Style */}
       <div 
         className={`fixed inset-0 z-40 bg-background transition-all duration-500 md:hidden ${
           isMobileMenuOpen 
@@ -119,6 +178,52 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          
+          {/* Mobile User Profile / Auth Button */}
+          {user ? (
+            <div 
+              className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+            >
+              <div className="flex items-center gap-3">
+                {user.user_metadata?.avatar_url ? (
+                  <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt={user.user_metadata?.full_name || 'User'} 
+                    className="h-12 w-12 rounded-full object-cover border border-border"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <span className="text-lg font-medium text-foreground">
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => signOut()}
+                className="gap-2"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+            >
+              <Button variant="default" size="lg" className="gap-2">
+                <LogIn className="h-5 w-5" />
+                Sign In
+              </Button>
+            </Link>
+          )}
         </nav>
       </div>
 
