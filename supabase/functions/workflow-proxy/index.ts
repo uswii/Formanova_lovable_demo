@@ -56,12 +56,34 @@ serve(async (req) => {
       });
       const data = await response.text();
       
-      // Log status response to debug what results are available
+      // Log FULL status response to debug what results are available
       try {
         const parsed = JSON.parse(data);
         if (parsed.progress?.state === 'completed') {
-          console.log(`[workflow-proxy] Status completed for ${workflowId}`);
+          console.log(`[workflow-proxy] Status COMPLETED for ${workflowId}`);
           console.log(`[workflow-proxy] Status results keys:`, parsed.results ? Object.keys(parsed.results) : 'no results');
+          
+          // Log each result key with more detail to find Azure URIs
+          if (parsed.results) {
+            for (const key of Object.keys(parsed.results)) {
+              const arr = parsed.results[key];
+              if (Array.isArray(arr) && arr.length > 0) {
+                const first = arr[0];
+                const keys = first && typeof first === 'object' ? Object.keys(first) : [];
+                console.log(`[workflow-proxy] Status result "${key}": keys=${JSON.stringify(keys)}`);
+                
+                // Check for Azure URIs in common fields
+                if (first && typeof first === 'object') {
+                  for (const fieldKey of ['image_base64', 'mask', 'mask_base64']) {
+                    const field = first[fieldKey];
+                    if (field && typeof field === 'object' && field.uri) {
+                      console.log(`[workflow-proxy] Found Azure URI in ${key}.${fieldKey}: ${field.uri}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       } catch (e) { /* ignore parse errors */ }
       
