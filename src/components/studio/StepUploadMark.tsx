@@ -150,7 +150,7 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
       // Get mask data and create translucent green overlay where mask is selected
-      // Note: The API returns inverted mask - white pixels = selected area to highlight
+      // Note: Mask is inverted - BLACK pixels = jewelry area to highlight
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
@@ -158,10 +158,10 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       const overlayOpacity = 0.3;
       
       for (let i = 0; i < maskData.data.length; i += 4) {
-        // Check mask pixel brightness - white = selected area
+        // Check mask pixel brightness - BLACK = jewelry area (after inversion)
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
-        // Apply translucent green tint where mask is WHITE (selected jewelry area)
-        if (brightness > 128) {
+        // Apply translucent green tint where mask is BLACK (jewelry area)
+        if (brightness < 128) {
           // Blend with green using translucent opacity
           overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity)); // R
           overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + 255 * overlayOpacity); // G
@@ -382,11 +382,12 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         throw new Error('No mask returned from workflow');
       }
 
-      // DON'T invert - SAM returns white=jewelry which is correct for generation
-      console.log('[Masking] Using mask as-is (white=jewelry)');
-      setProcessingStep('Processing mask...');
+      // Invert mask: SAM returns white=jewelry, we want black=jewelry, white=background
+      console.log('[Masking] Inverting mask (white jewelry -> black jewelry)');
+      setProcessingStep('Inverting mask...');
+      maskBinary = await invertMaskImage(maskBinary);
 
-      // Create translucent green overlay on the jewelry area (white in mask)
+      // Create translucent green overlay on the jewelry area (now black in inverted mask)
       console.log('[Masking] Creating overlay with translucent green on jewelry');
       setProcessingStep('Creating overlay...');
       const generatedOverlay = await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
