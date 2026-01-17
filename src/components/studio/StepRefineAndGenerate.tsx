@@ -120,13 +120,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   };
 
   const handleGenerate = async () => {
-    const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
-    
     // Use edited mask if available, otherwise use original mask
     const maskToUse = state.editedMask || state.maskBinary;
     
-    // For necklace, we need a mask. For others, all_jewelry_pipeline generates its own mask.
-    if (isNecklace && (!maskToUse || !state.originalImage)) {
+    if (!maskToUse || !state.originalImage) {
       toast({
         variant: 'destructive',
         title: 'Missing data',
@@ -135,20 +132,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       return;
     }
 
-    if (!state.originalImage) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing image',
-        description: 'Please upload an image first.',
-      });
-      return;
-    }
-
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
 
-    // isNecklace already defined at top of function
+    const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
     try {
       console.log('[Generation] Starting workflow');
