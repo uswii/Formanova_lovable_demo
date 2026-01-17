@@ -364,17 +364,33 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         resultKeys: Object.keys(result),
       });
       
+      // DEBUG: Log full result structure for troubleshooting
+      console.log('[Generation] Full result sample:', {
+        transform_apply: result.transform_apply ? 
+          (Array.isArray(result.transform_apply) ? `array[${(result.transform_apply as unknown[]).length}]` : 'object') : 'undefined',
+        gemini_hand_inpaint: result.gemini_hand_inpaint ?
+          (Array.isArray(result.gemini_hand_inpaint) ? `array[${(result.gemini_hand_inpaint as unknown[]).length}]` : 'object') : 'undefined',
+        composite: result.composite ?
+          (Array.isArray(result.composite) ? `array[${(result.composite as unknown[]).length}]` : 'object') : 'undefined',
+      });
+      
       // Get nodes for ALL_JEWELRY pipeline (can be array-indexed or flat)
       const getNode = (key: string): Record<string, unknown> | undefined => {
         const val = result[key];
-        if (!val) return undefined;
+        if (!val) {
+          console.log(`[getNode] Key "${key}" not found in result`);
+          return undefined;
+        }
         // Handle both array-indexed and flat structures
         if (Array.isArray(val) && val.length > 0) {
+          console.log(`[getNode] Key "${key}" is array, using first element`);
           return val[0] as Record<string, unknown>;
         }
         if (typeof val === 'object') {
+          console.log(`[getNode] Key "${key}" is flat object`);
           return val as Record<string, unknown>;
         }
+        console.log(`[getNode] Key "${key}" has unexpected type: ${typeof val}`);
         return undefined;
       };
       
