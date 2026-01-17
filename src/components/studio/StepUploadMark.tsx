@@ -250,26 +250,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
     const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
-    // For non-necklace jewelry, skip masking workflow - all_jewelry_pipeline does its own preprocessing
-    if (!isNecklaceType) {
-      console.log('[Step1] Non-necklace jewelry - skipping masking workflow, will use all_jewelry_pipeline');
-      
-      // Store raw points for Step 2 - no scaling needed, pipeline handles it
-      updateState({
-        redDots: redDots,
-        // No processingState needed - pipeline does its own preprocessing
-      });
-      
-      toast({
-        title: 'Points marked',
-        description: `Marked ${redDots.length} point(s). Proceeding to generation.`,
-      });
-      
-      onNext();
-      return;
-    }
-
-    // === NECKLACE ONLY: Run necklace_point_masking workflow ===
+    // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Starting masking workflow...');
@@ -284,64 +265,129 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       // All points are foreground (1) for now
       const pointLabels = redDots.map(() => 1);
 
-      console.log('[Masking] Starting necklace_point_masking workflow for necklace');
-      console.log('[Masking] Points:', points.length);
-
-      // Start the masking workflow - ONLY for necklaces
-      const startResponse = await workflowApi.startMasking({
-        imageBlob,
-        points,
-        pointLabels,
-      });
-
-      console.log('[Masking] Workflow started:', startResponse.workflow_id);
-
-      // Poll until complete with progress updates
-      const result = await workflowApi.pollUntilComplete(
-        startResponse.workflow_id,
-        'masking',
-        (progress, label) => {
-          setProcessingProgress(progress);
-          setProcessingStep(label);
-        }
-      );
-
-      console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
-
-      // Extract mask data from result - the DAG returns results keyed by node name
-      // Look for sam3 output which contains the mask
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resultAny = result as any;
-      const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
-      
-      console.log('[Masking] sam3Result:', sam3Result);
-      
-      // Check if mask is an Azure URI or base64
       let maskBinary: string | null = null;
-      
-      if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
-        // Fetch from Azure
-        setProcessingStep('Fetching mask from storage...');
-        maskBinary = await fetchAzureImage(sam3Result.mask.uri);
-      } else if (sam3Result.mask_base64) {
-        // Direct base64
-        maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
-      }
-      
-      // Handle overlay - might also be Azure URI
       let maskOverlay: string | null = null;
-      if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
-        maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
-      } else if (sam3Result.mask_overlay_base64) {
-        maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
-      }
-      
-      // Handle processed image
       let processedImage = state.originalImage;
-      if (sam3Result.processed_image?.uri && sam3Result.processed_image.uri.startsWith('azure://')) {
-        processedImage = await fetchAzureImage(sam3Result.processed_image.uri);
-      } else if (sam3Result.processed_image_base64) {
-        processedImage = `data:image/jpeg;base64,${sam3Result.processed_image_base64}`;
+      let workflowId: string;
+
+      if (isNecklaceType) {
+        // === NECKLACE: Run necklace_point_masking workflow ===
+        console.log('[Masking] Starting necklace_point_masking workflow for necklace');
+        console.log('[Masking] Points:', points.length);
+
+        const startResponse = await workflowApi.startMasking({
+          imageBlob,
+          points,
+          pointLabels,
+        });
+
+        workflowId = startResponse.workflow_id;
+        console.log('[Masking] Workflow started:', workflowId);
+
+        // Poll until complete with progress updates
+        const result = await workflowApi.pollUntilComplete(
+          workflowId,
+          'masking',
+          (progress, label) => {
+            setProcessingProgress(progress);
+            setProcessingStep(label);
+          }
+        );
+
+        console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
+
+        // Extract mask data from result
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resultAny = result as any;
+        const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
+        
+        console.log('[Masking] sam3Result:', sam3Result);
+        
+        // Check if mask is an Azure URI or base64
+        if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
+          setProcessingStep('Fetching mask from storage...');
+          maskBinary = await fetchAzureImage(sam3Result.mask.uri);
+        } else if (sam3Result.mask_base64) {
+          maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
+        }
+        
+        // Handle overlay
+        if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
+          maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
+        } else if (sam3Result.mask_overlay_base64) {
+          maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
+        }
+        
+        // Handle processed image
+        if (sam3Result.processed_image?.uri && sam3Result.processed_image.uri.startsWith('azure://')) {
+          processedImage = await fetchAzureImage(sam3Result.processed_image.uri);
+        } else if (sam3Result.processed_image_base64) {
+          processedImage = `data:image/jpeg;base64,${sam3Result.processed_image_base64}`;
+        }
+
+      } else {
+        // === NON-NECKLACE: Run all_jewelry_masking workflow ===
+        // Map jewelry type to singular form
+        let singularType: 'ring' | 'bracelet' | 'earrings' | 'watch' = 'ring';
+        if (jewelryType === 'rings' || jewelryType === 'ring') singularType = 'ring';
+        else if (jewelryType === 'bracelets' || jewelryType === 'bracelet') singularType = 'bracelet';
+        else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
+        else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
+
+        console.log('[Masking] Starting all_jewelry_masking workflow for', singularType);
+        console.log('[Masking] Points:', points.length);
+
+        const startResponse = await workflowApi.startAllJewelryMasking({
+          imageBlob,
+          points,
+          pointLabels,
+          jewelryType: singularType,
+        });
+
+        workflowId = startResponse.workflow_id;
+        console.log('[Masking] Workflow started:', workflowId);
+
+        // Poll until complete with progress updates
+        const result = await workflowApi.pollUntilComplete(
+          workflowId,
+          'all_jewelry_masking',
+          (progress, label) => {
+            setProcessingProgress(progress);
+            setProcessingStep(label);
+          }
+        );
+
+        console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
+
+        // Extract mask data from result - all_jewelry_masking returns sam3_all_jewelry node output
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resultAny = result as any;
+        const sam3Result = resultAny.sam3_all_jewelry?.[0] || resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
+        
+        console.log('[Masking] sam3_all_jewelry result:', sam3Result);
+        
+        // Check if mask is an Azure URI or base64
+        if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
+          setProcessingStep('Fetching mask from storage...');
+          maskBinary = await fetchAzureImage(sam3Result.mask.uri);
+        } else if (sam3Result.mask_base64) {
+          maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
+        }
+        
+        // Handle overlay
+        if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
+          maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
+        } else if (sam3Result.mask_overlay_base64) {
+          maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
+        }
+        
+        // Handle processed image (resized image from the pipeline)
+        const resizeResult = resultAny.resize_all_jewelry?.[0] || {};
+        if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
+          processedImage = await fetchAzureImage(resizeResult.image.uri);
+        } else if (resizeResult.image_base64) {
+          processedImage = `data:image/jpeg;base64,${resizeResult.image_base64}`;
+        }
       }
 
       if (!maskBinary) {
@@ -354,7 +400,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
       // Create translucent green overlay on the jewelry area (black in mask)
       setProcessingStep('Creating overlay...');
-      const generatedOverlay = await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
+      const generatedOverlay = maskOverlay || await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
 
       console.log('[Masking] Got mask and overlay');
 
@@ -364,10 +410,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         maskBinary,
         originalImage: processedImage,
         processingState: {
-          scaledPoints: sam3Result.scaled_points || sam3Result.meta?.scaled_points,
-          sessionId: startResponse.workflow_id,
-          imageWidth: sam3Result.meta?.image_size?.[0] || sam3Result.image_width,
-          imageHeight: sam3Result.meta?.image_size?.[1] || sam3Result.image_height,
+          sessionId: workflowId,
         },
       });
 

@@ -419,7 +419,7 @@ class WorkflowApi {
    */
   async pollUntilComplete(
     workflowId: string,
-    workflow: 'masking' | 'flux_gen' | 'all_jewelry',
+    workflow: 'masking' | 'flux_gen' | 'all_jewelry' | 'all_jewelry_masking',
     onProgress?: (progress: number, label: string) => void,
     pollInterval: number = 2000,
     maxWaitMs: number = 600000 // 10 minutes
