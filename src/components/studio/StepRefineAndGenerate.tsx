@@ -840,7 +840,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         <MaskCanvas
                           key={`binary-${canvasKey}`}
                           image={state.maskBinary}
-                          brushColor={brushMode === 'add' ? '#FFFFFF' : '#000000'}
+                          brushColor={brushMode === 'add' ? '#000000' : '#FFFFFF'}
                           brushSize={brushSize}
                           mode="brush"
                           canvasSize={400}
