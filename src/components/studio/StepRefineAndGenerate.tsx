@@ -414,23 +414,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       // Helper to extract image - handles Azure URIs and base64
       const extractImage = async (node: Record<string, unknown> | undefined, fieldName: string = 'image_base64'): Promise<string | null> => {
         if (!node) {
-          console.log('[extractImage] Node is null/undefined');
           return null;
         }
         
-        console.log('[extractImage] Node keys:', Object.keys(node), 'fieldName:', fieldName);
-        
         // Get the field value
         const imageField = node[fieldName];
-        console.log('[extractImage] imageField type:', typeof imageField, 'value preview:', 
-          typeof imageField === 'object' && imageField !== null ? JSON.stringify(imageField)?.substring(0, 200) : 
-          typeof imageField === 'string' ? imageField.substring(0, 100) : String(imageField));
         
-        // Check for Azure URI - handle both object with uri property and direct azure:// string
+        if (!imageField) {
+          console.log(`[extractImage] Field "${fieldName}" not found in node. Available keys:`, Object.keys(node));
+          return null;
+        }
+        
+        console.log(`[extractImage] Field "${fieldName}" type:`, typeof imageField);
+        
+        // Check for Azure URI object: { uri: "azure://...", type: "...", ... }
         if (typeof imageField === 'object' && imageField !== null) {
-          const uriValue = (imageField as Record<string, unknown>).uri;
+          const imageObj = imageField as Record<string, unknown>;
+          const uriValue = imageObj.uri;
+          
           if (typeof uriValue === 'string' && uriValue.startsWith('azure://')) {
-            console.log('[extractImage] Fetching image from Azure (object.uri):', uriValue);
+            console.log('[extractImage] Fetching from Azure URI:', uriValue.substring(0, 80));
             try {
               const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
                 body: { azure_uri: uriValue },
@@ -440,48 +443,77 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                 return null;
               }
               if (!data?.base64) {
-                console.error('[extractImage] Azure response missing base64:', data);
+                console.error('[extractImage] Azure response missing base64');
                 return null;
               }
               console.log('[extractImage] Azure fetch success, base64 length:', data.base64.length);
-              return `data:${data.content_type || 'image/jpeg'};base64,${data.base64}`;
+              return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
             } catch (fetchError) {
               console.error('[extractImage] Azure fetch threw:', fetchError);
               return null;
             }
           }
+          
+          // Check if it's a nested object with another uri (e.g., mask.uri.uri)
+          if (typeof uriValue === 'object' && uriValue !== null) {
+            const nestedUri = (uriValue as Record<string, unknown>).uri;
+            if (typeof nestedUri === 'string' && nestedUri.startsWith('azure://')) {
+              console.log('[extractImage] Fetching from nested Azure URI:', nestedUri.substring(0, 80));
+              try {
+                const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
+                  body: { azure_uri: nestedUri },
+                });
+                if (error) {
+                  console.error('[extractImage] Nested Azure fetch error:', error);
+                  return null;
+                }
+                if (!data?.base64) {
+                  console.error('[extractImage] Nested Azure response missing base64');
+                  return null;
+                }
+                console.log('[extractImage] Nested Azure fetch success');
+                return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
+              } catch (fetchError) {
+                console.error('[extractImage] Nested Azure fetch threw:', fetchError);
+                return null;
+              }
+            }
+          }
+          
+          console.log('[extractImage] Object field but no valid Azure URI. Keys:', Object.keys(imageObj));
+          return null;
         }
         
         // Check for direct azure:// string
         if (typeof imageField === 'string' && imageField.startsWith('azure://')) {
-          console.log('[extractImage] Fetching image from Azure (string):', imageField.substring(0, 60));
+          console.log('[extractImage] Fetching from Azure string:', imageField.substring(0, 60));
           try {
             const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
               body: { azure_uri: imageField },
             });
             if (error) {
-              console.error('[extractImage] Azure fetch error:', error);
+              console.error('[extractImage] Azure string fetch error:', error);
               return null;
             }
             if (!data?.base64) {
-              console.error('[extractImage] Azure response missing base64:', data);
+              console.error('[extractImage] Azure string response missing base64');
               return null;
             }
-            console.log('[extractImage] Azure fetch success, base64 length:', data.base64.length);
-            return `data:${data.content_type || 'image/jpeg'};base64,${data.base64}`;
+            console.log('[extractImage] Azure string fetch success');
+            return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
           } catch (fetchError) {
-            console.error('[extractImage] Azure fetch threw:', fetchError);
+            console.error('[extractImage] Azure string fetch threw:', fetchError);
             return null;
           }
         }
         
         // Check for direct base64 string
-        if (typeof imageField === 'string') {
-          console.log('[extractImage] Using direct string, length:', imageField.length);
-          return imageField.startsWith('data:') ? imageField : `data:image/jpeg;base64,${imageField}`;
+        if (typeof imageField === 'string' && imageField.length > 100) {
+          console.log('[extractImage] Using direct base64 string, length:', imageField.length);
+          return imageField.startsWith('data:') ? imageField : `data:image/png;base64,${imageField}`;
         }
         
-        console.log('[extractImage] No valid image found');
+        console.log('[extractImage] No valid image format found');
         return null;
       };
       
