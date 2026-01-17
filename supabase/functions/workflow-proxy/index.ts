@@ -55,6 +55,16 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.text();
+      
+      // Log status response to debug what results are available
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.progress?.state === 'completed') {
+          console.log(`[workflow-proxy] Status completed for ${workflowId}`);
+          console.log(`[workflow-proxy] Status results keys:`, parsed.results ? Object.keys(parsed.results) : 'no results');
+        }
+      } catch (e) { /* ignore parse errors */ }
+      
       return new Response(data, {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -69,6 +79,18 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.text();
+      
+      // Log result response to debug what's being returned
+      try {
+        const parsed = JSON.parse(data);
+        console.log(`[workflow-proxy] Result for ${workflowId}, keys:`, Object.keys(parsed));
+        // Log first few chars of each key to see structure
+        for (const key of Object.keys(parsed)) {
+          const val = parsed[key];
+          console.log(`[workflow-proxy] Result key "${key}":`, Array.isArray(val) ? `array[${val.length}]` : typeof val);
+        }
+      } catch (e) { /* ignore parse errors */ }
+      
       return new Response(data, {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
