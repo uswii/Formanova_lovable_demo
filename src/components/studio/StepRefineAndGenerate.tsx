@@ -226,15 +226,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
       // Extract results from DAG output
       // Results are keyed by node name, need to find the final output
-      console.log('[Generation] Full result structure:', JSON.stringify(result, null, 2).substring(0, 3000));
+      // Log all result keys to debug what backend is returning
+      console.log('[Generation] Full result structure:', JSON.stringify(result, null, 2).substring(0, 5000));
+      console.log('[Generation] ALL result keys:', Object.keys(result));
+      
+      // Look for image-containing nodes - the backend may use different node names
+      // Possible node names for composite images:
+      // - composite_gemini (necklace enhanced)
+      // - composite (necklace standard)
+      // - final_composite (all_jewelry)
+      // - upscaler_gemini (if composite is missing, fall back to upscaler output)
+      // - upscaler (for standard flux output)
+      // - gemini_viton (for all_jewelry before final composite)
       
       // Get quality metrics (separate from image results)
       const metricsResult = (result.quality_metrics_gemini?.[0] || result.quality_metrics?.[0] || {}) as Record<string, unknown>;
       
-      // Get image results from composite nodes
-      const compositeGemini = result.composite_gemini?.[0] as Record<string, unknown> | undefined;
-      const composite = result.composite?.[0] as Record<string, unknown> | undefined;
-      const finalComposite = result.final_composite?.[0] as Record<string, unknown> | undefined;
+      // Get image results from composite nodes - try multiple possible node names
+      const compositeGemini = (result.composite_gemini?.[0] || result.upscaler_gemini?.[0]) as Record<string, unknown> | undefined;
+      const composite = (result.composite?.[0] || result.upscaler?.[0] || result.flux_fill?.[0]) as Record<string, unknown> | undefined;
+      const finalComposite = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
       
       console.log('[Generation] compositeGemini:', compositeGemini);
       console.log('[Generation] composite:', composite);
