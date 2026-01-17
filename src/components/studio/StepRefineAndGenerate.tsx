@@ -248,13 +248,30 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       const metricsResult = (result.quality_metrics_gemini?.[0] || result.quality_metrics?.[0] || {}) as Record<string, unknown>;
       
       // Log all available node names to debug
+      console.log('[Generation] ALL result keys:', Object.keys(result));
       console.log('[Generation] Available result nodes:', Object.keys(result).filter(k => !k.startsWith('quality_')));
       
-      // Get image results from composite nodes - try multiple possible node names
-      // For flux_gen pipeline: upscaler (flux standard), upscaler_gemini (enhanced)
-      // The "composite" step may not exist - upscaler IS the final composite output
-      const compositeGemini = (result.composite_gemini?.[0] || result.upscaler_gemini?.[0]) as Record<string, unknown> | undefined;
-      const composite = (result.composite?.[0] || result.upscaler?.[0] || result.flux_fill?.[0]) as Record<string, unknown> | undefined;
+      // Get image results from final output nodes
+      // PRIORITY ORDER for Flux Standard: upscaler > composite > flux_fill (upscaler is the final upscaled result)
+      // PRIORITY ORDER for Gemini Enhanced: upscaler_gemini > composite_gemini
+      // The "composite" step is INTERMEDIATE - "upscaler" is the FINAL composited + upscaled output
+      const upscaler = result.upscaler?.[0] as Record<string, unknown> | undefined;
+      const upscalerGemini = result.upscaler_gemini?.[0] as Record<string, unknown> | undefined;
+      const compositeNode = result.composite?.[0] as Record<string, unknown> | undefined;
+      const compositeGeminiNode = result.composite_gemini?.[0] as Record<string, unknown> | undefined;
+      const fluxFill = result.flux_fill?.[0] as Record<string, unknown> | undefined;
+      
+      console.log('[Generation] Node availability:', {
+        upscaler: !!upscaler,
+        upscalerGemini: !!upscalerGemini,
+        composite: !!compositeNode,
+        compositeGemini: !!compositeGeminiNode,
+        fluxFill: !!fluxFill,
+      });
+      
+      // Use upscaler FIRST (final output), then fallback to composite/flux_fill
+      const compositeGemini = (upscalerGemini || compositeGeminiNode) as Record<string, unknown> | undefined;
+      const composite = (upscaler || compositeNode || fluxFill) as Record<string, unknown> | undefined;
       const finalComposite = (result.final_composite?.[0] || result.gemini_viton?.[0]) as Record<string, unknown> | undefined;
       
       console.log('[Generation] compositeGemini keys:', compositeGemini ? Object.keys(compositeGemini) : 'null');
