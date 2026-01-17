@@ -370,9 +370,11 @@ class WorkflowApi {
     maxWaitMs: number = 600000 // 10 minutes
   ): Promise<WorkflowResultResponse> {
     const startTime = Date.now();
+    let lastStatus: WorkflowStatusResponse | null = null;
 
     while (Date.now() - startTime < maxWaitMs) {
       const status = await this.getStatus(workflowId);
+      lastStatus = status;
 
       if (status.progress.visited.length > 0 && onProgress) {
         const { progress, label } = getStepProgress(status.progress.visited, workflow);
@@ -381,7 +383,29 @@ class WorkflowApi {
 
       if (status.progress.state === 'completed') {
         if (onProgress) onProgress(100, 'Complete!');
-        return await this.getResult(workflowId);
+        
+        // Get final result
+        const finalResult = await this.getResult(workflowId);
+        
+        // IMPORTANT: Merge status.results with finalResult
+        // The status response often contains intermediate node outputs
+        // that aren't in the /result endpoint (which may only return terminal nodes)
+        const mergedResult = { ...finalResult };
+        
+        if (status.results) {
+          for (const [key, value] of Object.entries(status.results)) {
+            if (!mergedResult[key]) {
+              console.log(`[WorkflowApi] Adding missing key from status: ${key}`);
+              mergedResult[key] = value;
+            }
+          }
+        }
+        
+        console.log('[WorkflowApi] Final result keys:', Object.keys(finalResult));
+        console.log('[WorkflowApi] Status result keys:', status.results ? Object.keys(status.results) : 'none');
+        console.log('[WorkflowApi] Merged result keys:', Object.keys(mergedResult));
+        
+        return mergedResult;
       }
 
       if (status.progress.state === 'failed') {
