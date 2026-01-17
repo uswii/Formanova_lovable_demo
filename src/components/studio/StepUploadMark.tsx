@@ -362,25 +362,28 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         throw new Error('No mask returned from workflow');
       }
 
-      // Invert mask for non-necklace jewelry if needed
-      // SAM returns inverted masks for some jewelry types
-      if (!isNecklaceType) {
-        console.log('[Masking] Inverting mask for non-necklace jewelry:', jewelryType);
-        maskBinary = await invertMaskImage(maskBinary);
-      }
+      // Always invert the mask - SAM returns black=jewelry, we need white=jewelry for overlay
+      console.log('[Masking] Inverting mask (black jewelry -> white jewelry)');
+      setProcessingStep('Processing mask...');
+      maskBinary = await invertMaskImage(maskBinary);
+
+      // Create translucent green overlay on the jewelry area (now white in inverted mask)
+      console.log('[Masking] Creating overlay with translucent green on jewelry');
+      setProcessingStep('Creating overlay...');
+      const generatedOverlay = await createMaskOverlay(processedImage || state.originalImage!, maskBinary);
 
       console.log('[Masking] Got mask and overlay');
 
       // Update state with results
       updateState({
-        maskOverlay: maskOverlay || state.originalImage,
+        maskOverlay: generatedOverlay,
         maskBinary,
         originalImage: processedImage,
         processingState: {
-          scaledPoints: sam3Result.scaled_points,
+          scaledPoints: sam3Result.scaled_points || sam3Result.meta?.scaled_points,
           sessionId: startResponse.workflow_id,
-          imageWidth: sam3Result.image_width,
-          imageHeight: sam3Result.image_height,
+          imageWidth: sam3Result.meta?.image_size?.[0] || sam3Result.image_width,
+          imageHeight: sam3Result.meta?.image_size?.[1] || sam3Result.image_height,
         },
       });
 
