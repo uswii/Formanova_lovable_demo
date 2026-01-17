@@ -284,6 +284,31 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
     const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
+    // For non-necklace jewelry, skip masking workflow - all_jewelry_pipeline does its own preprocessing
+    if (!isNecklaceType) {
+      console.log('[Step1] Non-necklace jewelry - skipping masking workflow, will use all_jewelry_pipeline');
+      
+      // Store points for Step 2, no masking needed here
+      updateState({
+        redDots: redDots,
+        processingState: {
+          scaledPoints: redDots.map(dot => [dot.x, dot.y]),
+          sessionId: null,
+          imageWidth: null,
+          imageHeight: null,
+        },
+      });
+      
+      toast({
+        title: 'Points marked',
+        description: `Marked ${redDots.length} point(s). Proceeding to generation.`,
+      });
+      
+      onNext();
+      return;
+    }
+
+    // === NECKLACE ONLY: Run necklace_point_masking workflow ===
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Starting masking workflow...');
@@ -298,10 +323,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       // All points are foreground (1) for now
       const pointLabels = redDots.map(() => 1);
 
-      console.log('[Masking] Starting necklace_point_masking workflow for:', jewelryType);
+      console.log('[Masking] Starting necklace_point_masking workflow for necklace');
       console.log('[Masking] Points:', points.length);
 
-      // Start the masking workflow - works for ALL jewelry types (it's just SAM3 with points)
+      // Start the masking workflow - ONLY for necklaces
       const startResponse = await workflowApi.startMasking({
         imageBlob,
         points,
