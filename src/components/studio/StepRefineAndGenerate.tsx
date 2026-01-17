@@ -352,10 +352,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       //   - quality_metrics[0] or quality_metrics_gemini[0]
       
       // Detect all_jewelry by checking for its specific nodes
-      const hasAllJewelryNodes = Array.isArray(result.transform_apply) || 
-                                  Array.isArray(result.gemini_hand_inpaint) ||
-                                  Array.isArray(result.gemini_viton);
-      const hasNecklaceNodes = Array.isArray(result.composite) || Array.isArray(result.composite_gemini);
+      const hasAllJewelryNodes = result.transform_apply !== undefined || 
+                                  result.gemini_hand_inpaint !== undefined ||
+                                  result.gemini_viton !== undefined;
+      // Necklace pipeline has flat objects (not arrays): result.composite.image_base64
+      const hasNecklaceNodes = result.composite !== undefined || result.composite_gemini !== undefined;
       
       console.log('[Generation] Pipeline detection:', { 
         hasAllJewelryNodes, 
@@ -363,20 +364,35 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         resultKeys: Object.keys(result),
       });
       
-      // Get nodes for ALL_JEWELRY pipeline (array-indexed)
-      const transformApplyNode = (result.transform_apply as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const geminiHandInpaintNode = (result.gemini_hand_inpaint as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const geminiVitonNode = (result.gemini_viton as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const compositeAllJewelryNode = (result.composite_all_jewelry as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const maskInvertFinalNode = (result.mask_invert_final as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const transformMaskNode = (result.transform_mask as unknown[])?.[0] as Record<string, unknown> | undefined;
+      // Get nodes for ALL_JEWELRY pipeline (can be array-indexed or flat)
+      const getNode = (key: string): Record<string, unknown> | undefined => {
+        const val = result[key];
+        if (!val) return undefined;
+        // Handle both array-indexed and flat structures
+        if (Array.isArray(val) && val.length > 0) {
+          return val[0] as Record<string, unknown>;
+        }
+        if (typeof val === 'object') {
+          return val as Record<string, unknown>;
+        }
+        return undefined;
+      };
       
-      // Get nodes for NECKLACE pipeline (array-indexed)
-      const compositeNode = (result.composite as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const compositeGeminiNode = (result.composite_gemini as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const upscalerNode = (result.upscaler as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const upscalerGeminiNode = (result.upscaler_gemini as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const fluxFillNode = (result.flux_fill as unknown[])?.[0] as Record<string, unknown> | undefined;
+      // ALL_JEWELRY nodes
+      const transformApplyNode = getNode('transform_apply');
+      const geminiHandInpaintNode = getNode('gemini_hand_inpaint');
+      const geminiVitonNode = getNode('gemini_viton');
+      const compositeAllJewelryNode = getNode('composite_all_jewelry');
+      const maskInvertFinalNode = getNode('mask_invert_final');
+      const transformMaskNode = getNode('transform_mask');
+      
+      // NECKLACE nodes (flat objects, not arrays)
+      const compositeNode = getNode('composite');
+      const compositeGeminiNode = getNode('composite_gemini');
+      const maskInvertFluxNode = getNode('mask_invert_flux');
+      const maskInvertGeminiNode = getNode('mask_invert_gemini');
+      const qualityMetricsFluxNode = getNode('quality_metrics');
+      const qualityMetricsGeminiNode = getNode('quality_metrics_gemini');
       
       console.log('[Generation] Node availability:', {
         // All jewelry nodes
@@ -389,9 +405,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         // Necklace nodes
         composite: !!compositeNode,
         compositeGemini: !!compositeGeminiNode,
-        upscaler: !!upscalerNode,
-        upscalerGemini: !!upscalerGeminiNode,
-        fluxFill: !!fluxFillNode,
+        maskInvertFlux: !!maskInvertFluxNode,
+        maskInvertGemini: !!maskInvertGeminiNode,
       });
       
       // Helper to extract image - handles Azure URIs and base64
@@ -512,26 +527,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         });
         
       } else if (hasNecklaceNodes) {
-        // NECKLACE pipeline: array-indexed nodes
-        console.log('[Generation] Using NECKLACE array-indexed extraction');
+        // NECKLACE pipeline: flat objects (result.composite.image_base64)
+        console.log('[Generation] Using NECKLACE flat object extraction');
         
-        fluxResult = await extractImage(compositeNode, 'image_base64') 
-          || await extractImage(upscalerNode, 'image')
-          || await extractImage(fluxFillNode, 'image');
-        
-        geminiResult = await extractImage(compositeGeminiNode, 'image_base64')
-          || await extractImage(upscalerGeminiNode, 'image');
+        // Primary: composite nodes have the final displayable base64 images
+        fluxResult = await extractImage(compositeNode, 'image_base64');
+        geminiResult = await extractImage(compositeGeminiNode, 'image_base64');
         
         // Extract output masks for necklace fidelity visualization
-        const maskInvertGemini = (result.mask_invert_gemini as unknown[])?.[0] as Record<string, unknown> | undefined;
-        const maskInvertFlux = (result.mask_invert_flux as unknown[])?.[0] as Record<string, unknown> | undefined;
-        
-        outputMaskGeminiImage = await extractImage(maskInvertGemini, 'mask') 
-          || await extractImage(maskInvertGemini, 'mask_base64') 
-          || await extractImage(maskInvertGemini, 'image_base64');
-        outputMaskImage = await extractImage(maskInvertFlux, 'mask') 
-          || await extractImage(maskInvertFlux, 'mask_base64') 
-          || await extractImage(maskInvertFlux, 'image_base64');
+        outputMaskImage = await extractImage(maskInvertFluxNode, 'mask_base64') 
+          || await extractImage(maskInvertFluxNode, 'mask');
+        outputMaskGeminiImage = await extractImage(maskInvertGeminiNode, 'mask_base64') 
+          || await extractImage(maskInvertGeminiNode, 'mask');
+          
+        console.log('[Generation] NECKLACE extraction results:', {
+          hasFluxResult: !!fluxResult,
+          hasGeminiResult: !!geminiResult,
+          hasFluxMask: !!outputMaskImage,
+          hasGeminiMask: !!outputMaskGeminiImage,
+        });
       } else {
         // Fallback: try all possible extraction methods
         console.log('[Generation] Using fallback extraction, trying all nodes');
@@ -543,15 +557,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           || await extractImage(compositeAllJewelryNode, 'image_base64');
         fluxResult = geminiResult;
         
-        // Then try necklace nodes
+        // Then try necklace nodes (flat objects)
         if (!fluxResult) {
-          fluxResult = await extractImage(compositeNode, 'image_base64') 
-            || await extractImage(upscalerNode, 'image')
-            || await extractImage(fluxFillNode, 'image');
+          fluxResult = await extractImage(compositeNode, 'image_base64');
         }
         if (!geminiResult) {
-          geminiResult = await extractImage(compositeGeminiNode, 'image_base64')
-            || await extractImage(upscalerGeminiNode, 'image');
+          geminiResult = await extractImage(compositeGeminiNode, 'image_base64');
         }
       }
       
@@ -607,24 +618,24 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       }
       
       // Extract quality metrics from backend
-      // Both pipelines use array-indexed: result.quality_metrics[0]
-      const qualityMetricsNode = (result.quality_metrics as unknown[])?.[0] as Record<string, unknown> | undefined;
-      const qualityMetricsGeminiNode = (result.quality_metrics_gemini as unknown[])?.[0] as Record<string, unknown> | undefined;
+      // Use the pre-defined nodes from earlier or fall back to array-indexed access
+      const metricsNode = qualityMetricsFluxNode || getNode('quality_metrics');
+      const metricsGeminiNode = qualityMetricsGeminiNode || getNode('quality_metrics_gemini');
       
       // Use backend metrics if we didn't calculate them
-      if (!calculatedMetrics && qualityMetricsNode && qualityMetricsNode.precision !== undefined) {
+      if (!calculatedMetrics && metricsNode && metricsNode.precision !== undefined) {
         calculatedMetrics = {
-          precision: qualityMetricsNode.precision as number,
-          recall: qualityMetricsNode.recall as number,
-          iou: qualityMetricsNode.iou as number,
-          growthRatio: qualityMetricsNode.growth_ratio as number,
+          precision: metricsNode.precision as number,
+          recall: metricsNode.recall as number,
+          iou: metricsNode.iou as number,
+          growthRatio: metricsNode.growth_ratio as number,
         };
         console.log('[Generation] Using backend metrics:', calculatedMetrics);
       }
       
       if (!calculatedMetricsGemini) {
         // For all_jewelry, gemini metrics = main metrics (only one output)
-        const metricsSource = hasAllJewelryNodes ? qualityMetricsNode : qualityMetricsGeminiNode;
+        const metricsSource = hasAllJewelryNodes ? metricsNode : metricsGeminiNode;
         if (metricsSource && metricsSource.precision !== undefined) {
           calculatedMetricsGemini = {
             precision: metricsSource.precision as number,
