@@ -93,6 +93,7 @@ export interface AllJewelryRequest {
   pointLabels: number[];   // [1, 1, 0, ...] - 1=foreground, 0=background
   jewelryType: 'ring' | 'bracelet' | 'earrings' | 'watch';
   skinTone: SkinTone;
+  maskBase64?: string;     // Optional: pre-edited mask (data:image/png;base64,...)
 }
 
 export interface AllJewelryResult {
@@ -286,12 +287,23 @@ class WorkflowApi {
     const formData = new FormData();
     formData.append('file', request.imageBlob, 'image.jpg');
     formData.append('workflow_name', 'all_jewelry_pipeline');
-    formData.append('overrides', JSON.stringify({
+    
+    // Build overrides - include mask if provided (user edited it)
+    const overrides: Record<string, unknown> = {
       points: request.points,
       point_labels: request.pointLabels,
       jewelry_type: request.jewelryType,
       skin_tone: request.skinTone,
-    }));
+    };
+    
+    // If mask is provided, include it so DAG can skip mask generation
+    if (request.maskBase64) {
+      overrides.mask = request.maskBase64.startsWith('data:') 
+        ? request.maskBase64 
+        : `data:image/png;base64,${request.maskBase64}`;
+    }
+    
+    formData.append('overrides', JSON.stringify(overrides));
 
     console.log('[WorkflowApi] Starting all_jewelry_pipeline', {
       jewelryType: request.jewelryType,
