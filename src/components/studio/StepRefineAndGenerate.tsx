@@ -304,18 +304,29 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       const geminiResult = await extractImage(compositeGemini) || await extractImage(finalComposite);
       
       // Extract output masks for fidelity visualization
-      const outputMaskGemini = result.output_mask_gemini?.[0] as Record<string, unknown> | undefined;
-      const outputMask = result.output_mask?.[0] as Record<string, unknown> | undefined;
-      const outputMaskAllJewelry = result.output_mask_all_jewelry?.[0] as Record<string, unknown> | undefined;
+      // DAG returns inverted masks from mask_invert_* nodes (BLACK=jewelry)
+      // For flux_gen: mask_invert_flux, mask_invert_gemini
+      // For all_jewelry: mask_invert (from VITON), mask_invert_final (from final composite)
+      const maskInvertGemini = result.mask_invert_gemini?.[0] as Record<string, unknown> | undefined;
+      const maskInvertFlux = result.mask_invert_flux?.[0] as Record<string, unknown> | undefined;
+      const maskInvert = result.mask_invert?.[0] as Record<string, unknown> | undefined;
+      const maskInvertFinal = result.mask_invert_final?.[0] as Record<string, unknown> | undefined;
       
-      const outputMaskGeminiImage = await extractImage(outputMaskGemini, 'mask_base64') || await extractImage(outputMaskGemini, 'image_base64');
-      const outputMaskImage = await extractImage(outputMask, 'mask_base64') || await extractImage(outputMask, 'image_base64');
-      const outputMaskAllJewelryImage = await extractImage(outputMaskAllJewelry, 'mask_base64') || await extractImage(outputMaskAllJewelry, 'image_base64');
+      // Fallback to old node names for backwards compatibility
+      const outputMaskGemini = maskInvertGemini || result.output_mask_gemini?.[0] as Record<string, unknown> | undefined;
+      const outputMask = maskInvertFlux || result.output_mask?.[0] as Record<string, unknown> | undefined;
+      const outputMaskAllJewelry = maskInvertFinal || maskInvert || result.output_mask_all_jewelry?.[0] as Record<string, unknown> | undefined;
       
-      console.log('[Generation] Output masks:', {
+      const outputMaskGeminiImage = await extractImage(outputMaskGemini, 'mask') || await extractImage(outputMaskGemini, 'mask_base64') || await extractImage(outputMaskGemini, 'image_base64');
+      const outputMaskImage = await extractImage(outputMask, 'mask') || await extractImage(outputMask, 'mask_base64') || await extractImage(outputMask, 'image_base64');
+      const outputMaskAllJewelryImage = await extractImage(outputMaskAllJewelry, 'mask') || await extractImage(outputMaskAllJewelry, 'mask_base64') || await extractImage(outputMaskAllJewelry, 'image_base64');
+      
+      console.log('[Generation] Output masks (inverted, BLACK=jewelry):', {
         hasOutputMaskGemini: !!outputMaskGeminiImage,
         hasOutputMask: !!outputMaskImage,
         hasOutputMaskAllJewelry: !!outputMaskAllJewelryImage,
+        maskInvertGeminiKeys: maskInvertGemini ? Object.keys(maskInvertGemini) : [],
+        maskInvertFluxKeys: maskInvertFlux ? Object.keys(maskInvertFlux) : [],
       });
       
       // Create fidelity visualizations on frontend if we have masks
