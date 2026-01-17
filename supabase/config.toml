@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.jewelry-generate]
 verify_jwt = false
+
+[functions.workflow-proxy]
+verify_jwt = false
