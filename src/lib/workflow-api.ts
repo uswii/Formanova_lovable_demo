@@ -439,26 +439,36 @@ class WorkflowApi {
       if (status.progress.state === 'completed') {
         if (onProgress) onProgress(100, 'Complete!');
         
-        // Get final result
+        // Get final result from /result endpoint
         const finalResult = await this.getResult(workflowId);
         
         // IMPORTANT: Merge status.results with finalResult
-        // The status response often contains intermediate node outputs
-        // that aren't in the /result endpoint (which may only return terminal nodes)
+        // The /result endpoint often only returns terminal nodes (quality_metrics, etc.)
+        // The status.results contains ALL node outputs including images
         const mergedResult = { ...finalResult };
+        
+        console.log('[WorkflowApi] Final result from /result:', Object.keys(finalResult));
+        console.log('[WorkflowApi] Status has results?', !!status.results);
+        console.log('[WorkflowApi] Status.results keys:', status.results ? Object.keys(status.results) : 'none');
         
         if (status.results) {
           for (const [key, value] of Object.entries(status.results)) {
             if (!mergedResult[key]) {
-              console.log(`[WorkflowApi] Adding missing key from status: ${key}`);
+              console.log(`[WorkflowApi] Adding from status: ${key}`);
               mergedResult[key] = value;
             }
           }
         }
         
-        console.log('[WorkflowApi] Final result keys:', Object.keys(finalResult));
-        console.log('[WorkflowApi] Status result keys:', status.results ? Object.keys(status.results) : 'none');
         console.log('[WorkflowApi] Merged result keys:', Object.keys(mergedResult));
+        console.log('[WorkflowApi] Has transform_apply?', !!mergedResult.transform_apply);
+        if (mergedResult.transform_apply) {
+          const ta = mergedResult.transform_apply as unknown[];
+          console.log('[WorkflowApi] transform_apply is array?', Array.isArray(ta), 'length:', ta?.length);
+          if (Array.isArray(ta) && ta.length > 0) {
+            console.log('[WorkflowApi] transform_apply[0] keys:', Object.keys(ta[0] as object));
+          }
+        }
         
         return mergedResult;
       }
