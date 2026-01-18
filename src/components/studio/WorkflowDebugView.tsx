@@ -29,107 +29,103 @@ interface WorkflowDebugViewProps {
   onClose?: () => void;
 }
 
-// Node order for necklace_point_masking
+// =====================================================
+// NODE ORDERS - Must match DAG pipeline YAML exactly
+// =====================================================
+
+// necklace_point_masking pipeline (4 steps)
 const MASKING_NODE_ORDER = [
-  'image_manipulator',
-  'zoom_check',
-  'bg_remove',
-  'sam3',
+  'image_manipulator',   // Step 1: Resize to 2000x2667
+  'zoom_check',          // Step 2: Check if bg removal needed
+  'bg_remove',           // Step 3: Remove background (conditional)
+  'sam3',                // Step 4: Generate mask with points
 ];
 
-// Node order for flux_gen_pipeline (complete)
-const FLUX_NODE_ORDER = [
-  // Initial resizing
-  'resize_image',
-  'resize_mask',
-  'mask_invert_input',
-  // Segmentation
-  'white_bg_segmenter',
-  // Flux generation
-  'flux_fill',
-  'upscaler',
-  'resize_mask_upscale',
-  'composite',
-  'output_mask',
-  'mask_invert_flux',
-  'quality_metrics',
-  // Gemini refinement pipeline
-  'resize_for_gemini',
-  'gemini_router',
-  'gemini_refine',
-  'upscaler_gemini',
-  'composite_gemini',
-  'output_mask_gemini',
-  'mask_invert_gemini',
-  'quality_metrics_gemini',
-];
-
-// Node order for all_jewelry_masking
+// all_jewelry_masking pipeline (2 steps)
 const ALL_JEWELRY_MASKING_NODE_ORDER = [
-  'resize_all_jewelry',
-  'sam3_all_jewelry',
+  'resize_all_jewelry',  // Step 1: Resize to 880x1216
+  'sam3_all_jewelry',    // Step 2: Generate mask with points
 ];
 
-// Node order for all_jewelry_generation - matches DAG execution order
+// flux_gen_pipeline (19 steps)
+const FLUX_NODE_ORDER = [
+  // Steps 1-3: Resize and invert mask
+  'resize_image',        // Step 1: Resize original for Flux (768x1024)
+  'resize_mask',         // Step 2: Resize mask for Flux (768x1024)
+  'mask_invert_input',   // Step 3: Invert mask (WHITE→BLACK jewelry)
+  // Steps 4-5: Segmentation and Flux generation
+  'white_bg_segmenter',  // Step 4: Segment jewelry on white bg
+  'flux_fill',           // Step 5: Flux fill - generate new background
+  // Steps 6-11: Upscale and composite
+  'upscaler',            // Step 6: Upscale Flux output (2000x2667)
+  'resize_mask_upscale', // Step 7: Upscale inverted mask
+  'composite',           // Step 8: Composite jewelry onto Flux bg
+  'output_mask',         // Step 9: Extract output mask (SAM3)
+  'mask_invert_flux',    // Step 10: Invert SAM3 output mask
+  'quality_metrics',     // Step 11: Quality metrics for Flux
+  // Steps 12-19: Gemini refinement pipeline
+  'resize_for_gemini',   // Step 12: Downscale for Gemini (768x1024)
+  'gemini_router',       // Step 13: Decide FULL vs SKIN_ONLY prompt
+  'gemini_refine',       // Step 14: Gemini refines the image
+  'upscaler_gemini',     // Step 15: Upscale Gemini output (2000x2667)
+  'composite_gemini',    // Step 16: Composite jewelry onto Gemini bg
+  'output_mask_gemini',  // Step 17: Extract output mask (SAM3)
+  'mask_invert_gemini',  // Step 18: Invert SAM3 output mask
+  'quality_metrics_gemini', // Step 19: Quality metrics for Gemini
+];
+
+// all_jewelry_generation pipeline (14 steps)
 const ALL_JEWELRY_NODE_ORDER = [
-  // Step 1: Resize input
-  'resize_all_jewelry',
-  // Step 2: Invert input mask (SAM3 WHITE=jewelry → BLACK=jewelry)
-  'mask_invert_input',
-  'mask_invert',        // Backend's actual tool name (fallback)
-  // Step 3: Gemini sketch
-  'gemini_sketch',
-  // Step 4: Segment jewelry on green bg
-  'segment_green_bg',
-  // Step 5: Composite onto sketch
-  'composite_all_jewelry',
-  // Step 6: Gemini VITON
-  'gemini_viton',
-  // Step 7: Quality check
-  'gemini_quality_check',
-  // Step 8: Output mask from VITON
-  'output_mask_all_jewelry',
-  // Step 9: Invert output mask
-  'mask_invert_output',
-  // Step 10: Detect transformation
-  'transform_detect',
-  // Step 11: Transform input mask
-  'transform_mask',
-  // Step 12: Inpaint VITON (remove AI jewelry)
-  'gemini_hand_inpaint',
-  // Step 13: Transform and apply original jewelry (FINAL RESULT)
-  'transform_apply',
-  // Step 14: Quality metrics
-  'quality_metrics',
+  'resize_all_jewelry',      // Step 1: Resize input (880x1216)
+  'mask_invert_input',       // Step 2: Invert mask (WHITE→BLACK jewelry)
+  'gemini_sketch',           // Step 3: Generate hand/body outline sketch
+  'segment_green_bg',        // Step 4: Extract jewelry on green bg
+  'composite_all_jewelry',   // Step 5: Composite jewelry onto sketch
+  'gemini_viton',            // Step 6: Gemini VITON - realistic rendering
+  'gemini_quality_check',    // Step 7: Quality check on VITON output
+  'output_mask_all_jewelry', // Step 8: Generate output mask (SAM3)
+  'mask_invert_output',      // Step 9: Invert SAM3 output mask
+  'transform_detect',        // Step 10: Detect transformation between masks
+  'transform_mask',          // Step 11: Transform input mask
+  'gemini_hand_inpaint',     // Step 12: Inpaint VITON (remove AI jewelry)
+  'transform_apply',         // Step 13: Transform & apply original jewelry
+  'quality_metrics',         // Step 14: Quality metrics
 ];
 
-// Nodes that output images
+// =====================================================
+// NODE TYPE CLASSIFICATION
+// =====================================================
+
+// Nodes that output images (for azure:// resolution)
 const IMAGE_NODES = new Set([
-  // Masking nodes
+  // necklace_point_masking
   'image_manipulator', 'bg_remove', 'sam3',
-  // Flux pipeline
-  'resize_image', 'resize_mask', 'mask_invert_input', 'white_bg_segmenter',
-  'flux_fill', 'upscaler', 'resize_mask_upscale', 'composite',
-  'output_mask', 'mask_invert_flux',
-  'resize_for_gemini', 'gemini_refine', 'upscaler_gemini',
-  'composite_gemini', 'output_mask_gemini', 'mask_invert_gemini',
-  // All jewelry masking
-  'resize_all_jewelry',
-  'sam3_all_jewelry',
-  // All jewelry generation
-  'mask_invert_input', 'mask_invert', 'mask_invert_output',
-  'gemini_sketch', 'segment_green_bg',
-  'composite_all_jewelry', 'gemini_viton', 'output_mask_all_jewelry',
+  // all_jewelry_masking  
+  'resize_all_jewelry', 'sam3_all_jewelry',
+  // flux_gen_pipeline - resizing
+  'resize_image', 'resize_mask', 'resize_mask_upscale', 'resize_for_gemini',
+  // flux_gen_pipeline - masks
+  'mask_invert_input', 'mask_invert_flux', 'mask_invert_gemini',
+  // flux_gen_pipeline - segmentation/generation
+  'white_bg_segmenter', 'flux_fill', 'upscaler', 'composite',
+  'output_mask', 'gemini_refine', 'upscaler_gemini', 
+  'composite_gemini', 'output_mask_gemini',
+  // all_jewelry_generation - masks
+  'mask_invert_output',
+  // all_jewelry_generation - generation
+  'gemini_sketch', 'segment_green_bg', 'composite_all_jewelry',
+  'gemini_viton', 'output_mask_all_jewelry',
   'transform_mask', 'gemini_hand_inpaint', 'transform_apply',
 ]);
 
-// Nodes that output JSON/text data
+// Nodes that output JSON/text data (not images)
 const JSON_NODES = new Set([
+  // necklace_point_masking
   'zoom_check',
-  'gemini_router',
-  'quality_metrics', 'quality_metrics_gemini',
-  'gemini_quality_check',
-  'transform_detect',
+  // flux_gen_pipeline
+  'gemini_router', 'quality_metrics', 'quality_metrics_gemini',
+  // all_jewelry_generation
+  'gemini_quality_check', 'transform_detect',
 ]);
 
 // Helper to extract Azure URI from various formats
