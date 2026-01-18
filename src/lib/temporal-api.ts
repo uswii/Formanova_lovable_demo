@@ -2,6 +2,7 @@
 // Connects to DAG pipeline orchestrator for jewelry generation
 
 import { supabase } from '@/integrations/supabase/client';
+import { getStoredToken } from '@/lib/auth-api';
 
 // Use Supabase edge function proxy
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -235,11 +236,41 @@ export function getStepProgress(step: string | null): number {
 class TemporalApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    return {
+    const userToken = getStoredToken();
+    
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${anonKey}`,
       'apikey': anonKey,
     };
+    
+    // Prefer user JWT for authenticated requests to backend
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+      headers['X-User-Token'] = userToken; // Send user token separately for proxy
+    } else {
+      headers['Authorization'] = `Bearer ${anonKey}`;
+    }
+    
+    return headers;
+  }
+  
+  private getFormDataHeaders(): Record<string, string> {
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const userToken = getStoredToken();
+    
+    const headers: Record<string, string> = {
+      'apikey': anonKey,
+    };
+    
+    // Prefer user JWT for authenticated requests
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+      headers['X-User-Token'] = userToken;
+    } else {
+      headers['Authorization'] = `Bearer ${anonKey}`;
+    }
+    
+    return headers;
   }
 
   // ========== DAG Pipeline Methods ==========
@@ -257,14 +288,9 @@ class TemporalApi {
       point_labels: pointLabels,
     }));
 
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
     const response = await fetch(getProxyUrl('/process'), {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey,
-      },
+      headers: this.getFormDataHeaders(),
       body: formData,
     });
 
@@ -302,15 +328,10 @@ class TemporalApi {
       })
     );
 
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
     // DO NOT set Content-Type for FormData - browser sets boundary automatically
     const response = await fetch(getProxyUrl('/process'), {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey,
-      },
+      headers: this.getFormDataHeaders(),
       body: formData,
     });
 

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -9,9 +12,11 @@ import formanovaLogo from '@/assets/formanova-logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -20,9 +25,26 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setLoading(true);
-    const { error } = await signInWithGoogle();
+    signInWithGoogle();
+    // Note: This redirects away, so loading state won't matter
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await signInWithEmail(email, password);
+    setLoading(false);
 
     if (error) {
       toast({
@@ -30,7 +52,47 @@ export default function Auth() {
         title: 'Sign in failed',
         description: error.message,
       });
-      setLoading(false);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({
+        variant: 'destructive',
+        title: 'Password too short',
+        description: 'Password must be at least 8 characters.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await signUpWithEmail(email, password);
+    setLoading(false);
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign up failed',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Account created',
+        description: 'Welcome to Formanova!',
+      });
+      navigate('/');
     }
   };
 
@@ -45,6 +107,96 @@ export default function Auth() {
             className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-10"
           />
           
+          <Tabs defaultValue="login" className="w-full max-w-xs">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="space-y-4">
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input 
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <Input 
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="space-y-4">
+              <form onSubmit={handleEmailSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input 
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input 
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="relative w-full max-w-xs my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
           {/* Google Sign In Button */}
           <Button 
             onClick={handleGoogleSignIn} 
@@ -55,7 +207,7 @@ export default function Auth() {
             {loading ? (
               <>
                 <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                Signing in...
+                Redirecting...
               </>
             ) : (
               <>

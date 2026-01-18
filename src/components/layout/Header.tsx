@@ -91,10 +91,10 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
-                    {user.user_metadata?.avatar_url ? (
+                    {user.avatar_url ? (
                       <img 
-                        src={user.user_metadata.avatar_url} 
-                        alt={user.user_metadata?.full_name || 'User'} 
+                        src={user.avatar_url} 
+                        alt={user.full_name || 'User'} 
                         className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
                       />
                     ) : (
@@ -107,7 +107,7 @@ export function Header() {
                 <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
                   <div className="px-3 py-2 border-b border-border">
                     <p className="text-sm font-medium text-foreground truncate">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                      {user.full_name || user.email?.split('@')[0]}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
@@ -201,10 +201,10 @@ export function Header() {
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
               <div className="flex items-center gap-3">
-                {user.user_metadata?.avatar_url ? (
+                {user.avatar_url ? (
                   <img 
-                    src={user.user_metadata.avatar_url} 
-                    alt={user.user_metadata?.full_name || 'User'} 
+                    src={user.avatar_url} 
+                    alt={user.full_name || 'User'} 
                     className="h-12 w-12 rounded-full object-cover border border-border"
                   />
                 ) : (
@@ -213,7 +213,7 @@ export function Header() {
                   </div>
                 )}
                 <span className="text-lg font-medium text-foreground">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  {user.full_name || user.email?.split('@')[0]}
                 </span>
               </div>
               

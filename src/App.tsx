@@ -17,6 +17,7 @@ import PhotographyStudio from "./pages/PhotographyStudio";
 import JewelryStudio from "./pages/JewelryStudio";
 import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Generations from "./pages/Generations";
 import Credits from "./pages/Credits";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/generations" element={<Generations />} />
                   <Route path="/credits" element={<Credits />} />
                   <Route path="/tutorial" element={<Tutorial />} />
