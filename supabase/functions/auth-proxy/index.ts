@@ -22,10 +22,12 @@ serve(async (req) => {
     const targetUrl = `${AUTH_SERVICE_URL}${path}${queryString}`;
     console.log(`[auth-proxy] Proxying: ${req.method} ${path}${queryString}`);
 
-    // Forward the request to auth service
+    // Forward the request to auth service - preserve original content type
+    const contentType = req.headers.get('Content-Type') || 'application/json';
+    
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      'Content-Type': contentType,
     };
 
     // Forward authorization header if present
@@ -33,6 +35,8 @@ serve(async (req) => {
     if (authHeader) {
       headers['Authorization'] = authHeader;
     }
+
+    console.log(`[auth-proxy] Content-Type: ${contentType}`);
 
     const fetchOptions: RequestInit = {
       method: req.method,
@@ -42,6 +46,7 @@ serve(async (req) => {
     // Forward body for POST/PUT requests
     if (req.method === 'POST' || req.method === 'PUT') {
       const body = await req.text();
+      console.log(`[auth-proxy] Body length: ${body.length}`);
       if (body) {
         fetchOptions.body = body;
       }
