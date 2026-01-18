@@ -24,10 +24,18 @@ interface NodeOutput {
 
 interface WorkflowDebugViewProps {
   results: Record<string, unknown[]> | null;
-  workflowType: 'flux_gen' | 'all_jewelry';
+  workflowType: 'flux_gen' | 'all_jewelry' | 'masking' | 'all_jewelry_masking';
   className?: string;
   onClose?: () => void;
 }
+
+// Node order for necklace_point_masking
+const MASKING_NODE_ORDER = [
+  'image_manipulator',
+  'zoom_check',
+  'bg_remove',
+  'sam3',
+];
 
 // Node order for flux_gen_pipeline
 const FLUX_NODE_ORDER = [
@@ -50,6 +58,13 @@ const FLUX_NODE_ORDER = [
   'quality_metrics_gemini',
 ];
 
+// Node order for all_jewelry_masking
+const ALL_JEWELRY_MASKING_NODE_ORDER = [
+  'resize_all_jewelry',
+  'gemini_sketch',
+  'sam3_all_jewelry',
+];
+
 // Node order for all_jewelry_generation
 const ALL_JEWELRY_NODE_ORDER = [
   'resize_all_jewelry',
@@ -70,10 +85,16 @@ const ALL_JEWELRY_NODE_ORDER = [
 
 // Nodes that output images (have image_base64 or similar fields)
 const IMAGE_NODES = new Set([
+  // Masking nodes
+  'image_manipulator', 'bg_remove', 'sam3',
+  // Flux nodes
   'resize_image', 'resize_mask', 'white_bg_segmenter', 'flux_fill', 
   'upscaler', 'composite', 'output_mask', 'mask_invert_flux',
   'resize_for_gemini', 'gemini_refine', 'upscaler_gemini', 
   'composite_gemini', 'output_mask_gemini', 'mask_invert_gemini',
+  // All jewelry masking nodes
+  'gemini_sketch', 'sam3_all_jewelry',
+  // All jewelry generation nodes
   'resize_all_jewelry', 'segment_green_bg', 'composite_all_jewelry',
   'gemini_viton', 'output_mask_all_jewelry', 'mask_invert',
   'transform_mask', 'gemini_hand_inpaint', 'transform_apply',
@@ -82,6 +103,7 @@ const IMAGE_NODES = new Set([
 
 // Nodes that output JSON/text data
 const JSON_NODES = new Set([
+  'zoom_check',
   'gemini_router', 'quality_metrics', 'quality_metrics_gemini',
   'gemini_quality_check', 'transform_detect',
 ]);
@@ -277,7 +299,13 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'timeline' | 'grid'>('timeline');
   
-  const nodeOrder = workflowType === 'flux_gen' ? FLUX_NODE_ORDER : ALL_JEWELRY_NODE_ORDER;
+  const nodeOrder = workflowType === 'flux_gen' 
+    ? FLUX_NODE_ORDER 
+    : workflowType === 'masking'
+      ? MASKING_NODE_ORDER
+      : workflowType === 'all_jewelry_masking'
+        ? ALL_JEWELRY_MASKING_NODE_ORDER
+        : ALL_JEWELRY_NODE_ORDER;
   
   // Process results into ordered nodes
   useEffect(() => {
@@ -393,7 +421,10 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
         <div className="flex items-center gap-3">
           <h3 className="font-semibold">Workflow Debug View</h3>
           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            {workflowType === 'flux_gen' ? 'Flux Gen Pipeline' : 'All Jewelry Pipeline'}
+            {workflowType === 'flux_gen' ? 'Flux Gen Pipeline' 
+              : workflowType === 'masking' ? 'Masking Pipeline'
+              : workflowType === 'all_jewelry_masking' ? 'All Jewelry Masking'
+              : 'All Jewelry Generation'}
           </span>
         </div>
         <div className="flex items-center gap-2">
