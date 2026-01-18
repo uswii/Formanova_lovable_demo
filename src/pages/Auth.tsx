@@ -12,21 +12,30 @@ import formanovaLogo from '@/assets/formanova-logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Redirect if already logged in
+  // Redirect if already logged in (wait for auth to initialize first)
   useEffect(() => {
-    if (user) {
-      navigate('/');
+    if (!authLoading && user) {
+      navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  // Show loading during auth initialization
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleGoogleSignIn = () => {
-    setLoading(true);
+    setFormLoading(true);
     signInWithGoogle();
     // Note: This redirects away, so loading state won't matter
   };
@@ -42,9 +51,9 @@ export default function Auth() {
       return;
     }
 
-    setLoading(true);
+    setFormLoading(true);
     const { error } = await signInWithEmail(email, password);
-    setLoading(false);
+    setFormLoading(false);
 
     if (error) {
       toast({
@@ -77,9 +86,9 @@ export default function Auth() {
       return;
     }
 
-    setLoading(true);
+    setFormLoading(true);
     const { error } = await signUpWithEmail(email, password);
-    setLoading(false);
+    setFormLoading(false);
 
     if (error) {
       toast({
@@ -123,7 +132,7 @@ export default function Auth() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    disabled={formLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -134,11 +143,11 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={formLoading}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Signing in...
@@ -160,7 +169,7 @@ export default function Auth() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    disabled={formLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -171,11 +180,11 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={formLoading}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating account...
@@ -202,9 +211,9 @@ export default function Auth() {
             onClick={handleGoogleSignIn} 
             className="w-full max-w-xs h-12 text-base" 
             variant="outline"
-            disabled={loading}
+            disabled={formLoading}
           >
-            {loading ? (
+            {formLoading ? (
               <>
                 <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                 Redirecting...
