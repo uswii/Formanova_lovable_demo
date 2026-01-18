@@ -152,30 +152,15 @@ export const FLUX_GEN_DAG_STEPS = {
   'quality_metrics_gemini': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
-// all_jewelry_masking pipeline (3 steps)
+// agentic_all_jewelry_masking pipeline (1 step)
 export const ALL_JEWELRY_MASKING_DAG_STEPS = {
-  'resize_all_jewelry': { progress: 25, label: 'Resizing image...' },
-  'sam3_all_jewelry': { progress: 65, label: 'Segmenting jewelry...' },
-  'mask_invert_input': { progress: 95, label: 'Converting mask format...' },
+  'agentic_masking': { progress: 95, label: 'AI masking (resize + SAM3 + segment)...' },
 } as const;
 
-// all_jewelry_generation pipeline (14 steps)
+// agentic_all_jewelry_photoshoot pipeline (2 steps)
 export const ALL_JEWELRY_DAG_STEPS = {
-  'resize_all_jewelry': { progress: 5, label: 'Resizing image...' },
-  'mask_invert_input': { progress: 8, label: 'Inverting input mask...' },
-  'gemini_sketch': { progress: 14, label: 'Generating sketch...' },
-  'segment_green_bg': { progress: 20, label: 'Segmenting on green bg...' },
-  'extract_jewelry_rgba': { progress: 24, label: 'Extracting jewelry RGBA...' },
-  'overlay_jewelry_rgba': { progress: 28, label: 'Overlaying jewelry on sketch...' },
-  'gemini_viton': { progress: 45, label: 'AI generation (VITON)...' },
-  'gemini_quality_check': { progress: 50, label: 'Quality check...' },
-  'output_mask_all_jewelry': { progress: 55, label: 'Detecting output mask...' },
-  'mask_invert_output': { progress: 58, label: 'Inverting output mask...' },
-  'transform_detect': { progress: 65, label: 'Detecting transforms...' },
-  'transform_mask': { progress: 72, label: 'Transforming mask...' },
-  'gemini_hand_inpaint': { progress: 80, label: 'Inpainting background...' },
-  'transform_apply': { progress: 88, label: 'Applying transforms...' },
-  'quality_metrics': { progress: 98, label: 'Calculating metrics...' },
+  'agentic_masking': { progress: 30, label: 'AI masking...' },
+  'agentic_photoshoot': { progress: 95, label: 'AI photoshoot (VTON + inpaint + transform)...' },
 } as const;
 
 export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_gen' | 'all_jewelry' | 'all_jewelry_masking'): { progress: number; label: string } {
