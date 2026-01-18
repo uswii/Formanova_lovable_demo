@@ -299,6 +299,12 @@ class WorkflowApi {
 
     if (!response.ok) {
       const error = await response.text();
+      // Parse tool_unavailable errors for user-friendly message
+      const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
+      if (toolUnavailableMatch || error.includes('tool_unavailable')) {
+        const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
+        throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
+      }
       throw new Error(`Flux gen workflow failed: ${error}`);
     }
 
@@ -333,6 +339,12 @@ class WorkflowApi {
 
     if (!response.ok) {
       const error = await response.text();
+      // Parse tool_unavailable errors for user-friendly message
+      const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
+      if (toolUnavailableMatch || error.includes('tool_unavailable')) {
+        const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
+        throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
+      }
       throw new Error(`All jewelry masking workflow failed: ${error}`);
     }
 
@@ -374,6 +386,12 @@ class WorkflowApi {
 
     if (!response.ok) {
       const error = await response.text();
+      // Parse tool_unavailable errors for user-friendly message
+      const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
+      if (toolUnavailableMatch || error.includes('tool_unavailable')) {
+        const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
+        throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
+      }
       throw new Error(`All jewelry generation workflow failed: ${error}`);
     }
 
