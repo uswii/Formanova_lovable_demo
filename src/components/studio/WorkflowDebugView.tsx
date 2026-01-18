@@ -70,25 +70,36 @@ const ALL_JEWELRY_MASKING_NODE_ORDER = [
   'sam3_all_jewelry',
 ];
 
-// Node order for all_jewelry_generation
-// Note: Backend may use 'mask_invert' for all inversions instead of separate names
+// Node order for all_jewelry_generation - matches DAG execution order
 const ALL_JEWELRY_NODE_ORDER = [
+  // Step 1: Resize input
   'resize_all_jewelry',
-  'mask_invert_input',  // Alias for mask_invert
+  // Step 2: Invert input mask (SAM3 WHITE=jewelry → BLACK=jewelry)
+  'mask_invert_input',
   'mask_invert',        // Backend's actual tool name (fallback)
+  // Step 3: Gemini sketch
   'gemini_sketch',
+  // Step 4: Segment jewelry on green bg
   'segment_green_bg',
+  // Step 5: Composite onto sketch
   'composite_all_jewelry',
+  // Step 6: Gemini VITON
   'gemini_viton',
+  // Step 7: Quality check
   'gemini_quality_check',
+  // Step 8: Output mask from VITON
   'output_mask_all_jewelry',
-  'mask_invert_output', // Alias for mask_invert
+  // Step 9: Invert output mask
+  'mask_invert_output',
+  // Step 10: Detect transformation
   'transform_detect',
+  // Step 11: Transform input mask
   'transform_mask',
+  // Step 12: Inpaint VITON (remove AI jewelry)
   'gemini_hand_inpaint',
+  // Step 13: Transform and apply original jewelry (FINAL RESULT)
   'transform_apply',
-  'output_mask_final',
-  'mask_invert_final',  // Alias for mask_invert
+  // Step 14: Quality metrics
   'quality_metrics',
 ];
 
@@ -103,12 +114,13 @@ const IMAGE_NODES = new Set([
   'resize_for_gemini', 'gemini_refine', 'upscaler_gemini',
   'composite_gemini', 'output_mask_gemini', 'mask_invert_gemini',
   // All jewelry masking
+  'resize_all_jewelry',
   'sam3_all_jewelry',
   // All jewelry generation
-  'resize_all_jewelry', 'gemini_sketch', 'segment_green_bg',
+  'mask_invert_input', 'mask_invert', 'mask_invert_output',
+  'gemini_sketch', 'segment_green_bg',
   'composite_all_jewelry', 'gemini_viton', 'output_mask_all_jewelry',
-  'mask_invert_output', 'transform_mask', 'gemini_hand_inpaint',
-  'transform_apply', 'output_mask_final', 'mask_invert_final',
+  'transform_mask', 'gemini_hand_inpaint', 'transform_apply',
 ]);
 
 // Nodes that output JSON/text data
