@@ -4,7 +4,9 @@ import { Loader2 } from 'lucide-react';
 import { authApi, setStoredToken, setStoredUser } from '@/lib/auth-api';
 import { useToast } from '@/hooks/use-toast';
 
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8009';
+// Use edge function proxy to avoid mixed content (HTTPS -> HTTP)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -50,8 +52,8 @@ export default function AuthCallback() {
       const params = new URLSearchParams({ code });
       if (state) params.append('state', state);
       
-      const callbackUrl = `${AUTH_SERVICE_URL}/auth/google/callback?${params.toString()}`;
-      console.log('[AuthCallback] Backend URL:', callbackUrl);
+      const callbackUrl = `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`;
+      console.log('[AuthCallback] Proxy URL:', callbackUrl);
 
       const response = await fetch(callbackUrl, {
         method: 'GET',

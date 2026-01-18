@@ -1,6 +1,10 @@
 // Custom Auth Service API Client
-// Connects to authentication backend at http://20.173.91.22:8009
+// Routes through edge function proxy to avoid mixed content (HTTPS -> HTTP)
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
+
+// Direct backend URL for OAuth redirect (browser navigates directly)
 const AUTH_SERVICE_URL = 'http://20.173.91.22:8009';
 
 export interface AuthUser {
@@ -66,13 +70,13 @@ class AuthApi {
     window.location.href = `${AUTH_SERVICE_URL}/auth/google/authorize`;
   }
 
-  // Exchange OAuth code for token (callback handler)
+  // Exchange OAuth code for token (callback handler) - uses proxy
   async exchangeCodeForToken(code: string, state?: string): Promise<AuthTokenResponse> {
     const params = new URLSearchParams({ code });
     if (state) params.append('state', state);
 
     const response = await fetch(
-      `${AUTH_SERVICE_URL}/auth/google/callback?${params.toString()}`,
+      `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`,
       { method: 'GET' }
     );
 
@@ -85,9 +89,9 @@ class AuthApi {
     return data;
   }
 
-  // Register with email/password
+  // Register with email/password - uses proxy
   async register(email: string, password: string): Promise<AuthUser> {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/register`, {
+    const response = await fetch(`${AUTH_PROXY_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -101,13 +105,13 @@ class AuthApi {
     return await response.json();
   }
 
-  // Login with email/password
+  // Login with email/password - uses proxy
   async login(email: string, password: string): Promise<AuthTokenResponse> {
     const formData = new URLSearchParams();
     formData.append('username', email);
     formData.append('password', password);
 
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/jwt/login`, {
+    const response = await fetch(`${AUTH_PROXY_URL}/auth/jwt/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData,
@@ -121,13 +125,13 @@ class AuthApi {
     return await response.json();
   }
 
-  // Logout
+  // Logout - uses proxy
   async logout(): Promise<void> {
     const token = getStoredToken();
     if (!token) return;
 
     try {
-      await fetch(`${AUTH_SERVICE_URL}/auth/jwt/logout`, {
+      await fetch(`${AUTH_PROXY_URL}/auth/jwt/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,13 +145,13 @@ class AuthApi {
     }
   }
 
-  // Get current user
+  // Get current user - uses proxy
   async getCurrentUser(): Promise<AuthUser | null> {
     const token = getStoredToken();
     if (!token) return null;
 
     try {
-      const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+      const response = await fetch(`${AUTH_PROXY_URL}/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
