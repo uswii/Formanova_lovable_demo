@@ -390,8 +390,24 @@ class WorkflowApi {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get workflow status: ${error}`);
+      const errorText = await response.text();
+      
+      // Detect Temporal nondeterminism errors - these mean the workflow is stuck/corrupted
+      if (errorText.includes('Nondeterminism error') || errorText.includes('TMPRL1100')) {
+        console.error('[WorkflowApi] Temporal nondeterminism error detected - workflow is corrupted');
+        // Return a failed status so the UI can handle it gracefully
+        return {
+          progress: {
+            state: 'failed',
+            total_nodes: 0,
+            completed_nodes: 0,
+            visited: [],
+          },
+          results: {},
+        };
+      }
+      
+      throw new Error(`Failed to get workflow status: ${errorText}`);
     }
 
     return await response.json();
@@ -474,7 +490,8 @@ class WorkflowApi {
       }
 
       if (status.progress.state === 'failed') {
-        throw new Error('Workflow failed');
+        const errorMsg = (status as WorkflowStatusResponse & { error?: string }).error || 'Workflow failed';
+        throw new Error(errorMsg);
       }
 
       await new Promise(resolve => setTimeout(resolve, pollInterval));
