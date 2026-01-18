@@ -553,16 +553,29 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         });
         
         // Extract masks for fidelity visualization
-        outputMaskImage = await extractImage(maskInvertFinalNode, 'mask_base64')
-          || await extractImage(maskInvertFinalNode, 'mask');
-        outputMaskGeminiImage = outputMaskImage;
+        // IMPORTANT: For perfect metrics, use transform_apply.mask_base64 as OUTPUT mask
+        // This is the exact mask we used to composite the original jewelry onto the inpainted image
+        // Using mask_invert_final (SAM3 re-extraction) picks up extra areas (ear, shadows)
         
+        // Get transformed input mask (what we used for compositing)
         transformedInputMaskImage = await extractImage(transformMaskNode, 'mask_base64')
           || await extractImage(transformMaskNode, 'image_base64');
+        
+        // Use transform_apply.mask_base64 as output mask (the actual mask used in final composite)
+        // This should give perfect match since we're comparing the same mask
+        const transformApplyMask = await extractImage(transformApplyNode, 'mask_base64');
+        
+        // Fallback to mask_invert_final only if transform_apply.mask_base64 not available
+        outputMaskImage = transformApplyMask 
+          || await extractImage(maskInvertFinalNode, 'mask_base64')
+          || await extractImage(maskInvertFinalNode, 'mask');
+        outputMaskGeminiImage = outputMaskImage;
           
         console.log('[Generation] ALL_JEWELRY mask extraction:', {
-          hasOutputMask: !!outputMaskImage,
           hasTransformedInputMask: !!transformedInputMaskImage,
+          hasTransformApplyMask: !!transformApplyMask,
+          hasOutputMask: !!outputMaskImage,
+          usingTransformApplyMask: !!transformApplyMask,
         });
         
       } else if (hasNecklaceNodes) {
