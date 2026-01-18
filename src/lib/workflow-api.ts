@@ -395,7 +395,7 @@ class WorkflowApi {
       // Detect Temporal nondeterminism errors - these mean the workflow is stuck/corrupted
       if (errorText.includes('Nondeterminism error') || errorText.includes('TMPRL1100')) {
         console.error('[WorkflowApi] Temporal nondeterminism error detected - workflow is corrupted');
-        // Return a failed status so the UI can handle it gracefully
+        // Return a failed status with descriptive error so the UI can handle it gracefully
         return {
           progress: {
             state: 'failed',
@@ -404,7 +404,8 @@ class WorkflowApi {
             visited: [],
           },
           results: {},
-        };
+          error: 'Workflow version mismatch. The backend was updated while this workflow was running. Please start a new generation.',
+        } as WorkflowStatusResponse & { error: string };
       }
       
       throw new Error(`Failed to get workflow status: ${errorText}`);
