@@ -14,36 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      generations: {
-        Row: {
-          created_at: string
-          generated_image: string
-          id: string
-          mask_image: string | null
-          original_image: string
-          prompt: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          generated_image: string
-          id?: string
-          mask_image?: string | null
-          original_image: string
-          prompt?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          generated_image?: string
-          id?: string
-          mask_image?: string | null
-          original_image?: string
-          prompt?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
