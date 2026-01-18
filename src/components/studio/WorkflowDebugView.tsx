@@ -58,7 +58,7 @@ const FLUX_NODE_ORDER = [
   'flux_fill',           // Step 5: Flux fill - generate new background
   // Steps 6-11: Upscale and composite
   'upscaler',            // Step 6: Upscale Flux output (2000x2667)
-  'resize_mask_upscale', // Step 7: Upscale inverted mask
+  'mask_invert_original', // Step 7: Invert original full-size mask
   'composite',           // Step 8: Composite jewelry onto Flux bg
   'output_mask',         // Step 9: Extract output mask (SAM3)
   'mask_invert_flux',    // Step 10: Invert SAM3 output mask
@@ -103,7 +103,7 @@ const IMAGE_NODES = new Set([
   // all_jewelry_masking  
   'resize_all_jewelry', 'sam3_all_jewelry',
   // flux_gen_pipeline - resizing
-  'resize_image', 'resize_mask', 'resize_mask_upscale', 'resize_for_gemini',
+  'resize_image', 'resize_mask', 'mask_invert_original', 'resize_for_gemini',
   // flux_gen_pipeline - masks
   'mask_invert_input', 'mask_invert_flux', 'mask_invert_gemini',
   // flux_gen_pipeline - segmentation/generation
@@ -203,7 +203,7 @@ const MASK_NODES = new Set([
   'mask_invert_input', 'mask_invert_output', 'mask_invert_flux', 'mask_invert_gemini',
   'mask_invert_final', 'mask_invert', 'output_mask', 'output_mask_all_jewelry',
   'output_mask_final', 'output_mask_gemini', 'transform_mask', 'resize_mask',
-  'resize_mask_upscale', 'sam3', 'sam3_all_jewelry',
+  'mask_invert_original', 'sam3', 'sam3_all_jewelry',
 ]);
 
 function NodeCard({ node, isExpanded, onToggle, onImageClick }: { 

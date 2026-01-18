@@ -133,9 +133,11 @@ export const MASKING_DAG_STEPS = {
 export const FLUX_GEN_DAG_STEPS = {
   'resize_image': { progress: 5, label: 'Resizing image...' },
   'resize_mask': { progress: 8, label: 'Resizing mask...' },
+  'mask_invert_input': { progress: 10, label: 'Inverting input mask...' },
   'white_bg_segmenter': { progress: 15, label: 'Segmenting background...' },
   'flux_fill': { progress: 40, label: 'Generating with Flux...' },
   'upscaler': { progress: 55, label: 'Upscaling...' },
+  'mask_invert_original': { progress: 56, label: 'Inverting original mask...' },
   'composite': { progress: 58, label: 'Compositing Flux...' },
   'output_mask': { progress: 60, label: 'Detecting output mask...' },
   'mask_invert_flux': { progress: 62, label: 'Processing mask...' },
