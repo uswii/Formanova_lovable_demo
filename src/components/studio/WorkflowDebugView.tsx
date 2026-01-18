@@ -121,7 +121,8 @@ const JSON_NODES = new Set([
 ]);
 
 // Helper to extract Azure URI from various formats
-function extractAzureUri(data: unknown): string | null {
+// Priority: mask fields first for mask nodes, then image fields
+function extractAzureUri(data: unknown, preferMask: boolean = false): string | null {
   if (!data) return null;
   
   if (typeof data === 'string' && data.startsWith('azure://')) {
@@ -131,8 +132,12 @@ function extractAzureUri(data: unknown): string | null {
   if (typeof data === 'object' && data !== null) {
     const obj = data as Record<string, unknown>;
     
-    // Check common fields
-    for (const field of ['uri', 'image', 'image_base64', 'mask', 'mask_base64', 'result']) {
+    // Order fields based on whether we prefer mask or image
+    const fields = preferMask 
+      ? ['mask', 'mask_base64', 'uri', 'image', 'image_base64', 'result']
+      : ['uri', 'image', 'image_base64', 'mask', 'mask_base64', 'result'];
+    
+    for (const field of fields) {
       const value = obj[field];
       if (typeof value === 'string' && value.startsWith('azure://')) {
         return value;
@@ -150,7 +155,8 @@ function extractAzureUri(data: unknown): string | null {
 }
 
 // Helper to extract base64 data
-function extractBase64(data: unknown): string | null {
+// Priority: mask fields first for mask nodes, then image fields
+function extractBase64(data: unknown, preferMask: boolean = false): string | null {
   if (!data) return null;
   
   if (typeof data === 'string') {
@@ -163,17 +169,34 @@ function extractBase64(data: unknown): string | null {
   
   if (typeof data === 'object' && data !== null) {
     const obj = data as Record<string, unknown>;
-    for (const field of ['image_base64', 'mask_base64', 'result_base64', 'base64']) {
+    
+    // Order fields based on whether we prefer mask or image
+    const fields = preferMask
+      ? ['mask_base64', 'image_base64', 'result_base64', 'base64']
+      : ['image_base64', 'mask_base64', 'result_base64', 'base64'];
+    
+    for (const field of fields) {
       const value = obj[field];
       if (typeof value === 'string') {
         if (value.startsWith('data:image')) return value;
-        if (value.length > 100) return `data:image/png;base64,${value}`;
+        // Check for raw base64 (not Azure URI)
+        if (value.length > 100 && !value.startsWith('azure://')) {
+          return `data:image/png;base64,${value}`;
+        }
       }
     }
   }
   
   return null;
 }
+
+// Nodes that should prefer mask fields over image fields
+const MASK_NODES = new Set([
+  'mask_invert_input', 'mask_invert_output', 'mask_invert_flux', 'mask_invert_gemini',
+  'mask_invert_final', 'mask_invert', 'output_mask', 'output_mask_all_jewelry',
+  'output_mask_final', 'output_mask_gemini', 'transform_mask', 'resize_mask',
+  'resize_mask_upscale', 'sam3', 'sam3_all_jewelry',
+]);
 
 function NodeCard({ node, isExpanded, onToggle, onImageClick }: { 
   node: NodeOutput; 
@@ -366,8 +389,11 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
     processedNodes.forEach(async (node, index) => {
       if (node.type !== 'image') return;
       
+      // Determine if this node should prefer mask fields
+      const preferMask = MASK_NODES.has(node.nodeName);
+      
       // Try to extract base64 first
-      const base64 = extractBase64(node.data);
+      const base64 = extractBase64(node.data, preferMask);
       if (base64) {
         setNodes(prev => prev.map((n, i) => 
           i === index ? { ...n, resolvedImage: base64, loading: false } : n
@@ -376,7 +402,7 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
       }
       
       // Try Azure URI
-      const azureUri = extractAzureUri(node.data);
+      const azureUri = extractAzureUri(node.data, preferMask);
       if (azureUri) {
         try {
           const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
