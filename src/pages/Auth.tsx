@@ -1,34 +1,197 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import formanovaLogo from '@/assets/formanova-logo.png';
+import { 
+  getStoredToken, 
+  getStoredUser, 
+  setStoredToken, 
+  setStoredUser 
+} from '@/lib/auth-api';
+
+// Edge function proxy URL for API calls
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
+
+// Direct backend URL for OAuth redirect
+const AUTH_BACKEND_URL = 'http://20.173.91.22:8009';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signInWithGoogle } = useAuth();
   const { toast } = useToast();
+  const [formLoading, setFormLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
-  // Redirect if already logged in
+  // Check if already logged in
   useEffect(() => {
-    if (user) {
+    const token = getStoredToken();
+    const user = getStoredUser();
+    if (token && user) {
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [navigate]);
 
   const handleGoogleSignIn = () => {
+    const authUrl = `${AUTH_BACKEND_URL}/auth/google/authorize`;
+    setDebugInfo(`Redirecting to: ${authUrl}`);
+    console.log('[Auth] Redirecting to Google OAuth:', authUrl);
+    
+    // Use window.location.href for redirect
+    window.location.href = authUrl;
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+
+    setFormLoading(true);
     try {
-      signInWithGoogle();
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await fetch(`${AUTH_PROXY_URL}/auth/jwt/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Login failed' }));
+        throw new Error(error.detail || 'Invalid email or password');
+      }
+
+      const data = await response.json();
+      
+      if (data.access_token) {
+        setStoredToken(data.access_token);
+        
+        // Fetch user info
+        const userResponse = await fetch(`${AUTH_PROXY_URL}/users/me`, {
+          headers: { 'Authorization': `Bearer ${data.access_token}` },
+        });
+        
+        if (userResponse.ok) {
+          const user = await userResponse.json();
+          setStoredUser(user);
+        }
+        
+        toast({
+          title: 'Welcome!',
+          description: 'You have successfully signed in.',
+        });
+        
+        navigate('/', { replace: true });
+      }
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      console.error('Login error:', error);
+      const message = error instanceof Error ? error.message : 'Login failed';
       toast({
         variant: 'destructive',
         title: 'Sign in failed',
-        description: 'Could not connect to authentication service. Please try again.',
+        description: message,
       });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({
+        variant: 'destructive',
+        title: 'Password too short',
+        description: 'Password must be at least 8 characters.',
+      });
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      // Register
+      const registerResponse = await fetch(`${AUTH_PROXY_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!registerResponse.ok) {
+        const error = await registerResponse.json().catch(() => ({ detail: 'Registration failed' }));
+        throw new Error(error.detail || 'Failed to create account');
+      }
+
+      // Auto-login after registration
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const loginResponse = await fetch(`${AUTH_PROXY_URL}/auth/jwt/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString(),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Account created but login failed. Please sign in manually.');
+      }
+
+      const data = await loginResponse.json();
+      
+      if (data.access_token) {
+        setStoredToken(data.access_token);
+        
+        // Fetch user info
+        const userResponse = await fetch(`${AUTH_PROXY_URL}/users/me`, {
+          headers: { 'Authorization': `Bearer ${data.access_token}` },
+        });
+        
+        if (userResponse.ok) {
+          const user = await userResponse.json();
+          setStoredUser(user);
+        }
+        
+        toast({
+          title: 'Account created',
+          description: 'Welcome to Formanova!',
+        });
+        
+        navigate('/', { replace: true });
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      toast({
+        variant: 'destructive',
+        title: 'Sign up failed',
+        description: message,
+      });
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -40,19 +203,105 @@ export default function Auth() {
           <img 
             src={formanovaLogo} 
             alt="Formanova" 
-            className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-10"
+            className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-8"
           />
           
-          <h1 className="text-2xl font-semibold mb-2">Welcome</h1>
-          <p className="text-muted-foreground text-center mb-8">
-            Sign in to access your dashboard
-          </p>
+          <Tabs defaultValue="login" className="w-full max-w-xs">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="space-y-4">
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input 
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={formLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <Input 
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={formLoading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="space-y-4">
+              <form onSubmit={handleEmailSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input 
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={formLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input 
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={formLoading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="relative w-full max-w-xs my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
 
           {/* Google Sign In Button */}
           <Button 
             onClick={handleGoogleSignIn} 
             className="w-full max-w-xs h-12 text-base" 
             variant="outline"
+            disabled={formLoading}
           >
             <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -74,6 +323,13 @@ export default function Auth() {
             </svg>
             Continue with Google
           </Button>
+
+          {/* Debug info - visible on page */}
+          {debugInfo && (
+            <p className="mt-4 text-xs text-muted-foreground break-all max-w-xs">
+              {debugInfo}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
