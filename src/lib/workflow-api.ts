@@ -152,26 +152,27 @@ export const FLUX_GEN_DAG_STEPS = {
   'quality_metrics_gemini': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
+// all_jewelry_masking pipeline (2 steps)
 export const ALL_JEWELRY_MASKING_DAG_STEPS = {
-  'resize_all_jewelry': { progress: 20, label: 'Resizing image...' },
-  'gemini_sketch': { progress: 50, label: 'Generating sketch...' },
-  'sam3_all_jewelry': { progress: 85, label: 'Segmenting jewelry...' },
+  'resize_all_jewelry': { progress: 30, label: 'Resizing image...' },
+  'sam3_all_jewelry': { progress: 90, label: 'Segmenting jewelry...' },
 } as const;
 
+// all_jewelry_generation pipeline (14 steps)
 export const ALL_JEWELRY_DAG_STEPS = {
   'resize_all_jewelry': { progress: 5, label: 'Resizing image...' },
-  'segment_green_bg': { progress: 15, label: 'Preparing background...' },
-  'composite_all_jewelry': { progress: 25, label: 'Creating composite...' },
+  'mask_invert_input': { progress: 8, label: 'Inverting input mask...' },
+  'gemini_sketch': { progress: 15, label: 'Generating sketch...' },
+  'segment_green_bg': { progress: 22, label: 'Segmenting on green bg...' },
+  'composite_all_jewelry': { progress: 28, label: 'Creating composite...' },
   'gemini_viton': { progress: 45, label: 'AI generation (VITON)...' },
   'gemini_quality_check': { progress: 50, label: 'Quality check...' },
   'output_mask_all_jewelry': { progress: 55, label: 'Detecting output mask...' },
-  'mask_invert': { progress: 58, label: 'Processing mask...' },
-  'transform_detect': { progress: 62, label: 'Detecting transforms...' },
-  'transform_mask': { progress: 68, label: 'Transforming mask...' },
-  'gemini_hand_inpaint': { progress: 78, label: 'Inpainting background...' },
-  'transform_apply': { progress: 85, label: 'Applying transforms...' },
-  'output_mask_final': { progress: 90, label: 'Final mask detection...' },
-  'mask_invert_final': { progress: 93, label: 'Processing final mask...' },
+  'mask_invert_output': { progress: 58, label: 'Inverting output mask...' },
+  'transform_detect': { progress: 65, label: 'Detecting transforms...' },
+  'transform_mask': { progress: 72, label: 'Transforming mask...' },
+  'gemini_hand_inpaint': { progress: 80, label: 'Inpainting background...' },
+  'transform_apply': { progress: 88, label: 'Applying transforms...' },
   'quality_metrics': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
