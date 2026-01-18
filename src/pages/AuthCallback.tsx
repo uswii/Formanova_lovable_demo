@@ -4,23 +4,30 @@ import { Loader2 } from 'lucide-react';
 import { authApi, setStoredToken, setStoredUser } from '@/lib/auth-api';
 import { useToast } from '@/hooks/use-toast';
 
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8009';
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState('Completing authentication...');
 
   useEffect(() => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    console.log('[AuthCallback] URL params:', { code: code?.slice(0, 20) + '...', state, errorParam });
 
     if (errorParam) {
-      setError(`Authentication failed: ${errorParam}`);
+      const message = errorDescription || errorParam;
+      setError(`Authentication failed: ${message}`);
       toast({
         variant: 'destructive',
         title: 'Authentication failed',
-        description: errorParam,
+        description: message,
       });
       setTimeout(() => navigate('/auth'), 3000);
       return;
@@ -36,10 +43,37 @@ export default function AuthCallback() {
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
-      const tokenResponse = await authApi.exchangeCodeForToken(code, state);
+      setStatus('Exchanging code for token...');
+      console.log('[AuthCallback] Calling backend callback...');
       
-      if (tokenResponse.access_token) {
-        setStoredToken(tokenResponse.access_token);
+      // Build the callback URL
+      const params = new URLSearchParams({ code });
+      if (state) params.append('state', state);
+      
+      const callbackUrl = `${AUTH_SERVICE_URL}/auth/google/callback?${params.toString()}`;
+      console.log('[AuthCallback] Backend URL:', callbackUrl);
+
+      const response = await fetch(callbackUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      console.log('[AuthCallback] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AuthCallback] Error response:', errorText);
+        throw new Error(errorText || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[AuthCallback] Response data:', { hasToken: !!data.access_token });
+      
+      if (data.access_token) {
+        setStatus('Fetching user info...');
+        setStoredToken(data.access_token);
         
         // Fetch and store user info
         const user = await authApi.getCurrentUser();
@@ -52,18 +86,20 @@ export default function AuthCallback() {
           description: 'You have successfully signed in.',
         });
         
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
-        throw new Error('No access token received');
+        throw new Error('No access token in response');
       }
     } catch (err) {
-      console.error('Auth callback error:', err);
+      console.error('[AuthCallback] Error:', err);
       const message = err instanceof Error ? err.message : 'Authentication failed';
       setError(message);
       toast({
         variant: 'destructive',
         title: 'Authentication failed',
-        description: message,
+        description: message.includes('CORS') || message.includes('Failed to fetch') 
+          ? 'Connection blocked. Please check CORS settings on the auth server.'
+          : message,
       });
       setTimeout(() => navigate('/auth'), 3000);
     }
@@ -80,7 +116,7 @@ export default function AuthCallback() {
         ) : (
           <>
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Completing authentication...</p>
+            <p className="text-muted-foreground">{status}</p>
           </>
         )}
       </div>
