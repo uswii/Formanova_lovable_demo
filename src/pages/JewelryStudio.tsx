@@ -58,7 +58,7 @@ export interface StudioState {
   redDots: { x: number; y: number }[];
   hasTwoModes: boolean;  // true for necklace (has Standard + Enhanced), false for others
   workflowResults: Record<string, unknown> | null;  // Raw DAG output for debug view
-  workflowType: 'flux_gen' | 'all_jewelry' | null;  // Which pipeline was used
+  workflowType: 'flux_gen' | 'all_jewelry' | 'masking' | 'all_jewelry_masking' | null;  // Which pipeline was used
 }
 
 export default function JewelryStudio() {
