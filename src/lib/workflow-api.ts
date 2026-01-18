@@ -152,19 +152,21 @@ export const FLUX_GEN_DAG_STEPS = {
   'quality_metrics_gemini': { progress: 98, label: 'Calculating metrics...' },
 } as const;
 
-// all_jewelry_masking pipeline (2 steps)
+// all_jewelry_masking pipeline (3 steps)
 export const ALL_JEWELRY_MASKING_DAG_STEPS = {
-  'resize_all_jewelry': { progress: 30, label: 'Resizing image...' },
-  'sam3_all_jewelry': { progress: 90, label: 'Segmenting jewelry...' },
+  'resize_all_jewelry': { progress: 25, label: 'Resizing image...' },
+  'sam3_all_jewelry': { progress: 65, label: 'Segmenting jewelry...' },
+  'mask_invert_input': { progress: 95, label: 'Converting mask format...' },
 } as const;
 
 // all_jewelry_generation pipeline (14 steps)
 export const ALL_JEWELRY_DAG_STEPS = {
   'resize_all_jewelry': { progress: 5, label: 'Resizing image...' },
   'mask_invert_input': { progress: 8, label: 'Inverting input mask...' },
-  'gemini_sketch': { progress: 15, label: 'Generating sketch...' },
-  'segment_green_bg': { progress: 22, label: 'Segmenting on green bg...' },
-  'composite_all_jewelry': { progress: 28, label: 'Creating composite...' },
+  'gemini_sketch': { progress: 14, label: 'Generating sketch...' },
+  'segment_green_bg': { progress: 20, label: 'Segmenting on green bg...' },
+  'extract_jewelry_rgba': { progress: 24, label: 'Extracting jewelry RGBA...' },
+  'overlay_jewelry_rgba': { progress: 28, label: 'Overlaying jewelry on sketch...' },
   'gemini_viton': { progress: 45, label: 'AI generation (VITON)...' },
   'gemini_quality_check': { progress: 50, label: 'Quality check...' },
   'output_mask_all_jewelry': { progress: 55, label: 'Detecting output mask...' },
