@@ -17,11 +17,13 @@ import {
   RefreshCw,
   Gem,
   XOctagon,
+  Bug,
 } from 'lucide-react';
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
+import { WorkflowDebugView } from './WorkflowDebugView';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
 import type { SkinTone as WorkflowSkinTone } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +69,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
   // Fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
+
+  // Debug view state
+  const [showDebugView, setShowDebugView] = useState(false);
 
   // Generation state - Temporal workflow
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -709,6 +714,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         status: (calculatedMetrics && calculatedMetrics.precision > 0.9) || (calculatedMetricsGemini && calculatedMetricsGemini.precision > 0.9) ? 'good' : 'bad',
         isGenerating: false,
         hasTwoModes: isNecklace, // Only necklace has two tabs (Standard + Enhanced)
+        workflowResults: result,
+        workflowType: isNecklace ? 'flux_gen' : 'all_jewelry',
       });
 
       setCurrentView('results');
@@ -836,10 +843,31 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
             {state.status && <StatusBadge status={state.status} />}
           </div>
           <h2 className="font-display text-2xl md:text-3xl uppercase tracking-tight">Generated Photoshoot</h2>
-          <Button size="default" className="px-6" onClick={handleGenerate}>
-            <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={showDebugView ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setShowDebugView(!showDebugView)}
+              title="Show all node outputs for debugging"
+            >
+              <Bug className="h-4 w-4 mr-2" /> Debug View
+            </Button>
+            <Button size="default" className="px-6" onClick={handleGenerate}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+            </Button>
+          </div>
         </div>
+
+        {/* Debug View - Shows all node outputs */}
+        {showDebugView && state.workflowResults && state.workflowType && (
+          <div className="mb-4 shrink-0 max-h-[50vh] overflow-auto">
+            <WorkflowDebugView 
+              results={state.workflowResults as Record<string, unknown[]>} 
+              workflowType={state.workflowType}
+              onClose={() => setShowDebugView(false)}
+            />
+          </div>
+        )}
 
         {/* Results content - fills remaining space */}
         <div className="flex-1 min-h-0">
