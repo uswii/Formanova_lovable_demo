@@ -3,8 +3,6 @@ import {
   authApi, 
   getStoredToken, 
   getStoredUser, 
-  setStoredToken, 
-  setStoredUser,
   removeStoredToken,
   removeStoredUser,
   type AuthUser 
@@ -14,8 +12,6 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   signInWithGoogle: () => void;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   getAuthHeader: () => Record<string, string>;
 }
@@ -57,33 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authApi.initiateGoogleLogin();
   };
 
-  const signInWithEmail = async (email: string, password: string) => {
-    try {
-      const tokenResponse = await authApi.login(email, password);
-      setStoredToken(tokenResponse.access_token);
-      
-      const currentUser = await authApi.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        setStoredUser(currentUser);
-      }
-      
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
-    }
-  };
-
-  const signUpWithEmail = async (email: string, password: string) => {
-    try {
-      await authApi.register(email, password);
-      // Auto-login after registration
-      return await signInWithEmail(email, password);
-    } catch (err) {
-      return { error: err as Error };
-    }
-  };
-
   const signOut = async () => {
     await authApi.logout();
     setUser(null);
@@ -98,8 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       loading, 
       signInWithGoogle, 
-      signInWithEmail,
-      signUpWithEmail,
       signOut,
       getAuthHeader 
     }}>
