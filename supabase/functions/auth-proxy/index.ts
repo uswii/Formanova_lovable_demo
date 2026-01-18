@@ -22,6 +22,43 @@ serve(async (req) => {
     const targetUrl = `${AUTH_SERVICE_URL}${path}${queryString}`;
     console.log(`[auth-proxy] Proxying: ${req.method} ${path}${queryString}`);
 
+    // Special handling for Google OAuth authorize - follow redirects and return the final URL
+    if (path === '/auth/google/authorize') {
+      console.log('[auth-proxy] Handling Google OAuth authorize...');
+      
+      // Follow redirects manually to get the Google OAuth URL
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        redirect: 'manual', // Don't auto-follow redirects
+      });
+      
+      console.log(`[auth-proxy] OAuth response status: ${response.status}`);
+      
+      // Check for redirect (302, 303, 307)
+      if (response.status >= 300 && response.status < 400) {
+        const redirectUrl = response.headers.get('Location');
+        console.log(`[auth-proxy] Redirect URL: ${redirectUrl}`);
+        
+        if (redirectUrl) {
+          // Return the redirect URL as JSON so frontend can redirect
+          return new Response(
+            JSON.stringify({ redirect_url: redirectUrl }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      }
+      
+      // If not a redirect, return the response as-is
+      const responseText = await response.text();
+      return new Response(responseText, {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Forward the request to auth service - preserve original content type
     const contentType = req.headers.get('Content-Type') || 'application/json';
     

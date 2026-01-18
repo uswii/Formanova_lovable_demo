@@ -39,13 +39,36 @@ export default function Auth() {
     }
   }, [navigate]);
 
-  const handleGoogleSignIn = () => {
-    const authUrl = `${AUTH_BACKEND_URL}/auth/google/authorize`;
-    setDebugInfo(`Redirecting to: ${authUrl}`);
-    console.log('[Auth] Redirecting to Google OAuth:', authUrl);
+  const handleGoogleSignIn = async () => {
+    setFormLoading(true);
+    setDebugInfo('Fetching Google OAuth URL...');
     
-    // Use window.location.href for redirect
-    window.location.href = authUrl;
+    try {
+      // Use proxy to get the Google OAuth redirect URL (avoids HTTPS→HTTP block)
+      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
+      const data = await response.json();
+      
+      console.log('[Auth] OAuth response:', data);
+      
+      if (data.redirect_url) {
+        setDebugInfo(`Redirecting to Google...`);
+        // Redirect to Google (HTTPS)
+        window.location.href = data.redirect_url;
+      } else if (data.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No redirect URL received');
+      }
+    } catch (error) {
+      console.error('[Auth] Google OAuth error:', error);
+      setFormLoading(false);
+      setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast({
+        variant: 'destructive',
+        title: 'Google Sign-In Failed',
+        description: error instanceof Error ? error.message : 'Could not connect to authentication service',
+      });
+    }
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
