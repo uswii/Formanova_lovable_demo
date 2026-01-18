@@ -26,9 +26,8 @@ export default function Auth() {
   }, [user, navigate]);
 
   const handleGoogleSignIn = () => {
-    setFormLoading(true);
+    // Direct redirect - browser will navigate away
     signInWithGoogle();
-    // Note: This redirects away, so loading state won't matter
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
