@@ -37,17 +37,23 @@ const MASKING_NODE_ORDER = [
   'sam3',
 ];
 
-// Node order for flux_gen_pipeline
+// Node order for flux_gen_pipeline (complete)
 const FLUX_NODE_ORDER = [
+  // Initial resizing
   'resize_image',
   'resize_mask',
+  'mask_invert_input',
+  // Segmentation
   'white_bg_segmenter',
+  // Flux generation
   'flux_fill',
   'upscaler',
+  'resize_mask_upscale',
   'composite',
   'output_mask',
   'mask_invert_flux',
   'quality_metrics',
+  // Gemini refinement pipeline
   'resize_for_gemini',
   'gemini_router',
   'gemini_refine',
@@ -61,19 +67,20 @@ const FLUX_NODE_ORDER = [
 // Node order for all_jewelry_masking
 const ALL_JEWELRY_MASKING_NODE_ORDER = [
   'resize_all_jewelry',
-  'gemini_sketch',
   'sam3_all_jewelry',
 ];
 
-// Node order for all_jewelry_generation
+// Node order for all_jewelry_generation (complete)
 const ALL_JEWELRY_NODE_ORDER = [
   'resize_all_jewelry',
+  'mask_invert_input',
+  'gemini_sketch',
   'segment_green_bg',
   'composite_all_jewelry',
   'gemini_viton',
   'gemini_quality_check',
   'output_mask_all_jewelry',
-  'mask_invert',
+  'mask_invert_output',
   'transform_detect',
   'transform_mask',
   'gemini_hand_inpaint',
@@ -83,29 +90,32 @@ const ALL_JEWELRY_NODE_ORDER = [
   'quality_metrics',
 ];
 
-// Nodes that output images (have image_base64 or similar fields)
+// Nodes that output images
 const IMAGE_NODES = new Set([
   // Masking nodes
   'image_manipulator', 'bg_remove', 'sam3',
-  // Flux nodes
-  'resize_image', 'resize_mask', 'white_bg_segmenter', 'flux_fill', 
-  'upscaler', 'composite', 'output_mask', 'mask_invert_flux',
-  'resize_for_gemini', 'gemini_refine', 'upscaler_gemini', 
+  // Flux pipeline
+  'resize_image', 'resize_mask', 'mask_invert_input', 'white_bg_segmenter',
+  'flux_fill', 'upscaler', 'resize_mask_upscale', 'composite',
+  'output_mask', 'mask_invert_flux',
+  'resize_for_gemini', 'gemini_refine', 'upscaler_gemini',
   'composite_gemini', 'output_mask_gemini', 'mask_invert_gemini',
-  // All jewelry masking nodes
-  'gemini_sketch', 'sam3_all_jewelry',
-  // All jewelry generation nodes
-  'resize_all_jewelry', 'segment_green_bg', 'composite_all_jewelry',
-  'gemini_viton', 'output_mask_all_jewelry', 'mask_invert',
-  'transform_mask', 'gemini_hand_inpaint', 'transform_apply',
-  'output_mask_final', 'mask_invert_final',
+  // All jewelry masking
+  'sam3_all_jewelry',
+  // All jewelry generation
+  'resize_all_jewelry', 'gemini_sketch', 'segment_green_bg',
+  'composite_all_jewelry', 'gemini_viton', 'output_mask_all_jewelry',
+  'mask_invert_output', 'transform_mask', 'gemini_hand_inpaint',
+  'transform_apply', 'output_mask_final', 'mask_invert_final',
 ]);
 
 // Nodes that output JSON/text data
 const JSON_NODES = new Set([
   'zoom_check',
-  'gemini_router', 'quality_metrics', 'quality_metrics_gemini',
-  'gemini_quality_check', 'transform_detect',
+  'gemini_router',
+  'quality_metrics', 'quality_metrics_gemini',
+  'gemini_quality_check',
+  'transform_detect',
 ]);
 
 // Helper to extract Azure URI from various formats
