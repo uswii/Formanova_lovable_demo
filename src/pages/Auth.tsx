@@ -12,27 +12,18 @@ import formanovaLogo from '@/assets/formanova-logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading: authLoading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const { toast } = useToast();
   const [formLoading, setFormLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Redirect if already logged in (wait for auth to initialize first)
+  // Redirect if already logged in
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
       navigate('/', { replace: true });
     }
-  }, [user, authLoading, navigate]);
-
-  // Show loading during auth initialization
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  }, [user, navigate]);
 
   const handleGoogleSignIn = () => {
     setFormLoading(true);
