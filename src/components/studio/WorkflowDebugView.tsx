@@ -70,23 +70,25 @@ const ALL_JEWELRY_MASKING_NODE_ORDER = [
   'sam3_all_jewelry',
 ];
 
-// Node order for all_jewelry_generation (complete)
+// Node order for all_jewelry_generation
+// Note: Backend may use 'mask_invert' for all inversions instead of separate names
 const ALL_JEWELRY_NODE_ORDER = [
   'resize_all_jewelry',
-  'mask_invert_input',
+  'mask_invert_input',  // Alias for mask_invert
+  'mask_invert',        // Backend's actual tool name (fallback)
   'gemini_sketch',
   'segment_green_bg',
   'composite_all_jewelry',
   'gemini_viton',
   'gemini_quality_check',
   'output_mask_all_jewelry',
-  'mask_invert_output',
+  'mask_invert_output', // Alias for mask_invert
   'transform_detect',
   'transform_mask',
   'gemini_hand_inpaint',
   'transform_apply',
   'output_mask_final',
-  'mask_invert_final',
+  'mask_invert_final',  // Alias for mask_invert
   'quality_metrics',
 ];
 
