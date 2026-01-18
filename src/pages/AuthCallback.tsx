@@ -74,20 +74,18 @@ export default function AuthCallback() {
       console.log('[AuthCallback] Response data:', { hasToken: !!data.access_token });
       
       if (data.access_token) {
-        setStatus('Fetching user info...');
+        // Store token immediately
         setStoredToken(data.access_token);
         
-        // Fetch and store user info
-        const user = await authApi.getCurrentUser();
-        if (user) {
-          setStoredUser(user);
+        // Store user if included in response, otherwise fetch in background
+        if (data.user) {
+          setStoredUser(data.user);
+        } else {
+          // Fetch user in background - don't wait for it
+          authApi.getCurrentUser().catch(console.error);
         }
         
-        toast({
-          title: 'Welcome!',
-          description: 'You have successfully signed in.',
-        });
-        
+        // Redirect immediately - don't wait for user fetch
         navigate('/', { replace: true });
       } else {
         throw new Error('No access token in response');
