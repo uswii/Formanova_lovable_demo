@@ -57,6 +57,8 @@ export interface StudioState {
   processingState: ProcessingState;
   redDots: { x: number; y: number }[];
   hasTwoModes: boolean;  // true for necklace (has Standard + Enhanced), false for others
+  workflowResults: Record<string, unknown> | null;  // Raw DAG output for debug view
+  workflowType: 'flux_gen' | 'all_jewelry' | null;  // Which pipeline was used
 }
 
 export default function JewelryStudio() {
@@ -84,6 +86,8 @@ export default function JewelryStudio() {
     processingState: {},
     redDots: [],
     hasTwoModes: false,
+    workflowResults: null,
+    workflowType: null,
   });
 
   const jewelryType = type || 'necklace';
