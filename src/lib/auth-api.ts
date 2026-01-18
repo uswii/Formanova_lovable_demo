@@ -1,0 +1,182 @@
+// Custom Auth Service API Client
+// Connects to authentication backend at http://20.173.91.22:8009
+
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8009';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  is_verified: boolean;
+  // Optional profile fields (may come from OAuth)
+  full_name?: string;
+  avatar_url?: string;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface AuthError {
+  detail: string;
+}
+
+// ========== Token Storage ==========
+
+const TOKEN_KEY = 'formanova_auth_token';
+const USER_KEY = 'formanova_auth_user';
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function removeStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getStoredUser(): AuthUser | null {
+  const userJson = localStorage.getItem(USER_KEY);
+  if (!userJson) return null;
+  try {
+    return JSON.parse(userJson);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: AuthUser): void {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function removeStoredUser(): void {
+  localStorage.removeItem(USER_KEY);
+}
+
+// ========== Auth API Client ==========
+
+class AuthApi {
+  // Initiate Google OAuth login (redirects to Google)
+  initiateGoogleLogin(): void {
+    window.location.href = `${AUTH_SERVICE_URL}/auth/google/authorize`;
+  }
+
+  // Exchange OAuth code for token (callback handler)
+  async exchangeCodeForToken(code: string, state?: string): Promise<AuthTokenResponse> {
+    const params = new URLSearchParams({ code });
+    if (state) params.append('state', state);
+
+    const response = await fetch(
+      `${AUTH_SERVICE_URL}/auth/google/callback?${params.toString()}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'OAuth callback failed' }));
+      throw new Error(error.detail || 'Failed to exchange code for token');
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  // Register with email/password
+  async register(email: string, password: string): Promise<AuthUser> {
+    const response = await fetch(`${AUTH_SERVICE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
+      throw new Error(error.detail || 'Failed to register');
+    }
+
+    return await response.json();
+  }
+
+  // Login with email/password
+  async login(email: string, password: string): Promise<AuthTokenResponse> {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await fetch(`${AUTH_SERVICE_URL}/auth/jwt/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Login failed' }));
+      throw new Error(error.detail || 'Invalid email or password');
+    }
+
+    return await response.json();
+  }
+
+  // Logout
+  async logout(): Promise<void> {
+    const token = getStoredToken();
+    if (!token) return;
+
+    try {
+      await fetch(`${AUTH_SERVICE_URL}/auth/jwt/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      removeStoredToken();
+      removeStoredUser();
+    }
+  }
+
+  // Get current user
+  async getCurrentUser(): Promise<AuthUser | null> {
+    const token = getStoredToken();
+    if (!token) return null;
+
+    try {
+      const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          removeStoredToken();
+          removeStoredUser();
+          return null;
+        }
+        throw new Error('Failed to get user');
+      }
+
+      const user = await response.json();
+      setStoredUser(user);
+      return user;
+    } catch (error) {
+      console.error('Get user error:', error);
+      return null;
+    }
+  }
+
+  // Get authorization header for API requests
+  getAuthHeader(): Record<string, string> {
+    const token = getStoredToken();
+    if (!token) return {};
+    return { 'Authorization': `Bearer ${token}` };
+  }
+}
+
+export const authApi = new AuthApi();

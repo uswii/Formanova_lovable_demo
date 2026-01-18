@@ -1,58 +1,108 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  authApi, 
+  getStoredToken, 
+  getStoredUser, 
+  setStoredToken, 
+  setStoredUser,
+  removeStoredToken,
+  removeStoredUser,
+  type AuthUser 
+} from '@/lib/auth-api';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => void;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  getAuthHeader: () => Record<string, string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    // Check for stored session on mount
+    const initAuth = async () => {
+      const token = getStoredToken();
+      const storedUser = getStoredUser();
+      
+      if (token) {
+        // Validate token by fetching current user
+        const currentUser = await authApi.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          // Token invalid, clear storage
+          removeStoredToken();
+          removeStoredUser();
+        }
+      } else if (storedUser) {
+        // Clean up orphaned user data
+        removeStoredUser();
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initAuth();
   }, []);
 
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      },
-    });
-    return { error: error as Error | null };
+  const signInWithGoogle = () => {
+    authApi.initiateGoogleLogin();
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      const tokenResponse = await authApi.login(email, password);
+      setStoredToken(tokenResponse.access_token);
+      
+      const currentUser = await authApi.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        setStoredUser(currentUser);
+      }
+      
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    try {
+      await authApi.register(email, password);
+      // Auto-login after registration
+      return await signInWithEmail(email, password);
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authApi.logout();
+    setUser(null);
+  };
+
+  const getAuthHeader = () => {
+    return authApi.getAuthHeader();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signInWithGoogle, 
+      signInWithEmail,
+      signUpWithEmail,
+      signOut,
+      getAuthHeader 
+    }}>
       {children}
     </AuthContext.Provider>
   );
