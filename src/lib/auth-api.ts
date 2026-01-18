@@ -66,10 +66,17 @@ export function removeStoredUser(): void {
 
 class AuthApi {
   // Initiate Google OAuth login (browser navigates directly to backend)
-  // Note: Browser navigation from HTTPS to HTTP is allowed
   initiateGoogleLogin(): void {
-    console.log('[Auth] Redirecting to Google OAuth...');
-    window.location.href = 'http://20.173.91.22:8009/auth/google/authorize';
+    const authUrl = 'http://20.173.91.22:8009/auth/google/authorize';
+    console.log('[Auth] Redirecting to Google OAuth:', authUrl);
+    
+    // Try window.location.href first, fallback to window.open
+    try {
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('[Auth] Redirect failed, trying window.open:', error);
+      window.open(authUrl, '_self');
+    }
   }
 
   // Exchange OAuth code for token (callback handler) - uses proxy
