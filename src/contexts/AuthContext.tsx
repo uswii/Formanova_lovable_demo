@@ -23,17 +23,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize from localStorage synchronously (instant load)
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+  const [loading, setLoading] = useState(false); // Start as false - no blocking
 
   useEffect(() => {
-    // Check for stored session on mount
-    const initAuth = async () => {
+    // Background validation - don't block UI
+    const validateSession = async () => {
       const token = getStoredToken();
-      const storedUser = getStoredUser();
       
       if (token) {
-        // Validate token by fetching current user
+        // Validate token in background
         const currentUser = await authApi.getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
@@ -41,16 +41,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Token invalid, clear storage
           removeStoredToken();
           removeStoredUser();
+          setUser(null);
         }
-      } else if (storedUser) {
-        // Clean up orphaned user data
+      } else {
+        // No token, ensure clean state
         removeStoredUser();
+        setUser(null);
       }
-      
-      setLoading(false);
     };
 
-    initAuth();
+    validateSession();
   }, []);
 
   const signInWithGoogle = () => {
