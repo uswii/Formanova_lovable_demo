@@ -302,13 +302,13 @@ class WorkflowApi {
   }
 
   /**
-   * Start all_jewelry_masking workflow
-   * Generates mask for rings, bracelets, earrings, watches using Gemini sketch + SAM3
+   * Start agentic_all_jewelry_masking workflow
+   * Single agentic tool for resize + SAM3 + segment
    */
   async startAllJewelryMasking(request: AllJewelryMaskingRequest): Promise<WorkflowStartResponse> {
     const formData = new FormData();
     formData.append('file', request.imageBlob, 'image.jpg');
-    formData.append('workflow_name', 'all_jewelry_masking');
+    formData.append('workflow_name', 'agentic_all_jewelry_masking');
     
     formData.append('overrides', JSON.stringify({
       points: request.points,
@@ -316,7 +316,7 @@ class WorkflowApi {
       jewelry_type: request.jewelryType,
     }));
 
-    console.log('[WorkflowApi] Starting all_jewelry_masking', {
+    console.log('[WorkflowApi] Starting agentic_all_jewelry_masking', {
       jewelryType: request.jewelryType,
       points: request.points.length,
     });
@@ -335,20 +335,20 @@ class WorkflowApi {
         const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
         throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
       }
-      throw new Error(`All jewelry masking workflow failed: ${error}`);
+      throw new Error(`Agentic masking workflow failed: ${error}`);
     }
 
     return await response.json();
   }
 
   /**
-   * Start all_jewelry_generation workflow
-   * Generates photoshoot for rings, bracelets, earrings, watches with existing mask
+   * Start agentic_all_jewelry_photoshoot workflow
+   * Full VTON pipeline: sketch → composite → VTON → quality check → inpaint → transform → metrics
    */
   async startAllJewelryGeneration(request: AllJewelryGenerationRequest): Promise<WorkflowStartResponse> {
     const formData = new FormData();
     formData.append('file', request.imageBlob, 'image.jpg');
-    formData.append('workflow_name', 'all_jewelry_generation');
+    formData.append('workflow_name', 'agentic_all_jewelry_photoshoot');
     
     // Ensure mask is in data:image/png;base64,... format
     let maskDataUri = request.maskBase64;
@@ -362,7 +362,7 @@ class WorkflowApi {
       skin_tone: request.skinTone,
     }));
 
-    console.log('[WorkflowApi] Starting all_jewelry_generation', {
+    console.log('[WorkflowApi] Starting agentic_all_jewelry_photoshoot', {
       jewelryType: request.jewelryType,
       skinTone: request.skinTone,
       maskLength: maskDataUri.length,
