@@ -154,13 +154,13 @@ export const FLUX_GEN_DAG_STEPS = {
 
 // agentic_all_jewelry_masking pipeline (1 step)
 export const ALL_JEWELRY_MASKING_DAG_STEPS = {
-  'agentic_masking': { progress: 95, label: 'AI masking (resize + SAM3 + segment)...' },
+  'agentic_masking': { progress: 95, label: 'AI is identifying jewelry...' },
 } as const;
 
 // agentic_all_jewelry_photoshoot pipeline (2 steps)
 export const ALL_JEWELRY_DAG_STEPS = {
-  'agentic_masking': { progress: 30, label: 'AI masking...' },
-  'agentic_photoshoot': { progress: 95, label: 'AI photoshoot (VTON + inpaint + transform)...' },
+  'agentic_masking': { progress: 30, label: 'AI is identifying jewelry...' },
+  'agentic_photoshoot': { progress: 95, label: 'AI is generating photoshoot...' },
 } as const;
 
 export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_gen' | 'all_jewelry' | 'all_jewelry_masking'): { progress: number; label: string } {

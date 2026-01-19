@@ -159,7 +159,7 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
       // Get mask data and create translucent green overlay where mask is selected
-      // Note: Mask is inverted - BLACK pixels = jewelry area to highlight
+      // WHITE pixels = jewelry area to highlight with translucent green
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
@@ -167,10 +167,10 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       const overlayOpacity = 0.3;
       
       for (let i = 0; i < maskData.data.length; i += 4) {
-        // Check mask pixel brightness - BLACK = jewelry area (after inversion)
+        // Check mask pixel brightness - WHITE = jewelry area
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
-        // Apply translucent green tint where mask is BLACK (jewelry area)
-        if (brightness < 128) {
+        // Apply translucent green tint where mask is WHITE (jewelry area)
+        if (brightness >= 128) {
           // Blend with green using translucent opacity
           overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity)); // R
           overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + 255 * overlayOpacity); // G
