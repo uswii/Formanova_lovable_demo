@@ -170,69 +170,31 @@ else
 fi
 
 # =============================================================================
-# Step 3: Install serve globally (with fallback)
+# Step 3: Install serve (local install - most reliable)
 # =============================================================================
 echo ""
 echo -e "${YELLOW}[3/8] Installing serve for production...${NC}"
 
-SERVE_INSTALLED=false
-
-# Check if serve already exists
-if command -v serve &> /dev/null; then
-    log_success "Serve already installed: $(which serve)"
-    SERVE_INSTALLED=true
-elif [ -f "$PROJECT_DIR/node_modules/.bin/serve" ]; then
-    log_success "Serve already installed locally"
-    SERVE_INSTALLED=true
-fi
-
-# Try installation methods if not installed
-if [ "$SERVE_INSTALLED" = false ]; then
-    # Temporarily disable exit on error for this section
-    set +e
-    
-    # Method 1: Try global install without sudo
-    log_info "Attempting global install..."
-    INSTALL_OUTPUT=$(npm install -g serve 2>&1)
-    INSTALL_EXIT=$?
-    
-    if [ $INSTALL_EXIT -eq 0 ]; then
-        log_success "Serve installed globally"
-        SERVE_INSTALLED=true
-    else
-        log_warning "Global install failed (permission issue)"
-        
-        # Method 2: Try with sudo
-        log_info "Trying with sudo..."
-        if sudo npm install -g serve 2>&1; then
-            log_success "Serve installed globally (with sudo)"
-            SERVE_INSTALLED=true
-        else
-            log_warning "Sudo install also failed"
-        fi
-    fi
-    
-    # Re-enable exit on error
-    set -e
-fi
-
-# Method 3: Local install as final fallback
-if [ "$SERVE_INSTALLED" = false ]; then
-    log_warning "Installing serve locally as fallback..."
-    if npm install serve --save-dev; then
-        log_success "Serve installed locally in node_modules"
-        SERVE_INSTALLED=true
-    else
-        log_error "All serve installation methods failed!"
-        log_warning "You can manually install: sudo npm install -g serve"
-    fi
-fi
-
-# Find serve path
+# Check if serve already exists anywhere
 if command -v serve &> /dev/null; then
     SERVE_PATH=$(which serve)
-else
+    log_success "Serve found: $SERVE_PATH"
+elif [ -f "$PROJECT_DIR/node_modules/.bin/serve" ]; then
     SERVE_PATH="$PROJECT_DIR/node_modules/.bin/serve"
+    log_success "Serve found locally: $SERVE_PATH"
+else
+    # Install locally (most reliable - no permission issues)
+    log_info "Installing serve locally..."
+    npm install serve --save-dev || npm install serve
+    SERVE_PATH="$PROJECT_DIR/node_modules/.bin/serve"
+    
+    if [ -f "$SERVE_PATH" ]; then
+        log_success "Serve installed: $SERVE_PATH"
+    else
+        log_error "Serve installation failed!"
+        echo "  Try manually: npm install serve --save-dev"
+        exit 1
+    fi
 fi
 
 # =============================================================================
