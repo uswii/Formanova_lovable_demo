@@ -1,11 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 
-// SAM dimensions based on jewelry type
-// Necklaces use 2000x2667 (Flux pipeline), other jewelry uses 912x1168 (Gemini pipeline)
-const NECKLACE_SAM_WIDTH = 2000;
-const NECKLACE_SAM_HEIGHT = 2667;
-const OTHER_SAM_WIDTH = 912;
-const OTHER_SAM_HEIGHT = 1168;
+// NOTE: We no longer hardcode SAM dimensions here.
+// The backend handles all coordinate transformations via remap_click_points.
+// We output points in ORIGINAL IMAGE coordinates, and the backend scales them.
 
 interface BrushStroke {
   type: 'add' | 'remove';
@@ -24,7 +21,7 @@ interface Props {
    */
   canvasSize?: number;
   /**
-   * Jewelry type determines SAM dimensions: necklaces use 2000x2667, others use 912x1168
+   * Jewelry type (used for display aspect ratio hints, not coordinate scaling)
    */
   jewelryType?: string;
   /**
@@ -64,13 +61,13 @@ export function MaskCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Compute SAM dimensions based on jewelry type
-  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
-  const SAM_WIDTH = isNecklace ? NECKLACE_SAM_WIDTH : OTHER_SAM_WIDTH;
-  const SAM_HEIGHT = isNecklace ? NECKLACE_SAM_HEIGHT : OTHER_SAM_HEIGHT;
+  // Store original image dimensions for coordinate transformation
+  const [originalWidth, setOriginalWidth] = useState(0);
+  const [originalHeight, setOriginalHeight] = useState(0);
   
-  // Aspect ratio matches the SAM dimensions for this jewelry type
-  const displayWidth = canvasSize * (SAM_WIDTH / SAM_HEIGHT);
+  // Compute display dimensions based on canvas size and aspect ratio
+  // Use 3:4 aspect for consistent display
+  const displayWidth = canvasSize * (3 / 4);
   const displayHeight = canvasSize;
 
   // Load and draw image - stretched to 3:4 to match backend resize
@@ -94,6 +91,11 @@ export function MaskCanvas({
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       console.log('[MaskCanvas] Image loaded, natural size:', img.naturalWidth, 'x', img.naturalHeight);
+      
+      // Store original dimensions for coordinate transformation
+      setOriginalWidth(img.naturalWidth);
+      setOriginalHeight(img.naturalHeight);
+      
       // Use device pixel ratio for sharper rendering
       const dpr = window.devicePixelRatio || 1;
       canvas.width = displayWidth * dpr;
@@ -111,7 +113,7 @@ export function MaskCanvas({
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, displayWidth, displayHeight);
       
-      // Draw image stretched to 3:4 (same as backend resize to 2000x2667)
+      // Draw image stretched to display dimensions
       ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
       
       setImageLoaded(true);
@@ -123,24 +125,28 @@ export function MaskCanvas({
     img.src = image;
   }, [image, displayWidth, displayHeight]);
 
-  // Transform display coordinates to SAM space (2000x2667)
-  const toSamSpace = useCallback((xDisplay: number, yDisplay: number) => {
-    if (displayWidth === 0 || displayHeight === 0) {
+  // Transform display coordinates to original image space
+  // Backend's remap_click_points expects points in original image coordinates
+  const toOriginalSpace = useCallback((xDisplay: number, yDisplay: number) => {
+    if (displayWidth === 0 || displayHeight === 0 || originalWidth === 0 || originalHeight === 0) {
       return { x: xDisplay, y: yDisplay };
     }
-    const samX = (xDisplay / displayWidth) * SAM_WIDTH;
-    const samY = (yDisplay / displayHeight) * SAM_HEIGHT;
-    console.log('toSamSpace:', { xDisplay, yDisplay, displayWidth, displayHeight, samX, samY });
-    return { x: samX, y: samY };
-  }, [displayWidth, displayHeight]);
+    const origX = (xDisplay / displayWidth) * originalWidth;
+    const origY = (yDisplay / displayHeight) * originalHeight;
+    console.log('toOriginalSpace:', { xDisplay, yDisplay, displayWidth, displayHeight, origX, origY, originalWidth, originalHeight });
+    return { x: origX, y: origY };
+  }, [displayWidth, displayHeight, originalWidth, originalHeight]);
 
-  // Transform SAM coordinates back to display space (for rendering dots/strokes)
-  const toDisplaySpace = useCallback((xSam: number, ySam: number) => {
+  // Transform original image coordinates back to display space (for rendering dots/strokes)
+  const toDisplaySpace = useCallback((xOrig: number, yOrig: number) => {
+    if (originalWidth === 0 || originalHeight === 0) {
+      return { x: xOrig, y: yOrig };
+    }
     return {
-      x: (xSam / SAM_WIDTH) * displayWidth,
-      y: (ySam / SAM_HEIGHT) * displayHeight,
+      x: (xOrig / originalWidth) * displayWidth,
+      y: (yOrig / originalHeight) * displayHeight,
     };
-  }, [displayWidth, displayHeight]);
+  }, [displayWidth, displayHeight, originalWidth, originalHeight]);
 
   // Draw initial strokes + active stroke when image loads or strokes change (for live preview)
   useEffect(() => {
@@ -255,14 +261,14 @@ export function MaskCanvas({
     const xDisplay = clientX - rect.left;
     const yDisplay = clientY - rect.top;
 
-    // Transform directly to SAM space (2000x2667)
-    return toSamSpace(xDisplay, yDisplay);
-  }, [toSamSpace]);
+    // Transform to original image coordinates (backend handles scaling)
+    return toOriginalSpace(xDisplay, yDisplay);
+  }, [toOriginalSpace]);
 
   // Store last point for smooth line drawing
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Draw a point or line segment on the canvas (x, y are in SAM space)
+  // Draw a point or line segment on the canvas (x, y are in original image space)
   const draw = useCallback((x: number, y: number) => {
     const overlay = overlayCanvasRef.current;
     const ctx = overlay?.getContext('2d');
