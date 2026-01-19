@@ -28,12 +28,7 @@ export interface MaskingOutputs {
   resizedImage?: string;      // resized_image_base64 - the resized/padded image
   jewelrySegment?: string;    // jewelry_segment_base64 - extracted jewelry segment
   jewelryGreen?: string;      // jewelry_green_base64 - green overlay
-  resizeMetadata?: {          // resize_metadata - geometry restoration data
-    original_size: [number, number];
-    resized_size: [number, number];
-    offsets: [number, number];
-    ratio: number;
-  };
+  resizeMetadata?: Record<string, unknown>;  // Pass resize_metadata as-is from backend
 }
 
 export type SkinTone = 'light' | 'fair' | 'medium' | 'olive' | 'brown' | 'dark';
