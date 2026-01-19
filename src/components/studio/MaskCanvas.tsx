@@ -1,8 +1,10 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 
-// NOTE: We no longer hardcode SAM dimensions here.
-// The backend handles all coordinate transformations via remap_click_points.
-// We output points in ORIGINAL IMAGE coordinates, and the backend scales them.
+// SAM dimensions for NECKLACE workflow only
+// Necklaces use 2000x2667 (Flux pipeline) - frontend scales points
+// Other jewelry sends original image coordinates - backend handles scaling via remap_click_points
+const NECKLACE_SAM_WIDTH = 2000;
+const NECKLACE_SAM_HEIGHT = 2667;
 
 interface BrushStroke {
   type: 'add' | 'remove';
@@ -21,7 +23,9 @@ interface Props {
    */
   canvasSize?: number;
   /**
-   * Jewelry type (used for display aspect ratio hints, not coordinate scaling)
+   * Jewelry type determines coordinate handling:
+   * - Necklaces: scale to 2000x2667 SAM space
+   * - Others: send original image coordinates (backend handles scaling)
    */
   jewelryType?: string;
   /**
@@ -61,11 +65,14 @@ export function MaskCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Store original image dimensions for coordinate transformation
+  // Store original image dimensions for non-necklace coordinate transformation
   const [originalWidth, setOriginalWidth] = useState(0);
   const [originalHeight, setOriginalHeight] = useState(0);
   
-  // Compute display dimensions based on canvas size and aspect ratio
+  // Determine if this is a necklace (uses SAM scaling) or other jewelry (uses original coords)
+  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+  
+  // Compute display dimensions based on canvas size
   // Use 3:4 aspect for consistent display
   const displayWidth = canvasSize * (3 / 4);
   const displayHeight = canvasSize;
@@ -125,28 +132,51 @@ export function MaskCanvas({
     img.src = image;
   }, [image, displayWidth, displayHeight]);
 
-  // Transform display coordinates to original image space
-  // Backend's remap_click_points expects points in original image coordinates
-  const toOriginalSpace = useCallback((xDisplay: number, yDisplay: number) => {
-    if (displayWidth === 0 || displayHeight === 0 || originalWidth === 0 || originalHeight === 0) {
+  // Transform display coordinates to output space
+  // - Necklaces: scale to SAM space (2000x2667)
+  // - Other jewelry: scale to original image coordinates (backend handles remap)
+  const toOutputSpace = useCallback((xDisplay: number, yDisplay: number) => {
+    if (displayWidth === 0 || displayHeight === 0) {
       return { x: xDisplay, y: yDisplay };
     }
-    const origX = (xDisplay / displayWidth) * originalWidth;
-    const origY = (yDisplay / displayHeight) * originalHeight;
-    console.log('toOriginalSpace:', { xDisplay, yDisplay, displayWidth, displayHeight, origX, origY, originalWidth, originalHeight });
-    return { x: origX, y: origY };
-  }, [displayWidth, displayHeight, originalWidth, originalHeight]);
-
-  // Transform original image coordinates back to display space (for rendering dots/strokes)
-  const toDisplaySpace = useCallback((xOrig: number, yOrig: number) => {
-    if (originalWidth === 0 || originalHeight === 0) {
-      return { x: xOrig, y: yOrig };
+    
+    if (isNecklace) {
+      // Necklace: scale to SAM dimensions
+      const samX = (xDisplay / displayWidth) * NECKLACE_SAM_WIDTH;
+      const samY = (yDisplay / displayHeight) * NECKLACE_SAM_HEIGHT;
+      console.log('toOutputSpace (necklace→SAM):', { xDisplay, yDisplay, samX, samY });
+      return { x: samX, y: samY };
+    } else {
+      // Other jewelry: scale to original image coordinates
+      if (originalWidth === 0 || originalHeight === 0) {
+        return { x: xDisplay, y: yDisplay };
+      }
+      const origX = (xDisplay / displayWidth) * originalWidth;
+      const origY = (yDisplay / displayHeight) * originalHeight;
+      console.log('toOutputSpace (other→original):', { xDisplay, yDisplay, origX, origY, originalWidth, originalHeight });
+      return { x: origX, y: origY };
     }
-    return {
-      x: (xOrig / originalWidth) * displayWidth,
-      y: (yOrig / originalHeight) * displayHeight,
-    };
-  }, [displayWidth, displayHeight, originalWidth, originalHeight]);
+  }, [displayWidth, displayHeight, originalWidth, originalHeight, isNecklace]);
+
+  // Transform output coordinates back to display space (for rendering dots/strokes)
+  const toDisplaySpace = useCallback((xOut: number, yOut: number) => {
+    if (isNecklace) {
+      // Necklace: from SAM space
+      return {
+        x: (xOut / NECKLACE_SAM_WIDTH) * displayWidth,
+        y: (yOut / NECKLACE_SAM_HEIGHT) * displayHeight,
+      };
+    } else {
+      // Other jewelry: from original image space
+      if (originalWidth === 0 || originalHeight === 0) {
+        return { x: xOut, y: yOut };
+      }
+      return {
+        x: (xOut / originalWidth) * displayWidth,
+        y: (yOut / originalHeight) * displayHeight,
+      };
+    }
+  }, [displayWidth, displayHeight, originalWidth, originalHeight, isNecklace]);
 
   // Draw initial strokes + active stroke when image loads or strokes change (for live preview)
   useEffect(() => {
@@ -261,14 +291,14 @@ export function MaskCanvas({
     const xDisplay = clientX - rect.left;
     const yDisplay = clientY - rect.top;
 
-    // Transform to original image coordinates (backend handles scaling)
-    return toOriginalSpace(xDisplay, yDisplay);
-  }, [toOriginalSpace]);
+    // Transform to output space (SAM for necklace, original for others)
+    return toOutputSpace(xDisplay, yDisplay);
+  }, [toOutputSpace]);
 
   // Store last point for smooth line drawing
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Draw a point or line segment on the canvas (x, y are in original image space)
+  // Draw a point or line segment on the canvas (x, y are in output space)
   const draw = useCallback((x: number, y: number) => {
     const overlay = overlayCanvasRef.current;
     const ctx = overlay?.getContext('2d');
