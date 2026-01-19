@@ -5,6 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { CinematicShowcase } from '@/components/CinematicShowcase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -21,6 +22,7 @@ import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.png';
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
@@ -35,7 +37,14 @@ export default function Welcome() {
     { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
   ];
 
-  const handleStart = () => navigate('/studio');
+  // If signed in, go to dashboard. Otherwise, prompt to sign in.
+  const handleStart = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   const features = [
     { title: 'Zero Alterations', description: 'Your jewelry stays exactly as in reality. No AI hallucinations. No subtle changes.' },

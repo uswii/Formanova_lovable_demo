@@ -85,8 +85,8 @@ export default function AuthCallback() {
           authApi.getCurrentUser().catch(console.error);
         }
         
-        // Redirect immediately - don't wait for user fetch
-        navigate('/', { replace: true });
+        // Redirect to dashboard after successful auth
+        navigate('/dashboard', { replace: true });
       } else {
         throw new Error('No access token in response');
       }
