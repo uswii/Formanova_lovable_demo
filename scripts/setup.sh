@@ -181,30 +181,39 @@ SERVE_INSTALLED=false
 if command -v serve &> /dev/null; then
     log_success "Serve already installed: $(which serve)"
     SERVE_INSTALLED=true
+elif [ -f "$PROJECT_DIR/node_modules/.bin/serve" ]; then
+    log_success "Serve already installed locally"
+    SERVE_INSTALLED=true
 fi
 
 # Try installation methods if not installed
 if [ "$SERVE_INSTALLED" = false ]; then
-    # Method 1: Try global install without sudo (capture output)
-    log_warning "Attempting global install..."
+    # Temporarily disable exit on error for this section
+    set +e
+    
+    # Method 1: Try global install without sudo
+    log_info "Attempting global install..."
     INSTALL_OUTPUT=$(npm install -g serve 2>&1)
     INSTALL_EXIT=$?
     
     if [ $INSTALL_EXIT -eq 0 ]; then
         log_success "Serve installed globally"
         SERVE_INSTALLED=true
-    elif echo "$INSTALL_OUTPUT" | grep -qi "EACCES\|permission denied\|EPERM"; then
-        log_warning "Permission denied for global install"
+    else
+        log_warning "Global install failed (permission issue)"
         
         # Method 2: Try with sudo
-        log_warning "Trying with sudo..."
-        if sudo npm install -g serve 2>/dev/null; then
+        log_info "Trying with sudo..."
+        if sudo npm install -g serve 2>&1; then
             log_success "Serve installed globally (with sudo)"
             SERVE_INSTALLED=true
         else
             log_warning "Sudo install also failed"
         fi
     fi
+    
+    # Re-enable exit on error
+    set -e
 fi
 
 # Method 3: Local install as final fallback
