@@ -447,7 +447,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         // Start the workflow via Temporal gateway (/process on port 8000)
         const workflowStart = await workflowApi.startAllJewelryGeneration({
           imageBlob,
-          maskBase64: maskingResponse.mask_base64,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
         });
