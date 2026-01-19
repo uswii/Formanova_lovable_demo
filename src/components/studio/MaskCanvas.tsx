@@ -225,9 +225,16 @@ export function MaskCanvas({
       ctx.stroke();
     };
 
-    // Always use consistent colors for strokes based on their type - NOT current brush
-    const addColor = 'rgba(0, 255, 0, 0.35)';  // Green for add
-    const removeColor = 'rgba(0, 0, 0, 0.35)'; // Black for remove
+    // Convert brushColor hex to rgba for add strokes (use passed color, not hardcoded green)
+    const hexToRgba = (hex: string, alpha: number): string => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    
+    const addColor = hexToRgba(brushColor, 0.35);  // Use passed brush color for add
+    const removeColor = 'rgba(0, 0, 0, 0.35)';      // Black for remove
     
     // Draw all initial strokes as smooth lines - use stroke's own type for color
     initialStrokes.forEach((stroke) => {
@@ -310,8 +317,16 @@ export function MaskCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    // Use consistent colors based on brush type (green for add, black for remove)
-    const drawColor = brushColor === '#00FF00' ? 'rgba(0, 255, 0, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+    // Convert brushColor hex to rgba (use passed color dynamically)
+    const hexToRgba = (hex: string, alpha: number): string => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    
+    // Use passed brush color with transparency
+    const drawColor = hexToRgba(brushColor, 0.35);
     
     if (lastPointRef.current) {
       // Draw line from last point to current point for smooth strokes

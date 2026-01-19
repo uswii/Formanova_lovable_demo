@@ -112,9 +112,31 @@ async function fetchAzureImage(azureUri: string): Promise<string> {
 }
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
-async function createMaskOverlay(originalImage: string, maskBinary: string): Promise<string> {
-  console.log('[createMaskOverlay] Starting with originalImage length:', originalImage?.length, 'prefix:', originalImage?.substring(0, 50));
-  console.log('[createMaskOverlay] maskBinary length:', maskBinary?.length, 'prefix:', maskBinary?.substring(0, 50));
+// Available overlay colors for mask visualization
+export const OVERLAY_COLORS = [
+  { name: 'Green', hex: '#00FF00', rgb: { r: 0, g: 255, b: 0 } },
+  { name: 'Blue', hex: '#00AAFF', rgb: { r: 0, g: 170, b: 255 } },
+  { name: 'Pink', hex: '#FF69B4', rgb: { r: 255, g: 105, b: 180 } },
+  { name: 'Yellow', hex: '#FFFF00', rgb: { r: 255, g: 255, b: 0 } },
+  { name: 'Peach', hex: '#FFCBA4', rgb: { r: 255, g: 203, b: 164 } },
+  { name: 'Red', hex: '#FF4444', rgb: { r: 255, g: 68, b: 68 } },
+] as const;
+
+export type OverlayColorName = typeof OVERLAY_COLORS[number]['name'];
+
+/**
+ * Creates a mask overlay visualization.
+ * 
+ * Mask convention:
+ * - BLACK pixels = jewelry (to preserve) → show original image
+ * - WHITE pixels = background (AI-generated area) → apply translucent color overlay
+ */
+async function createMaskOverlay(
+  originalImage: string, 
+  maskBinary: string, 
+  overlayColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 }
+): Promise<string> {
+  console.log('[createMaskOverlay] Starting with color:', overlayColor);
   
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -127,17 +149,14 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
     const originalImg = new Image();
     const maskImg = new Image();
     
-    // Set crossOrigin for both images to handle CORS
     originalImg.crossOrigin = 'anonymous';
     maskImg.crossOrigin = 'anonymous';
     
     let loadedCount = 0;
     const onLoad = () => {
       loadedCount++;
-      console.log('[createMaskOverlay] Image loaded, count:', loadedCount);
       if (loadedCount < 2) return;
       
-      // Set canvas size to original image size
       canvas.width = originalImg.width;
       canvas.height = originalImg.height;
       
@@ -158,24 +177,27 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
       // Draw mask scaled to original size
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
-      // Get mask data and create translucent green overlay where mask is selected
-      // WHITE pixels = jewelry area to highlight with translucent green
+      // Get mask data and create translucent overlay
+      // WHITE pixels = background (apply overlay)
+      // BLACK pixels = jewelry (keep original)
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Use 30% opacity for translucent overlay
-      const overlayOpacity = 0.3;
+      // Use 35% opacity for translucent overlay
+      const overlayOpacity = 0.35;
       
       for (let i = 0; i < maskData.data.length; i += 4) {
-        // Check mask pixel brightness - WHITE = jewelry area
+        // Check mask pixel brightness - WHITE = background area to overlay
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
-        // Apply translucent green tint where mask is WHITE (jewelry area)
+        
+        // Apply translucent color tint where mask is WHITE (background/AI area)
         if (brightness >= 128) {
-          // Blend with green using translucent opacity
-          overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity)); // R
-          overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + 255 * overlayOpacity); // G
-          overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity)); // B
+          // Blend with overlay color
+          overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + overlayColor.r * overlayOpacity);
+          overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + overlayColor.g * overlayOpacity);
+          overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity) + overlayColor.b * overlayOpacity);
         }
+        // BLACK areas (jewelry) - leave as original image
       }
       
       ctx.putImageData(overlayData, 0, 0);
@@ -184,15 +206,8 @@ async function createMaskOverlay(originalImage: string, maskBinary: string): Pro
     
     originalImg.onload = onLoad;
     maskImg.onload = onLoad;
-    originalImg.onerror = (e) => {
-      console.error('[createMaskOverlay] Failed to load original image:', e);
-      console.error('[createMaskOverlay] originalImage src was:', originalImage?.substring(0, 100));
-      reject(new Error('Failed to load original image'));
-    };
-    maskImg.onerror = (e) => {
-      console.error('[createMaskOverlay] Failed to load mask image:', e);
-      reject(new Error('Failed to load mask image'));
-    };
+    originalImg.onerror = () => reject(new Error('Failed to load original image'));
+    maskImg.onerror = () => reject(new Error('Failed to load mask image'));
     
     originalImg.src = originalImage;
     maskImg.src = maskBinary;

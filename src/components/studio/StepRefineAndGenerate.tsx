@@ -67,6 +67,17 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeStroke, setActiveStroke] = useState<BrushStroke | null>(null);
 
+  // Overlay color state for mask visualization
+  const OVERLAY_COLORS = [
+    { name: 'Green', hex: '#00FF00' },
+    { name: 'Blue', hex: '#00AAFF' },
+    { name: 'Pink', hex: '#FF69B4' },
+    { name: 'Yellow', hex: '#FFFF00' },
+    { name: 'Peach', hex: '#FFCBA4' },
+    { name: 'Red', hex: '#FF4444' },
+  ];
+  const [selectedOverlayColor, setSelectedOverlayColor] = useState(OVERLAY_COLORS[0]);
+
   // Fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
 
@@ -76,8 +87,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   // Generation state - Temporal workflow
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStepLabel, setCurrentStepLabel] = useState('Starting workflow...');
-  const [prompt, setPrompt] = useState('Necklace worn by female model');
-  const [invertMask, setInvertMask] = useState(true);
 
   const effectiveStrokes = useMemo(() => {
     if (historyIndex < 0) return [];
@@ -1191,7 +1200,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                 <TabsTrigger value="binary">Binary View</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overlay" className="mt-4">
+              <TabsContent value="overlay" className="mt-4 space-y-4">
+                {/* Color picker for overlay */}
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-sm text-muted-foreground mr-2">Overlay Color:</span>
+                  {OVERLAY_COLORS.map((color) => (
+                    <button
+                      key={color.name}
+                      className={`w-7 h-7 rounded-full border-2 transition-all ${
+                        selectedOverlayColor.name === color.name 
+                          ? 'border-foreground scale-110 shadow-lg' 
+                          : 'border-transparent hover:border-muted-foreground/50'
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      onClick={() => setSelectedOverlayColor(color)}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+
                 <div className="flex justify-center">
                   <div className="relative inline-block group">
                     {baseImage ? (
@@ -1199,7 +1226,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         <MaskCanvas
                           key={canvasKey}
                           image={baseImage}
-                          brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                          brushColor={brushMode === 'add' ? selectedOverlayColor.hex : '#000000'}
                           brushSize={brushSize}
                           mode="brush"
                           canvasSize={400}
@@ -1226,7 +1253,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground text-center mt-3">
-                  <span className="text-green-500 font-semibold">Green</span> = Preserved • <span className="font-semibold">Black</span> = AI-generated
+                  <span style={{ color: selectedOverlayColor.hex }} className="font-semibold">{selectedOverlayColor.name}</span> = AI-generated area • <span className="font-semibold">Original</span> = Jewelry preserved
                 </p>
               </TabsContent>
 
