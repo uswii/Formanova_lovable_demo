@@ -16,7 +16,7 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState('Completing authentication...');
+  const [status, setStatus] = useState('Signing you in...');
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -48,8 +48,8 @@ export default function AuthCallback() {
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
-      setStatus('Exchanging code for token...');
-      console.log('[AuthCallback] Calling backend callback...');
+      // Keep technical logs for debugging but show friendly message
+      console.log('[AuthCallback] Exchanging code for token...');
       
       // Build the callback URL
       const params = new URLSearchParams({ code });
