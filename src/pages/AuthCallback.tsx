@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+
+// Redirect destination after successful auth
+const AUTH_SUCCESS_REDIRECT = '/studio';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { authApi, setStoredToken, setStoredUser } from '@/lib/auth-api';
@@ -85,8 +88,8 @@ export default function AuthCallback() {
           authApi.getCurrentUser().catch(console.error);
         }
         
-        // Redirect to dashboard after successful auth
-        navigate('/dashboard', { replace: true });
+        // Redirect to studio after successful auth
+        navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
       } else {
         throw new Error('No access token in response');
       }
