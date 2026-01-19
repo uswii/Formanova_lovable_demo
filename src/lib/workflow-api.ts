@@ -381,35 +381,31 @@ class WorkflowApi {
   }
 
   /**
-   * Start agentic_all_jewelry_photoshoot workflow (standard JSON overrides)
-   * Full VTON pipeline: sketch → composite → VTON → quality check → inpaint → transform → metrics
-   * 
-   * NOTE: This method does NOT pass maskingOutputs - use startAllJewelryGenerationMultipart instead.
+   * Start agentic_all_jewelry_photoshoot workflow via Temporal
+   * The DAG now runs masking internally, so we only pass the image + params.
+   * Full pipeline: agentic_masking → agentic_photoshoot
    */
-  async startAllJewelryGeneration(request: Omit<AllJewelryGenerationRequest, 'maskingOutputs'>): Promise<WorkflowStartResponse> {
+  async startAllJewelryGeneration(request: {
+    imageBlob: Blob;
+    jewelryType: string;
+    skinTone: string;
+  }): Promise<WorkflowStartResponse> {
     const formData = new FormData();
-    formData.append('file', request.imageBlob, 'image.jpg');
+    formData.append('file', request.imageBlob, 'image.png');
     formData.append('workflow_name', 'agentic_all_jewelry_photoshoot');
     
-    // Ensure mask is in data:image/png;base64,... format
-    let maskDataUri = request.maskBase64;
-    if (!maskDataUri.startsWith('data:')) {
-      maskDataUri = `data:image/png;base64,${maskDataUri}`;
-    }
-    
-    // Build overrides - no masking outputs (use multipart endpoint for that)
+    // Build overrides - just jewelry_type and skin_tone (masking happens in DAG)
     const overrides: Record<string, unknown> = {
-      mask: maskDataUri,
       jewelry_type: request.jewelryType,
       skin_tone: request.skinTone,
     };
     
     formData.append('overrides', JSON.stringify(overrides));
 
-    console.log('[WorkflowApi] Starting agentic_all_jewelry_photoshoot (standard)', {
+    console.log('[WorkflowApi] Starting agentic_all_jewelry_photoshoot via Temporal', {
       jewelryType: request.jewelryType,
       skinTone: request.skinTone,
-      maskLength: maskDataUri.length,
+      imageSize: request.imageBlob.size,
     });
 
     const response = await fetch(getProxyUrl('/process'), {
