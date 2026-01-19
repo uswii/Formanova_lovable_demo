@@ -124,12 +124,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         const { r, g, b } = selectedOverlayColor.rgb;
 
         for (let i = 0; i < maskData.data.length; i += 4) {
-          // BLACK pixels = jewelry area → apply translucent overlay (preserve)
-          // WHITE pixels = background (AI area) → keep original
+          // WHITE pixels = background/AI area → apply translucent overlay
+          // BLACK pixels = jewelry → keep original (show through)
           const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
 
-          if (brightness < 128) {
-            // Apply translucent color to jewelry (black) areas
+          if (brightness >= 128) {
+            // Apply translucent color to background (white) areas
             overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + r * overlayOpacity);
             overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + g * overlayOpacity);
             overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity) + b * overlayOpacity);
@@ -1285,14 +1285,16 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
               </TabsList>
 
               <TabsContent value="overlay" className="mt-4 space-y-4">
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-4">
+                  {/* Canvas */}
                   <div className="relative inline-block group">
                     {baseImage ? (
                       <>
                         <MaskCanvas
                           key={canvasKey}
                           image={baseImage}
-                          brushColor={brushMode === 'add' ? selectedOverlayColor.hex : '#333333'}
+                          brushMode={brushMode}
+                          overlayColor={selectedOverlayColor.hex}
                           brushSize={brushSize}
                           mode="brush"
                           canvasSize={400}
@@ -1310,22 +1312,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         >
                           <Expand className="h-3.5 w-3.5" />
                         </button>
-                        {/* Vertical color picker on the right */}
-                        <div className="absolute top-2 right-10 z-10 flex flex-col gap-1.5 bg-black/50 p-1.5 rounded-lg">
-                          {OVERLAY_COLORS.map((color) => (
-                            <button
-                              key={color.name}
-                              className={`w-6 h-6 rounded-full border-2 transition-all ${
-                                selectedOverlayColor.name === color.name 
-                                  ? 'border-white scale-110 shadow-lg' 
-                                  : 'border-transparent hover:border-white/50'
-                              }`}
-                              style={{ backgroundColor: color.hex }}
-                              onClick={() => setSelectedOverlayColor(color)}
-                              title={color.name}
-                            />
-                          ))}
-                        </div>
                       </>
                     ) : (
                       <div className="aspect-[3/4] w-[300px] bg-muted flex items-center justify-center rounded-lg">
@@ -1333,9 +1319,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                       </div>
                     )}
                   </div>
+                  {/* Vertical color picker outside canvas */}
+                  <div className="flex flex-col gap-2 py-2">
+                    {OVERLAY_COLORS.map((color) => (
+                      <button
+                        key={color.name}
+                        className={`w-7 h-7 rounded-full border-2 transition-all ${
+                          selectedOverlayColor.name === color.name 
+                            ? 'border-foreground scale-110 shadow-lg ring-2 ring-primary/50' 
+                            : 'border-muted hover:border-muted-foreground/50'
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                        onClick={() => setSelectedOverlayColor(color)}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground text-center mt-3">
-                  <span style={{ color: selectedOverlayColor.hex }} className="font-semibold">{selectedOverlayColor.name}</span> = Jewelry preserved • <span className="font-semibold">Original</span> = AI-generated area
+                  <span style={{ color: selectedOverlayColor.hex }} className="font-semibold">{selectedOverlayColor.name}</span> = AI-generated area • <span className="font-semibold">Original</span> = Jewelry preserved
                 </p>
               </TabsContent>
 
