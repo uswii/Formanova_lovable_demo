@@ -417,54 +417,66 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
 
         console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
 
-        // Extract mask data from result - all_jewelry_masking returns sam3_all_jewelry node output
+        // Extract mask data from result - supports multiple node output formats:
+        // - agentic_masking (new unified pipeline)
+        // - sam3_all_jewelry (older pipeline)
+        // - sam3, mask (fallbacks)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resultAny = result as any;
-        const sam3Result = resultAny.sam3_all_jewelry?.[0] || resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
+        const agenticResult = resultAny.agentic_masking?.[0];
+        const sam3Result = agenticResult || resultAny.sam3_all_jewelry?.[0] || resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
         
-        console.log('[Masking] sam3_all_jewelry result:', sam3Result);
+        console.log('[Masking] Extracted result:', Object.keys(sam3Result));
         
         // Check if mask is an Azure URI or base64
-        if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
+        // agentic_masking uses mask_base64.uri, older pipelines use mask.uri
+        const maskField = sam3Result.mask_base64 || sam3Result.mask;
+        if (maskField?.uri && maskField.uri.startsWith('azure://')) {
           setProcessingStep('Fetching mask from storage...');
-          maskBinary = await fetchAzureImage(sam3Result.mask.uri);
-        } else if (sam3Result.mask_base64) {
+          console.log('[Masking] Fetching mask from Azure:', maskField.uri);
+          maskBinary = await fetchAzureImage(maskField.uri);
+        } else if (typeof maskField === 'string' && maskField.startsWith('azure://')) {
+          setProcessingStep('Fetching mask from storage...');
+          maskBinary = await fetchAzureImage(maskField);
+        } else if (sam3Result.mask_base64 && typeof sam3Result.mask_base64 === 'string') {
           maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
         }
         
-        // Handle overlay
-        if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
-          maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
+        // Handle overlay - agentic_masking uses jewelry_green_base64, older uses mask_overlay
+        const overlayField = sam3Result.jewelry_green_base64 || sam3Result.mask_overlay;
+        if (overlayField?.uri && overlayField.uri.startsWith('azure://')) {
+          console.log('[Masking] Fetching overlay from Azure:', overlayField.uri);
+          maskOverlay = await fetchAzureImage(overlayField.uri);
+        } else if (typeof overlayField === 'string' && overlayField.startsWith('azure://')) {
+          maskOverlay = await fetchAzureImage(overlayField);
         } else if (sam3Result.mask_overlay_base64) {
           maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
         }
         
         // Handle processed image (resized image from the pipeline)
-        // Note: resize_all_jewelry returns image_base64 which may be:
-        // - An object with .uri (Azure blob reference)
-        // - A string starting with azure:// 
-        // - A raw base64 string
+        // agentic_masking: resized_image_base64
+        // older pipeline: resize_all_jewelry[0].image_base64
+        const resizedField = sam3Result.resized_image_base64;
         const resizeResult = resultAny.resize_all_jewelry?.[0] || {};
-        console.log('[Masking] resize_all_jewelry result keys:', Object.keys(resizeResult));
-        console.log('[Masking] resize_all_jewelry.image_base64 type:', typeof resizeResult.image_base64);
         
-        if (resizeResult.image_base64) {
+        if (resizedField?.uri && resizedField.uri.startsWith('azure://')) {
+          console.log('[Masking] Fetching resized image from Azure:', resizedField.uri);
+          processedImage = await fetchAzureImage(resizedField.uri);
+        } else if (typeof resizedField === 'string' && resizedField.startsWith('azure://')) {
+          processedImage = await fetchAzureImage(resizedField);
+        } else if (resizeResult.image_base64) {
           const imgField = resizeResult.image_base64;
           
           if (typeof imgField === 'object' && imgField?.uri && imgField.uri.startsWith('azure://')) {
-            // Object with Azure URI
             console.log('[Masking] Fetching resized image from Azure URI:', imgField.uri);
             processedImage = await fetchAzureImage(imgField.uri);
           } else if (typeof imgField === 'string' && imgField.startsWith('azure://')) {
-            // String Azure URI
             console.log('[Masking] Fetching resized image from Azure string:', imgField.substring(0, 50));
             processedImage = await fetchAzureImage(imgField);
           } else if (typeof imgField === 'string' && !imgField.startsWith('data:')) {
-            // Raw base64 string
             console.log('[Masking] Using raw base64 for resized image');
             processedImage = `data:image/jpeg;base64,${imgField}`;
           } else if (typeof imgField === 'string') {
-            // Already a data URL
             console.log('[Masking] Using existing data URL for resized image');
             processedImage = imgField;
           }
