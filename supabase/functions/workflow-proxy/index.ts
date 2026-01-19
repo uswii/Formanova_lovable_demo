@@ -192,18 +192,25 @@ serve(async (req) => {
     if (endpoint === '/tools/agentic_masking/run' && req.method === 'POST') {
       const body = await req.json();
       
-      // Transform the request - API expects image as {source: base64} not raw string
+      // Transform the request - API expects image as {base64: rawData} format
+      let imageObj = body.data?.image;
+      if (typeof imageObj === 'string') {
+        // Strip data URI prefix if present: "data:image/jpeg;base64,..." -> raw base64
+        const base64Data = imageObj.includes(',') 
+          ? imageObj.split(',')[1] 
+          : imageObj;
+        imageObj = { base64: base64Data };
+      }
+      
       const transformedBody = {
         data: {
           ...body.data,
-          image: typeof body.data?.image === 'string' 
-            ? { source: body.data.image } 
-            : body.data?.image,
+          image: imageObj,
         }
       };
       
       console.log(`[workflow-proxy] Forwarding to ${DIRECT_API_URL}/tools/agentic_masking/run`);
-      console.log(`[workflow-proxy] Image type transformed: ${typeof body.data?.image} -> object`);
+      console.log(`[workflow-proxy] Image transformed to {base64: ...} format`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min
