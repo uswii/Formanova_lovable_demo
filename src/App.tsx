@@ -9,9 +9,11 @@ import { Header } from "@/components/layout/Header";
 import { ThemeDecorations } from "@/components/ThemeDecorations";
 import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
 import { FloatingElements } from '@/components/FloatingElements';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 // Pages
 import Welcome from "./pages/Welcome";
+import Dashboard from "./pages/Dashboard";
 import Tutorial from "./pages/Tutorial";
 import PhotographyStudio from "./pages/PhotographyStudio";
 import JewelryStudio from "./pages/JewelryStudio";
@@ -39,15 +41,20 @@ const App = () => (
               <Header />
               <main className="flex-1">
                 <Routes>
+                  {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/generations" element={<Generations />} />
-                  <Route path="/credits" element={<Credits />} />
                   <Route path="/tutorial" element={<Tutorial />} />
-                  <Route path="/studio" element={<PhotographyStudio />} />
-                  <Route path="/studio/:type" element={<JewelryStudio />} />
-                  <Route path="/studio-cad" element={<CADStudio />} />
+                  
+                  {/* Protected routes - require sign in */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
+                  <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
+                  <Route path="/studio" element={<ProtectedRoute><PhotographyStudio /></ProtectedRoute>} />
+                  <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} />
+                  <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
+                  
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

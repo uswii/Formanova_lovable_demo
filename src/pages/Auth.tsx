@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -13,16 +13,20 @@ const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
-  // Check if already logged in
+  // Get the intended destination (default to dashboard)
+  const from = (location.state as { from?: string })?.from || '/dashboard';
+
+  // Check if already logged in - redirect to dashboard
   useEffect(() => {
     const token = getStoredToken();
     const user = getStoredUser();
     if (token && user) {
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
