@@ -4,7 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
-import { StudioState, SkinTone } from '@/pages/JewelryStudio';
+import { StudioState, SkinTone, MaskingOutputs } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
@@ -327,6 +327,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       let maskOverlay: string | null = null;
       let processedImage: string | null = null;
       let workflowId: string;
+      
+      // Prepare masking outputs for caching (to skip re-masking in generation)
+      // Only populated for non-necklace jewelry types
+      const maskingOutputs: MaskingOutputs = {};
 
       if (isNecklaceType) {
         // === NECKLACE: Run necklace_point_masking workflow ===
@@ -447,10 +451,31 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         if (overlayField?.uri && overlayField.uri.startsWith('azure://')) {
           console.log('[Masking] Fetching overlay from Azure:', overlayField.uri);
           maskOverlay = await fetchAzureImage(overlayField.uri);
+          maskingOutputs.jewelryGreen = maskOverlay;
         } else if (typeof overlayField === 'string' && overlayField.startsWith('azure://')) {
           maskOverlay = await fetchAzureImage(overlayField);
+          maskingOutputs.jewelryGreen = maskOverlay;
         } else if (sam3Result.mask_overlay_base64) {
           maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
+        }
+        
+        // Handle jewelry segment (for generation optimization)
+        const segmentField = sam3Result.jewelry_segment_base64;
+        if (segmentField?.uri && segmentField.uri.startsWith('azure://')) {
+          console.log('[Masking] Fetching jewelry segment from Azure:', segmentField.uri);
+          maskingOutputs.jewelrySegment = await fetchAzureImage(segmentField.uri);
+        } else if (typeof segmentField === 'string' && segmentField.startsWith('azure://')) {
+          maskingOutputs.jewelrySegment = await fetchAzureImage(segmentField);
+        } else if (typeof segmentField === 'string') {
+          maskingOutputs.jewelrySegment = segmentField.startsWith('data:') 
+            ? segmentField 
+            : `data:image/png;base64,${segmentField}`;
+        }
+        
+        // Handle resize metadata (for geometry restoration)
+        if (sam3Result.resize_metadata) {
+          maskingOutputs.resizeMetadata = sam3Result.resize_metadata;
+          console.log('[Masking] Got resize_metadata:', sam3Result.resize_metadata);
         }
         
         // Handle processed image (resized image from the pipeline)
@@ -462,8 +487,15 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         if (resizedField?.uri && resizedField.uri.startsWith('azure://')) {
           console.log('[Masking] Fetching resized image from Azure:', resizedField.uri);
           processedImage = await fetchAzureImage(resizedField.uri);
+          maskingOutputs.resizedImage = processedImage;
         } else if (typeof resizedField === 'string' && resizedField.startsWith('azure://')) {
           processedImage = await fetchAzureImage(resizedField);
+          maskingOutputs.resizedImage = processedImage;
+        } else if (typeof resizedField === 'string') {
+          processedImage = resizedField.startsWith('data:') 
+            ? resizedField 
+            : `data:image/jpeg;base64,${resizedField}`;
+          maskingOutputs.resizedImage = processedImage;
         } else if (resizeResult.image_base64) {
           const imgField = resizeResult.image_base64;
           
@@ -480,9 +512,11 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
             console.log('[Masking] Using existing data URL for resized image');
             processedImage = imgField;
           }
+          maskingOutputs.resizedImage = processedImage;
         } else if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
           console.log('[Masking] Fetching from resizeResult.image.uri');
           processedImage = await fetchAzureImage(resizeResult.image.uri);
+          maskingOutputs.resizedImage = processedImage;
         } else {
           console.log('[Masking] No resized image found in result, using originalImageDataUrl');
         }
@@ -505,9 +539,11 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       const generatedOverlay = maskOverlay || await createMaskOverlay(overlayBaseImage, invertedMask);
 
       console.log('[Masking] Got mask and overlay');
+      console.log('[Masking] Caching masking outputs for generation optimization:', Object.keys(maskingOutputs));
 
       // Update state with results - use the INVERTED mask (black=jewelry)
       // Keep processed image if available, otherwise use original data URL
+      // Also cache masking outputs to skip re-masking in generation step
       updateState({
         maskOverlay: generatedOverlay,
         maskBinary: invertedMask,
@@ -515,6 +551,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         processingState: {
           sessionId: workflowId,
         },
+        maskingOutputs: Object.keys(maskingOutputs).length > 0 ? maskingOutputs : null,
       });
 
       setProcessingProgress(100);

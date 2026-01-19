@@ -25,7 +25,7 @@ import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { WorkflowDebugView } from './WorkflowDebugView';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
-import type { SkinTone as WorkflowSkinTone } from '@/lib/workflow-api';
+import type { SkinTone as WorkflowSkinTone, MaskingOutputsForGeneration } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
@@ -299,15 +299,25 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
         // Check if we already have a mask (from user edit or prior masking step)
-        let finalMask = maskToUse;
+        const finalMask = maskToUse;
         
-        // If no mask exists (shouldn't happen since we require it in step 1), run masking first
-        if (!finalMask || finalMask === state.maskBinary) {
-          // We have a mask from step 1, use it directly
-          console.log('[Generation] Using existing mask from step 1');
+        // We have a mask from step 1, use it directly
+        console.log('[Generation] Using existing mask from step 1');
+        
+        // Prepare masking outputs to skip re-masking in backend
+        // Convert StudioState.maskingOutputs to API format
+        let maskingOutputsForApi: MaskingOutputsForGeneration | undefined;
+        if (state.maskingOutputs) {
+          maskingOutputsForApi = {
+            resizedImage: state.maskingOutputs.resizedImage,
+            jewelrySegment: state.maskingOutputs.jewelrySegment,
+            jewelryGreen: state.maskingOutputs.jewelryGreen,
+            resizeMetadata: state.maskingOutputs.resizeMetadata,
+          };
+          console.log('[Generation] Passing masking outputs to skip re-masking');
         }
 
-        // Step 2: Run generation with the mask
+        // Step 2: Run generation with the mask (and optional masking outputs to skip re-masking)
         setCurrentStepLabel(`Starting ${singularType} generation...`);
 
         const genStartResponse = await workflowApi.startAllJewelryGeneration({
@@ -315,6 +325,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           maskBase64: finalMask,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
+          maskingOutputs: maskingOutputsForApi,
         });
 
         console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
