@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # =============================================================================
-# FormaNova Frontend - Stop Script
-# =============================================================================
-# Stops the FormaNova frontend service
+# FormaNova Frontend - Stop Script (with Fallbacks)
 # =============================================================================
 
-SERVICE_NAME="formanova"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_FILE="$PROJECT_DIR/.formanova-config"
 
 # Colors
 GREEN='\033[0;32m'
@@ -14,22 +13,59 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo ""
-echo -e "${YELLOW}Stopping FormaNova service...${NC}"
-
-# Check if service exists
-if ! sudo systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
-    echo -e "${RED}Error: Service not found.${NC}"
-    exit 1
+# Load config
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    SERVICE_NAME="formanova"
 fi
 
-# Stop the service
-sudo systemctl stop ${SERVICE_NAME}.service
+echo ""
+echo -e "${YELLOW}Stopping FormaNova...${NC}"
 
-# Check status
-if sudo systemctl is-active --quiet ${SERVICE_NAME}.service; then
-    echo -e "${RED}✗ Service is still running${NC}"
-    exit 1
-else
+STOPPED=false
+
+# Try systemd
+if command -v systemctl &> /dev/null; then
+    if sudo systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}.service"; then
+        sudo systemctl stop ${SERVICE_NAME}.service 2>/dev/null
+        if ! sudo systemctl is-active --quiet ${SERVICE_NAME}.service 2>/dev/null; then
+            echo -e "${GREEN}✓ Stopped systemd service${NC}"
+            STOPPED=true
+        fi
+    fi
+fi
+
+# Try PM2
+if command -v pm2 &> /dev/null || [ -f "$PROJECT_DIR/node_modules/.bin/pm2" ]; then
+    PM2_CMD="pm2"
+    if ! command -v pm2 &> /dev/null; then
+        PM2_CMD="$PROJECT_DIR/node_modules/.bin/pm2"
+    fi
+    
+    if $PM2_CMD list 2>/dev/null | grep -q "$SERVICE_NAME"; then
+        $PM2_CMD stop $SERVICE_NAME 2>/dev/null
+        $PM2_CMD delete $SERVICE_NAME 2>/dev/null
+        echo -e "${GREEN}✓ Stopped PM2 process${NC}"
+        STOPPED=true
+    fi
+fi
+
+# Kill any remaining serve processes on our port
+if command -v lsof &> /dev/null; then
+    PID=$(lsof -t -i:${PORT:-4173} 2>/dev/null)
+    if [ -n "$PID" ]; then
+        kill $PID 2>/dev/null
+        echo -e "${GREEN}✓ Killed process on port ${PORT:-4173}${NC}"
+        STOPPED=true
+    fi
+elif command -v fuser &> /dev/null; then
+    fuser -k ${PORT:-4173}/tcp 2>/dev/null
+    STOPPED=true
+fi
+
+if [ "$STOPPED" = true ]; then
     echo -e "${GREEN}✓ FormaNova stopped${NC}"
+else
+    echo -e "${YELLOW}No running instance found${NC}"
 fi
