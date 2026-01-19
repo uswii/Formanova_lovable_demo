@@ -319,7 +319,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('Generating mask...');
+    setProcessingStep('AI is identifying jewelry...');
 
     try {
       // Convert image to Blob for workflow API
