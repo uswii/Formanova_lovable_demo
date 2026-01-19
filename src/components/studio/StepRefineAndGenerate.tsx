@@ -415,7 +415,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
         // ===== STEP 1: Agentic Masking (sync) =====
-        setCurrentStepLabel('AI is identifying jewelry...');
+        setCurrentStepLabel('Preparing your photoshoot...');
         setGenerationProgress(10);
         
         console.log('[Generation] Step 1: Running agentic masking');
@@ -450,8 +450,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         };
         
         // ===== STEP 2: Agentic Photoshoot (sync with multipart) =====
-        setCurrentStepLabel('AI is generating photoshoot...');
-        setGenerationProgress(50);
+        setCurrentStepLabel('Generating photoshoot...');
+        setGenerationProgress(40);
         
         console.log('[Generation] Step 2: Running agentic photoshoot');
         
@@ -464,7 +464,8 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         });
         
         console.log('[Generation] Step 2 complete, got final image');
-        setGenerationProgress(90);
+        setCurrentStepLabel('Verifying quality...');
+        setGenerationProgress(85);
         
         // Convert sync response to expected result format
         result = {
@@ -476,6 +477,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         };
       }
 
+      setCurrentStepLabel('Final quality check...');
+      setGenerationProgress(95);
+      
+      // Brief delay for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       setGenerationProgress(100);
       setCurrentStepLabel('Complete!');
 
