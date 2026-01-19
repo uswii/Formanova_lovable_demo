@@ -418,21 +418,29 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         // We have a mask from step 1, use it directly
         console.log('[Generation] Using existing mask from step 1');
         
-        // NOTE: We previously passed maskingOutputs to skip re-masking, but this causes
-        // the overrides JSON to exceed 1024KB (contains 4 large base64 images).
-        // For now, we skip passing maskingOutputs and let backend re-run masking.
-        // This is slightly slower but avoids the size limit error.
-        // TODO: Backend should accept these as separate form-data parts, not in JSON overrides.
-        
-        // Step 2: Run generation with the mask only (no maskingOutputs to avoid size limit)
+        // Step 2: Run generation with the mask
         setCurrentStepLabel(`Starting ${singularType} generation...`);
 
-        const genStartResponse = await workflowApi.startAllJewelryGeneration({
+        // Prepare masking outputs for multipart upload (avoids 1024KB limit)
+        let maskingOutputsForApi: MaskingOutputsForGeneration | undefined;
+        if (state.maskingOutputs) {
+          maskingOutputsForApi = {
+            resizedImage: state.maskingOutputs.resizedImage,
+            jewelrySegment: state.maskingOutputs.jewelrySegment,
+            jewelryGreen: state.maskingOutputs.jewelryGreen,
+            resizeMetadata: state.maskingOutputs.resizeMetadata,
+          };
+          console.log('[Generation] Using multipart endpoint with masking outputs to skip re-masking');
+        }
+
+        // Use multipart endpoint if we have masking outputs (skips re-masking, faster)
+        // Otherwise fall back to standard endpoint (will re-run masking)
+        const genStartResponse = await workflowApi.startAllJewelryGenerationMultipart({
           imageBlob,
           maskBase64: compressedMask,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
-          // maskingOutputs removed - causes overrides to exceed 1024KB limit
+          maskingOutputs: maskingOutputsForApi,
         });
 
         console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);

@@ -361,12 +361,12 @@ class WorkflowApi {
   }
 
   /**
-   * Start agentic_all_jewelry_photoshoot workflow
+   * Start agentic_all_jewelry_photoshoot workflow (standard JSON overrides)
    * Full VTON pipeline: sketch → composite → VTON → quality check → inpaint → transform → metrics
    * 
-   * If maskingOutputs are provided, the backend will skip the agentic_masking step.
+   * NOTE: This method does NOT pass maskingOutputs - use startAllJewelryGenerationMultipart instead.
    */
-  async startAllJewelryGeneration(request: AllJewelryGenerationRequest): Promise<WorkflowStartResponse> {
+  async startAllJewelryGeneration(request: Omit<AllJewelryGenerationRequest, 'maskingOutputs'>): Promise<WorkflowStartResponse> {
     const formData = new FormData();
     formData.append('file', request.imageBlob, 'image.jpg');
     formData.append('workflow_name', 'agentic_all_jewelry_photoshoot');
@@ -377,47 +377,19 @@ class WorkflowApi {
       maskDataUri = `data:image/png;base64,${maskDataUri}`;
     }
     
-    // Build overrides with optional masking outputs for skip optimization
+    // Build overrides - no masking outputs (use multipart endpoint for that)
     const overrides: Record<string, unknown> = {
       mask: maskDataUri,
       jewelry_type: request.jewelryType,
       skin_tone: request.skinTone,
     };
     
-    // If we have masking outputs from a previous step, pass them to skip re-masking
-    if (request.maskingOutputs) {
-      const { resizedImage, jewelrySegment, jewelryGreen, resizeMetadata } = request.maskingOutputs;
-      
-      if (resizedImage) {
-        // Ensure resized_image is in data URI format
-        overrides.resized_image = resizedImage.startsWith('data:') 
-          ? resizedImage 
-          : `data:image/png;base64,${resizedImage}`;
-      }
-      if (jewelrySegment) {
-        overrides.jewelry_segment = jewelrySegment.startsWith('data:')
-          ? jewelrySegment
-          : `data:image/png;base64,${jewelrySegment}`;
-      }
-      if (jewelryGreen) {
-        overrides.jewelry_green = jewelryGreen.startsWith('data:')
-          ? jewelryGreen
-          : `data:image/png;base64,${jewelryGreen}`;
-      }
-      if (resizeMetadata) {
-        overrides.resize_metadata = resizeMetadata;
-      }
-      
-      console.log('[WorkflowApi] Passing masking outputs to skip re-masking');
-    }
-    
     formData.append('overrides', JSON.stringify(overrides));
 
-    console.log('[WorkflowApi] Starting agentic_all_jewelry_photoshoot', {
+    console.log('[WorkflowApi] Starting agentic_all_jewelry_photoshoot (standard)', {
       jewelryType: request.jewelryType,
       skinTone: request.skinTone,
       maskLength: maskDataUri.length,
-      hasMaskingOutputs: !!request.maskingOutputs,
     });
 
     const response = await fetch(getProxyUrl('/process'), {
@@ -428,13 +400,94 @@ class WorkflowApi {
 
     if (!response.ok) {
       const error = await response.text();
-      // Parse tool_unavailable errors for user-friendly message
       const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
       if (toolUnavailableMatch || error.includes('tool_unavailable')) {
         const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
         throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
       }
       throw new Error(`All jewelry generation workflow failed: ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Start agentic_photoshoot via multipart endpoint (skips re-masking)
+   * Uses /tools/agentic_photoshoot/run-multipart - each image as separate form-data part
+   * This avoids the 1024KB per-part limit when passing masking outputs.
+   */
+  async startAllJewelryGenerationMultipart(request: AllJewelryGenerationRequest): Promise<WorkflowStartResponse> {
+    if (!request.maskingOutputs) {
+      // Fallback to standard method if no masking outputs
+      return this.startAllJewelryGeneration(request);
+    }
+
+    const { resizedImage, jewelrySegment, jewelryGreen, resizeMetadata } = request.maskingOutputs;
+    
+    // Need all 4 masking outputs for the multipart endpoint
+    if (!resizedImage || !jewelrySegment || !jewelryGreen || !resizeMetadata) {
+      console.warn('[WorkflowApi] Incomplete masking outputs, falling back to standard method');
+      return this.startAllJewelryGeneration(request);
+    }
+
+    const formData = new FormData();
+    
+    // Convert base64 strings to Blobs for file uploads
+    const resizedImageBlob = base64ToBlob(
+      resizedImage.replace(/^data:image\/\w+;base64,/, ''), 
+      'image/png'
+    );
+    const maskBlob = base64ToBlob(
+      request.maskBase64.replace(/^data:image\/\w+;base64,/, ''), 
+      'image/png'
+    );
+    const jewelrySegmentBlob = base64ToBlob(
+      jewelrySegment.replace(/^data:image\/\w+;base64,/, ''), 
+      'image/png'
+    );
+    const jewelryGreenBlob = base64ToBlob(
+      jewelryGreen.replace(/^data:image\/\w+;base64,/, ''), 
+      'image/png'
+    );
+
+    // Append files as separate form-data parts (each under 1024KB limit)
+    formData.append('resized_image', resizedImageBlob, 'resized_image.png');
+    formData.append('mask', maskBlob, 'mask.png');
+    formData.append('jewelry_segment', jewelrySegmentBlob, 'jewelry_segment.png');
+    formData.append('jewelry_green', jewelryGreenBlob, 'jewelry_green.png');
+    
+    // Append metadata and parameters
+    formData.append('resize_metadata', JSON.stringify(resizeMetadata));
+    formData.append('jewelry_type', request.jewelryType);
+    formData.append('skin_tone', request.skinTone);
+    formData.append('max_retries', '3');
+
+    console.log('[WorkflowApi] Starting agentic_photoshoot via multipart endpoint', {
+      jewelryType: request.jewelryType,
+      skinTone: request.skinTone,
+      resizedImageSize: resizedImageBlob.size,
+      maskSize: maskBlob.size,
+      jewelrySegmentSize: jewelrySegmentBlob.size,
+      jewelryGreenSize: jewelryGreenBlob.size,
+    });
+
+    // Use direct backend URL for multipart endpoint (bypasses workflow-proxy)
+    const backendUrl = 'http://20.173.91.22:8000/tools/agentic_photoshoot/run-multipart';
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      body: formData,
+      // No Content-Type header - browser sets it with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
+      if (toolUnavailableMatch || error.includes('tool_unavailable')) {
+        const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
+        throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
+      }
+      throw new Error(`Multipart photoshoot failed: ${error}`);
     }
 
     return await response.json();
