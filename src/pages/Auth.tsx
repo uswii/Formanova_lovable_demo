@@ -16,7 +16,7 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  
 
   // Redirect destination after auth
   const AUTH_SUCCESS_REDIRECT = '/dashboard';
@@ -35,19 +35,13 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    setDebugInfo('Fetching Google OAuth URL...');
     
     try {
-      // Use proxy to get the Google OAuth redirect URL (avoids HTTPS→HTTP block)
       const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
       const data = await response.json();
       
-      console.log('[Auth] OAuth response:', data);
-      
       const redirectUrl = data.redirect_url || data.authorization_url;
       if (redirectUrl) {
-        setDebugInfo(`Redirecting to Google...`);
-        // Redirect to Google (HTTPS)
         window.location.href = redirectUrl;
       } else if (data.error) {
         throw new Error(data.error);
@@ -57,11 +51,10 @@ export default function Auth() {
     } catch (error) {
       console.error('[Auth] Google OAuth error:', error);
       setLoading(false);
-      setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       toast({
         variant: 'destructive',
-        title: 'Google Sign-In Failed',
-        description: error instanceof Error ? error.message : 'Could not connect to authentication service',
+        title: 'Sign-In Failed',
+        description: 'Could not connect. Please try again.',
       });
     }
   };
@@ -119,12 +112,6 @@ export default function Auth() {
             )}
           </Button>
 
-          {/* Debug info */}
-          {debugInfo && (
-            <p className="mt-4 text-xs text-muted-foreground break-all max-w-xs text-center">
-              {debugInfo}
-            </p>
-          )}
         </CardContent>
       </Card>
     </div>
