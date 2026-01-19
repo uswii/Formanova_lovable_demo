@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // Redirect destination after successful auth
-const AUTH_SUCCESS_REDIRECT = '/studio';
+const AUTH_SUCCESS_REDIRECT = '/dashboard';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { authApi, setStoredToken, setStoredUser } from '@/lib/auth-api';
