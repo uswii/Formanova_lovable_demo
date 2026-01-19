@@ -356,12 +356,15 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] ALL result keys:', Object.keys(result));
       
       // Detect pipeline type
+      // NEW: agentic_photoshoot is the unified agentic pipeline
+      const hasAgenticPhotoshoot = result.agentic_photoshoot !== undefined;
       const hasAllJewelryNodes = result.transform_apply !== undefined || 
                                   result.gemini_hand_inpaint !== undefined ||
                                   result.gemini_viton !== undefined;
       const hasNecklaceNodes = result.composite !== undefined || result.composite_gemini !== undefined;
       
       console.log('[Generation] Pipeline detection:', { 
+        hasAgenticPhotoshoot,
         hasAllJewelryNodes, 
         hasNecklaceNodes,
         resultKeys: Object.keys(result),
@@ -385,7 +388,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         return undefined;
       };
       
-      // ALL_JEWELRY nodes
+      // AGENTIC_PHOTOSHOOT node (new unified pipeline)
+      const agenticPhotoshootNode = getNode('agentic_photoshoot');
+      
+      // ALL_JEWELRY nodes (legacy)
       const transformApplyNode = getNode('transform_apply');
       const geminiHandInpaintNode = getNode('gemini_hand_inpaint');
       const geminiVitonNode = getNode('gemini_viton');
@@ -528,9 +534,47 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       let outputMaskImage: string | null = null;
       let outputMaskGeminiImage: string | null = null;
       let transformedInputMaskImage: string | null = null;
+      let backendMetrics: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
+      let backendFidelityViz: string | null = null;
       
-      if (hasAllJewelryNodes) {
-        // ALL_JEWELRY pipeline: array-indexed nodes
+      if (hasAgenticPhotoshoot && agenticPhotoshootNode) {
+        // AGENTIC_PHOTOSHOOT pipeline (new unified pipeline)
+        // Uses: final_image_base64, fidelity_overlay_base64, mask_metrics, output_mask_base64
+        console.log('[Generation] Using AGENTIC_PHOTOSHOOT extraction');
+        console.log('[Generation] agenticPhotoshootNode keys:', Object.keys(agenticPhotoshootNode));
+        
+        // Primary output: final_image_base64
+        geminiResult = await extractImage(agenticPhotoshootNode, 'final_image_base64');
+        fluxResult = geminiResult; // Use same for both slots
+        
+        // Extract fidelity overlay from backend
+        backendFidelityViz = await extractImage(agenticPhotoshootNode, 'fidelity_overlay_base64');
+        
+        // Extract output mask
+        outputMaskImage = await extractImage(agenticPhotoshootNode, 'output_mask_base64');
+        outputMaskGeminiImage = outputMaskImage;
+        
+        // Extract metrics from backend
+        const metrics = agenticPhotoshootNode.mask_metrics as Record<string, number> | undefined;
+        if (metrics) {
+          backendMetrics = {
+            precision: metrics.precision ?? 0,
+            recall: metrics.recall ?? 0,
+            iou: metrics.iou ?? 0,
+            growthRatio: metrics.growth_ratio ?? 1,
+          };
+          console.log('[Generation] Backend metrics:', backendMetrics);
+        }
+        
+        console.log('[Generation] AGENTIC_PHOTOSHOOT extraction:', {
+          hasResult: !!geminiResult,
+          hasFidelityViz: !!backendFidelityViz,
+          hasOutputMask: !!outputMaskImage,
+          hasMetrics: !!backendMetrics,
+        });
+        
+      } else if (hasAllJewelryNodes) {
+        // ALL_JEWELRY pipeline: array-indexed nodes (legacy)
         // Primary output: transform_apply[0].image_base64 (final composited)
         // Alternative: gemini_hand_inpaint[0].image_base64 (AI inpainted)
         console.log('[Generation] Using ALL_JEWELRY array-indexed extraction');
@@ -632,69 +676,79 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       let calculatedMetrics: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
       let calculatedMetricsGemini: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
       
-      // For ALL_JEWELRY, use transformed_input_mask (aligned) instead of user's original mask
-      const inputMaskForViz = transformedInputMaskImage || state.maskBinary;
-      
-      if (inputMaskForViz && fluxResult && outputMaskImage) {
-        try {
-          const { createFidelityVisualization } = await import('@/lib/mask-visualization');
-          const vizResult = await createFidelityVisualization(fluxResult, inputMaskForViz, outputMaskImage, false, false);
-          fidelityViz = vizResult.visualization;
+      // For AGENTIC_PHOTOSHOOT, use backend-provided metrics and fidelity viz
+      if (hasAgenticPhotoshoot && backendMetrics) {
+        calculatedMetrics = backendMetrics;
+        calculatedMetricsGemini = backendMetrics; // Same for both slots
+        fidelityViz = backendFidelityViz;
+        fidelityVizGemini = backendFidelityViz;
+        console.log('[Generation] Using backend metrics and fidelity viz from agentic_photoshoot');
+      } else {
+        // For other pipelines, calculate on frontend
+        // For ALL_JEWELRY, use transformed_input_mask (aligned) instead of user's original mask
+        const inputMaskForViz = transformedInputMaskImage || state.maskBinary;
+        
+        if (inputMaskForViz && fluxResult && outputMaskImage) {
+          try {
+            const { createFidelityVisualization } = await import('@/lib/mask-visualization');
+            const vizResult = await createFidelityVisualization(fluxResult, inputMaskForViz, outputMaskImage, false, false);
+            fidelityViz = vizResult.visualization;
+            calculatedMetrics = {
+              precision: vizResult.metrics.precision,
+              recall: vizResult.metrics.recall,
+              iou: vizResult.metrics.iou,
+              growthRatio: vizResult.metrics.growthRatio,
+            };
+            console.log('[Generation] Created Flux fidelity viz, metrics:', calculatedMetrics);
+          } catch (vizError) {
+            console.error('[Generation] Failed to create Flux fidelity viz:', vizError);
+          }
+        }
+        
+        if (inputMaskForViz && geminiResult && outputMaskGeminiImage) {
+          try {
+            const { createFidelityVisualization } = await import('@/lib/mask-visualization');
+            const vizResult = await createFidelityVisualization(geminiResult, inputMaskForViz, outputMaskGeminiImage, false, false);
+            fidelityVizGemini = vizResult.visualization;
+            calculatedMetricsGemini = {
+              precision: vizResult.metrics.precision,
+              recall: vizResult.metrics.recall,
+              iou: vizResult.metrics.iou,
+              growthRatio: vizResult.metrics.growthRatio,
+            };
+            console.log('[Generation] Created Gemini fidelity viz, metrics:', calculatedMetricsGemini);
+          } catch (vizError) {
+            console.error('[Generation] Failed to create Gemini fidelity viz:', vizError);
+          }
+        }
+        
+        // Extract quality metrics from backend for legacy pipelines
+        // Use the pre-defined nodes from earlier or fall back to array-indexed access
+        const metricsNode = qualityMetricsFluxNode || getNode('quality_metrics');
+        const metricsGeminiNode = qualityMetricsGeminiNode || getNode('quality_metrics_gemini');
+        
+        // Use backend metrics if we didn't calculate them
+        if (!calculatedMetrics && metricsNode && metricsNode.precision !== undefined) {
           calculatedMetrics = {
-            precision: vizResult.metrics.precision,
-            recall: vizResult.metrics.recall,
-            iou: vizResult.metrics.iou,
-            growthRatio: vizResult.metrics.growthRatio,
+            precision: metricsNode.precision as number,
+            recall: metricsNode.recall as number,
+            iou: metricsNode.iou as number,
+            growthRatio: metricsNode.growth_ratio as number,
           };
-          console.log('[Generation] Created Flux fidelity viz, metrics:', calculatedMetrics);
-        } catch (vizError) {
-          console.error('[Generation] Failed to create Flux fidelity viz:', vizError);
+          console.log('[Generation] Using backend metrics:', calculatedMetrics);
         }
-      }
-      
-      if (inputMaskForViz && geminiResult && outputMaskGeminiImage) {
-        try {
-          const { createFidelityVisualization } = await import('@/lib/mask-visualization');
-          const vizResult = await createFidelityVisualization(geminiResult, inputMaskForViz, outputMaskGeminiImage, false, false);
-          fidelityVizGemini = vizResult.visualization;
-          calculatedMetricsGemini = {
-            precision: vizResult.metrics.precision,
-            recall: vizResult.metrics.recall,
-            iou: vizResult.metrics.iou,
-            growthRatio: vizResult.metrics.growthRatio,
-          };
-          console.log('[Generation] Created Gemini fidelity viz, metrics:', calculatedMetricsGemini);
-        } catch (vizError) {
-          console.error('[Generation] Failed to create Gemini fidelity viz:', vizError);
-        }
-      }
-      
-      // Extract quality metrics from backend
-      // Use the pre-defined nodes from earlier or fall back to array-indexed access
-      const metricsNode = qualityMetricsFluxNode || getNode('quality_metrics');
-      const metricsGeminiNode = qualityMetricsGeminiNode || getNode('quality_metrics_gemini');
-      
-      // Use backend metrics if we didn't calculate them
-      if (!calculatedMetrics && metricsNode && metricsNode.precision !== undefined) {
-        calculatedMetrics = {
-          precision: metricsNode.precision as number,
-          recall: metricsNode.recall as number,
-          iou: metricsNode.iou as number,
-          growthRatio: metricsNode.growth_ratio as number,
-        };
-        console.log('[Generation] Using backend metrics:', calculatedMetrics);
-      }
-      
-      if (!calculatedMetricsGemini) {
-        // For all_jewelry, gemini metrics = main metrics (only one output)
-        const metricsSource = hasAllJewelryNodes ? metricsNode : metricsGeminiNode;
-        if (metricsSource && metricsSource.precision !== undefined) {
-          calculatedMetricsGemini = {
-            precision: metricsSource.precision as number,
-            recall: metricsSource.recall as number,
-            iou: metricsSource.iou as number,
-            growthRatio: metricsSource.growth_ratio as number,
-          };
+        
+        if (!calculatedMetricsGemini) {
+          // For all_jewelry, gemini metrics = main metrics (only one output)
+          const metricsSource = hasAllJewelryNodes ? metricsNode : metricsGeminiNode;
+          if (metricsSource && metricsSource.precision !== undefined) {
+            calculatedMetricsGemini = {
+              precision: metricsSource.precision as number,
+              recall: metricsSource.recall as number,
+              iou: metricsSource.iou as number,
+              growthRatio: metricsSource.growth_ratio as number,
+            };
+          }
         }
       }
       
@@ -710,11 +764,18 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       // Check if we got at least one result image
       if (!fluxResult && !geminiResult) {
         console.error('[Generation] No result images extracted! Result structure:', {
+          hasAgenticPhotoshoot,
           hasAllJewelryNodes,
           hasNecklaceNodes,
           resultKeys: Object.keys(result),
         });
         throw new Error('Generation completed but no images could be extracted');
+      }
+
+      // Determine workflow type for debug view
+      let workflowTypeForDebug: 'flux_gen' | 'all_jewelry' = 'all_jewelry';
+      if (isNecklace) {
+        workflowTypeForDebug = 'flux_gen';
       }
 
       updateState({
@@ -728,7 +789,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         isGenerating: false,
         hasTwoModes: isNecklace, // Only necklace has two tabs (Standard + Enhanced)
         workflowResults: result,
-        workflowType: isNecklace ? 'flux_gen' : 'all_jewelry',
+        workflowType: workflowTypeForDebug,
       });
 
       setCurrentView('results');
