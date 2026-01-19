@@ -19,7 +19,7 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
     SERVICE_NAME="formanova"
-    PORT=8009
+    PORT=8010
     LOG_DIR="$PROJECT_DIR/logs"
 fi
 
