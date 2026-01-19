@@ -242,6 +242,10 @@ serve(async (req) => {
         try {
           const parsed = JSON.parse(data);
           console.log(`[workflow-proxy] Agentic masking response keys:`, Object.keys(parsed));
+          // Log resize_metadata specifically to debug the format
+          if (parsed.resize_metadata) {
+            console.log(`[workflow-proxy] resize_metadata:`, JSON.stringify(parsed.resize_metadata));
+          }
         } catch (e) {
           // Not JSON
         }
