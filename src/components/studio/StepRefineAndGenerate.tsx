@@ -421,14 +421,33 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         // Step 2: Run generation with the mask
         setCurrentStepLabel(`Starting ${singularType} generation...`);
 
-        // NOTE: Multipart endpoint (/tools/agentic_photoshoot/run-multipart) not available on backend yet
-        // Using standard endpoint which will re-run masking (slightly slower but functional)
-        const genStartResponse = await workflowApi.startAllJewelryGeneration({
-          imageBlob,
-          maskBase64: compressedMask,
-          jewelryType: singularType,
-          skinTone: workflowSkinTone,
-        });
+        // Use multipart endpoint (port 8001) if we have masking outputs - skips re-masking
+        let genStartResponse;
+        if (state.maskingOutputs) {
+          const maskingOutputsForApi = {
+            resizedImage: state.maskingOutputs.resizedImage,
+            jewelrySegment: state.maskingOutputs.jewelrySegment,
+            jewelryGreen: state.maskingOutputs.jewelryGreen,
+            resizeMetadata: state.maskingOutputs.resizeMetadata,
+          };
+          console.log('[Generation] Using multipart endpoint with masking outputs to skip re-masking');
+          
+          genStartResponse = await workflowApi.startAllJewelryGenerationMultipart({
+            imageBlob,
+            maskBase64: compressedMask,
+            jewelryType: singularType,
+            skinTone: workflowSkinTone,
+            maskingOutputs: maskingOutputsForApi,
+          });
+        } else {
+          // Fallback to standard endpoint (will re-run masking)
+          genStartResponse = await workflowApi.startAllJewelryGeneration({
+            imageBlob,
+            maskBase64: compressedMask,
+            jewelryType: singularType,
+            skinTone: workflowSkinTone,
+          });
+        }
 
         console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
 

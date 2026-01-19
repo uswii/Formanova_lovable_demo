@@ -5,8 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// DAG Workflow server endpoint
+// DAG Workflow server endpoint (port 8000 = Temporal gateway)
 const WORKFLOW_URL = (Deno.env.get('WORKFLOW_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
+// Direct API endpoint (port 8001) for multipart uploads
+const DIRECT_API_URL = 'http://20.173.91.22:8001';
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -191,7 +193,8 @@ serve(async (req) => {
       const contentType = req.headers.get('content-type') || '';
       const body = await req.arrayBuffer();
       
-      console.log(`[workflow-proxy] Forwarding to ${WORKFLOW_URL}/tools/agentic_photoshoot/run-multipart`);
+      // Use DIRECT_API_URL (port 8001) for multipart - not available through Temporal gateway
+      console.log(`[workflow-proxy] Forwarding to ${DIRECT_API_URL}/tools/agentic_photoshoot/run-multipart`);
       console.log(`[workflow-proxy] Content-Type: ${contentType}`);
       console.log(`[workflow-proxy] Body size: ${body.byteLength} bytes`);
 
@@ -199,7 +202,7 @@ serve(async (req) => {
       const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min
 
       try {
-        const response = await fetch(`${WORKFLOW_URL}/tools/agentic_photoshoot/run-multipart`, {
+        const response = await fetch(`${DIRECT_API_URL}/tools/agentic_photoshoot/run-multipart`, {
           method: 'POST',
           headers: {
             'Content-Type': contentType,
