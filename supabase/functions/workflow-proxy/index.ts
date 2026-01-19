@@ -188,6 +188,63 @@ serve(async (req) => {
       }
     }
 
+    // Agentic masking endpoint - forward JSON to /tools/agentic_masking/run
+    if (endpoint === '/tools/agentic_masking/run' && req.method === 'POST') {
+      const body = await req.text();
+      
+      console.log(`[workflow-proxy] Forwarding to ${DIRECT_API_URL}/tools/agentic_masking/run`);
+      console.log(`[workflow-proxy] Body size: ${body.length} chars`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min
+
+      try {
+        const response = await fetch(`${DIRECT_API_URL}/tools/agentic_masking/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[workflow-proxy] Agentic masking error: ${response.status} ${errorText}`);
+          return new Response(
+            JSON.stringify({ error: `Agentic masking failed: ${errorText}` }),
+            { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const data = await response.text();
+        console.log(`[workflow-proxy] Agentic masking success, response size: ${data.length} chars`);
+
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`[workflow-proxy] Agentic masking response keys:`, Object.keys(parsed));
+        } catch (e) {
+          // Not JSON
+        }
+
+        return new Response(data, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (e instanceof Error && e.name === 'AbortError') {
+          return new Response(
+            JSON.stringify({ error: 'Agentic masking timed out after 5 minutes' }),
+            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw e;
+      }
+    }
+
     // Multipart photoshoot endpoint - forward FormData to /tools/agentic_photoshoot/run-multipart
     if (endpoint === '/tools/agentic_photoshoot/run-multipart' && req.method === 'POST') {
       const contentType = req.headers.get('content-type') || '';
@@ -227,10 +284,7 @@ serve(async (req) => {
 
         try {
           const parsed = JSON.parse(data);
-          console.log(`[workflow-proxy] Multipart response:`, {
-            workflow_id: parsed.workflow_id,
-            keys: Object.keys(parsed),
-          });
+          console.log(`[workflow-proxy] Multipart response keys:`, Object.keys(parsed));
         } catch (e) {
           // Not JSON
         }

@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { WorkflowDebugView } from './WorkflowDebugView';
-import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
+import { workflowApi, imageSourceToBlob, getStepProgress, type AgenticMaskingResponse } from '@/lib/workflow-api';
 import { compressImageBlob, compressDataUrl } from '@/lib/image-compression';
 import type { SkinTone as WorkflowSkinTone, MaskingOutputsForGeneration } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -396,7 +396,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         result = rawResult as Record<string, unknown>;
       } else {
-        // Other jewelry: Use all_jewelry_masking + all_jewelry_generation (two-step process)
+        // Other jewelry: Use two-step sync flow (port 8001)
+        // Step 1: agentic_masking → Step 2: agentic_photoshoot
+        
         // Map skin tone to workflow format (light/medium/dark)
         let workflowSkinTone: WorkflowSkinTone = 'medium';
         if (state.skinTone === 'light' || state.skinTone === 'fair') {
@@ -412,36 +414,66 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
         else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
-        // Check if we already have a mask (from user edit or prior masking step)
-        // Use the compressed mask
+        // ===== STEP 1: Agentic Masking (sync) =====
+        setCurrentStepLabel('AI is identifying jewelry...');
+        setGenerationProgress(10);
         
-        // We have a mask from step 1, use it directly
-        console.log('[Generation] Using existing mask from step 1');
+        console.log('[Generation] Step 1: Running agentic masking');
         
-        // Step 2: Run generation with the mask
-        setCurrentStepLabel(`Starting ${singularType} generation...`);
-
-        // Use async workflow with polling (re-runs masking on backend)
-        const genStartResponse = await workflowApi.startAllJewelryGeneration({
+        // Convert image blob to base64 for the JSON endpoint
+        const imageBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(imageBlob);
+        });
+        
+        const maskingResponse = await workflowApi.runAgenticMasking({
+          imageBase64,
+          textPrompt: singularType,
+        });
+        
+        console.log('[Generation] Step 1 complete, got masking outputs');
+        setGenerationProgress(30);
+        
+        // Store masking outputs for photoshoot step
+        const maskingOutputsForPhotoshoot = {
+          resizedImage: maskingResponse.resized_image_base64,
+          jewelrySegment: maskingResponse.jewelry_segment_base64,
+          jewelryGreen: maskingResponse.jewelry_green_base64,
+          resizeMetadata: {
+            original_size: [maskingResponse.resize_metadata.original_width, maskingResponse.resize_metadata.original_height] as [number, number],
+            resized_size: [maskingResponse.resize_metadata.original_width * maskingResponse.resize_metadata.scale, 
+                          maskingResponse.resize_metadata.original_height * maskingResponse.resize_metadata.scale] as [number, number],
+            offsets: [maskingResponse.resize_metadata.offset_x, maskingResponse.resize_metadata.offset_y] as [number, number],
+            ratio: maskingResponse.resize_metadata.scale,
+          },
+        };
+        
+        // ===== STEP 2: Agentic Photoshoot (sync with multipart) =====
+        setCurrentStepLabel('AI is generating photoshoot...');
+        setGenerationProgress(50);
+        
+        console.log('[Generation] Step 2: Running agentic photoshoot');
+        
+        const photoshootResponse = await workflowApi.runMultipartPhotoshoot({
           imageBlob,
-          maskBase64: compressedMask,
+          maskBase64: maskingResponse.mask_base64,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
+          maskingOutputs: maskingOutputsForPhotoshoot,
         });
-
-        console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
-
-        // Poll until complete
-        const rawResult = await workflowApi.pollUntilComplete(
-          genStartResponse.workflow_id,
-          'all_jewelry',
-          (progress, label) => {
-            setGenerationProgress(progress);
-            setCurrentStepLabel(label);
-          }
-        );
-
-        result = rawResult as Record<string, unknown>;
+        
+        console.log('[Generation] Step 2 complete, got final image');
+        setGenerationProgress(90);
+        
+        // Convert sync response to expected result format
+        result = {
+          agentic_photoshoot: [{
+            final_image_base64: photoshootResponse.final_image_base64,
+            viton_image_base64: photoshootResponse.viton_image_base64,
+            success: photoshootResponse.success,
+          }],
+        };
       }
 
       setGenerationProgress(100);
