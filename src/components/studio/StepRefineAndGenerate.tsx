@@ -435,40 +435,41 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         console.log('[Generation] Step 1 complete, got masking outputs');
         setGenerationProgress(30);
         
-        // Store masking outputs for photoshoot step - pass resize_metadata as-is
-        const maskingOutputsForPhotoshoot = {
-          resizedImage: maskingResponse.resized_image_base64,
-          jewelrySegment: maskingResponse.jewelry_segment_base64,
-          jewelryGreen: maskingResponse.jewelry_green_base64,
-          resizeMetadata: maskingResponse.resize_metadata, // Pass directly without transformation
-        };
+        // Note: Temporal workflow will re-run masking on the backend, but we use
+        // the mask from Step 1 to ensure consistency with what the user sees
         
-        // ===== STEP 2: Agentic Photoshoot (sync with multipart) =====
-        setCurrentStepLabel('Generating photoshoot...');
-        setGenerationProgress(40);
+        // ===== STEP 2: Agentic Photoshoot via Temporal (with polling) =====
+        setCurrentStepLabel('Starting photoshoot workflow...');
+        setGenerationProgress(35);
         
-        console.log('[Generation] Step 2: Running agentic photoshoot');
+        console.log('[Generation] Step 2: Starting Temporal photoshoot workflow');
         
-        const photoshootResponse = await workflowApi.runMultipartPhotoshoot({
+        // Start the workflow via Temporal gateway (/process on port 8000)
+        const workflowStart = await workflowApi.startAllJewelryGeneration({
           imageBlob,
           maskBase64: maskingResponse.mask_base64,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
-          maskingOutputs: maskingOutputsForPhotoshoot,
         });
         
-        console.log('[Generation] Step 2 complete, got final image');
-        setCurrentStepLabel('Verifying quality...');
-        setGenerationProgress(85);
+        console.log('[Generation] Photoshoot workflow started:', workflowStart.workflow_id);
+        setCurrentStepLabel('Generating photoshoot...');
         
-        // Convert sync response to expected result format
-        result = {
-          agentic_photoshoot: [{
-            final_image_base64: photoshootResponse.final_image_base64,
-            viton_image_base64: photoshootResponse.viton_image_base64,
-            success: photoshootResponse.success,
-          }],
-        };
+        // Poll for completion with progress updates
+        result = await workflowApi.pollUntilComplete(
+          workflowStart.workflow_id,
+          'all_jewelry',
+          (progress, label) => {
+            // Map workflow progress (0-100) to our 35-90 range
+            const mappedProgress = 35 + (progress * 0.55);
+            setGenerationProgress(Math.round(mappedProgress));
+            setCurrentStepLabel(label);
+          },
+          3000, // Poll every 3 seconds
+          600000 // 10 minute timeout
+        );
+        
+        console.log('[Generation] Photoshoot workflow complete');
       }
 
       setCurrentStepLabel('Final quality check...');
