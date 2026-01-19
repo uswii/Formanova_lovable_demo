@@ -171,26 +171,47 @@ fi
 echo ""
 echo -e "${YELLOW}[3/8] Installing serve for production...${NC}"
 
+SERVE_INSTALLED=false
+
 # Check if serve already exists
 if command -v serve &> /dev/null; then
     log_success "Serve already installed: $(which serve)"
-else
-    # Try global install (no sudo first)
-    if npm install -g serve 2>&1 | grep -q "EACCES\|permission denied"; then
-        log_warning "Permission denied, trying with sudo..."
-        if sudo npm install -g serve; then
-            log_success "Serve installed globally (with sudo)"
-        else
-            log_warning "Sudo install failed, installing locally..."
-            npm install serve --save-dev
-            log_success "Serve installed locally in node_modules"
-        fi
-    elif [ $? -eq 0 ]; then
+    SERVE_INSTALLED=true
+fi
+
+# Try installation methods if not installed
+if [ "$SERVE_INSTALLED" = false ]; then
+    # Method 1: Try global install without sudo (capture output)
+    log_warning "Attempting global install..."
+    INSTALL_OUTPUT=$(npm install -g serve 2>&1)
+    INSTALL_EXIT=$?
+    
+    if [ $INSTALL_EXIT -eq 0 ]; then
         log_success "Serve installed globally"
-    else
-        log_warning "Global install failed, installing locally..."
-        npm install serve --save-dev
+        SERVE_INSTALLED=true
+    elif echo "$INSTALL_OUTPUT" | grep -qi "EACCES\|permission denied\|EPERM"; then
+        log_warning "Permission denied for global install"
+        
+        # Method 2: Try with sudo
+        log_warning "Trying with sudo..."
+        if sudo npm install -g serve 2>/dev/null; then
+            log_success "Serve installed globally (with sudo)"
+            SERVE_INSTALLED=true
+        else
+            log_warning "Sudo install also failed"
+        fi
+    fi
+fi
+
+# Method 3: Local install as final fallback
+if [ "$SERVE_INSTALLED" = false ]; then
+    log_warning "Installing serve locally as fallback..."
+    if npm install serve --save-dev; then
         log_success "Serve installed locally in node_modules"
+        SERVE_INSTALLED=true
+    else
+        log_error "All serve installation methods failed!"
+        log_warning "You can manually install: sudo npm install -g serve"
     fi
 fi
 
