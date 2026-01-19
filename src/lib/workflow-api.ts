@@ -135,11 +135,29 @@ export interface AllJewelryResult {
   session_id: string;
 }
 
+// Synchronous response from agentic masking endpoint (port 8001)
+export interface AgenticMaskingResponse {
+  success: boolean;
+  resized_image_base64: string;
+  mask_base64: string;
+  jewelry_segment_base64: string;
+  jewelry_green_base64: string;
+  resize_metadata: {
+    original_width: number;
+    original_height: number;
+    scale: number;
+    offset_x: number;
+    offset_y: number;
+  };
+}
+
 // Synchronous response from multipart photoshoot endpoint (port 8001)
 export interface MultipartPhotoshootResponse {
   success: boolean;
   error: string | null;
   final_image_base64: string;
+  viton_image_base64?: string;
+  quality_passed?: boolean;
 }
 
 // ========== DAG Step Labels ==========
@@ -416,6 +434,60 @@ class WorkflowApi {
     }
 
     return await response.json();
+  }
+
+  /**
+   * Run agentic_masking via JSON endpoint (synchronous)
+   * Uses /tools/agentic_masking/run on port 8001 (direct API)
+   * Returns mask and segment data directly - no polling needed.
+   */
+  async runAgenticMasking(request: {
+    imageBase64: string;
+    textPrompt: string;
+    points?: number[][];
+  }): Promise<AgenticMaskingResponse> {
+    const payload = {
+      data: {
+        image: request.imageBase64,
+        text_prompt: request.textPrompt,
+        ...(request.points && { points: request.points }),
+      },
+    };
+
+    console.log('[WorkflowApi] Running synchronous agentic masking', {
+      textPrompt: request.textPrompt,
+      hasPoints: !!request.points,
+      imageLength: request.imageBase64.length,
+    });
+
+    const response = await fetch(getProxyUrl('/tools/agentic_masking/run'), {
+      method: 'POST',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Agentic masking failed: ${error}`);
+    }
+
+    const result: AgenticMaskingResponse = await response.json();
+    
+    if (!result.success) {
+      throw new Error('Agentic masking returned success=false');
+    }
+
+    console.log('[WorkflowApi] Agentic masking complete', {
+      hasResizedImage: !!result.resized_image_base64,
+      hasMask: !!result.mask_base64,
+      hasSegment: !!result.jewelry_segment_base64,
+      hasGreen: !!result.jewelry_green_base64,
+    });
+    
+    return result;
   }
 
   /**
