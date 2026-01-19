@@ -76,7 +76,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     { name: 'Blue', hex: '#00AAFF', rgb: { r: 0, g: 170, b: 255 } },
     { name: 'Pink', hex: '#FF69B4', rgb: { r: 255, g: 105, b: 180 } },
     { name: 'Yellow', hex: '#FFFF00', rgb: { r: 255, g: 255, b: 0 } },
-    { name: 'Peach', hex: '#E8A070', rgb: { r: 232, g: 160, b: 112 } },
+    { name: 'Peach', hex: '#D4845C', rgb: { r: 212, g: 132, b: 92 } },
     { name: 'Red', hex: '#FF4444', rgb: { r: 255, g: 68, b: 68 } },
   ];
   const [selectedOverlayColor, setSelectedOverlayColor] = useState(OVERLAY_COLORS[0]);
@@ -1433,7 +1433,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           
           <div className="space-y-5">
             <div className="space-y-3">
-              <label className="text-sm font-medium">Brush Type</label>
+              <label className="text-sm font-medium">Tools</label>
               <div className="grid grid-cols-1 gap-2">
                 <Button
                   variant={brushMode === 'add' ? 'default' : 'outline'}
