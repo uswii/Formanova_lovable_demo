@@ -135,6 +135,13 @@ export interface AllJewelryResult {
   session_id: string;
 }
 
+// Synchronous response from multipart photoshoot endpoint (port 8001)
+export interface MultipartPhotoshootResponse {
+  success: boolean;
+  error: string | null;
+  final_image_base64: string;
+}
+
 // ========== DAG Step Labels ==========
 
 export const MASKING_DAG_STEPS = {
@@ -412,22 +419,21 @@ class WorkflowApi {
   }
 
   /**
-   * Start agentic_photoshoot via multipart endpoint (skips re-masking)
-   * Uses /tools/agentic_photoshoot/run-multipart - each image as separate form-data part
+   * Run agentic_photoshoot via multipart endpoint (synchronous, skips re-masking)
+   * Uses /tools/agentic_photoshoot/run-multipart on port 8001 (direct API)
+   * Returns the final image directly - no polling needed.
    * This avoids the 1024KB per-part limit when passing masking outputs.
    */
-  async startAllJewelryGenerationMultipart(request: AllJewelryGenerationRequest): Promise<WorkflowStartResponse> {
+  async runMultipartPhotoshoot(request: AllJewelryGenerationRequest): Promise<MultipartPhotoshootResponse> {
     if (!request.maskingOutputs) {
-      // Fallback to standard method if no masking outputs
-      return this.startAllJewelryGeneration(request);
+      throw new Error('Multipart photoshoot requires masking outputs');
     }
 
     const { resizedImage, jewelrySegment, jewelryGreen, resizeMetadata } = request.maskingOutputs;
     
     // Need all 4 masking outputs for the multipart endpoint
     if (!resizedImage || !jewelrySegment || !jewelryGreen || !resizeMetadata) {
-      console.warn('[WorkflowApi] Incomplete masking outputs, falling back to standard method');
-      return this.startAllJewelryGeneration(request);
+      throw new Error('Incomplete masking outputs for multipart photoshoot');
     }
 
     const formData = new FormData();
@@ -462,7 +468,7 @@ class WorkflowApi {
     formData.append('skin_tone', request.skinTone);
     formData.append('max_retries', '3');
 
-    console.log('[WorkflowApi] Starting agentic_photoshoot via multipart endpoint', {
+    console.log('[WorkflowApi] Running synchronous multipart photoshoot', {
       jewelryType: request.jewelryType,
       skinTone: request.skinTone,
       resizedImageSize: resizedImageBlob.size,
@@ -471,7 +477,7 @@ class WorkflowApi {
       jewelryGreenSize: jewelryGreenBlob.size,
     });
 
-    // Use workflow-proxy edge function with multipart endpoint
+    // Use workflow-proxy edge function with multipart endpoint (routes to port 8001)
     const response = await fetch(getProxyUrl('/tools/agentic_photoshoot/run-multipart'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -489,7 +495,14 @@ class WorkflowApi {
       throw new Error(`Multipart photoshoot failed: ${error}`);
     }
 
-    return await response.json();
+    const result: MultipartPhotoshootResponse = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Multipart photoshoot failed');
+    }
+
+    console.log('[WorkflowApi] Multipart photoshoot complete, image received');
+    return result;
   }
 
   /**
