@@ -435,18 +435,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         console.log('[Generation] Step 1 complete, got masking outputs');
         setGenerationProgress(30);
         
-        // Store masking outputs for photoshoot step
+        // Store masking outputs for photoshoot step - pass resize_metadata as-is
         const maskingOutputsForPhotoshoot = {
           resizedImage: maskingResponse.resized_image_base64,
           jewelrySegment: maskingResponse.jewelry_segment_base64,
           jewelryGreen: maskingResponse.jewelry_green_base64,
-          resizeMetadata: {
-            original_size: [maskingResponse.resize_metadata.original_width, maskingResponse.resize_metadata.original_height] as [number, number],
-            resized_size: [maskingResponse.resize_metadata.original_width * maskingResponse.resize_metadata.scale, 
-                          maskingResponse.resize_metadata.original_height * maskingResponse.resize_metadata.scale] as [number, number],
-            offsets: [maskingResponse.resize_metadata.offset_x, maskingResponse.resize_metadata.offset_y] as [number, number],
-            ratio: maskingResponse.resize_metadata.scale,
-          },
+          resizeMetadata: maskingResponse.resize_metadata, // Pass directly without transformation
         };
         
         // ===== STEP 2: Agentic Photoshoot (sync with multipart) =====

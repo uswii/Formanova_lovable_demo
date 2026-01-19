@@ -107,12 +107,7 @@ export interface MaskingOutputsForGeneration {
   resizedImage?: string;      // resized_image_base64 from agentic_masking
   jewelrySegment?: string;    // jewelry_segment_base64 from agentic_masking
   jewelryGreen?: string;      // jewelry_green_base64 from agentic_masking
-  resizeMetadata?: {          // resize_metadata from agentic_masking
-    original_size: [number, number];
-    resized_size: [number, number];
-    offsets: [number, number];
-    ratio: number;
-  };
+  resizeMetadata?: Record<string, unknown>;  // Pass resize_metadata as-is from masking response
 }
 
 export interface AllJewelryGenerationRequest {
