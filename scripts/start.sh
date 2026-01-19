@@ -19,7 +19,7 @@ if [ -f "$CONFIG_FILE" ]; then
 else
     # Defaults
     SERVICE_NAME="formanova"
-    PORT=4173
+    PORT=8009
     LOG_DIR="$PROJECT_DIR/logs"
     USE_SYSTEMD=false
     USE_PM2=false
