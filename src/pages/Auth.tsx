@@ -18,15 +18,18 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
-  // Get the intended destination (default to dashboard)
-  const from = (location.state as { from?: string })?.from || '/dashboard';
+  // Redirect destination after auth
+  const AUTH_SUCCESS_REDIRECT = '/studio';
 
-  // Check if already logged in - redirect to dashboard
+  // Get the intended destination (default to studio)
+  const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
+
+  // Check if already logged in - redirect to studio
   useEffect(() => {
     const token = getStoredToken();
     const user = getStoredUser();
     if (token && user) {
-      navigate('/dashboard', { replace: true });
+      navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
     }
   }, [navigate]);
 
