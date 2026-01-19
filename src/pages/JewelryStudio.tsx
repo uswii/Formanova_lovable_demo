@@ -23,6 +23,19 @@ export interface ProcessingState {
   imageHeight?: number;
 }
 
+// Masking outputs from agentic_masking step - used to skip re-masking in generation
+export interface MaskingOutputs {
+  resizedImage?: string;      // resized_image_base64 - the resized/padded image
+  jewelrySegment?: string;    // jewelry_segment_base64 - extracted jewelry segment
+  jewelryGreen?: string;      // jewelry_green_base64 - green overlay
+  resizeMetadata?: {          // resize_metadata - geometry restoration data
+    original_size: [number, number];
+    resized_size: [number, number];
+    offsets: [number, number];
+    ratio: number;
+  };
+}
+
 export type SkinTone = 'light' | 'fair' | 'medium' | 'olive' | 'brown' | 'dark';
 
 export interface StudioState {
@@ -59,6 +72,7 @@ export interface StudioState {
   hasTwoModes: boolean;  // true for necklace (has Standard + Enhanced), false for others
   workflowResults: Record<string, unknown> | null;  // Raw DAG output for debug view
   workflowType: 'flux_gen' | 'all_jewelry' | 'masking' | 'all_jewelry_masking' | null;  // Which pipeline was used
+  maskingOutputs: MaskingOutputs | null;  // Cached masking outputs to skip re-masking
 }
 
 export default function JewelryStudio() {
@@ -88,6 +102,7 @@ export default function JewelryStudio() {
     hasTwoModes: false,
     workflowResults: null,
     workflowType: null,
+    maskingOutputs: null,
   });
 
   const jewelryType = type || 'necklace';
