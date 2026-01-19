@@ -70,16 +70,94 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
   // Overlay color state for mask visualization
   const OVERLAY_COLORS = [
-    { name: 'Green', hex: '#00FF00' },
-    { name: 'Blue', hex: '#00AAFF' },
-    { name: 'Pink', hex: '#FF69B4' },
-    { name: 'Yellow', hex: '#FFFF00' },
-    { name: 'Peach', hex: '#FFCBA4' },
-    { name: 'Red', hex: '#FF4444' },
+    { name: 'Green', hex: '#00FF00', rgb: { r: 0, g: 255, b: 0 } },
+    { name: 'Blue', hex: '#00AAFF', rgb: { r: 0, g: 170, b: 255 } },
+    { name: 'Pink', hex: '#FF69B4', rgb: { r: 255, g: 105, b: 180 } },
+    { name: 'Yellow', hex: '#FFFF00', rgb: { r: 255, g: 255, b: 0 } },
+    { name: 'Peach', hex: '#FFCBA4', rgb: { r: 255, g: 203, b: 164 } },
+    { name: 'Red', hex: '#FF4444', rgb: { r: 255, g: 68, b: 68 } },
   ];
   const [selectedOverlayColor, setSelectedOverlayColor] = useState(OVERLAY_COLORS[0]);
+  
+  // Dynamic overlay image that updates when color changes
+  const [dynamicOverlay, setDynamicOverlay] = useState<string | null>(null);
 
-  // Fullscreen state
+  // Regenerate overlay when color changes or mask changes
+  React.useEffect(() => {
+    if (!state.originalImage || !state.maskBinary) {
+      setDynamicOverlay(null);
+      return;
+    }
+
+    const createOverlay = async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Load both images
+        const [originalImg, maskImg] = await Promise.all([
+          loadImageAsync(state.originalImage!),
+          loadImageAsync(state.maskBinary!),
+        ]);
+
+        canvas.width = originalImg.width;
+        canvas.height = originalImg.height;
+
+        // Draw original image
+        ctx.drawImage(originalImg, 0, 0);
+
+        // Create mask canvas at original size
+        const maskCanvas = document.createElement('canvas');
+        const maskCtx = maskCanvas.getContext('2d');
+        if (!maskCtx) return;
+
+        maskCanvas.width = originalImg.width;
+        maskCanvas.height = originalImg.height;
+        maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
+
+        // Get image data
+        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const overlayOpacity = 0.35;
+        const { r, g, b } = selectedOverlayColor.rgb;
+
+        for (let i = 0; i < maskData.data.length; i += 4) {
+          // WHITE pixels = background (AI area) → apply translucent overlay
+          // BLACK pixels = jewelry → keep original
+          const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
+
+          if (brightness >= 128) {
+            // Apply translucent color
+            overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + r * overlayOpacity);
+            overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + g * overlayOpacity);
+            overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity) + b * overlayOpacity);
+          }
+        }
+
+        ctx.putImageData(overlayData, 0, 0);
+        setDynamicOverlay(canvas.toDataURL('image/png'));
+      } catch (error) {
+        console.error('[StepRefine] Failed to create dynamic overlay:', error);
+        // Fall back to original maskOverlay
+        setDynamicOverlay(null);
+      }
+    };
+
+    createOverlay();
+  }, [state.originalImage, state.maskBinary, selectedOverlayColor]);
+
+  // Helper to load image as promise
+  const loadImageAsync = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
 
   // Debug view state
@@ -846,8 +924,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     document.body.removeChild(link);
   };
 
-  const baseImage = state.maskOverlay || state.originalImage;
-  console.log('[StepRefine] baseImage exists:', !!baseImage, 'maskOverlay:', !!state.maskOverlay, 'originalImage:', !!state.originalImage);
+  // Use dynamically generated overlay (with selected color) or fall back to state
+  const baseImage = dynamicOverlay || state.maskOverlay || state.originalImage;
+  console.log('[StepRefine] baseImage exists:', !!baseImage, 'dynamicOverlay:', !!dynamicOverlay, 'maskOverlay:', !!state.maskOverlay);
 
   const StatusBadge = ({ status }: { status: 'good' | 'bad' | null }) => {
     if (!status) return null;
