@@ -64,19 +64,19 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      {/* Formanova Logo - outside the card */}
+      <img 
+        src={formanovaLogo} 
+        alt="Formanova" 
+        className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-8"
+      />
+      
       <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
-        <CardContent className="flex flex-col items-center py-12 px-8">
-          {/* Formanova Logo */}
-          <img 
-            src={formanovaLogo} 
-            alt="Formanova" 
-            className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-8"
-          />
-          
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Welcome</h1>
+        <CardContent className="flex flex-col items-center py-10 px-8">
+          <h1 className="text-2xl font-display text-foreground mb-2">Welcome</h1>
           <p className="text-muted-foreground text-center mb-8">
-            Sign in to access the Formanova Studio
+            Sign in to create photoshoots
           </p>
 
           {/* Google Sign In Button */}
