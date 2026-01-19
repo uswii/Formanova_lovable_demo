@@ -27,7 +27,7 @@ import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { WorkflowDebugView } from './WorkflowDebugView';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
-import { compressImageBlob } from '@/lib/image-compression';
+import { compressImageBlob, compressDataUrl } from '@/lib/image-compression';
 import type { SkinTone as WorkflowSkinTone, MaskingOutputsForGeneration } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -350,6 +350,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         console.log('[Generation] Image compressed for upload');
       }
 
+      // Also compress the mask if it's large
+      let compressedMask = maskToUse;
+      const maskSizeKB = (maskToUse.length * 0.75) / 1024; // Approximate base64 to bytes
+      console.log('[Generation] Mask size estimate:', maskSizeKB.toFixed(1), 'KB');
+      
+      if (maskSizeKB > 800) {
+        console.log('[Generation] Mask exceeds 800KB, compressing...');
+        setCurrentStepLabel('Compressing mask...');
+        const { blob: compressedMaskBlob, wasCompressed: maskWasCompressed } = await compressDataUrl(maskToUse, 800);
+        if (maskWasCompressed) {
+          // Convert blob back to base64
+          const reader = new FileReader();
+          compressedMask = await new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(compressedMaskBlob);
+          });
+          console.log('[Generation] Mask compressed to', (compressedMask.length * 0.75 / 1024).toFixed(1), 'KB');
+        }
+      }
+
       let result: Record<string, unknown>;
 
       if (isNecklace) {
@@ -358,7 +378,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         
         const startResponse = await workflowApi.startFluxGen({
           imageBlob,
-          maskBase64: maskToUse,
+          maskBase64: compressedMask,
           prompt: 'Necklace worn by female model, luxury editorial portrait, studio lighting',
         });
 
@@ -393,7 +413,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
 
         // Check if we already have a mask (from user edit or prior masking step)
-        const finalMask = maskToUse;
+        // Use the compressed mask
         
         // We have a mask from step 1, use it directly
         console.log('[Generation] Using existing mask from step 1');
@@ -416,7 +436,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         const genStartResponse = await workflowApi.startAllJewelryGeneration({
           imageBlob,
-          maskBase64: finalMask,
+          maskBase64: compressedMask,
           jewelryType: singularType,
           skinTone: workflowSkinTone,
           maskingOutputs: maskingOutputsForApi,
