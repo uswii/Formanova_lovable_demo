@@ -295,6 +295,35 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     e.preventDefault();
   }, []);
 
+  // Handle paste from clipboard (Ctrl+V / Cmd+V)
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          handleFileUpload(file);
+          toast({
+            title: 'Image pasted',
+            description: 'Your image has been loaded from clipboard.',
+          });
+        }
+        break;
+      }
+    }
+  }, [handleFileUpload, toast]);
+
+  // Add global paste listener when no image is loaded
+  useEffect(() => {
+    if (!state.originalImage) {
+      document.addEventListener('paste', handlePaste);
+      return () => document.removeEventListener('paste', handlePaste);
+    }
+  }, [state.originalImage, handlePaste]);
+
   // Run preprocessing via DAG pipeline when user clicks Continue
   const handleProceed = async () => {
     if (redDots.length === 0) {
@@ -791,7 +820,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                 </div>
               </div>
               <p className="text-xl font-display font-medium mb-2">Drop your jewelry image here</p>
-              <p className="text-sm text-muted-foreground mb-6">or click to browse your files</p>
+              <p className="text-sm text-muted-foreground mb-6">or click to browse, or paste from clipboard (Ctrl+V)</p>
               <Button variant="outline" size="lg" className="gap-2">
                 <ImageIcon className="h-4 w-4" />
                 Browse Files
