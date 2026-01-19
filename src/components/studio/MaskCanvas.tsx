@@ -15,7 +15,8 @@ interface BrushStroke {
 interface Props {
   image: string;
   dots?: { x: number; y: number }[];
-  brushColor?: string;
+  overlayColor?: string;
+  brushMode?: 'add' | 'remove';
   brushSize?: number;
   mode: 'dot' | 'brush';
   /**
@@ -46,7 +47,8 @@ interface Props {
 export function MaskCanvas({
   image,
   dots = [],
-  brushColor = '#FF0000',
+  overlayColor = '#00FF00',
+  brushMode = 'add',
   brushSize = 10,
   mode,
   canvasSize = 400,
@@ -178,6 +180,14 @@ export function MaskCanvas({
     }
   }, [displayWidth, displayHeight, originalWidth, originalHeight, isNecklace]);
 
+  // Convert hex to rgba
+  const hexToRgba = useCallback((hex: string, alpha: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }, []);
+
   // Draw initial strokes + active stroke when image loads or strokes change (for live preview)
   useEffect(() => {
     if (!imageLoaded || mode !== 'brush') return;
@@ -225,31 +235,22 @@ export function MaskCanvas({
       ctx.stroke();
     };
 
-    // Convert brushColor hex to rgba for add strokes (use passed color, not hardcoded green)
-    const hexToRgba = (hex: string, alpha: number): string => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    };
+    // Fixed colors for stroke types - add strokes always use overlay color, remove always uses eraser color
+    const addColor = hexToRgba(overlayColor, 0.5);
+    const removeColor = 'rgba(50, 50, 50, 0.6)'; // Dark gray for eraser
     
-    const addColor = hexToRgba(brushColor, 0.35);  // Use passed brush color for add
-    const removeColor = 'rgba(100, 100, 100, 0.45)'; // Dark gray for remove (distinct from add)
-    
-    // Draw all initial strokes as smooth lines - use stroke's own type for color
-    // Each stroke keeps its own color based on its type (add vs remove)
+    // Draw all initial strokes - each stroke keeps its own type color
     initialStrokes.forEach((stroke) => {
-      // For add strokes, use the current brushColor; for remove, always use gray
       const color = stroke.type === 'add' ? addColor : removeColor;
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
 
-    // Draw active stroke for live preview - use stroke's own type for color
+    // Draw active stroke for live preview
     if (activeStroke && activeStroke.points.length > 0) {
       const color = activeStroke.type === 'add' ? addColor : removeColor;
       drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
     }
-  }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace, brushColor]);
+  }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace, overlayColor, hexToRgba]);
 
   // Draw dots for marking mode (dots are in SAM space)
   useEffect(() => {
@@ -277,7 +278,7 @@ export function MaskCanvas({
       ctx.lineWidth = 2;
       ctx.stroke();
     });
-  }, [dots, brushColor, brushSize, mode, imageLoaded, toDisplaySpace]);
+  }, [dots, brushSize, mode, imageLoaded, toDisplaySpace]);
 
   // Get coordinates from mouse/touch event and transform to SAM space
   const getCanvasCoords = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -319,16 +320,10 @@ export function MaskCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    // Convert brushColor hex to rgba (use passed color dynamically)
-    const hexToRgba = (hex: string, alpha: number): string => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    };
-    
-    // Use passed brush color with transparency
-    const drawColor = hexToRgba(brushColor, 0.35);
+    // Use appropriate color based on current brush mode
+    const drawColor = brushMode === 'add' 
+      ? hexToRgba(overlayColor, 0.5) 
+      : 'rgba(50, 50, 50, 0.6)';
     
     if (lastPointRef.current) {
       // Draw line from last point to current point for smooth strokes
@@ -350,7 +345,7 @@ export function MaskCanvas({
     }
     
     lastPointRef.current = { x, y };
-  }, [brushColor, brushSize, toDisplaySpace]);
+  }, [brushMode, overlayColor, brushSize, toDisplaySpace, hexToRgba]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const coords = getCanvasCoords(e);

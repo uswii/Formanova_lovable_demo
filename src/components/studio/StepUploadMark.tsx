@@ -739,7 +739,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                   <MaskCanvas
                     image={state.originalImage}
                     dots={redDots}
-                    brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={Math.min(window.innerHeight * 0.7, 700)}
@@ -818,7 +817,6 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                     image={state.originalImage}
                     dots={redDots}
                     onCanvasClick={isProcessing ? undefined : handleCanvasClick}
-                    brushColor="#FF0000"
                     brushSize={markerSize}
                     mode="dot"
                     canvasSize={400}

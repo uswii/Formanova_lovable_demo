@@ -174,7 +174,8 @@ export function StepRefineMask({ state, updateState, onNext, onBack, jewelryType
                 <MaskCanvas
                   key={`fullscreen-${canvasKey}`}
                   image={baseImage}
-                  brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                  overlayColor="#00FF00"
+                  brushMode={brushMode}
                   brushSize={brushSize}
                   mode="brush"
                   canvasSize={Math.min(window.innerHeight * 0.7, 700)}
@@ -252,7 +253,8 @@ export function StepRefineMask({ state, updateState, onNext, onBack, jewelryType
                       <MaskCanvas
                         key={canvasKey}
                         image={baseImage}
-                        brushColor={brushMode === 'add' ? '#00FF00' : '#000000'}
+                        overlayColor="#00FF00"
+                        brushMode={brushMode}
                         brushSize={brushSize}
                         mode="brush"
                         canvasSize={400}
