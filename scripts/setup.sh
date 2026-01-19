@@ -25,7 +25,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 SERVICE_NAME="formanova"
 LOG_DIR="$PROJECT_DIR/logs"
-PORT=8009
+PORT=8010
 
 # Make all scripts executable at the start
 chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
