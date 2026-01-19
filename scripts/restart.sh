@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # =============================================================================
-# FormaNova Frontend - Start Script
+# FormaNova Frontend - Restart Script
 # =============================================================================
-# Starts the FormaNova frontend service
+# Restarts the FormaNova frontend service
 # =============================================================================
 
 SERVICE_NAME="formanova"
@@ -15,7 +15,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 echo ""
-echo -e "${YELLOW}Starting FormaNova service...${NC}"
+echo -e "${YELLOW}Restarting FormaNova service...${NC}"
 
 # Check if service exists
 if ! sudo systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
@@ -24,22 +24,20 @@ if ! sudo systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
     exit 1
 fi
 
-# Start the service
-sudo systemctl start ${SERVICE_NAME}.service
+# Restart the service
+sudo systemctl restart ${SERVICE_NAME}.service
 
 # Wait a moment
 sleep 2
 
 # Check status
 if sudo systemctl is-active --quiet ${SERVICE_NAME}.service; then
-    echo -e "${GREEN}✓ FormaNova is running${NC}"
+    echo -e "${GREEN}✓ FormaNova restarted${NC}"
     echo ""
     echo -e "URL: ${GREEN}http://0.0.0.0:4173${NC}"
     echo -e "     ${GREEN}http://$(hostname -I | awk '{print $1}'):4173${NC}"
-    echo ""
-    echo -e "View logs: ${YELLOW}tail -f logs/formanova.log${NC}"
 else
-    echo -e "${RED}✗ Failed to start. Check logs:${NC}"
+    echo -e "${RED}✗ Failed to restart. Check logs:${NC}"
     echo "  sudo journalctl -u ${SERVICE_NAME}.service -n 50"
     exit 1
 fi
