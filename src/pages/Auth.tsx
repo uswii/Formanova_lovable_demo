@@ -50,10 +50,11 @@ export default function Auth() {
       
       console.log('[Auth] OAuth response:', data);
       
-      if (data.redirect_url) {
+      const redirectUrl = data.redirect_url || data.authorization_url;
+      if (redirectUrl) {
         setDebugInfo(`Redirecting to Google...`);
         // Redirect to Google (HTTPS)
-        window.location.href = data.redirect_url;
+        window.location.href = redirectUrl;
       } else if (data.error) {
         throw new Error(data.error);
       } else {
