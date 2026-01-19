@@ -19,7 +19,7 @@ export default function Auth() {
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Redirect destination after auth
-  const AUTH_SUCCESS_REDIRECT = '/dashboard';
+  const AUTH_SUCCESS_REDIRECT = '/studio';
 
   // Get the intended destination (default to studio)
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
