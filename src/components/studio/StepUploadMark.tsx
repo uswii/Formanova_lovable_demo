@@ -719,8 +719,8 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       
       {/* Fullscreen Dialog - Interactive mode for marking */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden">
-          <div className="relative w-full h-full flex flex-col">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden overflow-hidden">
+          <div className="relative w-full h-full flex flex-col min-h-0">
             {/* Top toolbar */}
             <div className="flex items-center justify-between p-4 border-b border-border/20">
               <div className="flex items-center gap-4">
@@ -796,7 +796,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
               </div>
             </div>
             {/* Canvas area */}
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+            <div className="flex-1 min-h-0 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && state.originalImage && (
                 <div className="relative">
                   <MaskCanvas
