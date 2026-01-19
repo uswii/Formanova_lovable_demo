@@ -319,11 +319,10 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep(isNecklaceType ? 'Starting masking workflow...' : 'AI is identifying the jewelry...');
+    setProcessingStep('Generating mask...');
 
     try {
       // Convert image to Blob for workflow API
-      setProcessingStep(isNecklaceType ? 'Loading image...' : 'Preparing image for AI...');
       const rawBlob = await imageSourceToBlob(state.originalImage);
       
       // Compress image to stay under 1024KB backend limit
