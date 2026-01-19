@@ -471,11 +471,10 @@ class WorkflowApi {
       jewelryGreenSize: jewelryGreenBlob.size,
     });
 
-    // Use direct backend URL for multipart endpoint (bypasses workflow-proxy)
-    const backendUrl = 'http://20.173.91.22:8000/tools/agentic_photoshoot/run-multipart';
-    
-    const response = await fetch(backendUrl, {
+    // Use workflow-proxy edge function with multipart endpoint
+    const response = await fetch(getProxyUrl('/tools/agentic_photoshoot/run-multipart'), {
       method: 'POST',
+      headers: this.getAuthHeaders(),
       body: formData,
       // No Content-Type header - browser sets it with boundary
     });

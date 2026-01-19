@@ -186,6 +186,68 @@ serve(async (req) => {
       }
     }
 
+    // Multipart photoshoot endpoint - forward FormData to /tools/agentic_photoshoot/run-multipart
+    if (endpoint === '/tools/agentic_photoshoot/run-multipart' && req.method === 'POST') {
+      const contentType = req.headers.get('content-type') || '';
+      const body = await req.arrayBuffer();
+      
+      console.log(`[workflow-proxy] Forwarding to ${WORKFLOW_URL}/tools/agentic_photoshoot/run-multipart`);
+      console.log(`[workflow-proxy] Content-Type: ${contentType}`);
+      console.log(`[workflow-proxy] Body size: ${body.byteLength} bytes`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min
+
+      try {
+        const response = await fetch(`${WORKFLOW_URL}/tools/agentic_photoshoot/run-multipart`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': contentType,
+          },
+          body: body,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[workflow-proxy] Multipart backend error: ${response.status} ${errorText}`);
+          return new Response(
+            JSON.stringify({ error: `Multipart photoshoot failed: ${errorText}` }),
+            { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const data = await response.text();
+        console.log(`[workflow-proxy] Multipart success, response size: ${data.length} chars`);
+
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`[workflow-proxy] Multipart response:`, {
+            workflow_id: parsed.workflow_id,
+            keys: Object.keys(parsed),
+          });
+        } catch (e) {
+          // Not JSON
+        }
+
+        return new Response(data, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (e instanceof Error && e.name === 'AbortError') {
+          return new Response(
+            JSON.stringify({ error: 'Multipart photoshoot timed out after 10 minutes' }),
+            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw e;
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
