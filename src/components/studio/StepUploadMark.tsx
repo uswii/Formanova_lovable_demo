@@ -721,11 +721,27 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden">
           <div className="relative w-full h-full flex flex-col">
+            {/* Top toolbar */}
             <div className="flex items-center justify-between p-4 border-b border-border/20">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
+                {/* Marker count */}
                 <div className="flex items-center gap-1.5">
-                  <Circle className="h-3 w-3 fill-red-500 text-red-500" />
-                  <span className="text-sm font-medium">{redDots.length}{isNecklace ? `/${MAX_DOTS}` : ''}</span>
+                  <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm font-medium">{redDots.length}{isNecklace ? `/${MAX_DOTS}` : ''} marks</span>
+                </div>
+                {/* Marker size slider */}
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5">
+                  <Circle className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs text-muted-foreground">Size</span>
+                  <Slider
+                    value={[markerSize]}
+                    onValueChange={([v]) => setMarkerSize(v)}
+                    min={4}
+                    max={24}
+                    step={1}
+                    className="w-24"
+                  />
+                  <span className="text-xs font-medium w-6">{markerSize}px</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -734,6 +750,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                   variant="outline"
                   onClick={handleUndo}
                   disabled={undoStack.length === 0}
+                  title="Undo"
                 >
                   <Undo2 className="h-4 w-4" />
                 </Button>
@@ -742,9 +759,25 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                   variant="outline"
                   onClick={handleRedo}
                   disabled={redoStack.length === 0}
+                  title="Redo"
                 >
                   <Redo2 className="h-4 w-4" />
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setUndoStack((prev) => [...prev, redDots]);
+                    setRedoStack([]);
+                    setRedDots([]);
+                  }}
+                  disabled={redDots.length === 0}
+                  title="Clear all marks"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+                <div className="w-px h-6 bg-border/40 mx-1" />
                 <Button
                   size="sm"
                   variant="outline"
@@ -762,6 +795,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                 </Button>
               </div>
             </div>
+            {/* Canvas area */}
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && state.originalImage && (
                 <div className="relative">
@@ -786,6 +820,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                 </div>
               )}
             </div>
+            {/* Bottom hint */}
             <div className="p-4 border-t border-border/20 flex justify-center">
               <p className="text-sm text-muted-foreground">
                 Click on jewelry to mark it. Usually 3-5 dots are enough.
