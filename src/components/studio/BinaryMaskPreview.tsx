@@ -111,15 +111,15 @@ export function BinaryMaskPreview({ maskImage, strokes, activeStroke = null, can
       ctx.stroke();
     };
 
-    // Draw strokes: add = black (jewelry), remove = white (background)
+    // Draw strokes: add = white (background/AI area), remove = black (jewelry to preserve)
     strokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? '#000000' : '#FFFFFF';
+      const color = stroke.type === 'add' ? '#FFFFFF' : '#000000';
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
 
     // Draw active stroke for real-time preview
     if (activeStroke && activeStroke.points.length > 0) {
-      const color = activeStroke.type === 'add' ? '#000000' : '#FFFFFF';
+      const color = activeStroke.type === 'add' ? '#FFFFFF' : '#000000';
       drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
     }
 

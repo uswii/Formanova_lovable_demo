@@ -234,10 +234,12 @@ export function MaskCanvas({
     };
     
     const addColor = hexToRgba(brushColor, 0.35);  // Use passed brush color for add
-    const removeColor = 'rgba(0, 0, 0, 0.35)';      // Black for remove
+    const removeColor = 'rgba(100, 100, 100, 0.45)'; // Dark gray for remove (distinct from add)
     
     // Draw all initial strokes as smooth lines - use stroke's own type for color
+    // Each stroke keeps its own color based on its type (add vs remove)
     initialStrokes.forEach((stroke) => {
+      // For add strokes, use the current brushColor; for remove, always use gray
       const color = stroke.type === 'add' ? addColor : removeColor;
       drawSmoothStroke(stroke.points, stroke.radius, color);
     });
