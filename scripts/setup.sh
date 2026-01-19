@@ -284,9 +284,13 @@ Environment=PATH=/usr/local/bin:/usr/bin:/bin:$HOME/.nvm/versions/node/v18/bin
 WantedBy=multi-user.target
 EOF
 
-    # Reload and enable
+    # Reload and enable for auto-start on boot
     sudo systemctl daemon-reload
-    sudo systemctl enable ${SERVICE_NAME}.service 2>/dev/null
+    sudo systemctl enable ${SERVICE_NAME}.service
+    
+    # Ensure the service persists after logout
+    echo "  Enabling lingering for $USER..."
+    sudo loginctl enable-linger $USER 2>/dev/null || true
     
     return 0
 }
@@ -375,12 +379,22 @@ echo ""
 echo -e "${YELLOW}[8/8] Starting FormaNova service...${NC}"
 
 if [ "$USE_SYSTEMD" = true ]; then
+    # Stop any existing instance first
+    sudo systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
+    
+    # Start fresh
     sudo systemctl start ${SERVICE_NAME}.service
     sleep 2
+    
     if sudo systemctl is-active --quiet ${SERVICE_NAME}.service; then
-        log_success "Service started via systemd"
+        # Verify it's enabled for boot
+        sudo systemctl enable ${SERVICE_NAME}.service 2>/dev/null || true
+        log_success "Service started via systemd (auto-starts on boot)"
     else
-        log_error "Systemd start failed. Trying PM2..."
+        log_error "Systemd start failed. Checking logs..."
+        sudo journalctl -u ${SERVICE_NAME}.service -n 5 --no-pager 2>/dev/null || true
+        echo ""
+        log_warning "Trying PM2 as fallback..."
         setup_pm2
         USE_SYSTEMD=false
         USE_PM2=true
