@@ -129,13 +129,14 @@ export type OverlayColorName = typeof OVERLAY_COLORS[number]['name'];
  * Creates a mask overlay visualization.
  * 
  * Mask convention:
- * - BLACK pixels = jewelry (to preserve) → show original image
- * - WHITE pixels = background (AI-generated area) → apply translucent color overlay
+ * - For necklaces: BLACK pixels = jewelry → apply translucent overlay, WHITE = background → show original
+ * - For other jewelry: BLACK pixels = jewelry → show original, WHITE = background → apply overlay
  */
 async function createMaskOverlay(
   originalImage: string, 
   maskBinary: string, 
-  overlayColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 }
+  overlayColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 },
+  isNecklaceType: boolean = false
 ): Promise<string> {
   console.log('[createMaskOverlay] Starting with color:', overlayColor);
   
@@ -188,17 +189,17 @@ async function createMaskOverlay(
       const overlayOpacity = 0.35;
       
       for (let i = 0; i < maskData.data.length; i += 4) {
-        // Check mask pixel brightness - WHITE = background area to overlay
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
         
-        // Apply translucent color tint where mask is WHITE (background/AI area)
-        if (brightness >= 128) {
-          // Blend with overlay color
+        // For necklaces: BLACK pixels get overlay (jewelry area)
+        // For other jewelry: WHITE pixels get overlay (background area)
+        const shouldApplyOverlay = isNecklaceType ? (brightness < 128) : (brightness >= 128);
+        
+        if (shouldApplyOverlay) {
           overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + overlayColor.r * overlayOpacity);
           overlayData.data[i + 1] = Math.round(overlayData.data[i + 1] * (1 - overlayOpacity) + overlayColor.g * overlayOpacity);
           overlayData.data[i + 2] = Math.round(overlayData.data[i + 2] * (1 - overlayOpacity) + overlayColor.b * overlayOpacity);
         }
-        // BLACK areas (jewelry) - leave as original image
       }
       
       ctx.putImageData(overlayData, 0, 0);
@@ -557,7 +558,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       // Use processedImage from workflow, or fall back to converted data URL
       setProcessingStep('Creating overlay...');
       const overlayBaseImage = processedImage || originalImageDataUrl;
-      const generatedOverlay = maskOverlay || await createMaskOverlay(overlayBaseImage, invertedMask);
+      const generatedOverlay = maskOverlay || await createMaskOverlay(overlayBaseImage, invertedMask, { r: 0, g: 255, b: 0 }, isNecklaceType);
 
       console.log('[Masking] Got mask and overlay');
       console.log('[Masking] Caching masking outputs for generation optimization:', Object.keys(maskingOutputs));
