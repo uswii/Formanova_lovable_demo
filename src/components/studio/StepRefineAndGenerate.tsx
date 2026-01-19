@@ -74,7 +74,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     { name: 'Blue', hex: '#00AAFF', rgb: { r: 0, g: 170, b: 255 } },
     { name: 'Pink', hex: '#FF69B4', rgb: { r: 255, g: 105, b: 180 } },
     { name: 'Yellow', hex: '#FFFF00', rgb: { r: 255, g: 255, b: 0 } },
-    { name: 'Peach', hex: '#FFCBA4', rgb: { r: 255, g: 203, b: 164 } },
+    { name: 'Peach', hex: '#E8A070', rgb: { r: 232, g: 160, b: 112 } },
     { name: 'Red', hex: '#FF4444', rgb: { r: 255, g: 68, b: 68 } },
   ];
   const [selectedOverlayColor, setSelectedOverlayColor] = useState(OVERLAY_COLORS[0]);
@@ -1446,9 +1446,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   onClick={() => setBrushMode('remove')}
                   className={`justify-start h-11 ${brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900 border-gray-800' : ''}`}
                 >
-                  <div className="h-4 w-4 rounded-full bg-black border-2 border-white/30 mr-3" />
+                  <div className="h-4 w-4 rounded-full bg-gray-600 border-2 border-white/30 mr-3" />
                   <div className="text-left">
-                    <p className="font-medium text-sm">Remove from Mask</p>
+                    <p className="font-medium text-sm">Eraser</p>
                   </div>
                 </Button>
               </div>
