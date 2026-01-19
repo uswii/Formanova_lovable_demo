@@ -171,14 +171,27 @@ fi
 echo ""
 echo -e "${YELLOW}[3/8] Installing serve for production...${NC}"
 
-if npm install -g serve 2>/dev/null; then
-    log_success "Serve installed globally"
-elif sudo npm install -g serve 2>/dev/null; then
-    log_success "Serve installed globally (with sudo)"
+# Check if serve already exists
+if command -v serve &> /dev/null; then
+    log_success "Serve already installed: $(which serve)"
 else
-    log_warning "Global install failed, installing locally..."
-    npm install serve
-    log_success "Serve installed locally"
+    # Try global install (no sudo first)
+    if npm install -g serve 2>&1 | grep -q "EACCES\|permission denied"; then
+        log_warning "Permission denied, trying with sudo..."
+        if sudo npm install -g serve; then
+            log_success "Serve installed globally (with sudo)"
+        else
+            log_warning "Sudo install failed, installing locally..."
+            npm install serve --save-dev
+            log_success "Serve installed locally in node_modules"
+        fi
+    elif [ $? -eq 0 ]; then
+        log_success "Serve installed globally"
+    else
+        log_warning "Global install failed, installing locally..."
+        npm install serve --save-dev
+        log_success "Serve installed locally in node_modules"
+    fi
 fi
 
 # Find serve path
