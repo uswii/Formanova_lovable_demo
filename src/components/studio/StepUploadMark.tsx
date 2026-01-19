@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
 import { StudioState, SkinTone, MaskingOutputs } from '@/pages/JewelryStudio';
@@ -719,8 +719,9 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       
       {/* Fullscreen Dialog - Interactive mode for marking */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden overflow-hidden">
-          <div className="relative w-full h-full flex flex-col min-h-0">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden overflow-hidden flex flex-col">
+          <DialogTitle className="sr-only">Enlarged Image View</DialogTitle>
+          <div className="relative w-full h-full flex flex-col min-h-0 flex-1">
             {/* Top toolbar */}
             <div className="flex items-center justify-between p-4 border-b border-border/20">
               <div className="flex items-center gap-4">
