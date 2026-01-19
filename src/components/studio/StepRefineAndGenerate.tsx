@@ -421,75 +421,27 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         // Step 2: Run generation with the mask
         setCurrentStepLabel(`Starting ${singularType} generation...`);
 
-        // Use multipart endpoint (port 8001) if we have masking outputs - skips re-masking
-        // Multipart is SYNCHRONOUS - returns final image directly, no polling
-        const hasValidMaskingOutputs = !!(
-          state.maskingOutputs?.resizedImage && 
-          state.maskingOutputs?.jewelrySegment && 
-          state.maskingOutputs?.jewelryGreen && 
-          state.maskingOutputs?.resizeMetadata
-        );
-        
-        console.log('[Generation] Masking outputs check:', {
-          hasResizedImage: !!state.maskingOutputs?.resizedImage,
-          hasJewelrySegment: !!state.maskingOutputs?.jewelrySegment,
-          hasJewelryGreen: !!state.maskingOutputs?.jewelryGreen,
-          hasResizeMetadata: !!state.maskingOutputs?.resizeMetadata,
-          willUseMultipart: hasValidMaskingOutputs,
+        // Use async workflow with polling (re-runs masking on backend)
+        const genStartResponse = await workflowApi.startAllJewelryGeneration({
+          imageBlob,
+          maskBase64: compressedMask,
+          jewelryType: singularType,
+          skinTone: workflowSkinTone,
         });
-        
-        if (hasValidMaskingOutputs) {
-          const maskingOutputsForApi = {
-            resizedImage: state.maskingOutputs.resizedImage,
-            jewelrySegment: state.maskingOutputs.jewelrySegment,
-            jewelryGreen: state.maskingOutputs.jewelryGreen,
-            resizeMetadata: state.maskingOutputs.resizeMetadata,
-          };
-          console.log('[Generation] Using synchronous multipart endpoint with masking outputs');
-          setCurrentStepLabel('AI is generating photoshoot...');
-          setGenerationProgress(50);
-          
-          const multipartResult = await workflowApi.runMultipartPhotoshoot({
-            imageBlob,
-            maskBase64: compressedMask,
-            jewelryType: singularType,
-            skinTone: workflowSkinTone,
-            maskingOutputs: maskingOutputsForApi,
-          });
 
-          console.log('[Generation] Multipart photoshoot complete');
-          
-          // Convert multipart response to expected result format
-          result = {
-            agentic_photoshoot: [{
-              final_image_base64: multipartResult.final_image_base64,
-              success: multipartResult.success,
-            }],
-          };
-        } else {
-          // Fallback to async workflow (will re-run masking)
-          console.log('[Generation] Using async workflow (no masking outputs available)');
-          const genStartResponse = await workflowApi.startAllJewelryGeneration({
-            imageBlob,
-            maskBase64: compressedMask,
-            jewelryType: singularType,
-            skinTone: workflowSkinTone,
-          });
+        console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
 
-          console.log('[Generation] all_jewelry_generation started:', genStartResponse.workflow_id);
+        // Poll until complete
+        const rawResult = await workflowApi.pollUntilComplete(
+          genStartResponse.workflow_id,
+          'all_jewelry',
+          (progress, label) => {
+            setGenerationProgress(progress);
+            setCurrentStepLabel(label);
+          }
+        );
 
-          // Poll until complete
-          const rawResult = await workflowApi.pollUntilComplete(
-            genStartResponse.workflow_id,
-            'all_jewelry',
-            (progress, label) => {
-              setGenerationProgress(progress);
-              setCurrentStepLabel(label);
-            }
-          );
-
-          result = rawResult as Record<string, unknown>;
-        }
+        result = rawResult as Record<string, unknown>;
       }
 
       setGenerationProgress(100);
