@@ -423,8 +423,22 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         // Use multipart endpoint (port 8001) if we have masking outputs - skips re-masking
         // Multipart is SYNCHRONOUS - returns final image directly, no polling
-        if (state.maskingOutputs?.resizedImage && state.maskingOutputs?.jewelrySegment && 
-            state.maskingOutputs?.jewelryGreen && state.maskingOutputs?.resizeMetadata) {
+        const hasValidMaskingOutputs = !!(
+          state.maskingOutputs?.resizedImage && 
+          state.maskingOutputs?.jewelrySegment && 
+          state.maskingOutputs?.jewelryGreen && 
+          state.maskingOutputs?.resizeMetadata
+        );
+        
+        console.log('[Generation] Masking outputs check:', {
+          hasResizedImage: !!state.maskingOutputs?.resizedImage,
+          hasJewelrySegment: !!state.maskingOutputs?.jewelrySegment,
+          hasJewelryGreen: !!state.maskingOutputs?.jewelryGreen,
+          hasResizeMetadata: !!state.maskingOutputs?.resizeMetadata,
+          willUseMultipart: hasValidMaskingOutputs,
+        });
+        
+        if (hasValidMaskingOutputs) {
           const maskingOutputsForApi = {
             resizedImage: state.maskingOutputs.resizedImage,
             jewelrySegment: state.maskingOutputs.jewelrySegment,
