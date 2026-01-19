@@ -204,10 +204,20 @@ export function MaskCanvas({
     ctx.scale(dpr, dpr);
 
     // Helper to draw a smooth stroke as connected lines
-    const drawSmoothStroke = (points: number[][], radius: number, color: string) => {
+    const drawSmoothStroke = (points: number[][], radius: number, isEraser: boolean) => {
       if (points.length === 0) return;
       
-      ctx.strokeStyle = color;
+      // For eraser, use destination-out to reveal original image
+      if (isEraser) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(255,255,255,1)';
+        ctx.fillStyle = 'rgba(255,255,255,1)';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = hexToRgba(overlayColor, 0.5);
+        ctx.fillStyle = hexToRgba(overlayColor, 0.5);
+      }
+      
       ctx.lineWidth = radius;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -217,8 +227,8 @@ export function MaskCanvas({
         const displayPt = toDisplaySpace(points[0][0], points[0][1]);
         ctx.beginPath();
         ctx.arc(displayPt.x, displayPt.y, radius / 2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
         ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
         return;
       }
       
@@ -233,22 +243,17 @@ export function MaskCanvas({
       }
       
       ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
     };
-
-    // Fixed colors for stroke types - add strokes always use overlay color, remove always uses eraser color
-    const addColor = hexToRgba(overlayColor, 0.5);
-    const removeColor = 'rgba(50, 50, 50, 0.6)'; // Dark gray for eraser
     
-    // Draw all initial strokes - each stroke keeps its own type color
+    // Draw all initial strokes - each stroke keeps its own type
     initialStrokes.forEach((stroke) => {
-      const color = stroke.type === 'add' ? addColor : removeColor;
-      drawSmoothStroke(stroke.points, stroke.radius, color);
+      drawSmoothStroke(stroke.points, stroke.radius, stroke.type === 'remove');
     });
 
     // Draw active stroke for live preview
     if (activeStroke && activeStroke.points.length > 0) {
-      const color = activeStroke.type === 'add' ? addColor : removeColor;
-      drawSmoothStroke(activeStroke.points, activeStroke.radius, color);
+      drawSmoothStroke(activeStroke.points, activeStroke.radius, activeStroke.type === 'remove');
     }
   }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace, overlayColor, hexToRgba]);
 
@@ -320,15 +325,21 @@ export function MaskCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    // Use appropriate color based on current brush mode
-    const drawColor = brushMode === 'add' 
-      ? hexToRgba(overlayColor, 0.5) 
-      : 'rgba(50, 50, 50, 0.6)';
+    // For eraser, use destination-out to reveal original; for add, use normal drawing
+    if (brushMode === 'remove') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(255,255,255,1)';
+      ctx.fillStyle = 'rgba(255,255,255,1)';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      const drawColor = hexToRgba(overlayColor, 0.5);
+      ctx.strokeStyle = drawColor;
+      ctx.fillStyle = drawColor;
+    }
     
     if (lastPointRef.current) {
       // Draw line from last point to current point for smooth strokes
       const lastDisplayPt = toDisplaySpace(lastPointRef.current.x, lastPointRef.current.y);
-      ctx.strokeStyle = drawColor;
       ctx.lineWidth = brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -340,10 +351,10 @@ export function MaskCanvas({
       // First point - draw a dot
       ctx.beginPath();
       ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
-      ctx.fillStyle = drawColor;
       ctx.fill();
     }
     
+    ctx.globalCompositeOperation = 'source-over';
     lastPointRef.current = { x, y };
   }, [brushMode, overlayColor, brushSize, toDisplaySpace, hexToRgba]);
 

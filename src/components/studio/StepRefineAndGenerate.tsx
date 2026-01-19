@@ -18,6 +18,8 @@ import {
   Gem,
   XOctagon,
   Bug,
+  Paintbrush,
+  Eraser,
 } from 'lucide-react';
 import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
@@ -1438,7 +1440,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   onClick={() => setBrushMode('add')}
                   className={`justify-start h-11 ${brushMode === 'add' ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
                 >
-                  <div className="h-4 w-4 rounded-full bg-green-500 mr-3" />
+                  <Paintbrush className="h-4 w-4 mr-3" />
                   <div className="text-left">
                     <p className="font-medium text-sm">Add to Mask</p>
                   </div>
@@ -1448,7 +1450,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   onClick={() => setBrushMode('remove')}
                   className={`justify-start h-11 ${brushMode === 'remove' ? 'bg-gray-800 hover:bg-gray-900 border-gray-800' : ''}`}
                 >
-                  <div className="h-4 w-4 rounded-full bg-gray-600 border-2 border-white/30 mr-3" />
+                  <Eraser className="h-4 w-4 mr-3" />
                   <div className="text-left">
                     <p className="font-medium text-sm">Eraser</p>
                   </div>
