@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
+import { compressImageBlob } from '@/lib/image-compression';
 import { supabase } from '@/integrations/supabase/client';
 
 // Import embedded example images (768x1024) - Necklaces
@@ -318,12 +319,18 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('Starting masking workflow...');
+    setProcessingStep(isNecklaceType ? 'Starting masking workflow...' : 'AI is identifying the jewelry...');
 
     try {
       // Convert image to Blob for workflow API
-      setProcessingStep('Loading image...');
-      const imageBlob = await imageSourceToBlob(state.originalImage);
+      setProcessingStep(isNecklaceType ? 'Loading image...' : 'Preparing image for AI...');
+      const rawBlob = await imageSourceToBlob(state.originalImage);
+      
+      // Compress image to stay under 1024KB backend limit
+      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
+      if (wasCompressed) {
+        console.log('[Masking] Image compressed for upload');
+      }
       
       // Also convert to data URL for overlay creation (handles local asset paths)
       const originalImageDataUrl = await new Promise<string>((resolve, reject) => {
@@ -835,7 +842,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
                         <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
                         <Gem className="absolute inset-0 m-auto h-6 w-6 text-primary" />
                       </div>
-                      <p className="text-white font-medium text-sm mb-1">{processingStep}</p>
+                      <p className="text-white font-medium text-sm mb-1 text-center px-4">{processingStep}</p>
                       <div className="w-32 h-2 bg-white/20 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-primary rounded-full transition-all duration-500" 

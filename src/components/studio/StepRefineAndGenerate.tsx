@@ -25,6 +25,7 @@ import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { WorkflowDebugView } from './WorkflowDebugView';
 import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
+import { compressImageBlob } from '@/lib/image-compression';
 import type { SkinTone as WorkflowSkinTone, MaskingOutputsForGeneration } from '@/lib/workflow-api';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -262,8 +263,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[Generation] Skin tone:', state.skinTone);
       console.log('[Generation] Mask has strokes baked:', effectiveStrokes.length > 0);
 
-      // Convert image to Blob
-      const imageBlob = await imageSourceToBlob(state.originalImage);
+      // Convert image to Blob and compress if needed
+      const rawBlob = await imageSourceToBlob(state.originalImage);
+      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
+      if (wasCompressed) {
+        console.log('[Generation] Image compressed for upload');
+      }
 
       let result: Record<string, unknown>;
 
