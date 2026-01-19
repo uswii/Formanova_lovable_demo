@@ -22,9 +22,13 @@ NC='\033[0m'
 
 # Get absolute path to project
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="$PROJECT_DIR/scripts"
 SERVICE_NAME="formanova"
 LOG_DIR="$PROJECT_DIR/logs"
 PORT=4173
+
+# Make all scripts executable at the start
+chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
 
 # Track which method we're using
 USE_SYSTEMD=true
