@@ -1,15 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Use secret or fallback - remove trailing slash to avoid double slashes
 const A100_BASE_URL = (Deno.env.get("A100_JEWELRY_URL") || "http://20.106.235.80:8000").replace(/\/+$/, '');
+// Auth service for token validation
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Authentication helper - validates JWT and returns user ID
+// Authentication helper - validates token against custom FastAPI auth service
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -21,26 +22,33 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
     };
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
+  try {
+    // Validate token against custom auth service
+    const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+      headers: { 'Authorization': authHeader },
+    });
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabase.auth.getUser(token);
-  
-  if (error || !data?.user) {
-    console.log('[a100-proxy] Auth failed:', error?.message);
+    if (!response.ok) {
+      console.log('[a100-proxy] Auth failed: token validation returned', response.status);
+      return {
+        error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      };
+    }
+
+    const user = await response.json();
+    return { userId: user.id || user.email || 'authenticated' };
+  } catch (e) {
+    console.log('[a100-proxy] Auth service error:', e);
     return {
-      error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - auth service unavailable' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     };
   }
-
-  return { userId: data.user.id };
 }
 
 serve(async (req) => {
