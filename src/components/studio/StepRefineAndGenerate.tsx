@@ -122,14 +122,11 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         const overlayOpacity = 0.35;
         const { r, g, b } = selectedOverlayColor.rgb;
 
-        const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
-        
         for (let i = 0; i < maskData.data.length; i += 4) {
           const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
 
-          // For necklaces: BLACK pixels get overlay (jewelry area)
-          // For other jewelry: WHITE pixels get overlay (background area)
-          const shouldApplyOverlay = isNecklace ? (brightness < 128) : (brightness >= 128);
+          // WHITE pixels get overlay (background area) - consistent for all jewelry types
+          const shouldApplyOverlay = brightness >= 128;
 
           if (shouldApplyOverlay) {
             overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + r * overlayOpacity);

@@ -170,9 +170,8 @@ async function createMaskOverlay(
       for (let i = 0; i < maskData.data.length; i += 4) {
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
         
-        // For necklaces: BLACK pixels get overlay (jewelry area)
-        // For other jewelry: WHITE pixels get overlay (background area)
-        const shouldApplyOverlay = isNecklaceType ? (brightness < 128) : (brightness >= 128);
+        // WHITE pixels get overlay (background area) - consistent for all jewelry types
+        const shouldApplyOverlay = brightness >= 128;
         
         if (shouldApplyOverlay) {
           overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + overlayColor.r * overlayOpacity);
