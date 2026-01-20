@@ -6,10 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// DAG Workflow server endpoint (port 8000 = Temporal gateway)
-const WORKFLOW_URL = (Deno.env.get('WORKFLOW_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
-// Direct API endpoint (port 8001) for multipart uploads
-const DIRECT_API_URL = 'http://20.173.91.22:8001';
+// Backend URLs
+// Temporal gateway (port 8000) - for orchestrated workflows
+const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
+// Direct/Standalone API (port 8001) - for direct A100 execution
+const STANDALONE_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
+
+// Helper to get backend URL based on mode parameter
+// Usage: ?mode=temporal (default) or ?mode=standalone
+function getBackendUrl(mode: string | null): string {
+  if (mode === 'standalone' || mode === 'direct' || mode === 'a100') {
+    console.log(`[workflow-proxy] Using STANDALONE mode -> ${STANDALONE_URL}`);
+    return STANDALONE_URL;
+  }
+  console.log(`[workflow-proxy] Using TEMPORAL mode -> ${TEMPORAL_URL}`);
+  return TEMPORAL_URL;
+}
 
 // Authentication helper - validates JWT and returns user ID
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
@@ -61,8 +73,12 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const endpoint = url.searchParams.get('endpoint') || '/process';
+    const mode = url.searchParams.get('mode'); // 'temporal' (default) or 'standalone'
+    
+    // Get backend URL based on mode
+    const BACKEND_URL = getBackendUrl(mode);
 
-    console.log(`[workflow-proxy] ${req.method} ${endpoint}`);
+    console.log(`[workflow-proxy] ${req.method} ${endpoint} (mode: ${mode || 'temporal'})`);
 
     // Health check
     if (endpoint === '/health') {
@@ -70,7 +86,7 @@ serve(async (req) => {
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       try {
-        const response = await fetch(`${WORKFLOW_URL}/health`, {
+        const response = await fetch(`${BACKEND_URL}/health`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -94,7 +110,7 @@ serve(async (req) => {
     // Status check for workflow
     if (endpoint.startsWith('/status/')) {
       const workflowId = endpoint.replace('/status/', '');
-      const response = await fetch(`${WORKFLOW_URL}/status/${workflowId}`, {
+      const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -140,7 +156,7 @@ serve(async (req) => {
     // Result fetch for workflow
     if (endpoint.startsWith('/result/')) {
       const workflowId = endpoint.replace('/result/', '');
-      const response = await fetch(`${WORKFLOW_URL}/result/${workflowId}`, {
+      const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -170,7 +186,7 @@ serve(async (req) => {
       // Get the raw body as ArrayBuffer for FormData
       const body = await req.arrayBuffer();
       
-      console.log(`[workflow-proxy] Forwarding to ${WORKFLOW_URL}/process`);
+      console.log(`[workflow-proxy] Forwarding to ${BACKEND_URL}/process`);
       console.log(`[workflow-proxy] Content-Type: ${contentType}`);
       console.log(`[workflow-proxy] Body size: ${body.byteLength} bytes`);
 
@@ -179,7 +195,7 @@ serve(async (req) => {
       const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min
 
       try {
-        const response = await fetch(`${WORKFLOW_URL}/process`, {
+        const response = await fetch(`${BACKEND_URL}/process`, {
           method: 'POST',
           headers: {
             'Content-Type': contentType, // Forward the multipart boundary
@@ -251,14 +267,14 @@ serve(async (req) => {
         }
       };
       
-      console.log(`[workflow-proxy] Forwarding to ${DIRECT_API_URL}/tools/agentic_masking/run`);
+      console.log(`[workflow-proxy] Forwarding to ${STANDALONE_URL}/tools/agentic_masking/run`);
       console.log(`[workflow-proxy] Image transformed to {base64: ...} format`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min
 
       try {
-        const response = await fetch(`${DIRECT_API_URL}/tools/agentic_masking/run`, {
+        const response = await fetch(`${STANDALONE_URL}/tools/agentic_masking/run`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -313,8 +329,8 @@ serve(async (req) => {
       const contentType = req.headers.get('content-type') || '';
       const body = await req.arrayBuffer();
       
-      // Use DIRECT_API_URL (port 8001) for multipart - not available through Temporal gateway
-      console.log(`[workflow-proxy] Forwarding to ${DIRECT_API_URL}/tools/agentic_photoshoot/run-multipart`);
+      // Always use STANDALONE_URL (port 8001) for multipart - not available through Temporal gateway
+      console.log(`[workflow-proxy] Forwarding to ${STANDALONE_URL}/tools/agentic_photoshoot/run-multipart`);
       console.log(`[workflow-proxy] Content-Type: ${contentType}`);
       console.log(`[workflow-proxy] Body size: ${body.byteLength} bytes`);
 
@@ -322,7 +338,7 @@ serve(async (req) => {
       const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min
 
       try {
-        const response = await fetch(`${DIRECT_API_URL}/tools/agentic_photoshoot/run-multipart`, {
+        const response = await fetch(`${STANDALONE_URL}/tools/agentic_photoshoot/run-multipart`, {
           method: 'POST',
           headers: {
             'Content-Type': contentType,

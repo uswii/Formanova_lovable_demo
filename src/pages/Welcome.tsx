@@ -37,10 +37,10 @@ export default function Welcome() {
     { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
   ];
 
-  // If signed in, go to dashboard. Otherwise, prompt to sign in.
+  // If signed in, go straight to studio. Otherwise, prompt to sign in.
   const handleStart = () => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/studio');
     } else {
       navigate('/auth');
     }

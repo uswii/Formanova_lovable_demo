@@ -18,10 +18,10 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   
 
-  // Redirect destination after auth
-  const AUTH_SUCCESS_REDIRECT = '/dashboard';
+  // Redirect destination after auth - go straight to studio
+  const AUTH_SUCCESS_REDIRECT = '/studio';
 
-  // Get the intended destination (default to dashboard)
+  // Get the intended destination (default to studio)
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
   // Check if already logged in - redirect to studio
