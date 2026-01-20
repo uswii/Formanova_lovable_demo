@@ -74,12 +74,12 @@ export function MaskCanvas({
   // Determine if this is a necklace (uses SAM scaling) or other jewelry (uses original coords)
   const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
   
-  // Compute display dimensions based on canvas size
-  // Use 3:4 aspect for consistent display
-  const displayWidth = canvasSize * (3 / 4);
-  const displayHeight = canvasSize;
+  // Compute display dimensions based on canvas size while preserving aspect ratio
+  // We'll calculate actual dimensions once image loads, but need initial values
+  const [displayWidth, setDisplayWidth] = useState(canvasSize * (3 / 4));
+  const [displayHeight, setDisplayHeight] = useState(canvasSize);
 
-  // Load and draw image - stretched to 3:4 to match backend resize
+  // Load and draw image - preserve aspect ratio within canvasSize constraint
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -105,34 +105,52 @@ export function MaskCanvas({
       setOriginalWidth(img.naturalWidth);
       setOriginalHeight(img.naturalHeight);
       
+      // Calculate display dimensions preserving aspect ratio
+      const aspectRatio = img.naturalWidth / img.naturalHeight;
+      let newDisplayWidth: number;
+      let newDisplayHeight: number;
+      
+      if (aspectRatio > 1) {
+        // Landscape or square: constrain by width
+        newDisplayWidth = canvasSize;
+        newDisplayHeight = canvasSize / aspectRatio;
+      } else {
+        // Portrait: constrain by height
+        newDisplayHeight = canvasSize;
+        newDisplayWidth = canvasSize * aspectRatio;
+      }
+      
+      setDisplayWidth(newDisplayWidth);
+      setDisplayHeight(newDisplayHeight);
+      
       // Use device pixel ratio for sharper rendering
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = displayWidth * dpr;
-      canvas.height = displayHeight * dpr;
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
+      canvas.width = newDisplayWidth * dpr;
+      canvas.height = newDisplayHeight * dpr;
+      canvas.style.width = `${newDisplayWidth}px`;
+      canvas.style.height = `${newDisplayHeight}px`;
 
       if (overlayCanvasRef.current) {
-        overlayCanvasRef.current.width = displayWidth * dpr;
-        overlayCanvasRef.current.height = displayHeight * dpr;
-        overlayCanvasRef.current.style.width = `${displayWidth}px`;
-        overlayCanvasRef.current.style.height = `${displayHeight}px`;
+        overlayCanvasRef.current.width = newDisplayWidth * dpr;
+        overlayCanvasRef.current.height = newDisplayHeight * dpr;
+        overlayCanvasRef.current.style.width = `${newDisplayWidth}px`;
+        overlayCanvasRef.current.style.height = `${newDisplayHeight}px`;
       }
 
       ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.clearRect(0, 0, newDisplayWidth, newDisplayHeight);
       
-      // Draw image stretched to display dimensions
-      ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+      // Draw image preserving aspect ratio (no stretching)
+      ctx.drawImage(img, 0, 0, newDisplayWidth, newDisplayHeight);
       
       setImageLoaded(true);
-      console.log('[MaskCanvas] Image drawn to canvas');
+      console.log('[MaskCanvas] Image drawn to canvas with aspect ratio:', aspectRatio.toFixed(2));
     };
     img.onerror = (e) => {
       console.error('[MaskCanvas] Failed to load image:', e);
     };
     img.src = image;
-  }, [image, displayWidth, displayHeight]);
+  }, [image, canvasSize]);
 
   // Transform display coordinates to output space
   // - Necklaces: scale to SAM space (2000x2667)
