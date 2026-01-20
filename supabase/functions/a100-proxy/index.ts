@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Use secret or fallback - remove trailing slash to avoid double slashes
-const A100_BASE_URL = (Deno.env.get("A100_JEWELRY_URL") || "http://20.106.235.80:8000").replace(/\/+$/, '');
+// A100 Standalone Server (api_server.py) - direct FastAPI endpoints
+// This is the unified API handling all jewelry types: necklace, ring, bracelet, earring, watch
+const A100_BASE_URL = (Deno.env.get("A100_STANDALONE_URL") || "http://48.214.48.103:8000").replace(/\/+$/, '');
 // Auth service for token validation
 const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
