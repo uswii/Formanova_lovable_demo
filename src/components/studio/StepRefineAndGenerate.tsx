@@ -374,6 +374,26 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       console.log('[A100] Jewelry type:', singularType, 'isNecklace:', isNecklace);
       console.log('[A100] Skin tone:', state.skinTone);
       
+      // Start a simulated progress interval since A100 doesn't stream progress
+      // This provides visual feedback during the long generation call
+      const progressSteps = [
+        { progress: 30, label: 'Creating model scene...', delay: 3000 },
+        { progress: 40, label: 'Placing jewelry...', delay: 6000 },
+        { progress: 50, label: 'Generating photoshoot...', delay: 10000 },
+        { progress: 60, label: 'Refining details...', delay: 15000 },
+        { progress: 70, label: 'Enhancing with AI...', delay: 25000 },
+        { progress: 80, label: 'Finalizing...', delay: 40000 },
+      ];
+      
+      const progressTimeouts: NodeJS.Timeout[] = [];
+      progressSteps.forEach(({ progress, label, delay }) => {
+        const timeout = setTimeout(() => {
+          setGenerationProgress(progress);
+          setCurrentStepLabel(label);
+        }, delay);
+        progressTimeouts.push(timeout);
+      });
+      
       // Call A100 generate endpoint directly
       const generateResult = await a100Api.generate({
         image_base64: state.originalImage,
@@ -387,6 +407,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         enable_quality_check: true,
         enable_transformation: true,
       });
+      
+      // Clear all progress timeouts once we get the response
+      progressTimeouts.forEach(clearTimeout);
       
       if (!generateResult) {
         throw new Error('Generation failed. Please try again.');
