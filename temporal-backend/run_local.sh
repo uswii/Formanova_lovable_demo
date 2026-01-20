@@ -38,6 +38,20 @@ PID_FILE="$PROJECT_DIR/.backend.pids"
 # Helper Functions
 # =============================================================================
 
+# Find Python command (python3 or python)
+find_python() {
+    if command -v python3 &> /dev/null; then
+        echo "python3"
+    elif command -v python &> /dev/null; then
+        echo "python"
+    else
+        echo -e "${RED}Error: Python not found. Install python3.${NC}"
+        exit 1
+    fi
+}
+
+PYTHON_CMD=$(find_python)
+
 print_header() {
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
@@ -100,7 +114,7 @@ run_temporal_mode() {
     
     # Install dependencies
     echo "Installing Python dependencies..."
-    pip install -r "$PROJECT_DIR/requirements.txt" -q
+    $PYTHON_CMD -m pip install -r "$PROJECT_DIR/requirements.txt" -q
     
     # Clear old PIDs
     rm -f "$PID_FILE"
@@ -109,7 +123,7 @@ run_temporal_mode() {
     echo ""
     echo -e "${YELLOW}Starting Temporal Worker...${NC}"
     cd "$PROJECT_DIR"
-    python -m src.worker &
+    $PYTHON_CMD -m src.worker &
     WORKER_PID=$!
     echo "$WORKER_PID" >> "$PID_FILE"
     
@@ -117,7 +131,7 @@ run_temporal_mode() {
     
     # Start API Gateway
     echo -e "${YELLOW}Starting API Gateway...${NC}"
-    python -m src.api_gateway &
+    $PYTHON_CMD -m src.api_gateway &
     API_PID=$!
     echo "$API_PID" >> "$PID_FILE"
     
@@ -175,7 +189,7 @@ run_standalone_mode() {
     
     # Run the API server
     cd "$SERVER_DIR"
-    python api_server.py &
+    $PYTHON_CMD api_server.py &
     API_PID=$!
     echo "$API_PID" >> "$PID_FILE"
     
