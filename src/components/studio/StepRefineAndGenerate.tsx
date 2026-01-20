@@ -121,12 +121,18 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
         const overlayOpacity = 0.35;
         const { r, g, b } = selectedOverlayColor.rgb;
+        
+        // For necklaces: WHITE pixels = jewelry area (from SAM directly)
+        // For other jewelry: BLACK pixels = jewelry area (after inversion in StepUploadMark)
+        const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
         for (let i = 0; i < maskData.data.length; i += 4) {
           const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
 
-          // BLACK pixels get overlay (jewelry area) - consistent for all jewelry types
-          const shouldApplyOverlay = brightness < 128;
+          // Necklaces: WHITE pixels get overlay, Others: BLACK pixels get overlay
+          const shouldApplyOverlay = isNecklace 
+            ? brightness >= 128  // WHITE = jewelry for necklaces
+            : brightness < 128;  // BLACK = jewelry for other types
 
           if (shouldApplyOverlay) {
             overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + r * overlayOpacity);
@@ -145,7 +151,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     };
 
     createOverlay();
-  }, [state.originalImage, state.maskBinary, selectedOverlayColor]);
+  }, [state.originalImage, state.maskBinary, selectedOverlayColor, jewelryType]);
 
   // Helper to load image as promise
   const loadImageAsync = (src: string): Promise<HTMLImageElement> => {
