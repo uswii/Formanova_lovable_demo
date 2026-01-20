@@ -18,7 +18,6 @@ import {
   RefreshCw,
   Gem,
   XOctagon,
-  Bug,
   Paintbrush,
   Eraser,
 } from 'lucide-react';
@@ -163,8 +162,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   };
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
 
-  // Debug view state
-  const [showDebugView, setShowDebugView] = useState(false);
+  // Debug view state removed - no longer needed
 
   // Generation state - Temporal workflow
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -317,7 +315,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
-    setCurrentStepLabel('Connecting to AI server...');
+    setCurrentStepLabel('Preparing your photoshoot...');
 
     const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
@@ -593,38 +591,10 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
             {state.status && <StatusBadge status={state.status} />}
           </div>
           <h2 className="font-display text-2xl md:text-3xl uppercase tracking-tight">Generated Photoshoot</h2>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Switch 
-                id="debug-mode" 
-                checked={a100Api.debugMode} 
-                onCheckedChange={(checked) => {
-                  a100Api.debugMode = checked;
-                  setShowDebugView(checked);
-                }}
-              />
-              <Label htmlFor="debug-mode" className="text-xs">
-                <Bug className="h-3 w-3 inline mr-1" />Debug
-              </Label>
-            </div>
-            <Button size="default" className="px-6" onClick={handleGenerate}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
-            </Button>
-          </div>
+          <Button size="default" className="px-6" onClick={handleGenerate}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
+          </Button>
         </div>
-
-        {/* Debug Info - Simple display when debug mode is on */}
-        {showDebugView && (
-          <div className="mb-4 p-4 bg-muted/50 rounded-lg text-xs font-mono shrink-0">
-            <div className="font-bold mb-2">A100 Debug Info:</div>
-            <div>Session: {state.sessionId || 'N/A'}</div>
-            <div>Jewelry Type: {jewelryType}</div>
-            <div>Two Modes: {state.hasTwoModes ? 'Yes' : 'No'}</div>
-            <div>Has Flux Result: {state.fluxResult ? 'Yes' : 'No'}</div>
-            <div>Has Gemini Result: {state.geminiResult ? 'Yes' : 'No'}</div>
-            <div>Metrics: {state.metrics ? JSON.stringify(state.metrics) : 'None'}</div>
-          </div>
-        )}
 
         {/* Results content - fills remaining space */}
         <div className="flex-1 min-h-0">
