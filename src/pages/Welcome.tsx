@@ -65,7 +65,7 @@ export default function Welcome() {
         {/* Content */}
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
           <ScrollRevealSection animation="fade-left" className="max-w-2xl">
-            <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium drop-shadow-lg">
+            <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium">
               Trustable AI Photography for Jewelry
             </span>
 
@@ -76,7 +76,7 @@ export default function Welcome() {
             </div>
 
             <ScrollRevealSection animation="fade-up" delay={300}>
-              <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed drop-shadow-lg">
+              <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed">
                 AI imagery you can trust. No hallucinations. No subtle changes. Ever. 
                 Your jewelry accurately shown.
               </p>

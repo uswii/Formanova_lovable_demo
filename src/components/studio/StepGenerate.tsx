@@ -222,7 +222,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
               size="lg"
               onClick={handleGenerate}
               disabled={isGenerating || !state.maskBinary}
-              className="h-14 px-8 text-lg font-semibold formanova-glow"
+              className="h-14 px-8 text-lg font-semibold"
             >
               {isGenerating ? (
                 <>
