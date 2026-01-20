@@ -33,7 +33,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="group cursor-pointer"
-            onClick={() => navigate('/studio/necklace')}
+            onClick={() => navigate('/studio')}
           >
             <div className="relative overflow-hidden rounded-sm border border-border/50 bg-card/30 backdrop-blur-sm p-8 md:p-10 h-full transition-all duration-500 hover:border-primary/50 hover:bg-card/50">
               <div className="flex items-start justify-between mb-8">
