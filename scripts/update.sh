@@ -85,6 +85,9 @@ git pull origin "$CURRENT_BRANCH"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Code updated from origin/$CURRENT_BRANCH${NC}"
+    # Restore execute permissions on scripts (git doesn't always preserve them)
+    chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
+    echo -e "${GREEN}✓ Script permissions restored${NC}"
 else
     echo -e "${RED}✗ Git pull failed${NC}"
     exit 1
