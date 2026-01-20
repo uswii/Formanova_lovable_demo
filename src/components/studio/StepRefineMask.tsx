@@ -334,7 +334,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack, jewelryType
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <Button className="flex-1 formanova-glow" onClick={handleApplyEdits} disabled={isApplying}>
+            <Button className="flex-1" onClick={handleApplyEdits} disabled={isApplying}>
               {isApplying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Apply & Continue
               <ArrowRight className="h-4 w-4 ml-2" />
