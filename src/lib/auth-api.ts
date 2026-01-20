@@ -5,7 +5,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 // Direct backend URL for OAuth redirect (browser navigates directly)
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8009';
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
 export interface AuthUser {
   id: string;
@@ -67,7 +67,7 @@ export function removeStoredUser(): void {
 class AuthApi {
   // Initiate Google OAuth login (browser navigates directly to backend)
   initiateGoogleLogin(): void {
-    const authUrl = 'http://20.173.91.22:8009/auth/google/authorize';
+    const authUrl = 'http://20.173.91.22:8002/auth/google/authorize';
     console.log('[Auth] Redirecting to Google OAuth:', authUrl);
     
     // Try window.location.href first, fallback to window.open
