@@ -24,8 +24,6 @@ export default function AuthCallback() {
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    console.log('[AuthCallback] URL params:', { code: code?.slice(0, 20) + '...', state, errorParam });
-
     if (errorParam) {
       const message = errorDescription || errorParam;
       setError(`Authentication failed: ${message}`);
@@ -48,15 +46,10 @@ export default function AuthCallback() {
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
-      // Keep technical logs for debugging but show friendly message
-      console.log('[AuthCallback] Exchanging code for token...');
-      
-      // Build the callback URL
       const params = new URLSearchParams({ code });
       if (state) params.append('state', state);
       
       const callbackUrl = `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`;
-      console.log('[AuthCallback] Proxy URL:', callbackUrl);
 
       const response = await fetch(callbackUrl, {
         method: 'GET',
@@ -65,16 +58,12 @@ export default function AuthCallback() {
         },
       });
 
-      console.log('[AuthCallback] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[AuthCallback] Error response:', errorText);
-        throw new Error(errorText || `HTTP ${response.status}`);
+        throw new Error(errorText || 'Sign in failed');
       }
 
       const data = await response.json();
-      console.log('[AuthCallback] Response data:', { hasToken: !!data.access_token });
       
       if (data.access_token) {
         // Store token immediately
@@ -94,15 +83,11 @@ export default function AuthCallback() {
         throw new Error('No access token in response');
       }
     } catch (err) {
-      console.error('[AuthCallback] Error:', err);
-      const message = err instanceof Error ? err.message : 'Authentication failed';
-      setError(message);
+      setError('Something went wrong');
       toast({
         variant: 'destructive',
-        title: 'Authentication failed',
-        description: message.includes('CORS') || message.includes('Failed to fetch') 
-          ? 'Connection blocked. Please check CORS settings on the auth server.'
-          : message,
+        title: 'Sign in failed',
+        description: 'Please try again.',
       });
       setTimeout(() => navigate('/auth'), 3000);
     }
