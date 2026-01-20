@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Camera, Box, Image, Coins } from 'lucide-react';
+import { ArrowRight, Camera, Box } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -113,41 +113,6 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Secondary Actions */}
-        <motion.div 
-          className="grid md:grid-cols-2 gap-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <div 
-            className="group cursor-pointer flex items-center gap-4 p-6 rounded-sm border border-border/30 bg-card/20 hover:border-primary/30 hover:bg-card/40 transition-all duration-300"
-            onClick={() => navigate('/generations')}
-          >
-            <div className="p-3 rounded-sm bg-primary/10">
-              <Image className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-display text-lg">My Generations</h3>
-              <p className="text-sm text-muted-foreground">View your previous creations</p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
-          </div>
-
-          <div 
-            className="group cursor-pointer flex items-center gap-4 p-6 rounded-sm border border-border/30 bg-card/20 hover:border-primary/30 hover:bg-card/40 transition-all duration-300"
-            onClick={() => navigate('/credits')}
-          >
-            <div className="p-3 rounded-sm bg-primary/10">
-              <Coins className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-display text-lg">Credits & Usage</h3>
-              <p className="text-sm text-muted-foreground">Check your available credits</p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
-          </div>
-        </motion.div>
       </div>
     </div>
   );
