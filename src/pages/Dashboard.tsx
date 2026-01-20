@@ -27,7 +27,7 @@ export default function Dashboard() {
 
         {/* Main Pathways */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
-          {/* From Photo */}
+          {/* From Jewelry Photos */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -43,9 +43,11 @@ export default function Dashboard() {
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
               </div>
               
-              <h2 className="font-display text-2xl md:text-3xl mb-3">From Photo</h2>
+              <h2 className="font-display text-2xl md:text-3xl mb-3">From Jewelry Photos</h2>
               <p className="text-muted-foreground mb-6">
-                Upload mannequin or product photos to create stunning model photoshoots
+                Upload photos of real jewelry (model or mannequin).
+                <br />
+                Generate professional on-model e-commerce images.
               </p>
               
               <div className="space-y-3 text-sm">
@@ -55,7 +57,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-3 text-foreground/80">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span>Product photography enhancement</span>
+                  <span>Professional product photography</span>
                 </div>
                 <div className="flex items-center gap-3 text-foreground/80">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -65,7 +67,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* From CAD */}
+          {/* From Jewelry CAD */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,15 +88,17 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <h2 className="font-display text-2xl md:text-3xl mb-3 text-muted-foreground">From CAD</h2>
+              <h2 className="font-display text-2xl md:text-3xl mb-3 text-muted-foreground">From Jewelry CAD</h2>
               <p className="text-muted-foreground/70 mb-6">
-                Transform 3D CAD files into professional e-commerce photography
+                Upload CAD or digital jewelry designs.
+                <br />
+                Create realistic on-model e-commerce photoshoots.
               </p>
               
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3 text-muted-foreground/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                  <span>3D asset rendering</span>
+                  <span>3D CAD rendering</span>
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
