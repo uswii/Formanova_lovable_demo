@@ -7,10 +7,12 @@ const corsHeaders = {
 };
 
 // Backend URLs
-// Temporal gateway (port 8000) - for orchestrated workflows
+// Temporal gateway (20.173.91.22:8000) - for orchestrated workflows
 const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
-// Direct/Standalone API (port 8001) - for direct A100 execution
-const STANDALONE_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
+// A100 Standalone server (48.214.48.103:8000) - for direct api_server execution
+const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
+// Direct API on Temporal server (20.173.91.22:8001) - for multipart/masking tools
+const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
 
 // Helper to get backend URL based on mode parameter
 // Usage: ?mode=temporal (default) or ?mode=standalone
