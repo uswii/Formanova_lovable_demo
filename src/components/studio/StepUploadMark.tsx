@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
-import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon, Bug } from 'lucide-react';
+import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
 import { StudioState, SkinTone, MaskingOutputs } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
@@ -326,7 +326,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('Connecting to AI server...');
+    setProcessingStep('AI is identifying jewelry...');
 
     try {
       // Check if A100 server is online
