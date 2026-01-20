@@ -107,16 +107,17 @@ export type OverlayColorName = typeof OVERLAY_COLORS[number]['name'];
 /**
  * Creates a mask overlay visualization.
  * 
- * Mask convention (consistent for all jewelry types):
- * - BLACK pixels = jewelry area → apply translucent overlay to highlight
- * - WHITE pixels = background → show original image
+ * Mask convention:
+ * - For necklaces: WHITE pixels = jewelry area → apply overlay (SAM returns this directly)
+ * - For other jewelry: BLACK pixels = jewelry area → apply overlay (after inversion)
  */
 async function createMaskOverlay(
   originalImage: string, 
   maskBinary: string, 
-  overlayColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 }
+  overlayColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 },
+  isNecklaceType: boolean = false
 ): Promise<string> {
-  console.log('[createMaskOverlay] Starting with color:', overlayColor);
+  console.log('[createMaskOverlay] Starting with color:', overlayColor, 'isNecklace:', isNecklaceType);
   
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -158,8 +159,6 @@ async function createMaskOverlay(
       maskCtx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
       
       // Get mask data and create translucent overlay
-      // WHITE pixels = background (apply overlay)
-      // BLACK pixels = jewelry (keep original)
       const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
@@ -169,8 +168,11 @@ async function createMaskOverlay(
       for (let i = 0; i < maskData.data.length; i += 4) {
         const brightness = (maskData.data[i] + maskData.data[i + 1] + maskData.data[i + 2]) / 3;
         
-        // BLACK pixels get overlay (jewelry area) - consistent for all jewelry types
-        const shouldApplyOverlay = brightness < 128;
+        // For necklaces: WHITE pixels (brightness >= 128) are jewelry → apply overlay
+        // For other jewelry: BLACK pixels (brightness < 128) are jewelry → apply overlay
+        const shouldApplyOverlay = isNecklaceType 
+          ? brightness >= 128  // WHITE = jewelry for necklaces
+          : brightness < 128;  // BLACK = jewelry for other types
         
         if (shouldApplyOverlay) {
           overlayData.data[i] = Math.round(overlayData.data[i] * (1 - overlayOpacity) + overlayColor.r * overlayOpacity);
@@ -408,11 +410,12 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         originalMask = await invertMask(originalMask);
       }
       
-      // Create custom overlay with BLACK pixels = jewelry highlighted
+      // Create custom overlay - necklaces use WHITE=jewelry, others use BLACK=jewelry
       const customOverlay = await createMaskOverlay(
         processedImage,
         maskBinary,
-        { r: 0, g: 255, b: 0 } // Default green overlay
+        { r: 0, g: 255, b: 0 }, // Default green overlay
+        isNecklace // Pass jewelry type to flip overlay logic for necklaces
       );
       
       setProcessingProgress(100);
