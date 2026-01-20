@@ -1,9 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Authentication helper - validates JWT and returns user ID
+async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - missing or invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getUser(token);
+  
+  if (error || !data?.user) {
+    console.log('[azure-upload] Auth failed:', error?.message);
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  return { userId: data.user.id };
+}
 
 // Generate SAS token for blob access
 async function generateSasToken(
@@ -81,6 +116,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Authenticate request
+  const auth = await authenticateRequest(req);
+  if ('error' in auth) {
+    return auth.error;
+  }
+  console.log(`[azure-upload] Authenticated user: ${auth.userId}`);
+
   try {
     const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME');
     const AZURE_ACCOUNT_KEY = Deno.env.get('AZURE_ACCOUNT_KEY');
@@ -116,11 +158,11 @@ serve(async (req) => {
       cleanBase64 = base64.split(',')[1];
     }
 
-    // Generate unique blob name (flat structure - no subdirectories to avoid path issues)
+    // Generate unique blob name with user ID prefix for organization
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const extension = content_type?.includes('png') ? 'png' : 'jpg';
-    const blobName = filename || `${timestamp}_${random}.${extension}`;
+    const blobName = filename || `${auth.userId}/${timestamp}_${random}.${extension}`;
 
     // Decode base64 to binary
     const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
