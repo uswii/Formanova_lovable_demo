@@ -32,6 +32,9 @@ export interface AuthError {
 const TOKEN_KEY = 'formanova_auth_token';
 const USER_KEY = 'formanova_auth_user';
 
+// Custom event to notify React of auth changes (fixes race condition)
+export const AUTH_STATE_CHANGE_EVENT = 'formanova_auth_state_change';
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -60,6 +63,14 @@ export function setStoredUser(user: AuthUser): void {
 
 export function removeStoredUser(): void {
   localStorage.removeItem(USER_KEY);
+}
+
+/**
+ * Dispatch auth state change event to notify React components.
+ * This fixes the race condition between localStorage writes and React state updates.
+ */
+export function dispatchAuthChange(user: AuthUser | null): void {
+  window.dispatchEvent(new CustomEvent(AUTH_STATE_CHANGE_EVENT, { detail: { user } }));
 }
 
 // ========== Auth API Client ==========
@@ -151,6 +162,7 @@ class AuthApi {
     } finally {
       removeStoredToken();
       removeStoredUser();
+      dispatchAuthChange(null);
     }
   }
 
@@ -170,6 +182,7 @@ class AuthApi {
         if (response.status === 401) {
           removeStoredToken();
           removeStoredUser();
+          dispatchAuthChange(null);
           return null;
         }
         throw new Error('Failed to get user');
@@ -177,6 +190,7 @@ class AuthApi {
 
       const user = await response.json();
       setStoredUser(user);
+      dispatchAuthChange(user);
       return user;
     } catch (error) {
       console.error('Get user error:', error);

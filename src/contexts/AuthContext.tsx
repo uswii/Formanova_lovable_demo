@@ -5,6 +5,7 @@ import {
   getStoredUser, 
   removeStoredToken,
   removeStoredUser,
+  AUTH_STATE_CHANGE_EVENT,
   type AuthUser 
 } from '@/lib/auth-api';
 
@@ -21,9 +22,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage synchronously (instant load)
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
-  const [loading, setLoading] = useState(false); // Start as false - no blocking
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Listen for auth state changes from AuthCallback (fixes race condition)
+    const handleAuthChange = (event: CustomEvent<{ user: AuthUser | null }>) => {
+      console.log('[AuthContext] Auth state change event received:', event.detail.user?.email);
+      setUser(event.detail.user);
+    };
+
+    window.addEventListener(AUTH_STATE_CHANGE_EVENT, handleAuthChange as EventListener);
+
+    // Also listen for storage events (cross-tab sync)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'formanova_auth_user' || event.key === 'formanova_auth_token') {
+        console.log('[AuthContext] Storage change detected');
+        const updatedUser = getStoredUser();
+        setUser(updatedUser);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
     // Background validation - don't block UI
     const validateSession = async () => {
       const token = getStoredToken();
@@ -47,6 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     validateSession();
+
+    return () => {
+      window.removeEventListener(AUTH_STATE_CHANGE_EVENT, handleAuthChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const signInWithGoogle = () => {

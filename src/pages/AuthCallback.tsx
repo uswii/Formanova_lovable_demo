@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 const AUTH_SUCCESS_REDIRECT = '/studio';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { authApi, setStoredToken, setStoredUser } from '@/lib/auth-api';
+import { authApi, setStoredToken, setStoredUser, dispatchAuthChange } from '@/lib/auth-api';
 import { useToast } from '@/hooks/use-toast';
 
 // Use edge function proxy to avoid mixed content (HTTPS -> HTTP)
@@ -74,21 +74,34 @@ export default function AuthCallback() {
       
       if (data.access_token) {
         console.log('[AuthCallback] Got access_token, storing...');
-        // Store token immediately
+        // Store token in localStorage
         setStoredToken(data.access_token);
         
-        // Store user if included in response, otherwise fetch in background
-        if (data.user) {
-          console.log('[AuthCallback] Got user, storing...');
-          setStoredUser(data.user);
+        // Store user if included in response
+        let userData = data.user;
+        if (!userData) {
+          console.log('[AuthCallback] No user in response, fetching...');
+          setStatus('Getting your profile...');
+          // Fetch user data before redirect to ensure it's available
+          userData = await authApi.getCurrentUser();
         } else {
-          console.log('[AuthCallback] No user in response, fetching in background...');
-          // Fetch user in background - don't wait for it
-          authApi.getCurrentUser().catch(console.error);
+          setStoredUser(userData);
         }
         
+        console.log('[AuthCallback] User data:', userData?.email);
+        
+        // CRITICAL: Dispatch auth state change event BEFORE navigating
+        // This ensures AuthContext updates its state synchronously
+        if (userData) {
+          console.log('[AuthCallback] Dispatching auth change event...');
+          dispatchAuthChange(userData);
+        }
+        
+        // Small delay to ensure React state updates propagate
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         console.log('[AuthCallback] Redirecting to:', AUTH_SUCCESS_REDIRECT);
-        // Redirect to dashboard after successful auth
+        // Redirect to studio after successful auth
         navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
       } else {
         console.error('[AuthCallback] No access_token in response:', data);
