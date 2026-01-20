@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,11 +11,52 @@ const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8005';
 const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
 const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
 
+// Authentication helper - validates JWT and returns user ID
+async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - missing or invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getUser(token);
+  
+  if (error || !data?.user) {
+    console.log('[microservices-proxy] Auth failed:', error?.message);
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  return { userId: data.user.id };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Authenticate request
+  const auth = await authenticateRequest(req);
+  if ('error' in auth) {
+    return auth.error;
+  }
+  console.log(`[microservices-proxy] Authenticated user: ${auth.userId}`);
 
   try {
     const url = new URL(req.url);

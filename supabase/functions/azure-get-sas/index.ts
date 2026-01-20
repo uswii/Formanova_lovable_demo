@@ -1,9 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Authentication helper - validates JWT and returns user ID
+async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - missing or invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getUser(token);
+  
+  if (error || !data?.user) {
+    console.log('[azure-get-sas] Auth failed:', error?.message);
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  return { userId: data.user.id };
+}
 
 // Generate SAS token for blob access
 async function generateSasToken(
@@ -79,6 +114,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Authenticate request
+  const auth = await authenticateRequest(req);
+  if ('error' in auth) {
+    return auth.error;
+  }
+  console.log(`[azure-get-sas] Authenticated user: ${auth.userId}`);
 
   try {
     const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME');
