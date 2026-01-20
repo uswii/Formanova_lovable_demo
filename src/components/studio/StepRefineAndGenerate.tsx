@@ -377,7 +377,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
 
       if (isNecklace) {
         // Necklace: Use flux_gen_pipeline
-        setCurrentStepLabel('Starting Flux generation...');
+        setCurrentStepLabel('Starting AI generation...');
         
         const startResponse = await workflowApi.startFluxGen({
           imageBlob,

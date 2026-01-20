@@ -211,8 +211,8 @@ export const WORKFLOW_STEPS = {
   SUBMITTING_SAM3: { progress: 38, label: 'Submitting mask generation...' },
   POLLING_SAM3: { progress: 48, label: 'Generating mask...' },
   REFINING_MASK: { progress: 55, label: 'Applying refinements...' },
-  GENERATING_FLUX: { progress: 65, label: 'Generating photoshoot (Flux)...' },
-  GENERATING_GEMINI: { progress: 85, label: 'Generating photoshoot (Gemini)...' },
+  GENERATING_FLUX: { progress: 65, label: 'Generating photoshoot...' },
+  GENERATING_GEMINI: { progress: 85, label: 'Enhancing with AI...' },
   CALCULATING_METRICS: { progress: 95, label: 'Calculating fidelity metrics...' },
   COMPLETED: { progress: 100, label: 'Complete!' },
 } as const;
