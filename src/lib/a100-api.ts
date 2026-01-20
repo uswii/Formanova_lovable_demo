@@ -1,4 +1,7 @@
 // A100 Server API Integration via Edge Function Proxy
+// This is the standalone A100 server (api_server.py) - simple FastAPI endpoints
+// NOT the DAG/Temporal workflow system
+
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a100-proxy`;
 
 export interface HealthResponse {
@@ -6,6 +9,7 @@ export interface HealthResponse {
   models_loaded: boolean;
   gpu_available: boolean;
   gpu_name?: string;
+  gemini_available?: boolean;
   message: string;
 }
 
@@ -40,30 +44,39 @@ export interface RefineMaskResponse {
 export interface GenerateRequest {
   image_base64: string;
   mask_base64: string;
+  jewelry_type?: string;  // ring, bracelet, earring, necklace, watch
+  skin_tone?: string;     // light, fair, medium, olive, brown, dark
   original_mask_base64?: string;
-  gender: 'female' | 'male';
+  gender?: 'female' | 'male';
   use_gemini?: boolean;
   scaled_points?: number[][];
+  enable_quality_check?: boolean;
+  enable_transformation?: boolean;
 }
 
 export interface GenerateResponse {
   result_base64: string;
-  result_gemini_base64?: string;
+  result_gemini_base64?: string;  // Only for necklace (has two modes)
   fidelity_viz_base64?: string;
-  fidelity_viz_gemini_base64?: string;
+  fidelity_viz_gemini_base64?: string;  // Only for necklace
   metrics?: {
     precision: number;
     recall: number;
     iou: number;
+    dice?: number;
     growth_ratio: number;
+    extra_area_fraction?: number;
   };
   metrics_gemini?: {
     precision: number;
     recall: number;
     iou: number;
+    dice?: number;
     growth_ratio: number;
+    extra_area_fraction?: number;
   };
   session_id: string;
+  has_two_modes?: boolean;  // true for necklace, false for others
 }
 
 export interface ExampleImage {
@@ -78,6 +91,7 @@ class A100Api {
   private _isOnline: boolean = false;
   private _lastCheck: number = 0;
   private _checkInterval: number = 30000;
+  private _debugMode: boolean = false;
 
   constructor(proxyUrl: string) {
     this.proxyUrl = proxyUrl;
@@ -87,20 +101,52 @@ class A100Api {
     return this._isOnline;
   }
 
+  get debugMode(): boolean {
+    return this._debugMode;
+  }
+
+  set debugMode(value: boolean) {
+    this._debugMode = value;
+    console.log('[A100] Debug mode:', value ? 'ON' : 'OFF');
+  }
+
+  private log(...args: unknown[]) {
+    if (this._debugMode) {
+      console.log('[A100 DEBUG]', ...args);
+    }
+  }
+
   private getProxyEndpoint(endpoint: string): string {
     return `${this.proxyUrl}?endpoint=${encodeURIComponent(endpoint)}`;
+  }
+
+  private getAuthToken(): string | null {
+    // Check for custom auth token first (FormaNova auth)
+    const customToken = localStorage.getItem('formanova_auth_token');
+    if (customToken) {
+      return customToken;
+    }
+    // Fallback to Supabase anon key
+    return import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  }
+
+  private getHeaders(): Record<string, string> {
+    const token = this.getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
   }
 
   async checkHealth(): Promise<HealthResponse | null> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
+      this.log('Checking health...');
       const response = await fetch(this.getProxyEndpoint('/health'), {
         signal: controller.signal,
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: this.getHeaders(),
       });
       clearTimeout(timeoutId);
       
@@ -108,17 +154,16 @@ class A100Api {
         const data = await response.json();
         this._isOnline = data.status === 'online' && data.models_loaded === true;
         this._lastCheck = Date.now();
-        console.log('Health check result:', data, 'isOnline:', this._isOnline);
+        this.log('Health check result:', data, 'isOnline:', this._isOnline);
         return data;
       }
-      console.log('Health check failed - response not ok');
+      this.log('Health check failed - response not ok:', response.status);
       this._isOnline = false;
       return null;
     } catch (error) {
       console.error('A100 health check failed:', error);
-      // Don't set offline on timeout - could just be slow network
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Health check timed out - keeping previous state');
+        this.log('Health check timed out - keeping previous state');
         return null;
       }
       this._isOnline = false;
@@ -136,13 +181,13 @@ class A100Api {
 
   async getExamples(): Promise<ExampleImage[]> {
     try {
+      this.log('Fetching examples...');
       const response = await fetch(this.getProxyEndpoint('/examples'), {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: this.getHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
+        this.log('Examples fetched:', data.examples?.length || 0);
         return data.examples || [];
       }
       return [];
@@ -154,19 +199,30 @@ class A100Api {
 
   async segment(request: SegmentRequest): Promise<SegmentResponse | null> {
     try {
+      this.log('Segment request:', {
+        jewelryType: request.jewelry_type,
+        pointCount: request.points.length,
+        imageLength: request.image_base64.length,
+      });
+      
       const response = await fetch(this.getProxyEndpoint('/segment'), {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(request),
       });
       
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        this.log('Segment response:', {
+          sessionId: data.session_id,
+          imageWidth: data.image_width,
+          imageHeight: data.image_height,
+          scaledPoints: data.scaled_points?.length,
+        });
+        return data;
       }
-      console.error('Segment failed:', await response.text());
+      const errorText = await response.text();
+      console.error('Segment failed:', response.status, errorText);
       return null;
     } catch (error) {
       console.error('Segment request failed:', error);
@@ -176,19 +232,24 @@ class A100Api {
 
   async refineMask(request: RefineMaskRequest): Promise<RefineMaskResponse | null> {
     try {
+      this.log('Refine mask request:', {
+        strokeCount: request.brush_strokes.length,
+        strokes: request.brush_strokes.map(s => ({ type: s.type, points: s.points.length, radius: s.radius })),
+      });
+      
       const response = await fetch(this.getProxyEndpoint('/refine-mask'), {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(request),
       });
       
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        this.log('Refine mask response: success');
+        return data;
       }
-      console.error('Refine mask failed:', await response.text());
+      const errorText = await response.text();
+      console.error('Refine mask failed:', response.status, errorText);
       return null;
     } catch (error) {
       console.error('Refine mask request failed:', error);
@@ -198,19 +259,36 @@ class A100Api {
 
   async generate(request: GenerateRequest): Promise<GenerateResponse | null> {
     try {
+      this.log('Generate request:', {
+        jewelryType: request.jewelry_type,
+        skinTone: request.skin_tone,
+        gender: request.gender,
+        useGemini: request.use_gemini,
+        hasScaledPoints: !!request.scaled_points,
+        enableQualityCheck: request.enable_quality_check,
+        enableTransformation: request.enable_transformation,
+      });
+      
       const response = await fetch(this.getProxyEndpoint('/generate'), {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(request),
       });
       
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        this.log('Generate response:', {
+          sessionId: data.session_id,
+          hasTwoModes: data.has_two_modes,
+          hasResult: !!data.result_base64,
+          hasGeminiResult: !!data.result_gemini_base64,
+          hasFidelityViz: !!data.fidelity_viz_base64,
+          hasMetrics: !!data.metrics,
+        });
+        return data;
       }
-      console.error('Generate failed:', await response.text());
+      const errorText = await response.text();
+      console.error('Generate failed:', response.status, errorText);
       return null;
     } catch (error) {
       console.error('Generate request failed:', error);

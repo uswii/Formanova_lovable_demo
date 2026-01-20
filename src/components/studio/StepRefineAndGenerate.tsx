@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Lightbulb, 
   ArrowLeft, 
@@ -25,11 +26,8 @@ import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
-import { WorkflowDebugView } from './WorkflowDebugView';
-import { workflowApi, imageSourceToBlob, getStepProgress, type AgenticMaskingResponse } from '@/lib/workflow-api';
-import { compressImageBlob, compressDataUrl } from '@/lib/image-compression';
-import type { SkinTone as WorkflowSkinTone, MaskingOutputsForGeneration } from '@/lib/workflow-api';
-import { supabase } from '@/integrations/supabase/client';
+import { a100Api } from '@/lib/a100-api';
+import { compressDataUrl } from '@/lib/image-compression';
 
 interface Props {
   state: StudioState;
@@ -319,635 +317,165 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('generating');
     updateState({ isGenerating: true });
     setGenerationProgress(0);
-    setCurrentStepLabel('Preparing mask...');
+    setCurrentStepLabel('Connecting to AI server...');
 
     const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
 
     try {
+      // Check if A100 server is online
+      const isOnline = await a100Api.ensureOnline();
+      if (!isOnline) {
+        throw new Error('AI server is offline. Please try again later.');
+      }
+      
+      setGenerationProgress(5);
+      setCurrentStepLabel('Preparing mask...');
+      
       // IMPORTANT: If user has made brush edits, bake them into the mask before sending
       let maskToUse = baseMask;
       
       if (effectiveStrokes.length > 0) {
-        console.log('[Generation] Baking', effectiveStrokes.length, 'brush strokes into mask');
+        console.log('[A100] Baking', effectiveStrokes.length, 'brush strokes into mask');
         try {
           maskToUse = await bakeMaskWithStrokes(baseMask, effectiveStrokes);
-          console.log('[Generation] Baked mask ready, length:', maskToUse.length);
-          
-          // Also update state so user can see the final mask was used
+          console.log('[A100] Baked mask ready');
           updateState({ editedMask: maskToUse });
         } catch (bakeError) {
-          console.error('[Generation] Failed to bake strokes, using base mask:', bakeError);
-          // Fall back to base mask if baking fails
+          console.error('[A100] Failed to bake strokes, using base mask:', bakeError);
         }
       }
       
-      console.log('[Generation] Starting workflow');
-      console.log('[Generation] Jewelry type:', jewelryType, 'isNecklace:', isNecklace);
-      console.log('[Generation] Skin tone:', state.skinTone);
-      console.log('[Generation] Mask has strokes baked:', effectiveStrokes.length > 0);
-
-      // Convert image to Blob and compress if needed
-      const rawBlob = await imageSourceToBlob(state.originalImage);
-      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
-      if (wasCompressed) {
-        console.log('[Generation] Image compressed for upload');
-      }
-
-      // Also compress the mask if it's large
+      setGenerationProgress(10);
+      setCurrentStepLabel('Compressing images...');
+      
+      // Compress the mask if it's large
       let compressedMask = maskToUse;
-      const maskSizeKB = (maskToUse.length * 0.75) / 1024; // Approximate base64 to bytes
-      console.log('[Generation] Mask size estimate:', maskSizeKB.toFixed(1), 'KB');
+      const maskSizeKB = (maskToUse.length * 0.75) / 1024;
       
       if (maskSizeKB > 800) {
-        console.log('[Generation] Mask exceeds 800KB, compressing...');
-        setCurrentStepLabel('Compressing mask...');
-        const { blob: compressedMaskBlob, wasCompressed: maskWasCompressed } = await compressDataUrl(maskToUse, 800);
-        if (maskWasCompressed) {
-          // Convert blob back to base64
+        console.log('[A100] Mask exceeds 800KB, compressing...');
+        const { blob: compressedMaskBlob, wasCompressed } = await compressDataUrl(maskToUse, 800);
+        if (wasCompressed) {
           const reader = new FileReader();
           compressedMask = await new Promise((resolve) => {
             reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(compressedMaskBlob);
           });
-          console.log('[Generation] Mask compressed to', (compressedMask.length * 0.75 / 1024).toFixed(1), 'KB');
         }
       }
-
-      let result: Record<string, unknown>;
-
-      if (isNecklace) {
-        // Necklace: Use flux_gen_pipeline
-        setCurrentStepLabel('Starting AI generation...');
-        
-        const startResponse = await workflowApi.startFluxGen({
-          imageBlob,
-          maskBase64: compressedMask,
-          prompt: 'Necklace worn by female model, luxury editorial portrait, studio lighting',
-        });
-
-        console.log('[Generation] flux_gen_pipeline started:', startResponse.workflow_id);
-
-        // Poll until complete
-        const rawResult = await workflowApi.pollUntilComplete(
-          startResponse.workflow_id,
-          'flux_gen',
-          (progress, label) => {
-            setGenerationProgress(progress);
-            setCurrentStepLabel(label);
-          }
-        );
-
-        result = rawResult as Record<string, unknown>;
-      } else {
-        // Other jewelry: Use two-step sync flow (port 8001)
-        // Step 1: agentic_masking → Step 2: agentic_photoshoot
-        
-        // Map skin tone to workflow format (light/medium/dark)
-        let workflowSkinTone: WorkflowSkinTone = 'medium';
-        if (state.skinTone === 'light' || state.skinTone === 'fair') {
-          workflowSkinTone = 'light';
-        } else if (state.skinTone === 'dark' || state.skinTone === 'brown') {
-          workflowSkinTone = 'dark';
-        }
-
-        // Map jewelry type to singular form
-        let singularType: 'ring' | 'bracelet' | 'earrings' | 'watch' = 'ring';
-        if (jewelryType === 'rings' || jewelryType === 'ring') singularType = 'ring';
-        else if (jewelryType === 'bracelets' || jewelryType === 'bracelet') singularType = 'bracelet';
-        else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
-        else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
-
-        // ===== STEP 1: Agentic Masking (sync) =====
-        setCurrentStepLabel('Preparing your photoshoot...');
-        setGenerationProgress(10);
-        
-        console.log('[Generation] Step 1: Running agentic masking');
-        
-        // Convert image blob to base64 for the JSON endpoint
-        const imageBase64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(imageBlob);
-        });
-        
-        const maskingResponse = await workflowApi.runAgenticMasking({
-          imageBase64,
-          textPrompt: singularType,
-        });
-        
-        console.log('[Generation] Step 1 complete, got masking outputs');
-        setGenerationProgress(30);
-        
-        // Note: Temporal workflow will re-run masking on the backend, but we use
-        // the mask from Step 1 to ensure consistency with what the user sees
-        
-        // ===== STEP 2: Agentic Photoshoot via Temporal (with polling) =====
-        setCurrentStepLabel('Starting photoshoot workflow...');
-        setGenerationProgress(35);
-        
-        console.log('[Generation] Step 2: Starting Temporal photoshoot workflow');
-        
-        // Start the workflow via Temporal gateway (/process on port 8000)
-        const workflowStart = await workflowApi.startAllJewelryGeneration({
-          imageBlob,
-          jewelryType: singularType,
-          skinTone: workflowSkinTone,
-        });
-        
-        console.log('[Generation] Photoshoot workflow started:', workflowStart.workflow_id);
-        setCurrentStepLabel('Generating photoshoot...');
-        
-        // Poll for completion with progress updates
-        result = await workflowApi.pollUntilComplete(
-          workflowStart.workflow_id,
-          'all_jewelry',
-          (progress, label) => {
-            // Map workflow progress (0-100) to our 35-90 range
-            const mappedProgress = 35 + (progress * 0.55);
-            setGenerationProgress(Math.round(mappedProgress));
-            setCurrentStepLabel(label);
-          },
-          3000, // Poll every 3 seconds
-          600000 // 10 minute timeout
-        );
-        
-        console.log('[Generation] Photoshoot workflow complete');
-      }
-
-      setCurrentStepLabel('Final quality check...');
-      setGenerationProgress(95);
       
-      // Brief delay for UX
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setGenerationProgress(20);
+      setCurrentStepLabel('Generating photoshoot...');
+      
+      // Map jewelry type to singular form
+      let singularType = jewelryType;
+      if (jewelryType === 'necklaces') singularType = 'necklace';
+      else if (jewelryType === 'rings') singularType = 'ring';
+      else if (jewelryType === 'bracelets') singularType = 'bracelet';
+      else if (jewelryType === 'earrings') singularType = 'earring';
+      else if (jewelryType === 'watches') singularType = 'watch';
+      
+      console.log('[A100] Calling generate API');
+      console.log('[A100] Jewelry type:', singularType, 'isNecklace:', isNecklace);
+      console.log('[A100] Skin tone:', state.skinTone);
+      
+      // Call A100 generate endpoint directly
+      const generateResult = await a100Api.generate({
+        image_base64: state.originalImage,
+        mask_base64: compressedMask,
+        jewelry_type: singularType,
+        skin_tone: state.skinTone,
+        original_mask_base64: state.originalMask || undefined,
+        gender: state.gender,
+        use_gemini: true,
+        scaled_points: state.scaledPoints || undefined,
+        enable_quality_check: true,
+        enable_transformation: true,
+      });
+      
+      if (!generateResult) {
+        throw new Error('Generation failed. Please try again.');
+      }
+      
+      setGenerationProgress(90);
+      setCurrentStepLabel('Processing results...');
+      
+      console.log('[A100] Generate response:', {
+        sessionId: generateResult.session_id,
+        hasTwoModes: generateResult.has_two_modes,
+        hasResult: !!generateResult.result_base64,
+        hasGeminiResult: !!generateResult.result_gemini_base64,
+        hasFidelityViz: !!generateResult.fidelity_viz_base64,
+        hasMetrics: !!generateResult.metrics,
+      });
+      
+      // Format results from A100 API
+      const fluxResult = generateResult.result_base64?.startsWith('data:')
+        ? generateResult.result_base64
+        : `data:image/jpeg;base64,${generateResult.result_base64}`;
+      
+      const geminiResult = generateResult.result_gemini_base64
+        ? (generateResult.result_gemini_base64.startsWith('data:')
+          ? generateResult.result_gemini_base64
+          : `data:image/jpeg;base64,${generateResult.result_gemini_base64}`)
+        : null;
+      
+      const fidelityViz = generateResult.fidelity_viz_base64
+        ? (generateResult.fidelity_viz_base64.startsWith('data:')
+          ? generateResult.fidelity_viz_base64
+          : `data:image/jpeg;base64,${generateResult.fidelity_viz_base64}`)
+        : null;
+      
+      const fidelityVizGemini = generateResult.fidelity_viz_gemini_base64
+        ? (generateResult.fidelity_viz_gemini_base64.startsWith('data:')
+          ? generateResult.fidelity_viz_gemini_base64
+          : `data:image/jpeg;base64,${generateResult.fidelity_viz_gemini_base64}`)
+        : null;
+      
+      // Format metrics
+      const metrics = generateResult.metrics ? {
+        precision: generateResult.metrics.precision,
+        recall: generateResult.metrics.recall,
+        iou: generateResult.metrics.iou,
+        growthRatio: generateResult.metrics.growth_ratio,
+      } : null;
+      
+      const metricsGemini = generateResult.metrics_gemini ? {
+        precision: generateResult.metrics_gemini.precision,
+        recall: generateResult.metrics_gemini.recall,
+        iou: generateResult.metrics_gemini.iou,
+        growthRatio: generateResult.metrics_gemini.growth_ratio,
+      } : null;
       
       setGenerationProgress(100);
       setCurrentStepLabel('Complete!');
-
-      console.log('[Generation] Complete, result keys:', Object.keys(result));
-
-      // Extract results from DAG output
-      // Log critical nodes to debug
-      console.log('[Generation] CRITICAL DEBUG - result structure:');
-      console.log('[Generation] transform_apply exists:', result.transform_apply !== undefined);
-      console.log('[Generation] transform_apply type:', result.transform_apply ? 
-        (Array.isArray(result.transform_apply) ? `array[${(result.transform_apply as unknown[]).length}]` : typeof result.transform_apply) : 'undefined');
-      if (result.transform_apply) {
-        if (Array.isArray(result.transform_apply) && (result.transform_apply as unknown[]).length > 0) {
-          console.log('[Generation] transform_apply[0] keys:', Object.keys((result.transform_apply as Record<string, unknown>[])[0]));
-          console.log('[Generation] transform_apply[0].image_base64 preview:', 
-            String((result.transform_apply as Record<string, unknown>[])[0]?.image_base64 || '').substring(0, 80));
-        } else if (!Array.isArray(result.transform_apply)) {
-          console.log('[Generation] transform_apply keys:', Object.keys(result.transform_apply as Record<string, unknown>));
-        }
-      }
-      console.log('[Generation] composite exists:', result.composite !== undefined);
-      console.log('[Generation] ALL result keys:', Object.keys(result));
       
-      // Detect pipeline type
-      // NEW: agentic_photoshoot is the unified agentic pipeline
-      const hasAgenticPhotoshoot = result.agentic_photoshoot !== undefined;
-      const hasAllJewelryNodes = result.transform_apply !== undefined || 
-                                  result.gemini_hand_inpaint !== undefined ||
-                                  result.gemini_viton !== undefined;
-      const hasNecklaceNodes = result.composite !== undefined || result.composite_gemini !== undefined;
-      
-      console.log('[Generation] Pipeline detection:', { 
-        hasAgenticPhotoshoot,
-        hasAllJewelryNodes, 
-        hasNecklaceNodes,
-        resultKeys: Object.keys(result),
-      });
-      
-      // Get nodes for ALL_JEWELRY or NECKLACE pipeline (can be array-indexed or flat)
-      const getNode = (key: string): Record<string, unknown> | undefined => {
-        const val = result[key];
-        if (!val) {
-          return undefined;
-        }
-        // Handle both array-indexed and flat structures
-        if (Array.isArray(val) && val.length > 0) {
-          console.log(`[getNode] "${key}" is array[${val.length}], keys:`, Object.keys(val[0]));
-          return val[0] as Record<string, unknown>;
-        }
-        if (typeof val === 'object') {
-          console.log(`[getNode] "${key}" is object, keys:`, Object.keys(val as Record<string, unknown>));
-          return val as Record<string, unknown>;
-        }
-        return undefined;
-      };
-      
-      // AGENTIC_PHOTOSHOOT node (new unified pipeline)
-      const agenticPhotoshootNode = getNode('agentic_photoshoot');
-      
-      // ALL_JEWELRY nodes (legacy)
-      const transformApplyNode = getNode('transform_apply');
-      const geminiHandInpaintNode = getNode('gemini_hand_inpaint');
-      const geminiVitonNode = getNode('gemini_viton');
-      const compositeAllJewelryNode = getNode('composite_all_jewelry');
-      const maskInvertFinalNode = getNode('mask_invert_final');
-      const transformMaskNode = getNode('transform_mask');
-      
-      // NECKLACE nodes (flat objects, not arrays)
-      const compositeNode = getNode('composite');
-      const compositeGeminiNode = getNode('composite_gemini');
-      const maskInvertFluxNode = getNode('mask_invert_flux');
-      const maskInvertGeminiNode = getNode('mask_invert_gemini');
-      const qualityMetricsFluxNode = getNode('quality_metrics');
-      const qualityMetricsGeminiNode = getNode('quality_metrics_gemini');
-      
-      console.log('[Generation] Node availability:', {
-        // All jewelry nodes
-        transformApply: !!transformApplyNode,
-        geminiHandInpaint: !!geminiHandInpaintNode,
-        geminiViton: !!geminiVitonNode,
-        compositeAllJewelry: !!compositeAllJewelryNode,
-        maskInvertFinal: !!maskInvertFinalNode,
-        transformMask: !!transformMaskNode,
-        // Necklace nodes
-        composite: !!compositeNode,
-        compositeGemini: !!compositeGeminiNode,
-        maskInvertFlux: !!maskInvertFluxNode,
-        maskInvertGemini: !!maskInvertGeminiNode,
-      });
-      
-      // Helper to extract image - handles Azure URIs and base64
-      const extractImage = async (node: Record<string, unknown> | undefined, fieldName: string = 'image_base64'): Promise<string | null> => {
-        if (!node) {
-          return null;
-        }
-        
-        // Get the field value
-        const imageField = node[fieldName];
-        
-        if (!imageField) {
-          console.log(`[extractImage] Field "${fieldName}" not found in node. Available keys:`, Object.keys(node));
-          return null;
-        }
-        
-        console.log(`[extractImage] Field "${fieldName}" type:`, typeof imageField);
-        
-        // Check for Azure URI object: { uri: "azure://...", type: "...", ... }
-        if (typeof imageField === 'object' && imageField !== null) {
-          const imageObj = imageField as Record<string, unknown>;
-          const uriValue = imageObj.uri;
-          
-          if (typeof uriValue === 'string' && uriValue.startsWith('azure://')) {
-            console.log('[extractImage] Fetching from Azure URI:', uriValue.substring(0, 80));
-            try {
-              const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-                body: { azure_uri: uriValue },
-              });
-              if (error) {
-                console.error('[extractImage] Azure fetch error:', error);
-                return null;
-              }
-              if (!data?.base64) {
-                console.error('[extractImage] Azure response missing base64');
-                return null;
-              }
-              console.log('[extractImage] Azure fetch success, base64 length:', data.base64.length);
-              return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
-            } catch (fetchError) {
-              console.error('[extractImage] Azure fetch threw:', fetchError);
-              return null;
-            }
-          }
-          
-          // Check if it's a nested object with another uri (e.g., mask.uri.uri)
-          if (typeof uriValue === 'object' && uriValue !== null) {
-            const nestedUri = (uriValue as Record<string, unknown>).uri;
-            if (typeof nestedUri === 'string' && nestedUri.startsWith('azure://')) {
-              console.log('[extractImage] Fetching from nested Azure URI:', nestedUri.substring(0, 80));
-              try {
-                const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-                  body: { azure_uri: nestedUri },
-                });
-                if (error) {
-                  console.error('[extractImage] Nested Azure fetch error:', error);
-                  return null;
-                }
-                if (!data?.base64) {
-                  console.error('[extractImage] Nested Azure response missing base64');
-                  return null;
-                }
-                console.log('[extractImage] Nested Azure fetch success');
-                return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
-              } catch (fetchError) {
-                console.error('[extractImage] Nested Azure fetch threw:', fetchError);
-                return null;
-              }
-            }
-          }
-          
-          console.log('[extractImage] Object field but no valid Azure URI. Keys:', Object.keys(imageObj));
-          return null;
-        }
-        
-        // Check for direct azure:// string
-        if (typeof imageField === 'string' && imageField.startsWith('azure://')) {
-          console.log('[extractImage] Fetching from Azure string:', imageField.substring(0, 60));
-          try {
-            const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-              body: { azure_uri: imageField },
-            });
-            if (error) {
-              console.error('[extractImage] Azure string fetch error:', error);
-              return null;
-            }
-            if (!data?.base64) {
-              console.error('[extractImage] Azure string response missing base64');
-              return null;
-            }
-            console.log('[extractImage] Azure string fetch success');
-            return `data:${data.content_type || 'image/png'};base64,${data.base64}`;
-          } catch (fetchError) {
-            console.error('[extractImage] Azure string fetch threw:', fetchError);
-            return null;
-          }
-        }
-        
-        // Check for direct base64 string
-        if (typeof imageField === 'string' && imageField.length > 100) {
-          console.log('[extractImage] Using direct base64 string, length:', imageField.length);
-          return imageField.startsWith('data:') ? imageField : `data:image/png;base64,${imageField}`;
-        }
-        
-        console.log('[extractImage] No valid image format found');
-        return null;
-      };
-      
-      // Extract images based on pipeline structure
-      let fluxResult: string | null = null;
-      let geminiResult: string | null = null;
-      let outputMaskImage: string | null = null;
-      let outputMaskGeminiImage: string | null = null;
-      let transformedInputMaskImage: string | null = null;
-      let backendMetrics: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
-      let backendFidelityViz: string | null = null;
-      
-      if (hasAgenticPhotoshoot && agenticPhotoshootNode) {
-        // AGENTIC_PHOTOSHOOT pipeline (new unified pipeline)
-        // Uses: final_image_base64, fidelity_overlay_base64, mask_metrics, output_mask_base64
-        console.log('[Generation] Using AGENTIC_PHOTOSHOOT extraction');
-        console.log('[Generation] agenticPhotoshootNode keys:', Object.keys(agenticPhotoshootNode));
-        
-        // Primary output: final_image_base64
-        geminiResult = await extractImage(agenticPhotoshootNode, 'final_image_base64');
-        fluxResult = geminiResult; // Use same for both slots
-        
-        // Extract fidelity overlay from backend
-        backendFidelityViz = await extractImage(agenticPhotoshootNode, 'fidelity_overlay_base64');
-        
-        // Extract output mask
-        outputMaskImage = await extractImage(agenticPhotoshootNode, 'output_mask_base64');
-        outputMaskGeminiImage = outputMaskImage;
-        
-        // Extract metrics from backend
-        const metrics = agenticPhotoshootNode.mask_metrics as Record<string, number> | undefined;
-        if (metrics) {
-          backendMetrics = {
-            precision: metrics.precision ?? 0,
-            recall: metrics.recall ?? 0,
-            iou: metrics.iou ?? 0,
-            growthRatio: metrics.growth_ratio ?? 1,
-          };
-          console.log('[Generation] Backend metrics:', backendMetrics);
-        }
-        
-        console.log('[Generation] AGENTIC_PHOTOSHOOT extraction:', {
-          hasResult: !!geminiResult,
-          hasFidelityViz: !!backendFidelityViz,
-          hasOutputMask: !!outputMaskImage,
-          hasMetrics: !!backendMetrics,
-        });
-        
-      } else if (hasAllJewelryNodes) {
-        // ALL_JEWELRY pipeline: array-indexed nodes (legacy)
-        // Primary output: transform_apply[0].image_base64 (final composited)
-        // Alternative: gemini_hand_inpaint[0].image_base64 (AI inpainted)
-        console.log('[Generation] Using ALL_JEWELRY array-indexed extraction');
-        
-        // Extract final composited image - try multiple nodes
-        geminiResult = await extractImage(transformApplyNode, 'image_base64')
-          || await extractImage(geminiHandInpaintNode, 'image_base64')
-          || await extractImage(geminiVitonNode, 'image_base64')
-          || await extractImage(compositeAllJewelryNode, 'image_base64');
-        
-        // Use same image for both slots (all_jewelry only has one output)
-        fluxResult = geminiResult;
-        
-        console.log('[Generation] ALL_JEWELRY image extraction:', {
-          fromTransformApply: !!transformApplyNode,
-          fromGeminiHandInpaint: !!geminiHandInpaintNode,
-          fromGeminiViton: !!geminiVitonNode,
-          fromCompositeAllJewelry: !!compositeAllJewelryNode,
-          hasResult: !!geminiResult,
-        });
-        
-        // Extract masks for fidelity visualization
-        // IMPORTANT: For perfect metrics, use transform_apply.mask_base64 as OUTPUT mask
-        // This is the exact mask we used to composite the original jewelry onto the inpainted image
-        // Using mask_invert_final (SAM3 re-extraction) picks up extra areas (ear, shadows)
-        
-        // Get transformed input mask (what we used for compositing)
-        transformedInputMaskImage = await extractImage(transformMaskNode, 'mask_base64')
-          || await extractImage(transformMaskNode, 'image_base64');
-        
-        // Use transform_apply.mask_base64 as output mask (the actual mask used in final composite)
-        // This should give perfect match since we're comparing the same mask
-        const transformApplyMask = await extractImage(transformApplyNode, 'mask_base64');
-        
-        // Fallback to mask_invert_final only if transform_apply.mask_base64 not available
-        outputMaskImage = transformApplyMask 
-          || await extractImage(maskInvertFinalNode, 'mask_base64')
-          || await extractImage(maskInvertFinalNode, 'mask');
-        outputMaskGeminiImage = outputMaskImage;
-          
-        console.log('[Generation] ALL_JEWELRY mask extraction:', {
-          hasTransformedInputMask: !!transformedInputMaskImage,
-          hasTransformApplyMask: !!transformApplyMask,
-          hasOutputMask: !!outputMaskImage,
-          usingTransformApplyMask: !!transformApplyMask,
-        });
-        
-      } else if (hasNecklaceNodes) {
-        // NECKLACE pipeline: flat objects (result.composite.image_base64)
-        console.log('[Generation] Using NECKLACE flat object extraction');
-        
-        // Primary: composite nodes have the final displayable base64 images
-        fluxResult = await extractImage(compositeNode, 'image_base64');
-        geminiResult = await extractImage(compositeGeminiNode, 'image_base64');
-        
-        // Extract output masks for necklace fidelity visualization
-        outputMaskImage = await extractImage(maskInvertFluxNode, 'mask_base64') 
-          || await extractImage(maskInvertFluxNode, 'mask');
-        outputMaskGeminiImage = await extractImage(maskInvertGeminiNode, 'mask_base64') 
-          || await extractImage(maskInvertGeminiNode, 'mask');
-          
-        console.log('[Generation] NECKLACE extraction results:', {
-          hasFluxResult: !!fluxResult,
-          hasGeminiResult: !!geminiResult,
-          hasFluxMask: !!outputMaskImage,
-          hasGeminiMask: !!outputMaskGeminiImage,
-        });
-      } else {
-        // Fallback: try all possible extraction methods
-        console.log('[Generation] Using fallback extraction, trying all nodes');
-        
-        // Try all_jewelry nodes first
-        geminiResult = await extractImage(transformApplyNode, 'image_base64')
-          || await extractImage(geminiHandInpaintNode, 'image_base64')
-          || await extractImage(geminiVitonNode, 'image_base64')
-          || await extractImage(compositeAllJewelryNode, 'image_base64');
-        fluxResult = geminiResult;
-        
-        // Then try necklace nodes (flat objects)
-        if (!fluxResult) {
-          fluxResult = await extractImage(compositeNode, 'image_base64');
-        }
-        if (!geminiResult) {
-          geminiResult = await extractImage(compositeGeminiNode, 'image_base64');
-        }
-      }
-      
-      console.log('[Generation] Extracted images:', {
-        hasFluxResult: !!fluxResult,
-        hasGeminiResult: !!geminiResult,
-        hasOutputMask: !!outputMaskImage,
-        hasOutputMaskGemini: !!outputMaskGeminiImage,
-        hasTransformedInputMask: !!transformedInputMaskImage,
-      });
-      
-      // Create fidelity visualizations on frontend if we have masks
-      let fidelityViz: string | null = null;
-      let fidelityVizGemini: string | null = null;
-      let calculatedMetrics: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
-      let calculatedMetricsGemini: { precision: number; recall: number; iou: number; growthRatio: number } | null = null;
-      
-      // For AGENTIC_PHOTOSHOOT, use backend-provided metrics and fidelity viz
-      if (hasAgenticPhotoshoot && backendMetrics) {
-        calculatedMetrics = backendMetrics;
-        calculatedMetricsGemini = backendMetrics; // Same for both slots
-        fidelityViz = backendFidelityViz;
-        fidelityVizGemini = backendFidelityViz;
-        console.log('[Generation] Using backend metrics and fidelity viz from agentic_photoshoot');
-      } else {
-        // For other pipelines, calculate on frontend
-        // For ALL_JEWELRY, use transformed_input_mask (aligned) instead of user's original mask
-        const inputMaskForViz = transformedInputMaskImage || state.maskBinary;
-        
-        if (inputMaskForViz && fluxResult && outputMaskImage) {
-          try {
-            const { createFidelityVisualization } = await import('@/lib/mask-visualization');
-            const vizResult = await createFidelityVisualization(fluxResult, inputMaskForViz, outputMaskImage, false, false);
-            fidelityViz = vizResult.visualization;
-            calculatedMetrics = {
-              precision: vizResult.metrics.precision,
-              recall: vizResult.metrics.recall,
-              iou: vizResult.metrics.iou,
-              growthRatio: vizResult.metrics.growthRatio,
-            };
-            console.log('[Generation] Created Flux fidelity viz, metrics:', calculatedMetrics);
-          } catch (vizError) {
-            console.error('[Generation] Failed to create Flux fidelity viz:', vizError);
-          }
-        }
-        
-        if (inputMaskForViz && geminiResult && outputMaskGeminiImage) {
-          try {
-            const { createFidelityVisualization } = await import('@/lib/mask-visualization');
-            const vizResult = await createFidelityVisualization(geminiResult, inputMaskForViz, outputMaskGeminiImage, false, false);
-            fidelityVizGemini = vizResult.visualization;
-            calculatedMetricsGemini = {
-              precision: vizResult.metrics.precision,
-              recall: vizResult.metrics.recall,
-              iou: vizResult.metrics.iou,
-              growthRatio: vizResult.metrics.growthRatio,
-            };
-            console.log('[Generation] Created Gemini fidelity viz, metrics:', calculatedMetricsGemini);
-          } catch (vizError) {
-            console.error('[Generation] Failed to create Gemini fidelity viz:', vizError);
-          }
-        }
-        
-        // Extract quality metrics from backend for legacy pipelines
-        // Use the pre-defined nodes from earlier or fall back to array-indexed access
-        const metricsNode = qualityMetricsFluxNode || getNode('quality_metrics');
-        const metricsGeminiNode = qualityMetricsGeminiNode || getNode('quality_metrics_gemini');
-        
-        // Use backend metrics if we didn't calculate them
-        if (!calculatedMetrics && metricsNode && metricsNode.precision !== undefined) {
-          calculatedMetrics = {
-            precision: metricsNode.precision as number,
-            recall: metricsNode.recall as number,
-            iou: metricsNode.iou as number,
-            growthRatio: metricsNode.growth_ratio as number,
-          };
-          console.log('[Generation] Using backend metrics:', calculatedMetrics);
-        }
-        
-        if (!calculatedMetricsGemini) {
-          // For all_jewelry, gemini metrics = main metrics (only one output)
-          const metricsSource = hasAllJewelryNodes ? metricsNode : metricsGeminiNode;
-          if (metricsSource && metricsSource.precision !== undefined) {
-            calculatedMetricsGemini = {
-              precision: metricsSource.precision as number,
-              recall: metricsSource.recall as number,
-              iou: metricsSource.iou as number,
-              growthRatio: metricsSource.growth_ratio as number,
-            };
-          }
-        }
-      }
-      
-      console.log('[Generation] Final results:', { 
-        hasFluxResult: !!fluxResult, 
-        hasGeminiResult: !!geminiResult,
-        hasFidelityViz: !!fidelityViz,
-        hasFidelityVizGemini: !!fidelityVizGemini,
-        calculatedMetrics, 
-        calculatedMetricsGemini 
-      });
-
-      // Check if we got at least one result image
-      if (!fluxResult && !geminiResult) {
-        console.error('[Generation] No result images extracted! Result structure:', {
-          hasAgenticPhotoshoot,
-          hasAllJewelryNodes,
-          hasNecklaceNodes,
-          resultKeys: Object.keys(result),
-        });
-        throw new Error('Generation completed but no images could be extracted');
-      }
-
-      // Determine workflow type for debug view
-      let workflowTypeForDebug: 'flux_gen' | 'all_jewelry' = 'all_jewelry';
-      if (isNecklace) {
-        workflowTypeForDebug = 'flux_gen';
-      }
+      // Determine status based on metrics
+      const status = (metrics && metrics.precision > 0.9) || (metricsGemini && metricsGemini.precision > 0.9)
+        ? 'good' as const
+        : 'bad' as const;
 
       updateState({
-        fluxResult: fluxResult || null,
-        geminiResult: geminiResult || null,
-        fidelityViz: fidelityViz,
+        fluxResult,
+        geminiResult,
+        fidelityViz,
         fidelityVizGemini: fidelityVizGemini,
-        metrics: calculatedMetrics,
-        metricsGemini: calculatedMetricsGemini,
-        status: (calculatedMetrics && calculatedMetrics.precision > 0.9) || (calculatedMetricsGemini && calculatedMetricsGemini.precision > 0.9) ? 'good' : 'bad',
+        metrics,
+        metricsGemini,
+        status,
         isGenerating: false,
-        hasTwoModes: isNecklace, // Only necklace has two tabs (Standard + Enhanced)
-        workflowResults: result,
-        workflowType: workflowTypeForDebug,
+        hasTwoModes: generateResult.has_two_modes ?? isNecklace,
+        sessionId: generateResult.session_id,
       });
 
       setCurrentView('results');
 
     } catch (error) {
-      console.error('Generation error:', error);
+      console.error('[A100] Generation error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation failed',
-        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to generate. Is the A100 server online?',
       });
       updateState({ isGenerating: false });
       setCurrentView('refine');
@@ -955,7 +483,6 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   };
 
   const handleCancel = async () => {
-    // Cancel via Temporal if we have a workflow ID
     updateState({ isGenerating: false });
     setCurrentView('refine');
   };
@@ -1067,28 +594,35 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           </div>
           <h2 className="font-display text-2xl md:text-3xl uppercase tracking-tight">Generated Photoshoot</h2>
           <div className="flex items-center gap-2">
-            <Button 
-              variant={showDebugView ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setShowDebugView(!showDebugView)}
-              title="Show all node outputs for debugging"
-            >
-              <Bug className="h-4 w-4 mr-2" /> Debug View
-            </Button>
+            <div className="flex items-center gap-2">
+              <Switch 
+                id="debug-mode" 
+                checked={a100Api.debugMode} 
+                onCheckedChange={(checked) => {
+                  a100Api.debugMode = checked;
+                  setShowDebugView(checked);
+                }}
+              />
+              <Label htmlFor="debug-mode" className="text-xs">
+                <Bug className="h-3 w-3 inline mr-1" />Debug
+              </Label>
+            </div>
             <Button size="default" className="px-6" onClick={handleGenerate}>
               <RefreshCw className="h-4 w-4 mr-2" /> Regenerate
             </Button>
           </div>
         </div>
 
-        {/* Debug View - Shows all node outputs */}
-        {showDebugView && state.workflowResults && state.workflowType && (
-          <div className="mb-4 shrink-0 max-h-[50vh] overflow-auto">
-            <WorkflowDebugView 
-              results={state.workflowResults as Record<string, unknown[]>} 
-              workflowType={state.workflowType}
-              onClose={() => setShowDebugView(false)}
-            />
+        {/* Debug Info - Simple display when debug mode is on */}
+        {showDebugView && (
+          <div className="mb-4 p-4 bg-muted/50 rounded-lg text-xs font-mono shrink-0">
+            <div className="font-bold mb-2">A100 Debug Info:</div>
+            <div>Session: {state.sessionId || 'N/A'}</div>
+            <div>Jewelry Type: {jewelryType}</div>
+            <div>Two Modes: {state.hasTwoModes ? 'Yes' : 'No'}</div>
+            <div>Has Flux Result: {state.fluxResult ? 'Yes' : 'No'}</div>
+            <div>Has Gemini Result: {state.geminiResult ? 'Yes' : 'No'}</div>
+            <div>Metrics: {state.metrics ? JSON.stringify(state.metrics) : 'None'}</div>
           </div>
         )}
 

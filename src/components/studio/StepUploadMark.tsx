@@ -3,15 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
-import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon } from 'lucide-react';
+import { Lightbulb, Loader2, Image as ImageIcon, X, Diamond, Sparkles, Play, Undo2, Redo2, Circle, Expand, Download, HelpCircle, Gem, XOctagon, Bug } from 'lucide-react';
 import { StudioState, SkinTone, MaskingOutputs } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
-import { workflowApi, imageSourceToBlob, getStepProgress } from '@/lib/workflow-api';
-import { compressImageBlob } from '@/lib/image-compression';
-import { supabase } from '@/integrations/supabase/client';
-
+import { a100Api } from '@/lib/a100-api';
+import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 // Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
 import exampleTeardropBlue from '@/assets/examples/necklace-teardrop-blue.jpg';
@@ -91,26 +89,7 @@ async function invertMask(maskDataUrl: string): Promise<string> {
   });
 }
 
-// Fetch image from Azure using azure:// URI
-async function fetchAzureImage(azureUri: string): Promise<string> {
-  console.log('[Azure] Fetching image:', azureUri);
-  
-  const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-    body: { azure_uri: azureUri },
-  });
-  
-  if (error) {
-    console.error('[Azure] Fetch error:', error);
-    throw new Error(`Failed to fetch from Azure: ${error.message}`);
-  }
-  
-  if (!data?.base64) {
-    throw new Error('No image data returned from Azure');
-  }
-  
-  const contentType = data.content_type || 'image/png';
-  return `data:${contentType};base64,${data.base64}`;
-}
+// Azure fetch removed - A100 API returns base64 directly
 
 // Create an overlay by compositing the binary mask (green tint) over the original image
 // Available overlay colors for mask visualization
@@ -324,7 +303,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     }
   }, [state.originalImage, handlePaste]);
 
-  // Run preprocessing via DAG pipeline when user clicks Continue
+  // Run segmentation via A100 API directly
   const handleProceed = async () => {
     if (redDots.length === 0) {
       toast({
@@ -344,25 +323,29 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       return;
     }
 
-    const isNecklaceType = jewelryType === 'necklace' || jewelryType === 'necklaces';
-
     // Start processing
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingStep('AI is identifying jewelry...');
+    setProcessingStep('Connecting to AI server...');
 
     try {
-      // Convert image to Blob for workflow API
-      const rawBlob = await imageSourceToBlob(state.originalImage);
-      
-      // Compress image to stay under 1024KB backend limit
-      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
-      if (wasCompressed) {
-        console.log('[Masking] Image compressed for upload');
+      // Check if A100 server is online
+      const isOnline = await a100Api.ensureOnline();
+      if (!isOnline) {
+        throw new Error('AI server is offline. Please try again later.');
       }
       
-      // Also convert to data URL for overlay creation (handles local asset paths)
-      const originalImageDataUrl = await new Promise<string>((resolve, reject) => {
+      setProcessingProgress(10);
+      setProcessingStep('Preparing image...');
+      
+      // Convert image to base64
+      const rawBlob = await imageSourceToBlob(state.originalImage);
+      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
+      if (wasCompressed) {
+        console.log('[A100] Image compressed for upload');
+      }
+      
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
@@ -371,250 +354,84 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       
       // Convert points to array format [[x, y], ...]
       const points = redDots.map(dot => [dot.x, dot.y]);
-      // All points are foreground (1) for now
-      const pointLabels = redDots.map(() => 1);
-
-      let maskBinary: string | null = null;
-      let maskOverlay: string | null = null;
-      let processedImage: string | null = null;
-      let workflowId: string;
       
-      // Prepare masking outputs for caching (to skip re-masking in generation)
-      // Only populated for non-necklace jewelry types
-      const maskingOutputs: MaskingOutputs = {};
-
-      if (isNecklaceType) {
-        // === NECKLACE: Run necklace_point_masking workflow ===
-        console.log('[Masking] Starting necklace_point_masking workflow for necklace');
-        console.log('[Masking] Points:', points.length);
-
-        const startResponse = await workflowApi.startMasking({
-          imageBlob,
-          points,
-          pointLabels,
-        });
-
-        workflowId = startResponse.workflow_id;
-        console.log('[Masking] Workflow started:', workflowId);
-
-        // Poll until complete with progress updates
-        const result = await workflowApi.pollUntilComplete(
-          workflowId,
-          'masking',
-          (progress, label) => {
-            setProcessingProgress(progress);
-            setProcessingStep(label);
-          }
-        );
-
-        console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
-
-        // Extract mask data from result
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resultAny = result as any;
-        const sam3Result = resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
-        
-        console.log('[Masking] sam3Result:', sam3Result);
-        
-        // Check if mask is an Azure URI or base64
-        if (sam3Result.mask?.uri && sam3Result.mask.uri.startsWith('azure://')) {
-          setProcessingStep('Fetching mask from storage...');
-          maskBinary = await fetchAzureImage(sam3Result.mask.uri);
-        } else if (sam3Result.mask_base64) {
-          maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
-        }
-        
-        // Handle overlay
-        if (sam3Result.mask_overlay?.uri && sam3Result.mask_overlay.uri.startsWith('azure://')) {
-          maskOverlay = await fetchAzureImage(sam3Result.mask_overlay.uri);
-        } else if (sam3Result.mask_overlay_base64) {
-          maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
-        }
-        
-        // Handle processed image
-        if (sam3Result.processed_image?.uri && sam3Result.processed_image.uri.startsWith('azure://')) {
-          processedImage = await fetchAzureImage(sam3Result.processed_image.uri);
-        } else if (sam3Result.processed_image_base64) {
-          processedImage = `data:image/jpeg;base64,${sam3Result.processed_image_base64}`;
-        }
-
-      } else {
-        // === NON-NECKLACE: Run all_jewelry_masking workflow ===
-        // Map jewelry type to singular form
-        let singularType: 'ring' | 'bracelet' | 'earrings' | 'watch' = 'ring';
-        if (jewelryType === 'rings' || jewelryType === 'ring') singularType = 'ring';
-        else if (jewelryType === 'bracelets' || jewelryType === 'bracelet') singularType = 'bracelet';
-        else if (jewelryType === 'earrings' || jewelryType === 'earring') singularType = 'earrings';
-        else if (jewelryType === 'watches' || jewelryType === 'watch') singularType = 'watch';
-
-        console.log('[Masking] Starting all_jewelry_masking workflow for', singularType);
-        console.log('[Masking] Points:', points.length);
-
-        const startResponse = await workflowApi.startAllJewelryMasking({
-          imageBlob,
-          points,
-          pointLabels,
-          jewelryType: singularType,
-        });
-
-        workflowId = startResponse.workflow_id;
-        console.log('[Masking] Workflow started:', workflowId);
-
-        // Poll until complete with progress updates
-        const result = await workflowApi.pollUntilComplete(
-          workflowId,
-          'all_jewelry_masking',
-          (progress, label) => {
-            setProcessingProgress(progress);
-            setProcessingStep(label);
-          }
-        );
-
-        console.log('[Masking] Workflow complete, result keys:', Object.keys(result));
-
-        // Extract mask data from result - supports multiple node output formats:
-        // - agentic_masking (new unified pipeline)
-        // - sam3_all_jewelry (older pipeline)
-        // - sam3, mask (fallbacks)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resultAny = result as any;
-        const agenticResult = resultAny.agentic_masking?.[0];
-        const sam3Result = agenticResult || resultAny.sam3_all_jewelry?.[0] || resultAny.sam3?.[0] || resultAny.mask?.[0] || {};
-        
-        console.log('[Masking] Extracted result:', Object.keys(sam3Result));
-        
-        // Check if mask is an Azure URI or base64
-        // agentic_masking uses mask_base64.uri, older pipelines use mask.uri
-        const maskField = sam3Result.mask_base64 || sam3Result.mask;
-        if (maskField?.uri && maskField.uri.startsWith('azure://')) {
-          setProcessingStep('Fetching mask from storage...');
-          console.log('[Masking] Fetching mask from Azure:', maskField.uri);
-          maskBinary = await fetchAzureImage(maskField.uri);
-        } else if (typeof maskField === 'string' && maskField.startsWith('azure://')) {
-          setProcessingStep('Fetching mask from storage...');
-          maskBinary = await fetchAzureImage(maskField);
-        } else if (sam3Result.mask_base64 && typeof sam3Result.mask_base64 === 'string') {
-          maskBinary = `data:image/png;base64,${sam3Result.mask_base64}`;
-        }
-        
-        // Handle overlay - agentic_masking uses jewelry_green_base64, older uses mask_overlay
-        const overlayField = sam3Result.jewelry_green_base64 || sam3Result.mask_overlay;
-        if (overlayField?.uri && overlayField.uri.startsWith('azure://')) {
-          console.log('[Masking] Fetching overlay from Azure:', overlayField.uri);
-          maskOverlay = await fetchAzureImage(overlayField.uri);
-          maskingOutputs.jewelryGreen = maskOverlay;
-        } else if (typeof overlayField === 'string' && overlayField.startsWith('azure://')) {
-          maskOverlay = await fetchAzureImage(overlayField);
-          maskingOutputs.jewelryGreen = maskOverlay;
-        } else if (sam3Result.mask_overlay_base64) {
-          maskOverlay = `data:image/jpeg;base64,${sam3Result.mask_overlay_base64}`;
-        }
-        
-        // Handle jewelry segment (for generation optimization)
-        const segmentField = sam3Result.jewelry_segment_base64;
-        if (segmentField?.uri && segmentField.uri.startsWith('azure://')) {
-          console.log('[Masking] Fetching jewelry segment from Azure:', segmentField.uri);
-          maskingOutputs.jewelrySegment = await fetchAzureImage(segmentField.uri);
-        } else if (typeof segmentField === 'string' && segmentField.startsWith('azure://')) {
-          maskingOutputs.jewelrySegment = await fetchAzureImage(segmentField);
-        } else if (typeof segmentField === 'string') {
-          maskingOutputs.jewelrySegment = segmentField.startsWith('data:') 
-            ? segmentField 
-            : `data:image/png;base64,${segmentField}`;
-        }
-        
-        // Handle resize metadata (for geometry restoration)
-        if (sam3Result.resize_metadata) {
-          maskingOutputs.resizeMetadata = sam3Result.resize_metadata;
-          console.log('[Masking] Got resize_metadata:', sam3Result.resize_metadata);
-        }
-        
-        // Handle processed image (resized image from the pipeline)
-        // agentic_masking: resized_image_base64
-        // older pipeline: resize_all_jewelry[0].image_base64
-        const resizedField = sam3Result.resized_image_base64;
-        const resizeResult = resultAny.resize_all_jewelry?.[0] || {};
-        
-        if (resizedField?.uri && resizedField.uri.startsWith('azure://')) {
-          console.log('[Masking] Fetching resized image from Azure:', resizedField.uri);
-          processedImage = await fetchAzureImage(resizedField.uri);
-          maskingOutputs.resizedImage = processedImage;
-        } else if (typeof resizedField === 'string' && resizedField.startsWith('azure://')) {
-          processedImage = await fetchAzureImage(resizedField);
-          maskingOutputs.resizedImage = processedImage;
-        } else if (typeof resizedField === 'string') {
-          processedImage = resizedField.startsWith('data:') 
-            ? resizedField 
-            : `data:image/jpeg;base64,${resizedField}`;
-          maskingOutputs.resizedImage = processedImage;
-        } else if (resizeResult.image_base64) {
-          const imgField = resizeResult.image_base64;
-          
-          if (typeof imgField === 'object' && imgField?.uri && imgField.uri.startsWith('azure://')) {
-            console.log('[Masking] Fetching resized image from Azure URI:', imgField.uri);
-            processedImage = await fetchAzureImage(imgField.uri);
-          } else if (typeof imgField === 'string' && imgField.startsWith('azure://')) {
-            console.log('[Masking] Fetching resized image from Azure string:', imgField.substring(0, 50));
-            processedImage = await fetchAzureImage(imgField);
-          } else if (typeof imgField === 'string' && !imgField.startsWith('data:')) {
-            console.log('[Masking] Using raw base64 for resized image');
-            processedImage = `data:image/jpeg;base64,${imgField}`;
-          } else if (typeof imgField === 'string') {
-            console.log('[Masking] Using existing data URL for resized image');
-            processedImage = imgField;
-          }
-          maskingOutputs.resizedImage = processedImage;
-        } else if (resizeResult.image?.uri && resizeResult.image.uri.startsWith('azure://')) {
-          console.log('[Masking] Fetching from resizeResult.image.uri');
-          processedImage = await fetchAzureImage(resizeResult.image.uri);
-          maskingOutputs.resizedImage = processedImage;
-        } else {
-          console.log('[Masking] No resized image found in result, using originalImageDataUrl');
-        }
+      setProcessingProgress(30);
+      setProcessingStep('AI is identifying jewelry...');
+      
+      // Map jewelry type to singular form for A100
+      let singularType = jewelryType;
+      if (jewelryType === 'necklaces') singularType = 'necklace';
+      else if (jewelryType === 'rings') singularType = 'ring';
+      else if (jewelryType === 'bracelets') singularType = 'bracelet';
+      else if (jewelryType === 'earrings') singularType = 'earring';
+      else if (jewelryType === 'watches') singularType = 'watch';
+      
+      console.log('[A100] Calling segment API with', points.length, 'points, type:', singularType);
+      
+      // Call A100 segment endpoint directly
+      const segmentResult = await a100Api.segment({
+        image_base64: imageBase64,
+        points: points,
+        jewelry_type: singularType,
+      });
+      
+      if (!segmentResult) {
+        throw new Error('Segmentation failed. Please try again.');
       }
-
-      if (!maskBinary) {
-        throw new Error('No mask returned from workflow');
-      }
-
-      // SAM3 returns WHITE=jewelry, we need BLACK=jewelry - invert the mask
-      console.log('[Masking] Inverting SAM3 mask (WHITE=jewelry → BLACK=jewelry)');
-      setProcessingStep('Inverting mask...');
-      const invertedMask = await invertMask(maskBinary);
-      console.log('[Masking] Mask inverted successfully');
-
-      // Create translucent green overlay on the jewelry area (black in inverted mask)
-      // Use processedImage from workflow, or fall back to converted data URL
-      setProcessingStep('Creating overlay...');
-      const overlayBaseImage = processedImage || originalImageDataUrl;
-      const generatedOverlay = maskOverlay || await createMaskOverlay(overlayBaseImage, invertedMask, { r: 0, g: 255, b: 0 }, isNecklaceType);
-
-      console.log('[Masking] Got mask and overlay');
-      console.log('[Masking] Caching masking outputs for generation optimization:', Object.keys(maskingOutputs));
-
-      // Update state with results - use the INVERTED mask (black=jewelry)
-      // Keep processed image if available, otherwise use original data URL
-      // Also cache masking outputs to skip re-masking in generation step
+      
+      setProcessingProgress(80);
+      setProcessingStep('Processing mask...');
+      
+      console.log('[A100] Segment response:', {
+        sessionId: segmentResult.session_id,
+        imageWidth: segmentResult.image_width,
+        imageHeight: segmentResult.image_height,
+        hasScaledPoints: segmentResult.scaled_points?.length > 0,
+      });
+      
+      // A100 returns masks with proper format - use directly
+      const maskBinary = segmentResult.mask_base64.startsWith('data:') 
+        ? segmentResult.mask_base64 
+        : `data:image/png;base64,${segmentResult.mask_base64}`;
+      
+      const maskOverlay = segmentResult.mask_overlay_base64.startsWith('data:')
+        ? segmentResult.mask_overlay_base64
+        : `data:image/jpeg;base64,${segmentResult.mask_overlay_base64}`;
+      
+      const processedImage = segmentResult.processed_image_base64.startsWith('data:')
+        ? segmentResult.processed_image_base64
+        : `data:image/jpeg;base64,${segmentResult.processed_image_base64}`;
+      
+      const originalMask = segmentResult.original_mask_base64.startsWith('data:')
+        ? segmentResult.original_mask_base64
+        : `data:image/png;base64,${segmentResult.original_mask_base64}`;
+      
+      setProcessingProgress(100);
+      setProcessingStep('Complete!');
+      
+      // Update state with results
       updateState({
-        maskOverlay: generatedOverlay,
-        maskBinary: invertedMask,
-        originalImage: processedImage || originalImageDataUrl,
+        maskOverlay: maskOverlay,
+        maskBinary: maskBinary,
+        originalMask: originalMask,
+        originalImage: processedImage,
+        scaledPoints: segmentResult.scaled_points,
         processingState: {
-          sessionId: workflowId,
+          sessionId: segmentResult.session_id,
+          imageWidth: segmentResult.image_width,
+          imageHeight: segmentResult.image_height,
         },
-        maskingOutputs: Object.keys(maskingOutputs).length > 0 ? maskingOutputs : null,
       });
 
-      setProcessingProgress(100);
       setIsProcessing(false);
       onNext();
 
     } catch (error) {
-      console.error('Masking error:', error);
+      console.error('[A100] Masking error:', error);
       toast({
         variant: 'destructive',
         title: 'Masking failed',
-        description: error instanceof Error ? error.message : 'Failed to generate mask. Is the workflow server online?',
+        description: error instanceof Error ? error.message : 'Failed to generate mask. Is the A100 server online?',
       });
       setIsProcessing(false);
     }
