@@ -15,14 +15,15 @@ const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://48.214.48
 const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
 
 // Helper to get backend URL based on mode parameter
-// Usage: ?mode=temporal (default) or ?mode=standalone
+// Usage: ?mode=standalone (default) or ?mode=temporal
 function getBackendUrl(mode: string | null): string {
-  if (mode === 'standalone' || mode === 'direct' || mode === 'a100') {
-    console.log(`[workflow-proxy] Using STANDALONE mode -> ${STANDALONE_URL}`);
-    return STANDALONE_URL;
+  if (mode === 'temporal') {
+    console.log(`[workflow-proxy] Using TEMPORAL mode -> ${TEMPORAL_URL}`);
+    return TEMPORAL_URL;
   }
-  console.log(`[workflow-proxy] Using TEMPORAL mode -> ${TEMPORAL_URL}`);
-  return TEMPORAL_URL;
+  // Default to standalone (A100 at 48.214.48.103:8000)
+  console.log(`[workflow-proxy] Using STANDALONE mode -> ${STANDALONE_URL}`);
+  return STANDALONE_URL;
 }
 
 // Authentication helper - validates JWT and returns user ID
