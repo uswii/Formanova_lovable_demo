@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, Image, Coins } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, Coins, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -106,8 +106,11 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
                   <div className="px-3 py-2 border-b border-border">
-                    <p className="text-sm font-medium text-foreground truncate">
+                    <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
                       {user.full_name || user.email?.split('@')[0]}
+                      {user.is_verified && (
+                        <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
@@ -212,8 +215,11 @@ export function Header() {
                     <User className="h-6 w-6 text-muted-foreground" />
                   </div>
                 )}
-                <span className="text-lg font-medium text-foreground">
+                <span className="text-lg font-medium text-foreground flex items-center gap-2">
                   {user.full_name || user.email?.split('@')[0]}
+                  {user.is_verified && (
+                    <BadgeCheck className="h-5 w-5 text-primary flex-shrink-0" />
+                  )}
                 </span>
               </div>
               
