@@ -46,10 +46,13 @@ export default function AuthCallback() {
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
+      console.log('[AuthCallback] Starting token exchange with code:', code.substring(0, 10) + '...');
+      
       const params = new URLSearchParams({ code });
       if (state) params.append('state', state);
       
       const callbackUrl = `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`;
+      console.log('[AuthCallback] Calling:', callbackUrl);
 
       const response = await fetch(callbackUrl, {
         method: 'GET',
@@ -58,31 +61,41 @@ export default function AuthCallback() {
         },
       });
 
+      console.log('[AuthCallback] Response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('[AuthCallback] Error response:', errorText);
         throw new Error(errorText || 'Sign in failed');
       }
 
       const data = await response.json();
+      console.log('[AuthCallback] Response data keys:', Object.keys(data));
       
       if (data.access_token) {
+        console.log('[AuthCallback] Got access_token, storing...');
         // Store token immediately
         setStoredToken(data.access_token);
         
         // Store user if included in response, otherwise fetch in background
         if (data.user) {
+          console.log('[AuthCallback] Got user, storing...');
           setStoredUser(data.user);
         } else {
+          console.log('[AuthCallback] No user in response, fetching in background...');
           // Fetch user in background - don't wait for it
           authApi.getCurrentUser().catch(console.error);
         }
         
-        // Redirect to studio after successful auth
+        console.log('[AuthCallback] Redirecting to:', AUTH_SUCCESS_REDIRECT);
+        // Redirect to dashboard after successful auth
         navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
       } else {
+        console.error('[AuthCallback] No access_token in response:', data);
         throw new Error('No access token in response');
       }
     } catch (err) {
+      console.error('[AuthCallback] Exchange error:', err);
       setError('Something went wrong');
       toast({
         variant: 'destructive',
