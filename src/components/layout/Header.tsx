@@ -95,7 +95,7 @@ export function Header() {
                       <img 
                         src={user.avatar_url} 
                         alt={user.full_name || 'User'} 
-                        className="h-8 w-8 rounded-full object-cover border border-border hover:border-foreground transition-colors"
+                        className="h-8 w-8 rounded-full object-cover aspect-square border border-border hover:border-foreground transition-colors"
                       />
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
@@ -208,7 +208,7 @@ export function Header() {
                   <img 
                     src={user.avatar_url} 
                     alt={user.full_name || 'User'} 
-                    className="h-12 w-12 rounded-full object-cover border border-border"
+                    className="h-12 w-12 rounded-full object-cover aspect-square border border-border"
                   />
                 ) : (
                   <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
