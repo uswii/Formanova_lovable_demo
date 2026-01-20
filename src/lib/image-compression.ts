@@ -143,3 +143,18 @@ function compressWithQuality(
     );
   });
 }
+
+/**
+ * Convert an image source (data URL, blob URL, or asset path) to a Blob
+ */
+export async function imageSourceToBlob(source: string): Promise<Blob> {
+  // If it's already a blob URL or data URL, fetch it
+  if (source.startsWith('blob:') || source.startsWith('data:')) {
+    const response = await fetch(source);
+    return response.blob();
+  }
+  
+  // For asset paths (imported images), we need to fetch them
+  const response = await fetch(source);
+  return response.blob();
+}
