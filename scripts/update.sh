@@ -42,9 +42,28 @@ fi
 echo -e "${GREEN}✓ Service stopped${NC}"
 
 # =============================================================================
-# Step 2: Stash local changes (if any)
+# Step 2: Backup .env files (preserve local config)
 # =============================================================================
-echo -e "${YELLOW}[2/6] Checking for local changes...${NC}"
+echo -e "${YELLOW}[2/7] Backing up .env files...${NC}"
+
+ENV_BACKUP_DIR="$PROJECT_DIR/.env-backup-$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$ENV_BACKUP_DIR"
+
+# Backup all .env files
+if [ -f "$PROJECT_DIR/.env" ]; then
+    cp "$PROJECT_DIR/.env" "$ENV_BACKUP_DIR/.env"
+    echo "  Backed up .env"
+fi
+if [ -f "$PROJECT_DIR/temporal-backend/.env" ]; then
+    cp "$PROJECT_DIR/temporal-backend/.env" "$ENV_BACKUP_DIR/temporal-backend.env"
+    echo "  Backed up temporal-backend/.env"
+fi
+echo -e "${GREEN}✓ Environment files backed up to $ENV_BACKUP_DIR${NC}"
+
+# =============================================================================
+# Step 3: Stash local changes (if any)
+# =============================================================================
+echo -e "${YELLOW}[3/7] Checking for local changes...${NC}"
 
 if git diff --quiet 2>/dev/null; then
     echo -e "${GREEN}✓ No local changes${NC}"
@@ -55,9 +74,9 @@ else
 fi
 
 # =============================================================================
-# Step 3: Pull latest code
+# Step 4: Pull latest code
 # =============================================================================
-echo -e "${YELLOW}[3/6] Pulling latest code...${NC}"
+echo -e "${YELLOW}[4/7] Pulling latest code...${NC}"
 
 git fetch origin
 CURRENT_BRANCH=$(git branch --show-current)
@@ -72,9 +91,26 @@ else
 fi
 
 # =============================================================================
-# Step 4: Install dependencies
+# Step 5: Restore .env files
 # =============================================================================
-echo -e "${YELLOW}[4/6] Installing dependencies...${NC}"
+echo -e "${YELLOW}[5/7] Restoring .env files...${NC}"
+
+if [ -f "$ENV_BACKUP_DIR/.env" ]; then
+    cp "$ENV_BACKUP_DIR/.env" "$PROJECT_DIR/.env"
+    echo "  Restored .env"
+fi
+if [ -f "$ENV_BACKUP_DIR/temporal-backend.env" ]; then
+    mkdir -p "$PROJECT_DIR/temporal-backend"
+    cp "$ENV_BACKUP_DIR/temporal-backend.env" "$PROJECT_DIR/temporal-backend/.env"
+    echo "  Restored temporal-backend/.env"
+fi
+rm -rf "$ENV_BACKUP_DIR"
+echo -e "${GREEN}✓ Environment files restored${NC}"
+
+# =============================================================================
+# Step 6: Install dependencies
+# =============================================================================
+echo -e "${YELLOW}[6/7] Installing dependencies...${NC}"
 
 if command -v bun &> /dev/null; then
     bun install
@@ -88,9 +124,9 @@ fi
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # =============================================================================
-# Step 5: Build the project
+# Step 7: Build the project
 # =============================================================================
-echo -e "${YELLOW}[5/6] Building project...${NC}"
+echo -e "${YELLOW}[7/7] Building project...${NC}"
 
 if command -v bun &> /dev/null; then
     bun run build
@@ -106,9 +142,9 @@ else
 fi
 
 # =============================================================================
-# Step 6: Start the service
+# Step 8: Start the service
 # =============================================================================
-echo -e "${YELLOW}[6/6] Starting service...${NC}"
+echo -e "${YELLOW}[8/8] Starting service...${NC}"
 
 if [ -f "$SCRIPTS_DIR/start.sh" ]; then
     "$SCRIPTS_DIR/start.sh"
@@ -121,5 +157,6 @@ echo -e "${GREEN}=============================================="
 echo "  Update Complete!"
 echo -e "==============================================${NC}"
 echo ""
+echo "  Your .env files were preserved during update."
 echo "  Run './scripts/status.sh' to verify"
 echo ""
