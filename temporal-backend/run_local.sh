@@ -165,13 +165,34 @@ run_temporal_mode() {
 run_standalone_mode() {
     print_header "Standalone Mode (A100 API Server)"
     
-    API_SERVER="$PROJECT_DIR/../server/api_server.py"
-    
-    if [ ! -f "$API_SERVER" ]; then
-        echo -e "${RED}Error: api_server.py not found at $API_SERVER${NC}"
-        echo "Expected location: server/api_server.py (relative to project root)"
+    # Try multiple possible locations for api_server.py
+    # Priority: env var > same directory > ../server > current directory
+    if [ -n "$API_SERVER_PATH" ]; then
+        API_SERVER="$API_SERVER_PATH"
+    elif [ -f "$PROJECT_DIR/api_server.py" ]; then
+        API_SERVER="$PROJECT_DIR/api_server.py"
+    elif [ -f "$PROJECT_DIR/../server/api_server.py" ]; then
+        API_SERVER="$PROJECT_DIR/../server/api_server.py"
+    elif [ -f "./api_server.py" ]; then
+        API_SERVER="./api_server.py"
+    elif [ -f "$HOME/server/api_server.py" ]; then
+        API_SERVER="$HOME/server/api_server.py"
+    else
+        echo -e "${RED}Error: api_server.py not found${NC}"
+        echo ""
+        echo "Searched locations:"
+        echo "  - \$API_SERVER_PATH (env var)"
+        echo "  - $PROJECT_DIR/api_server.py"
+        echo "  - $PROJECT_DIR/../server/api_server.py"
+        echo "  - ./api_server.py"
+        echo "  - $HOME/server/api_server.py"
+        echo ""
+        echo "Set API_SERVER_PATH environment variable to specify location:"
+        echo "  export API_SERVER_PATH=/path/to/api_server.py"
         exit 1
     fi
+    
+    echo -e "${GREEN}Found API server at: $API_SERVER${NC}"
     
     # Check for .env in server directory or project root
     SERVER_DIR="$(dirname "$API_SERVER")"
