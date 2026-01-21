@@ -121,8 +121,15 @@ export default function JewelryStudio() {
             <React.Fragment key={step.id}>
               <button
                 onClick={() => {
-                  // Only allow going back, not forward (unless step is complete)
-                  if (stepConfig.findIndex(s => s.id === step.id) <= stepConfig.findIndex(s => s.id === currentStep)) {
+                  const clickedIndex = stepConfig.findIndex(s => s.id === step.id);
+                  const currentIndex = stepConfig.findIndex(s => s.id === currentStep);
+                  
+                  // Allow going back always
+                  if (clickedIndex <= currentIndex) {
+                    setCurrentStep(step.id);
+                  }
+                  // Allow going forward to 'generate' only if mask exists
+                  else if (step.id === 'generate' && state.maskBinary) {
                     setCurrentStep(step.id);
                   }
                 }}
@@ -130,6 +137,8 @@ export default function JewelryStudio() {
                   currentStep === step.id
                     ? 'bg-primary text-primary-foreground'
                     : stepConfig.findIndex(s => s.id === step.id) < stepConfig.findIndex(s => s.id === currentStep)
+                    ? 'bg-primary/20 text-primary cursor-pointer hover:bg-primary/30'
+                    : step.id === 'generate' && state.maskBinary
                     ? 'bg-primary/20 text-primary cursor-pointer hover:bg-primary/30'
                     : 'bg-muted text-muted-foreground'
                 }`}

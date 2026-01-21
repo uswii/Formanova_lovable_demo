@@ -275,9 +275,16 @@ export function MaskCanvas({
     }
   }, [imageLoaded, initialStrokes, activeStroke, mode, toDisplaySpace, overlayColor, hexToRgba]);
 
-  // Draw dots for marking mode (dots are in SAM space)
+  // Draw dots for marking mode (dots are in output space - SAM for necklace, original for others)
   useEffect(() => {
     if (mode !== 'dot' || !imageLoaded) return;
+    
+    // For non-necklace jewelry, wait until original dimensions are available
+    // This prevents dots from rendering in wrong positions before image loads
+    if (!isNecklace && (originalWidth === 0 || originalHeight === 0)) {
+      console.log('[MaskCanvas] Waiting for original dimensions to render dots');
+      return;
+    }
 
     const overlay = overlayCanvasRef.current;
     const ctx = overlay?.getContext('2d');
@@ -293,6 +300,7 @@ export function MaskCanvas({
     // Draw dots - solid red with white border (original style)
     dots.forEach((dot) => {
       const displayPt = toDisplaySpace(dot.x, dot.y);
+      console.log('[MaskCanvas] Drawing dot:', { original: dot, display: displayPt });
       ctx.beginPath();
       ctx.arc(displayPt.x, displayPt.y, brushSize / 2, 0, Math.PI * 2);
       ctx.fillStyle = '#FF0000';
@@ -301,7 +309,7 @@ export function MaskCanvas({
       ctx.lineWidth = 2;
       ctx.stroke();
     });
-  }, [dots, brushSize, mode, imageLoaded, toDisplaySpace]);
+  }, [dots, brushSize, mode, imageLoaded, toDisplaySpace, isNecklace, originalWidth, originalHeight]);
 
   // Get coordinates from mouse/touch event and transform to SAM space
   const getCanvasCoords = useCallback((e: React.MouseEvent | React.TouchEvent) => {
