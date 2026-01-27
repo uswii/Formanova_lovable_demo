@@ -288,29 +288,81 @@ const CategoryUploadStudio = () => {
             ) : (
               /* Diamond upload empty state */
               <div className="text-center cursor-pointer group">
-                <motion.div
-                  className="relative w-24 h-24 mx-auto mb-6"
-                  animate={{ 
-                    rotateY: [0, 180, 360],
-                  }}
-                  transition={{ 
-                    duration: 8, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                  }}
-                >
-                  <Diamond 
-                    className="w-24 h-24 text-formanova-hero-accent/60 group-hover:text-formanova-hero-accent transition-colors duration-300" 
-                    strokeWidth={1}
+                {/* Dotted circle container */}
+                <div className="relative w-32 h-32 mx-auto mb-6">
+                  {/* Animated dotted border */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-2 border-dashed border-formanova-hero-accent/40 group-hover:border-formanova-hero-accent/70"
+                    animate={{ 
+                      rotate: 360,
+                      scale: [1, 1.02, 1],
+                    }}
+                    transition={{ 
+                      rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+                      scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+                    }}
                   />
+                  
+                  {/* Inner glow ring */}
+                  <motion.div
+                    className="absolute inset-2 rounded-full border border-formanova-hero-accent/20"
+                    animate={{ 
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity, 
+                      ease: "easeInOut" 
+                    }}
+                  />
+                  
+                  {/* Diamond with blink animation */}
                   <motion.div
                     className="absolute inset-0 flex items-center justify-center"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    animate={{ 
+                      rotateY: [0, 180, 360],
+                    }}
+                    transition={{ 
+                      duration: 8, 
+                      repeat: Infinity, 
+                      ease: "linear" 
+                    }}
                   >
-                    <Plus className="w-8 h-8 text-formanova-hero-accent/80" />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.6, 1, 0.6],
+                        scale: [1, 1.05, 1],
+                      }}
+                      transition={{ 
+                        duration: 1.5, 
+                        repeat: Infinity, 
+                        ease: "easeInOut" 
+                      }}
+                    >
+                      <Diamond 
+                        className="w-16 h-16 text-formanova-hero-accent group-hover:text-formanova-hero-accent transition-colors duration-300" 
+                        strokeWidth={1.5}
+                      />
+                    </motion.div>
                   </motion.div>
-                </motion.div>
+                  
+                  {/* Pulsing plus icon */}
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    animate={{ 
+                      scale: [1, 1.15, 1],
+                      opacity: [0.7, 1, 0.7],
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Plus className="w-6 h-6 text-formanova-hero-accent" />
+                  </motion.div>
+                </div>
+                
                 <p className="text-sm text-muted-foreground mb-1 group-hover:text-foreground transition-colors">
                   Drop images here or click to upload
                 </p>
