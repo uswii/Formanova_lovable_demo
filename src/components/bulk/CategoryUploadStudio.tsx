@@ -1,20 +1,25 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Gift, Plus, Diamond, Sparkles } from 'lucide-react';
+import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
 
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
+import { useImageValidation } from '@/hooks/use-image-validation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadedImage {
   id: string;
   file: File;
   preview: string;
+  index: number; // Track original index for validation matching
 }
 
 interface ImageWithSkinTone extends UploadedImage {
   skinTone: SkinTone;
+  isFlagged?: boolean;
+  flagReason?: string;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -39,36 +44,79 @@ const MAX_IMAGES = 10;
 const CategoryUploadStudio = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const { getAuthHeader } = useAuth();
   
   const [images, setImages] = useState<ImageWithSkinTone[]>([]);
-  // Removed hasAcknowledgedTime - no longer needed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showFlagWarning, setShowFlagWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
   const showSkinTone = jewelryType !== 'necklace';
 
-  // Add files helper
-  const addFiles = useCallback((files: FileList | File[]) => {
+  // Image validation hook
+  const { 
+    isValidating, 
+    results: validationResults,
+    flaggedCount,
+    validateImages,
+    clearValidation,
+  } = useImageValidation();
+
+  // Add files helper - triggers validation
+  const addFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const remainingSlots = MAX_IMAGES - images.length;
     const filesToAdd = fileArray.slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
     
-    const newImages: ImageWithSkinTone[] = filesToAdd.map(file => ({
+    if (filesToAdd.length === 0) return;
+
+    const startIndex = images.length;
+    const newImages: ImageWithSkinTone[] = filesToAdd.map((file, idx) => ({
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
       preview: URL.createObjectURL(file),
       skinTone: globalSkinTone,
+      index: startIndex + idx,
     }));
 
-    if (newImages.length > 0) {
-      setImages(prev => [...prev, ...newImages]);
+    setImages(prev => [...prev, ...newImages]);
+
+    // Validate the new images
+    const authHeader = getAuthHeader();
+    const validation = await validateImages(filesToAdd, jewelryType, authHeader);
+    
+    if (validation && validation.flagged_count > 0) {
+      // Update images with flag status
+      setImages(prev => prev.map((img, idx) => {
+        if (idx >= startIndex) {
+          const validationIdx = idx - startIndex;
+          const result = validation.results[validationIdx];
+          if (result && result.flags.length > 0) {
+            return {
+              ...img,
+              isFlagged: true,
+              flagReason: getFlagMessage(result.flags),
+            };
+          }
+        }
+        return img;
+      }));
     }
-  }, [images.length, globalSkinTone]);
+  }, [images.length, globalSkinTone, validateImages, getAuthHeader, jewelryType]);
+
+  // Get human-readable flag message
+  const getFlagMessage = (flags: string[]): string => {
+    if (flags.includes('not_worn')) return 'Flatlay/product shot detected';
+    if (flags.includes('no_jewelry')) return 'No jewelry detected';
+    if (flags.includes('wrong_category')) return 'Wrong jewelry type';
+    if (flags.includes('low_quality')) return 'Low quality image';
+    return 'Needs review';
+  };
 
   // Paste handler
   useEffect(() => {
@@ -110,21 +158,32 @@ const CategoryUploadStudio = () => {
     );
   }, []);
 
+  // Check if any images are flagged
+  const hasFlaggedImages = images.some(img => img.isFlagged);
+
   const handleSubmit = useCallback(async () => {
     if (images.length === 0) return;
 
+    // If flagged images exist and user hasn't confirmed, show warning
+    if (hasFlaggedImages && !showFlagWarning) {
+      setShowFlagWarning(true);
+      return;
+    }
+
     setIsSubmitting(true);
+    setShowFlagWarning(false);
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       const mockBatchId = `batch_${Date.now()}`;
       setSubmittedBatchId(mockBatchId);
       setIsSubmitted(true);
+      clearValidation();
     } catch (error) {
       console.error('Failed to submit batch:', error);
     } finally {
       setIsSubmitting(false);
     }
-  }, [images]);
+  }, [images, hasFlaggedImages, showFlagWarning, clearValidation]);
 
   const handleStartAnother = useCallback(() => {
     images.forEach(img => URL.revokeObjectURL(img.preview));
@@ -213,12 +272,22 @@ const CategoryUploadStudio = () => {
                         className="space-y-1.5"
                       >
                         {/* Thumbnail */}
-                        <div className="relative aspect-square rounded-lg overflow-hidden group border border-border/50">
+                        <div className={`relative aspect-square rounded-lg overflow-hidden group border ${
+                          image.isFlagged ? 'border-amber-500/70 ring-1 ring-amber-500/30' : 'border-border/50'
+                        }`}>
                           <img
                             src={image.preview}
                             alt={`Upload ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
+                          
+                          {/* Flag indicator */}
+                          {image.isFlagged && (
+                            <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center" title={image.flagReason}>
+                              <AlertTriangle className="w-3 h-3" />
+                            </div>
+                          )}
+                          
                           {/* Remove button */}
                           <button
                             onClick={(e) => {
@@ -394,12 +463,48 @@ const CategoryUploadStudio = () => {
                 className="border-t border-border bg-background p-5 flex-shrink-0"
               >
                 <div className="max-w-xl mx-auto">
+                  {/* Flag warning message */}
+                  {showFlagWarning && hasFlaggedImages && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg"
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-200">
+                            {images.filter(img => img.isFlagged).length} image{images.filter(img => img.isFlagged).length !== 1 ? 's' : ''} may not be suitable
+                          </p>
+                          <p className="text-muted-foreground mt-1 text-xs">
+                            We detected flatlay or product shots. Our system works best with worn jewelry photos. 
+                            You can still submit, but results may vary.
+                          </p>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => setShowFlagWarning(false)}
+                              className="text-xs px-3 py-1.5 rounded bg-muted hover:bg-muted/80 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleSubmit}
+                              className="text-xs px-3 py-1.5 rounded bg-amber-500 text-black font-medium hover:bg-amber-400 transition-colors"
+                            >
+                              Submit Anyway
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Main submit button - prominent placement */}
                   <button
                     onClick={handleSubmit}
-                    disabled={!canSubmit}
+                    disabled={!canSubmit || isValidating}
                     className={`w-full py-4 px-6 font-display text-base uppercase tracking-wider transition-all flex items-center justify-center gap-3 rounded-lg shadow-lg ${
-                      canSubmit
+                      canSubmit && !isValidating
                         ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90 hover:shadow-xl'
                         : 'bg-muted text-muted-foreground cursor-not-allowed shadow-none'
                     }`}
@@ -410,6 +515,15 @@ const CategoryUploadStudio = () => {
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
                       />
+                    ) : isValidating ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+                        />
+                        <span className="text-sm">Checking images...</span>
+                      </>
                     ) : (
                       <>Generate Photoshoots</>
                     )}
@@ -419,10 +533,15 @@ const CategoryUploadStudio = () => {
                   <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
                     <span>
                       <span className="text-foreground font-medium">{images.length}</span> image{images.length !== 1 ? 's' : ''} · Ready in up to 24 hours
+                      {hasFlaggedImages && !showFlagWarning && (
+                        <span className="ml-2 text-amber-500">
+                          ({images.filter(img => img.isFlagged).length} flagged)
+                        </span>
+                      )}
                     </span>
                     
                     <div className="flex items-center gap-1.5 text-formanova-hero-accent">
-                      <Gift className="w-3 h-3" />
+                      <Diamond className="w-3 h-3" />
                       <span>First batch free</span>
                     </div>
                   </div>

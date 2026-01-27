@@ -395,6 +395,65 @@ serve(async (req) => {
       }
     }
 
+    // Image validation API - forward to Temporal backend
+    if (endpoint.startsWith('/api/validate/') && req.method === 'POST') {
+      const body = await req.text();
+      
+      console.log(`[workflow-proxy] Forwarding validation to ${TEMPORAL_URL}${endpoint}`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 1 min
+
+      try {
+        const response = await fetch(`${TEMPORAL_URL}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // If validation service is down, return permissive response
+        if (!response.ok) {
+          console.warn(`[workflow-proxy] Validation service error: ${response.status}`);
+          // Don't block uploads on validation failure
+          return new Response(
+            JSON.stringify({ 
+              results: [],
+              all_acceptable: true,
+              flagged_count: 0,
+              message: 'Validation service unavailable - proceeding without validation'
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const data = await response.text();
+        console.log(`[workflow-proxy] Validation success, response size: ${data.length} chars`);
+
+        return new Response(data, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.warn(`[workflow-proxy] Validation error:`, e);
+        // Return permissive response on error
+        return new Response(
+          JSON.stringify({ 
+            results: [],
+            all_acceptable: true,
+            flagged_count: 0,
+            message: 'Validation error - proceeding without validation'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
