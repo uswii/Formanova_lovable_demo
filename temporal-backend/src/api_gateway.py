@@ -41,11 +41,12 @@ except ImportError:
 
 # Image validation API import (optional)
 try:
-    from .image_validation_api import router as validation_router
+    from .image_validation_api import router as validation_router, tools_router as classification_tools_router
     HAS_VALIDATION = True
 except ImportError:
     HAS_VALIDATION = False
     validation_router = None
+    classification_tools_router = None
 
 # Simple logging format
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -79,6 +80,11 @@ if HAS_ADMIN and admin_router:
 if HAS_VALIDATION and validation_router:
     app.include_router(validation_router)
     logger.info("✓ Image validation API enabled at /api/validate")
+
+# Include tools router for /tools/image_classification/run
+if HAS_VALIDATION and classification_tools_router:
+    app.include_router(classification_tools_router)
+    logger.info("✓ Classification tools API enabled at /tools/image_classification/run")
 
 temporal_client: Optional[Client] = None
 

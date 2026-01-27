@@ -2,7 +2,7 @@
 import base64
 import logging
 import httpx
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from dataclasses import dataclass
 from enum import Enum
 
@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/validate", tags=["validation"])
+
+# Separate router for tools API (matches frontend expected path)
+tools_router = APIRouter(prefix="/tools", tags=["tools"])
 
 
 class ImageType(str, Enum):
@@ -64,6 +67,32 @@ class ValidateImagesResponse(BaseModel):
     all_acceptable: bool
     flagged_count: int
     message: str
+
+
+# -------------------------
+# Tool Adapter Format (Frontend expected format)
+# -------------------------
+
+class ImageUri(BaseModel):
+    """Image reference - can be data URI, azure URI, or HTTP URL."""
+    uri: str
+
+class ToolImageData(BaseModel):
+    """Image data in tool adapter format."""
+    image: ImageUri
+
+class ToolClassificationRequest(BaseModel):
+    """Request format for /tools/image_classification/run."""
+    data: ToolImageData
+    meta: Optional[Dict[str, Any]] = {}
+
+class ToolClassificationResponse(BaseModel):
+    """Response format for /tools/image_classification/run."""
+    category: str
+    is_worn: bool
+    confidence: float
+    reason: str
+    flagged: bool
 
 
 # -------------------------
@@ -345,4 +374,94 @@ async def validate_single_image(
         flags=[f.value for f in result.flags],
         confidence=result.confidence,
         message=result.message,
+    )
+
+
+# -------------------------
+# Tool Adapter Endpoint (matches frontend expected path)
+# -------------------------
+
+@tools_router.post("/image_classification/run", response_model=ToolClassificationResponse)
+async def classify_image_tool(request: ToolClassificationRequest):
+    """
+    Classify an image using the tool adapter format.
+    
+    Expected request:
+    {
+        "data": { "image": { "uri": "data:image/jpeg;base64,..." } },
+        "meta": {}
+    }
+    
+    Returns classification with is_worn, category, confidence, flagged status.
+    """
+    import os
+    
+    logger.info(f"[classify_image_tool] Received classification request")
+    
+    image_uri = request.data.image.uri
+    
+    # Extract base64 from data URI
+    if image_uri.startswith("data:"):
+        # data:image/jpeg;base64,/9j/4AAQ...
+        try:
+            _, data_part = image_uri.split(",", 1)
+            image_base64 = data_part
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid data URI format")
+    elif image_uri.startswith("azure://"):
+        # Azure blob URI - would need to fetch
+        logger.warning(f"Azure URI not yet supported for classification: {image_uri[:50]}...")
+        return ToolClassificationResponse(
+            category="unknown",
+            is_worn=True,
+            confidence=0.0,
+            reason="Azure blob classification not implemented",
+            flagged=False,
+        )
+    elif image_uri.startswith("http"):
+        # HTTP URL - would need to fetch
+        logger.warning(f"HTTP URL not yet supported for classification: {image_uri[:50]}...")
+        return ToolClassificationResponse(
+            category="unknown",
+            is_worn=True,
+            confidence=0.0,
+            reason="HTTP URL classification not implemented",
+            flagged=False,
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported image URI format: {image_uri[:30]}...")
+    
+    logger.info(f"[classify_image_tool] Image base64 length: {len(image_base64)}")
+    
+    api_key = os.getenv("LOVABLE_API_KEY")
+    
+    # Use AI-based analysis
+    result = await analyze_image_with_ai(
+        image_base64=image_base64,
+        category="jewelry",  # Generic category for classification
+        api_key=api_key,
+    )
+    
+    logger.info(f"[classify_image_tool] Result: type={result.detected_type}, is_acceptable={result.is_acceptable}")
+    
+    # Map detected type to category
+    category_map = {
+        ImageType.WORN: "model",
+        ImageType.FLATLAY: "flatlay",
+        ImageType.PACKSHOT: "packshot",
+        ImageType.UNKNOWN: "unknown",
+    }
+    
+    category = category_map.get(result.detected_type, "unknown")
+    is_worn = result.detected_type == ImageType.WORN
+    
+    # Flag non-worn images
+    flagged = not is_worn and result.detected_type != ImageType.UNKNOWN
+    
+    return ToolClassificationResponse(
+        category=category,
+        is_worn=is_worn,
+        confidence=result.confidence,
+        reason=result.message,
+        flagged=flagged,
     )
