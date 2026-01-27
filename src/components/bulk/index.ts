@@ -20,3 +20,4 @@ export { default as InputGuidePanel } from './InputGuidePanel';
 export { default as ProcessingTimeNotice } from './ProcessingTimeNotice';
 export { default as CategoryUploadStudio } from './CategoryUploadStudio';
 export { default as EmailNotificationPanel } from './EmailNotificationPanel';
+export { default as ExampleGuidePanel } from './ExampleGuidePanel';
