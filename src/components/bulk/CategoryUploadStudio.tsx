@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Send, Gift, Upload, Plus, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, X, Send, Gift, Upload, Plus, Diamond, Image as ImageIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 import { SkinTone } from './ImageUploadCard';
 import InputGuidePanel from './InputGuidePanel';
@@ -51,7 +52,7 @@ const CategoryUploadStudio = () => {
   const [notificationEmail, setNotificationEmail] = useState('');
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
   const showSkinTone = jewelryType !== 'necklace';
@@ -319,7 +320,7 @@ const CategoryUploadStudio = () => {
           {/* Canvas area */}
           <div 
             className={`flex-1 flex items-center justify-center p-8 transition-colors ${
-              isDragOver ? 'bg-formanova-hero-accent/5' : ''
+              isDragOver ? 'bg-formanova-hero-accent/5 border-2 border-dashed border-formanova-hero-accent/50' : ''
             }`}
             onDrop={(e) => {
               e.preventDefault();
@@ -331,6 +332,7 @@ const CategoryUploadStudio = () => {
               setIsDragOver(true);
             }}
             onDragLeave={() => setIsDragOver(false)}
+            onClick={() => !selectedImage && fileInputRef.current?.click()}
           >
             {selectedImage ? (
               <motion.div
@@ -346,12 +348,37 @@ const CategoryUploadStudio = () => {
                 />
               </motion.div>
             ) : (
-              <div className="text-center text-muted-foreground">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
-                  <Upload className="w-8 h-8" />
+              /* Inviting empty state - matches single upload style */
+              <div 
+                className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <div className="relative mx-auto w-24 h-24 mb-6">
+                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/5 flex items-center justify-center border-2 border-formanova-hero-accent/20">
+                    <Diamond className="h-10 w-10 text-formanova-hero-accent" />
+                  </div>
                 </div>
-                <p className="text-sm font-medium">Drop images here</p>
-                <p className="text-xs mt-1 opacity-70">or use the upload button</p>
+                <p className="text-xl font-display font-medium mb-2">Drop your jewelry images here</p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  or click to browse · paste from clipboard (Ctrl+V)
+                </p>
+                <Button variant="outline" size="lg" className="gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Browse Files
+                </Button>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  disabled={isSubmitting}
+                  onChange={(e) => {
+                    if (e.target.files) addFiles(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
               </div>
             )}
           </div>
