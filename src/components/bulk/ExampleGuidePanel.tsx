@@ -1,6 +1,14 @@
 import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 
+// Necklace examples
+import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.jpg';
+import necklaceAllowed2 from '@/assets/examples/necklace-allowed-2.jpg';
+import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.png';
+import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.png';
+import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.png';
+import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.png';
+
 // Earring examples
 import earringAllowed1 from '@/assets/examples/earring-allowed-1.jpg';
 import earringAllowed2 from '@/assets/examples/earring-allowed-2.jpg';
@@ -23,6 +31,10 @@ interface ExampleGuidePanelProps {
 }
 
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
+  necklace: {
+    allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3],
+    notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3],
+  },
   earrings: {
     allowed: [earringAllowed1, earringAllowed2, earringAllowed3],
     notAllowed: [earringNotAllowed1, earringNotAllowed2, earringNotAllowed3],
@@ -33,8 +45,8 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
   },
 };
 
-// Default to earrings for other categories until we have their examples
-const DEFAULT_EXAMPLES = CATEGORY_EXAMPLES.earrings;
+// Default to necklace for other categories until we have their examples
+const DEFAULT_EXAMPLES = CATEGORY_EXAMPLES.necklace;
 
 const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings' }: ExampleGuidePanelProps) => {
   const examples = CATEGORY_EXAMPLES[categoryType] || DEFAULT_EXAMPLES;
