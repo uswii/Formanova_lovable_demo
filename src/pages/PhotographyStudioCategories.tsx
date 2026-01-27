@@ -20,31 +20,31 @@ const categories: JewelryCategory[] = [
   {
     id: 'necklace',
     name: 'Necklaces',
-    subtitle: 'Chains & pendants',
+    subtitle: '',
     image: heroNecklace,
   },
   {
     id: 'earrings',
     name: 'Earrings',
-    subtitle: 'Studs & drops',
+    subtitle: '',
     image: heroGreenEarrings,
   },
   {
     id: 'rings',
     name: 'Rings',
-    subtitle: 'Bands & statement',
+    subtitle: '',
     image: heroModelRings,
   },
   {
     id: 'bracelets',
     name: 'Bracelets',
-    subtitle: 'Bangles & cuffs',
+    subtitle: '',
     image: heroHandsBracelets,
   },
   {
     id: 'watches',
     name: 'Watches',
-    subtitle: 'Timepieces',
+    subtitle: '',
     image: heroWatch,
   },
 ];
