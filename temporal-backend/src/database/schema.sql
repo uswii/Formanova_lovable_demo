@@ -351,6 +351,152 @@ CREATE TRIGGER update_generations_updated_at
 
 
 -- ============================================
+-- BATCH UPLOAD TABLES
+-- ============================================
+
+-- Batch status enum
+DO $$ BEGIN
+    CREATE TYPE batch_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Skin tone options
+DO $$ BEGIN
+    CREATE TYPE skin_tone AS ENUM ('light', 'fair', 'medium', 'olive', 'brown', 'dark');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Jewelry category for batches
+DO $$ BEGIN
+    CREATE TYPE jewelry_category AS ENUM ('necklace', 'ring', 'earring', 'bracelet', 'watch');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Batch jobs table - tracks each batch submission
+CREATE TABLE IF NOT EXISTS batch_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    
+    -- Batch details
+    jewelry_category jewelry_category NOT NULL,
+    skin_tone skin_tone,  -- NULL for necklaces
+    
+    -- Status tracking
+    status batch_status NOT NULL DEFAULT 'pending',
+    total_images INTEGER NOT NULL DEFAULT 0,
+    completed_images INTEGER NOT NULL DEFAULT 0,
+    failed_images INTEGER NOT NULL DEFAULT 0,
+    
+    -- Pricing
+    is_free_batch BOOLEAN NOT NULL DEFAULT FALSE,
+    credits_charged INTEGER NOT NULL DEFAULT 0,
+    
+    -- Processing
+    workflow_id TEXT,
+    error_message TEXT,
+    processing_started_at TIMESTAMPTZ,
+    estimated_completion_at TIMESTAMPTZ,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    
+    CONSTRAINT total_images_positive CHECK (total_images >= 0),
+    CONSTRAINT completed_images_valid CHECK (completed_images >= 0 AND completed_images <= total_images)
+);
+
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_user_id ON batch_jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_status ON batch_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_created_at ON batch_jobs(created_at DESC);
+
+-- Batch images table - individual images within a batch
+CREATE TABLE IF NOT EXISTS batch_images (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    batch_id UUID NOT NULL REFERENCES batch_jobs(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Sequence within batch (1-10)
+    sequence INTEGER NOT NULL,
+    
+    -- Azure Blob URIs
+    original_azure_uri TEXT NOT NULL,
+    result_azure_uri TEXT,
+    mask_azure_uri TEXT,
+    thumbnail_azure_uri TEXT,
+    
+    -- Per-image skin tone (for non-necklace categories)
+    skin_tone skin_tone,
+    
+    -- Status
+    status batch_status NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    
+    -- Quality metrics (JSON for flexibility)
+    fidelity_metrics JSONB,
+    
+    -- Linked workflow
+    workflow_id TEXT,
+    
+    -- Processing time in milliseconds
+    processing_time_ms INTEGER,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    
+    CONSTRAINT sequence_valid CHECK (sequence >= 1 AND sequence <= 10)
+);
+
+CREATE INDEX IF NOT EXISTS idx_batch_images_batch_id ON batch_images(batch_id);
+CREATE INDEX IF NOT EXISTS idx_batch_images_user_id ON batch_images(user_id);
+CREATE INDEX IF NOT EXISTS idx_batch_images_status ON batch_images(status);
+
+-- User batch credits - tracks free tier usage
+CREATE TABLE IF NOT EXISTS user_batch_credits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Free tier tracking
+    free_batches_used INTEGER NOT NULL DEFAULT 0,
+    free_batches_limit INTEGER NOT NULL DEFAULT 1,
+    free_generations_per_batch INTEGER NOT NULL DEFAULT 4,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT free_batches_non_negative CHECK (free_batches_used >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_batch_credits_user_id ON user_batch_credits(user_id);
+
+-- Triggers for batch tables
+DROP TRIGGER IF EXISTS update_batch_jobs_updated_at ON batch_jobs;
+CREATE TRIGGER update_batch_jobs_updated_at
+    BEFORE UPDATE ON batch_jobs
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_batch_images_updated_at ON batch_images;
+CREATE TRIGGER update_batch_images_updated_at
+    BEFORE UPDATE ON batch_images
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_batch_credits_updated_at ON user_batch_credits;
+CREATE TRIGGER update_user_batch_credits_updated_at
+    BEFORE UPDATE ON user_batch_credits
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ============================================
 -- INITIAL DATA (Optional)
 -- ============================================
 
