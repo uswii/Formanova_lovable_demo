@@ -355,85 +355,29 @@ const CategoryUploadStudio = () => {
                 </p>
               </div>
             ) : (
-              /* Diamond upload empty state */
+              /* Diamond upload empty state - striking ping animation */
               <div className="text-center cursor-pointer group">
-                {/* Dotted circle container */}
-                <div className="relative w-32 h-32 mx-auto mb-6">
-                  {/* Animated dotted border */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-dashed border-formanova-hero-accent/40 group-hover:border-formanova-hero-accent/70"
-                    animate={{ 
-                      rotate: 360,
-                      scale: [1, 1.02, 1],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                      scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                    }}
+                <div className="relative mx-auto w-24 h-24 mb-6">
+                  {/* Striking ping ring - expands outward */}
+                  <div 
+                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/20 animate-ping" 
+                    style={{ animationDuration: '2s' }} 
                   />
-                  
-                  {/* Inner glow ring */}
-                  <motion.div
-                    className="absolute inset-2 rounded-full border border-formanova-hero-accent/20"
-                    animate={{ 
-                      opacity: [0.3, 0.6, 0.3],
-                    }}
-                    transition={{ 
-                      duration: 2, 
-                      repeat: Infinity, 
-                      ease: "easeInOut" 
-                    }}
+                  {/* Second ping ring - offset timing */}
+                  <div 
+                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 animate-ping" 
+                    style={{ animationDuration: '2s', animationDelay: '0.5s' }} 
                   />
-                  
-                  {/* Diamond with blink animation */}
-                  <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    animate={{ 
-                      rotateY: [0, 180, 360],
-                    }}
-                    transition={{ 
-                      duration: 8, 
-                      repeat: Infinity, 
-                      ease: "linear" 
-                    }}
-                  >
-                    <motion.div
-                      animate={{ 
-                        opacity: [0.6, 1, 0.6],
-                        scale: [1, 1.05, 1],
-                      }}
-                      transition={{ 
-                        duration: 1.5, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                    >
-                      <Diamond 
-                        className="w-16 h-16 text-formanova-hero-accent group-hover:text-formanova-hero-accent transition-colors duration-300" 
-                        strokeWidth={1.5}
-                      />
-                    </motion.div>
-                  </motion.div>
-                  
-                  {/* Pulsing plus icon */}
-                  <motion.div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    animate={{ 
-                      scale: [1, 1.15, 1],
-                      opacity: [0.7, 1, 0.7],
-                    }}
-                    transition={{ 
-                      duration: 2, 
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <Plus className="w-6 h-6 text-formanova-hero-accent" />
-                  </motion.div>
+                  {/* Core diamond container */}
+                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/30 group-hover:border-formanova-hero-accent/60 transition-colors">
+                    <Diamond className="h-10 w-10 text-formanova-hero-accent" />
+                  </div>
                 </div>
-                
-                <p className="text-sm text-muted-foreground mb-1 group-hover:text-foreground transition-colors">
-                  Drop images here or click to upload
+                <p className="text-xl font-display font-medium mb-2 group-hover:text-foreground transition-colors">
+                  Drop your jewelry images here
+                </p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground/70">or paste with Ctrl+V</p>
                 
