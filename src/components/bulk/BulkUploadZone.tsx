@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
+import { Upload, Plus } from 'lucide-react';
 
 export interface UploadedImage {
   id: string;
@@ -40,6 +40,41 @@ const BulkUploadZone = ({
     onImagesChange([...images, ...newImages]);
   }, [images, onImagesChange, maxImages, disabled]);
 
+  // Global paste listener
+  useEffect(() => {
+    if (disabled) return;
+    
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        const remainingSlots = maxImages - images.length;
+        const filesToAdd = imageFiles.slice(0, remainingSlots);
+        
+        const newImages: UploadedImage[] = filesToAdd.map(file => ({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          preview: URL.createObjectURL(file),
+        }));
+        
+        onImagesChange([...images, ...newImages]);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [images, onImagesChange, maxImages, disabled]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -56,83 +91,100 @@ const BulkUploadZone = ({
     setIsDragOver(false);
   }, []);
 
-  const handleRemoveImage = useCallback((id: string) => {
-    const imageToRemove = images.find(img => img.id === id);
-    if (imageToRemove) {
-      URL.revokeObjectURL(imageToRemove.preview);
-    }
-    onImagesChange(images.filter(img => img.id !== id));
-  }, [images, onImagesChange]);
-
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     handleFiles(e.target.files);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   }, [handleFiles]);
 
   const canAddMore = images.length < maxImages;
 
-  return (
-    <div className="space-y-4">
-      {/* Counter */}
-      <div className="flex items-center justify-between">
-        <span className="marta-label text-muted-foreground">
-          {images.length} of {maxImages} images
-        </span>
-        {images.length > 0 && (
-          <button
-            onClick={() => {
-              images.forEach(img => URL.revokeObjectURL(img.preview));
-              onImagesChange([]);
-            }}
-            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-            disabled={disabled}
-          >
-            Clear all
-          </button>
-        )}
-      </div>
+  // Empty state - single large drop zone
+  if (images.length === 0) {
+    return (
+      <motion.label
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`relative block w-full aspect-[4/3] marta-frame border-dashed cursor-pointer transition-all duration-200 ${
+          disabled 
+            ? 'opacity-50 cursor-not-allowed' 
+            : isDragOver 
+              ? 'border-formanova-hero-accent bg-formanova-hero-accent/5' 
+              : 'hover:border-foreground/40 hover:bg-muted/20'
+        }`}
+        whileHover={disabled ? {} : { scale: 1.005 }}
+        whileTap={disabled ? {} : { scale: 0.995 }}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileInput}
+          disabled={disabled}
+          className="sr-only"
+        />
+        
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+            <Upload className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-foreground font-medium">
+              Drop images here
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              or click to browse · paste with Ctrl+V
+            </p>
+          </div>
+          <span className="text-[10px] text-muted-foreground/60 font-mono">
+            Up to {maxImages} images
+          </span>
+        </div>
+      </motion.label>
+    );
+  }
 
-      {/* Thumbnail Grid + Drop Zone */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+  // Canva-style grid when images exist
+  return (
+    <div className="space-y-3">
+      {/* Canva-style grid */}
+      <div className="grid grid-cols-3 gap-2">
         <AnimatePresence mode="popLayout">
-          {images.map((image) => (
+          {images.map((image, index) => (
             <motion.div
               key={image.id}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square marta-frame overflow-hidden group"
+              className="relative aspect-square bg-muted/30 rounded overflow-hidden"
             >
               <img
                 src={image.preview}
-                alt="Upload preview"
+                alt={`Upload ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <button
-                onClick={() => handleRemoveImage(image.id)}
-                disabled={disabled}
-                className="absolute top-1 right-1 w-5 h-5 bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-primary-foreground"
-              >
-                <X className="w-3 h-3" />
-              </button>
+              {/* Number badge */}
+              <div className="absolute bottom-1 left-1 w-5 h-5 rounded bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-[10px] font-mono text-foreground">{index + 1}</span>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {/* Add More / Drop Zone */}
+        {/* Add more tile */}
         {canAddMore && (
           <motion.label
             layout
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square marta-frame border-dashed cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+            className={`relative aspect-square rounded border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center ${
               disabled 
-                ? 'opacity-50 cursor-not-allowed' 
+                ? 'opacity-50 cursor-not-allowed border-muted' 
                 : isDragOver 
-                  ? 'border-formanova-hero-accent bg-formanova-hero-accent/10' 
-                  : 'hover:border-foreground/40 hover:bg-muted/30'
+                  ? 'border-formanova-hero-accent bg-formanova-hero-accent/5' 
+                  : 'border-muted-foreground/30 hover:border-foreground/50 hover:bg-muted/20'
             }`}
           >
             <input
@@ -143,36 +195,16 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            {images.length === 0 ? (
-              <>
-                <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-[9px] font-mono text-muted-foreground text-center px-1">
-                  Drop or click
-                </span>
-              </>
-            ) : (
-              <Plus className="w-5 h-5 text-muted-foreground" />
-            )}
+            <Plus className="w-5 h-5 text-muted-foreground" />
           </motion.label>
         )}
       </div>
 
-      {/* Empty State */}
-      {images.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-4"
-        >
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <ImageIcon className="w-4 h-4" />
-            <span className="text-sm">Drag and drop up to {maxImages} images</span>
-          </div>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            or click the upload area to browse
-          </p>
-        </motion.div>
-      )}
+      {/* Counter */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{images.length} of {maxImages}</span>
+        <span className="text-[10px]">Ctrl+V to paste</span>
+      </div>
     </div>
   );
 };
