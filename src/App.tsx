@@ -15,9 +15,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Welcome from "./pages/Welcome";
 import Dashboard from "./pages/Dashboard";
 import Tutorial from "./pages/Tutorial";
-import BulkUploadStudio from "./pages/BulkUploadStudio";
-// Keep old category-based studio for easy switching back:
-// import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
+import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
 import JewelryStudio from "./pages/JewelryStudio";
 import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
@@ -53,7 +51,7 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
                   <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
-                  <Route path="/studio" element={<ProtectedRoute><BulkUploadStudio /></ProtectedRoute>} />
+                  <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
                   <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} />
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
                   
