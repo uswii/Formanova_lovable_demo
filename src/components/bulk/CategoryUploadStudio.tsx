@@ -389,6 +389,27 @@ const CategoryUploadStudio = () => {
             <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
           </div>
           <ExampleGuidePanel categoryName={categoryName} categoryType={jewelryType} />
+          
+          {/* Skin tone explainer (non-necklace only) */}
+          {showSkinTone && images.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-border/50">
+              <span className="marta-label text-muted-foreground text-[10px]">Model Skin Tone</span>
+              <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                Select the skin tone for the AI-generated model in each photoshoot.
+              </p>
+              <div className="flex items-center gap-1.5 mt-3">
+                {SKIN_TONES.map((tone) => (
+                  <div key={tone.id} className="flex flex-col items-center gap-1">
+                    <div
+                      className="w-5 h-5 rounded-full border border-border/50"
+                      style={{ backgroundColor: tone.color }}
+                    />
+                    <span className="text-[8px] text-muted-foreground/70">{tone.label.split(' ').pop()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
