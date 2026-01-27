@@ -93,13 +93,18 @@ export function useImageValidation() {
   }, []);
 
   /**
-   * Classify a single image
+   * Classify a single image with timeout
    */
   const classifyImage = useCallback(async (
     dataUri: string,
     authHeader?: Record<string, string>
   ): Promise<ClassificationResult | null> => {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
     try {
+      console.log('[ImageValidation] Starting classification request...');
       const response = await fetch(getClassificationUrl(), {
         method: 'POST',
         headers: {
@@ -114,17 +119,26 @@ export function useImageValidation() {
           },
           meta: {}
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        console.warn('Classification service returned error:', response.status);
+        console.warn('[ImageValidation] Service returned error:', response.status);
         return null;
       }
 
       const data = await response.json();
+      console.log('[ImageValidation] Classification result:', data);
       return data as ClassificationResult;
     } catch (error) {
-      console.error('Classification request failed:', error);
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('[ImageValidation] Request timed out after 30s');
+      } else {
+        console.error('[ImageValidation] Request failed:', error);
+      }
       return null;
     }
   }, []);

@@ -349,10 +349,17 @@ const CategoryUploadStudio = () => {
                   )}
                 </div>
 
-                {/* Image count */}
-                <p className="text-center text-xs text-muted-foreground mt-4">
-                  {images.length} of {MAX_IMAGES} images
-                </p>
+                {/* Image count + validation status */}
+                <div className="text-center mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    {images.length} of {MAX_IMAGES} images
+                  </p>
+                  {isValidating && (
+                    <p className="text-xs text-formanova-hero-accent mt-1 animate-pulse">
+                      Checking images...
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               /* Diamond upload empty state - striking ping animation */
