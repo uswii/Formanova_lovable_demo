@@ -148,7 +148,7 @@ const BulkUploadZone = ({
   return (
     <div className="space-y-3">
       {/* Canva-style grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
           {images.map((image, index) => (
             <motion.div
@@ -157,7 +157,7 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square bg-muted/30 rounded overflow-hidden"
+              className="relative aspect-square bg-muted/30 rounded-lg overflow-hidden min-w-[160px] min-h-[160px]"
             >
               <img
                 src={image.preview}
@@ -165,8 +165,8 @@ const BulkUploadZone = ({
                 className="w-full h-full object-cover"
               />
               {/* Number badge */}
-              <div className="absolute bottom-2 left-2 w-7 h-7 rounded bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-xs font-mono text-foreground">{index + 1}</span>
+              <div className="absolute bottom-3 left-3 w-9 h-9 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-sm font-mono text-foreground">{index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -179,7 +179,7 @@ const BulkUploadZone = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square rounded border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center ${
+            className={`relative aspect-square rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center min-w-[160px] min-h-[160px] ${
               disabled 
                 ? 'opacity-50 cursor-not-allowed border-muted' 
                 : isDragOver 
@@ -195,7 +195,7 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            <Plus className="w-8 h-8 text-muted-foreground" />
+            <Plus className="w-10 h-10 text-muted-foreground" />
           </motion.label>
         )}
       </div>
