@@ -1,357 +1,541 @@
 -- ============================================================
--- FORMANOVA B2B2C DATABASE SCHEMA
+-- TEMPORAL-AGENTIC PIPELINE DATABASE SCHEMA (B2B2C Edition)
 -- ============================================================
--- This schema covers:
--- 1. AUTH SERVICE DB (users, oauth_accounts) - for auth server
--- 2. PIPELINE DB (tenants, wallets, generations, billing) - for temporal server
--- 
--- Run on your own PostgreSQL server
+--
+-- This schema implements the B2B2C multi-tenant model from
+-- TEMPORAL_PIPELINE_SPEC.md and AUTH_SERVICE_SPEC.md
+--
+-- HOW TO RUN:
+--   psql -h YOUR_HOST -U postgres -d pipeline -f schema.sql
+--
 -- ============================================================
 
--- ============================================================
--- PART 1: AUTH SERVICE DATABASE
--- ============================================================
--- This is for your FastAPI Auth Service at 20.173.91.22:8002
--- Handles: Registration, Login, Google OAuth, JWT issuance
+-- ============================================
+-- ENUMS
+-- ============================================
 
--- Users table (core authentication)
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255),  -- bcrypt hashed, NULL for OAuth-only users
-    is_active BOOLEAN DEFAULT TRUE,
-    is_verified BOOLEAN DEFAULT FALSE,  -- Email verified
-    is_superuser BOOLEAN DEFAULT FALSE,
-    
-    -- Optional profile fields
-    full_name VARCHAR(100),
-    avatar_url TEXT,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+DO $$ BEGIN
+    CREATE TYPE workflow_status AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- OAuth accounts (Google, etc.)
-CREATE TABLE IF NOT EXISTS oauth_accounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    oauth_name VARCHAR(50) NOT NULL,  -- "google"
-    access_token TEXT NOT NULL,
-    expires_at INTEGER,
-    refresh_token TEXT,
-    account_id VARCHAR(255) NOT NULL,  -- Google's user ID
-    account_email VARCHAR(255),
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(oauth_name, account_id)
-);
+DO $$ BEGIN
+    CREATE TYPE tenant_tier AS ENUM ('free', 'starter', 'pro', 'enterprise');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Index for fast OAuth lookups
-CREATE INDEX IF NOT EXISTS idx_oauth_lookup ON oauth_accounts(oauth_name, account_id);
-CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_accounts(user_id);
+DO $$ BEGIN
+    CREATE TYPE transaction_type AS ENUM ('topup', 'reserve', 'charge', 'refund', 'release', 'adjustment');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 
--- ============================================================
--- PART 2: TEMPORAL PIPELINE DATABASE (B2B2C)
--- ============================================================
--- This is for your Temporal Agentic Pipeline
--- Handles: Multi-tenancy, Credit wallets, Billing, Generation history
+-- ============================================
+-- TENANTS (B2B Layer - Clients)
+-- ============================================
+-- Each tenant is a business client that owns their own user base
+-- They configure their own identity provider (OIDC/JWKS)
 
--- Tenants (B2B Clients - businesses using your platform)
 CREATE TABLE IF NOT EXISTS tenants (
-    id TEXT PRIMARY KEY,  -- "ten_xxx" format
+    id TEXT PRIMARY KEY,  -- Format: ten_xxx
     name TEXT NOT NULL,
     
-    -- OIDC Configuration (for JWT validation)
-    issuer_url TEXT UNIQUE NOT NULL,  -- e.g., "http://20.173.91.22:8002"
-    jwks_uri TEXT NOT NULL,           -- e.g., "http://20.173.91.22:8002/.well-known/jwks.json"
-    audience TEXT,                     -- e.g., "fastapi-users:auth"
+    -- OIDC Configuration (JWT Binding)
+    issuer_url TEXT NOT NULL UNIQUE,  -- Must match JWT 'iss' claim
+    jwks_uri TEXT NOT NULL,           -- Public keys for signature verification
+    audience TEXT,                     -- Expected JWT 'aud' claim
     
-    -- API Key for machine-to-machine calls
-    api_key_hash TEXT UNIQUE,  -- SHA-256 hash of the API key
+    -- Machine-to-Machine Auth
+    api_key_hash TEXT,                -- SHA-256 hash of tap_live_xxx key
     
-    -- Tenant tier/plan
-    tier TEXT DEFAULT 'free',  -- 'free', 'pro', 'enterprise'
+    -- Tier/Limits
+    tier tenant_tier NOT NULL DEFAULT 'free',
+    rate_limit_rpm INTEGER DEFAULT 100,
+    max_concurrent_workflows INTEGER DEFAULT 10,
     
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Pipeline Users (End consumers with credit wallets)
--- These are JIT-provisioned when users authenticate via JWT
-CREATE TABLE IF NOT EXISTS pipeline_users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id TEXT REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
-    
-    -- External identity (from Auth Service)
-    external_id TEXT NOT NULL,  -- User ID from JWT 'sub' claim
-    email TEXT,
-    
-    -- Credit Wallet
-    balance BIGINT DEFAULT 0,           -- Total credits owned
-    reserved_balance BIGINT DEFAULT 0,  -- Credits locked during active workflows
-    -- Available = balance - reserved_balance
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    UNIQUE(tenant_id, external_id)
-);
-
--- Credit Transactions (Audit trail for all credit movements)
-CREATE TABLE IF NOT EXISTS credit_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES pipeline_users(id) ON DELETE CASCADE NOT NULL,
-    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
-    
-    -- Transaction details
-    type TEXT NOT NULL,  -- 'topup', 'hold', 'release', 'charge', 'refund'
-    amount BIGINT NOT NULL,  -- Positive for credits in, negative for credits out
-    balance_after BIGINT NOT NULL,  -- Balance after this transaction
-    
-    -- Reference to what caused this transaction
-    workflow_id TEXT,  -- If related to a workflow
-    description TEXT,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Workflow Executions (Generation jobs with billing)
-CREATE TABLE IF NOT EXISTS workflow_executions (
-    id TEXT PRIMARY KEY,  -- Temporal workflow ID
-    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
-    user_id UUID REFERENCES pipeline_users(id) NOT NULL,
-    
-    -- Workflow metadata
-    workflow_name TEXT NOT NULL,  -- e.g., "jewelry_generation", "default_chain"
-    workflow_type TEXT DEFAULT 'generation',  -- 'generation', 'preprocessing', 'full'
-    
-    -- Input/Output (store URLs, not binary data!)
-    input_payload JSONB,  -- Workflow parameters (NOT images)
-    input_image_url TEXT,  -- Azure blob URL
-    output_urls JSONB,    -- Array of result image URLs
-    
-    -- Status tracking
-    status TEXT DEFAULT 'pending',  -- 'pending', 'running', 'completed', 'failed', 'cancelled'
-    current_step TEXT,
-    progress INTEGER DEFAULT 0,  -- 0-100
-    error_message TEXT,
-    
-    -- Financial tracking (Dual Ledger)
-    credit_hold_amount BIGINT DEFAULT 0,      -- Reserved at start
-    actual_user_billed BIGINT DEFAULT 0,      -- What user paid (Revenue)
-    internal_provider_cost BIGINT DEFAULT 0,  -- Infrastructure cost (Expense)
+    -- Metadata
+    metadata JSONB NOT NULL DEFAULT '{}',
     
     -- Timestamps
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    started_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT issuer_url_valid CHECK (issuer_url ~ '^https?://')
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenants_issuer_url ON tenants(issuer_url);
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key_hash ON tenants(api_key_hash);
+
+
+-- ============================================
+-- USERS (B2C Layer - End Consumers)
+-- ============================================
+-- Users belong to tenants and have credit wallets
+-- They are auto-created (JIT provisioning) on first auth
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    
+    -- Identity (from JWT or OAuth)
+    external_id TEXT NOT NULL,  -- 'sub' claim from JWT or OAuth provider ID
+    email TEXT,
+    full_name TEXT,
+    avatar_url TEXT,
+    
+    -- Auth metadata (for standalone auth service)
+    hashed_password TEXT,       -- bcrypt hash (null for OAuth-only users)
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
+    
+    -- ═══════ WALLET (Dual Ledger) ═══════
+    balance BIGINT NOT NULL DEFAULT 0,           -- Total credits owned
+    reserved_balance BIGINT NOT NULL DEFAULT 0,  -- Credits held for running workflows
+    -- Available = balance - reserved_balance
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_active_at TIMESTAMPTZ,
+    
+    -- Each external_id must be unique within a tenant
+    CONSTRAINT unique_tenant_external_id UNIQUE (tenant_id, external_id),
+    CONSTRAINT balance_non_negative CHECK (balance >= 0),
+    CONSTRAINT reserved_non_negative CHECK (reserved_balance >= 0),
+    CONSTRAINT reserved_not_exceed_balance CHECK (reserved_balance <= balance)
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_external ON users(tenant_id, external_id);
+
+
+-- ============================================
+-- CREDIT TRANSACTIONS (Audit Trail)
+-- ============================================
+-- Every credit movement is logged for reconciliation
+
+CREATE TABLE IF NOT EXISTS credit_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    
+    -- Transaction details
+    type transaction_type NOT NULL,
+    amount BIGINT NOT NULL,  -- Positive for credits in, negative for credits out
+    
+    -- Related entities
+    workflow_id TEXT,  -- Links to workflow_executions if applicable
+    
+    -- Balance snapshot (for reconciliation)
+    balance_before BIGINT NOT NULL,
+    balance_after BIGINT NOT NULL,
+    reserved_before BIGINT,
+    reserved_after BIGINT,
+    
+    -- Metadata
+    description TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_workflow_id ON credit_transactions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_created_at ON credit_transactions(created_at DESC);
+
+
+-- ============================================
+-- WORKFLOW EXECUTIONS
+-- ============================================
+-- Each workflow run with billing attribution
+
+CREATE TABLE IF NOT EXISTS workflow_executions (
+    id TEXT PRIMARY KEY,  -- Temporal workflow ID
+    
+    -- Attribution
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Workflow details
+    dag_name TEXT NOT NULL,
+    input_payload JSONB NOT NULL DEFAULT '{}',
+    output_payload JSONB,
+    
+    -- Status
+    status workflow_status NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    
+    -- ═══════ FINANCIAL (B2B2C) ═══════
+    projected_cost BIGINT NOT NULL DEFAULT 0,     -- Estimated cost (reserved)
+    actual_cost BIGINT NOT NULL DEFAULT 0,        -- User pays this (Revenue)
+    total_provider_cost BIGINT NOT NULL DEFAULT 0, -- Tenant pays this (Expense)
+    -- Tenant margin = actual_cost - total_provider_cost
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     finished_at TIMESTAMPTZ
 );
 
--- Tool Invocations (Per-step billing + RLHF data)
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_tenant_id ON workflow_executions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_user_id ON workflow_executions(user_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_status ON workflow_executions(status);
+CREATE INDEX IF NOT EXISTS idx_workflow_billing ON workflow_executions(id, status);
+CREATE INDEX IF NOT EXISTS idx_tenant_workflows_latest ON workflow_executions(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_workflows_latest ON workflow_executions(user_id, created_at DESC);
+
+
+-- ============================================
+-- TOOL INVOCATIONS
+-- ============================================
+-- Per-step execution records for caching, billing, and RLHF
+
 CREATE TABLE IF NOT EXISTS tool_invocations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workflow_id TEXT REFERENCES workflow_executions(id) ON DELETE CASCADE NOT NULL,
-    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
-    user_id UUID REFERENCES pipeline_users(id) NOT NULL,
+    workflow_id TEXT NOT NULL REFERENCES workflow_executions(id) ON DELETE CASCADE,
+    
+    -- Attribution (denormalized for fast queries)
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     -- Tool details
-    tool_name TEXT NOT NULL,  -- e.g., "segment", "refine_mask", "flux_generate"
-    tool_version TEXT DEFAULT '1.0',
+    tool_name TEXT NOT NULL,
+    tool_version TEXT DEFAULT '1.0.0',
+    node_id TEXT,  -- DAG node identifier
     
-    -- Caching (for deterministic tools)
-    input_hash TEXT,  -- SHA-256 of normalized inputs
-    is_deterministic BOOLEAN DEFAULT FALSE,
+    -- Caching (SHA-256 of canonical input)
+    input_hash TEXT NOT NULL,
+    input_data JSONB NOT NULL DEFAULT '{}',
+    output_data JSONB,
     
-    -- Execution details
-    input_data JSONB,   -- Tool inputs (NOT images, just parameters)
-    output_data JSONB,  -- Tool outputs (URLs, metrics, etc.)
+    -- ═══════ EXECUTION FLAGS ═══════
+    is_success BOOLEAN NOT NULL DEFAULT FALSE,
+    is_cached BOOLEAN NOT NULL DEFAULT FALSE,
+    is_retry BOOLEAN NOT NULL DEFAULT FALSE,
+    is_skipped BOOLEAN NOT NULL DEFAULT FALSE,  -- Skipped by 'when' gate
+    is_deterministic BOOLEAN NOT NULL DEFAULT TRUE,
     
-    -- Status
-    is_success BOOLEAN DEFAULT FALSE,
-    is_cached BOOLEAN DEFAULT FALSE,  -- Cache hit = no cost
-    is_retry BOOLEAN DEFAULT FALSE,
-    is_skipped BOOLEAN DEFAULT FALSE,  -- Gated/conditional skip
+    -- ═══════ FINANCIAL AUDIT ═══════
+    cost BIGINT NOT NULL DEFAULT 0,  -- Credits charged for this invocation
+    provider_cost BIGINT NOT NULL DEFAULT 0,  -- Infra cost (even on failure)
+    latency_ms INTEGER,
     
-    -- Cost tracking
-    cost BIGINT DEFAULT 0,  -- Credits charged for this invocation
-    provider_cost BIGINT DEFAULT 0,  -- Actual infrastructure cost
-    
-    -- RLHF fields (for model improvement)
+    -- ═══════ RLHF (Reinforcement Learning from Human Feedback) ═══════
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
     feedback TEXT,
     
-    -- Timing
-    started_at TIMESTAMPTZ DEFAULT NOW(),
-    finished_at TIMESTAMPTZ,
-    duration_ms INTEGER
+    -- Error tracking
+    error_message TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
 );
 
--- User Generations (High-level gallery view)
+-- Cache lookup index (most important for performance)
+CREATE INDEX IF NOT EXISTS idx_tool_cache_lookup 
+    ON tool_invocations(tool_name, tool_version, input_hash) 
+    WHERE is_deterministic = TRUE AND is_success = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_tool_invocations_workflow_id ON tool_invocations(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_tool_invocations_tenant_id ON tool_invocations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_tool_history ON tool_invocations(tenant_id, created_at DESC);
+
+
+-- ============================================
+-- ARTIFACTS (Content-Addressable Storage)
+-- ============================================
+-- Stores metadata for Azure Blob artifacts (images, etc.)
+
+CREATE TABLE IF NOT EXISTS artifacts (
+    sha256 TEXT PRIMARY KEY,  -- Content hash
+    
+    -- Storage location
+    uri TEXT NOT NULL,  -- azure://container/path or https://...
+    
+    -- File info
+    mime_type TEXT,
+    size_bytes BIGINT,
+    
+    -- Attribution
+    tenant_id TEXT REFERENCES tenants(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Metadata
+    metadata JSONB NOT NULL DEFAULT '{}',
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_artifacts_uri ON artifacts(uri);
+CREATE INDEX IF NOT EXISTS idx_artifacts_tenant_id ON artifacts(tenant_id);
+
+
+-- ============================================
+-- USER GENERATIONS (Gallery)
+-- ============================================
+-- Stores jewelry try-on generation results for user gallery
+
 CREATE TABLE IF NOT EXISTS user_generations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES pipeline_users(id) ON DELETE CASCADE NOT NULL,
-    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
-    workflow_id TEXT REFERENCES workflow_executions(id),
     
-    -- Generation details
-    jewelry_type TEXT,  -- 'necklace', 'earring', 'bracelet', 'ring'
+    -- Attribution
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    workflow_id TEXT REFERENCES workflow_executions(id) ON DELETE SET NULL,
     
-    -- Image URLs (stored in Azure Blob, NOT in DB!)
+    -- ═══════ AZURE BLOB URLS (not base64!) ═══════
     original_image_url TEXT NOT NULL,
     mask_url TEXT,
     result_image_url TEXT,
+    thumbnail_url TEXT,
     
-    -- Metadata
+    -- Generation details
+    jewelry_type TEXT,  -- 'necklace', 'earring', 'bracelet', 'ring'
+    prompt TEXT,
+    model_used TEXT,
+    generation_params JSONB NOT NULL DEFAULT '{}',
+    
+    -- Quality metrics (from fidelity analysis)
+    fidelity_metrics JSONB,  -- { precision, recall, iou, growth_ratio }
+    
+    -- User actions
     title TEXT,
-    is_favorite BOOLEAN DEFAULT FALSE,
-    is_public BOOLEAN DEFAULT FALSE,  -- Visible in gallery
+    is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+    is_public BOOLEAN NOT NULL DEFAULT FALSE,
     
-    -- Quality metrics
-    metrics JSONB,  -- { precision, recall, iou, growth_ratio }
+    -- Processing info
+    processing_time_ms INTEGER,
     
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-
--- ============================================================
--- INDEXES FOR PERFORMANCE
--- ============================================================
-
--- Tenant lookups
-CREATE INDEX IF NOT EXISTS idx_tenant_issuer ON tenants(issuer_url);
-CREATE INDEX IF NOT EXISTS idx_tenant_api_key ON tenants(api_key_hash);
-
--- User lookups
-CREATE INDEX IF NOT EXISTS idx_user_tenant_external ON pipeline_users(tenant_id, external_id);
-CREATE INDEX IF NOT EXISTS idx_user_email ON pipeline_users(email);
-
--- Credit transactions
-CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_credit_tx_workflow ON credit_transactions(workflow_id);
-
--- Workflow lookups
-CREATE INDEX IF NOT EXISTS idx_workflow_user ON workflow_executions(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_workflow_tenant ON workflow_executions(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_workflow_status ON workflow_executions(status);
-
--- Tool invocations (for caching)
-CREATE INDEX IF NOT EXISTS idx_tool_cache ON tool_invocations(tool_name, tool_version, input_hash) 
-    WHERE is_deterministic = TRUE AND is_success = TRUE;
-CREATE INDEX IF NOT EXISTS idx_tool_workflow ON tool_invocations(workflow_id);
-
--- User generations (gallery)
-CREATE INDEX IF NOT EXISTS idx_generation_user ON user_generations(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_generation_favorites ON user_generations(user_id, is_favorite) 
-    WHERE is_favorite = TRUE;
+CREATE INDEX IF NOT EXISTS idx_user_generations_user_id ON user_generations(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_generations_tenant_id ON user_generations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_user_generations_workflow_id ON user_generations(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_user_generations_created_at ON user_generations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_generations_favorites ON user_generations(user_id, is_favorite) WHERE is_favorite = TRUE;
 
 
--- ============================================================
--- FUNCTIONS FOR CREDIT MANAGEMENT
--- ============================================================
+-- ============================================
+-- FUNCTIONS: Credit System (Dual Ledger)
+-- ============================================
 
--- Reserve credits (atomic hold)
+-- Reserve credits for a workflow (atomic hold)
 CREATE OR REPLACE FUNCTION reserve_credits(
     p_user_id UUID,
-    p_amount BIGINT,
-    p_workflow_id TEXT
-) RETURNS BOOLEAN AS $$
+    p_workflow_id TEXT,
+    p_amount BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    v_available BIGINT;
+    v_balance BIGINT;
+    v_reserved BIGINT;
+    v_tenant_id TEXT;
 BEGIN
-    -- Lock the user row
-    SELECT balance - reserved_balance INTO v_available
-    FROM pipeline_users
-    WHERE id = p_user_id
+    -- Lock the user row to prevent race conditions
+    SELECT balance, reserved_balance, tenant_id 
+    INTO v_balance, v_reserved, v_tenant_id
+    FROM users 
+    WHERE id = p_user_id 
     FOR UPDATE;
     
-    -- Check if enough credits
-    IF v_available < p_amount THEN
-        RETURN FALSE;
+    -- Check available balance
+    IF (v_balance - v_reserved) < p_amount THEN
+        RETURN FALSE;  -- Insufficient credits
     END IF;
     
-    -- Reserve the credits
-    UPDATE pipeline_users
+    -- Update reserved balance
+    UPDATE users 
     SET reserved_balance = reserved_balance + p_amount,
         updated_at = NOW()
     WHERE id = p_user_id;
     
-    -- Log the transaction
-    INSERT INTO credit_transactions (user_id, tenant_id, type, amount, balance_after, workflow_id, description)
-    SELECT p_user_id, tenant_id, 'hold', -p_amount, balance - reserved_balance, p_workflow_id, 'Credit hold for workflow'
-    FROM pipeline_users WHERE id = p_user_id;
+    -- Log transaction
+    INSERT INTO credit_transactions (
+        user_id, tenant_id, type, amount, workflow_id,
+        balance_before, balance_after, reserved_before, reserved_after,
+        description
+    ) VALUES (
+        p_user_id, v_tenant_id, 'reserve', p_amount, p_workflow_id,
+        v_balance, v_balance, v_reserved, v_reserved + p_amount,
+        'Credit hold for workflow ' || p_workflow_id
+    );
     
     RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Settle credits (release hold and charge actual amount)
+
+-- Settle credits after workflow completion
 CREATE OR REPLACE FUNCTION settle_credits(
     p_user_id UUID,
     p_workflow_id TEXT,
-    p_hold_amount BIGINT,
+    p_projected_cost BIGINT,
     p_actual_cost BIGINT,
-    p_success BOOLEAN
-) RETURNS VOID AS $$
+    p_is_success BOOLEAN
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_balance BIGINT;
+    v_reserved BIGINT;
+    v_tenant_id TEXT;
+    v_charge_amount BIGINT;
 BEGIN
-    -- Release the hold
-    UPDATE pipeline_users
-    SET reserved_balance = reserved_balance - p_hold_amount,
-        -- Only deduct from balance if successful
-        balance = CASE WHEN p_success THEN balance - p_actual_cost ELSE balance END,
-        updated_at = NOW()
-    WHERE id = p_user_id;
+    -- Lock the user row
+    SELECT balance, reserved_balance, tenant_id 
+    INTO v_balance, v_reserved, v_tenant_id
+    FROM users 
+    WHERE id = p_user_id 
+    FOR UPDATE;
     
-    -- Log release transaction
-    INSERT INTO credit_transactions (user_id, tenant_id, type, amount, balance_after, workflow_id, description)
-    SELECT p_user_id, tenant_id, 'release', p_hold_amount, balance, p_workflow_id, 'Credit hold released'
-    FROM pipeline_users WHERE id = p_user_id;
-    
-    -- Log charge transaction (if successful)
-    IF p_success AND p_actual_cost > 0 THEN
-        INSERT INTO credit_transactions (user_id, tenant_id, type, amount, balance_after, workflow_id, description)
-        SELECT p_user_id, tenant_id, 'charge', -p_actual_cost, balance, p_workflow_id, 'Workflow completed'
-        FROM pipeline_users WHERE id = p_user_id;
+    IF p_is_success THEN
+        -- Charge actual cost (User Revenue)
+        v_charge_amount := p_actual_cost;
+        
+        UPDATE users 
+        SET balance = balance - v_charge_amount,
+            reserved_balance = reserved_balance - p_projected_cost,
+            updated_at = NOW()
+        WHERE id = p_user_id;
+        
+        -- Log charge
+        INSERT INTO credit_transactions (
+            user_id, tenant_id, type, amount, workflow_id,
+            balance_before, balance_after, reserved_before, reserved_after,
+            description
+        ) VALUES (
+            p_user_id, v_tenant_id, 'charge', -v_charge_amount, p_workflow_id,
+            v_balance, v_balance - v_charge_amount, 
+            v_reserved, v_reserved - p_projected_cost,
+            'Charged for completed workflow ' || p_workflow_id
+        );
+    ELSE
+        -- Refund: release hold without charging
+        UPDATE users 
+        SET reserved_balance = reserved_balance - p_projected_cost,
+            updated_at = NOW()
+        WHERE id = p_user_id;
+        
+        -- Log refund
+        INSERT INTO credit_transactions (
+            user_id, tenant_id, type, amount, workflow_id,
+            balance_before, balance_after, reserved_before, reserved_after,
+            description
+        ) VALUES (
+            p_user_id, v_tenant_id, 'release', 0, p_workflow_id,
+            v_balance, v_balance, 
+            v_reserved, v_reserved - p_projected_cost,
+            'Released hold for failed workflow ' || p_workflow_id
+        );
     END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Top up credits (add credits to wallet)
+
+-- Top up user credits (called by tenant backend)
 CREATE OR REPLACE FUNCTION topup_credits(
     p_user_id UUID,
     p_amount BIGINT,
     p_description TEXT DEFAULT 'Credit top-up'
-) RETURNS BIGINT AS $$
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    v_new_balance BIGINT;
+    v_balance BIGINT;
+    v_tenant_id TEXT;
 BEGIN
-    UPDATE pipeline_users
+    SELECT balance, tenant_id INTO v_balance, v_tenant_id
+    FROM users WHERE id = p_user_id FOR UPDATE;
+    
+    UPDATE users 
     SET balance = balance + p_amount,
         updated_at = NOW()
-    WHERE id = p_user_id
-    RETURNING balance INTO v_new_balance;
+    WHERE id = p_user_id;
     
-    -- Log the transaction
-    INSERT INTO credit_transactions (user_id, tenant_id, type, amount, balance_after, description)
-    SELECT p_user_id, tenant_id, 'topup', p_amount, v_new_balance, p_description
-    FROM pipeline_users WHERE id = p_user_id;
-    
-    RETURN v_new_balance;
+    INSERT INTO credit_transactions (
+        user_id, tenant_id, type, amount,
+        balance_before, balance_after,
+        description
+    ) VALUES (
+        p_user_id, v_tenant_id, 'topup', p_amount,
+        v_balance, v_balance + p_amount,
+        p_description
+    );
+END;
+$$;
+
+
+-- Get available credits (balance - reserved)
+CREATE OR REPLACE FUNCTION get_available_credits(p_user_id UUID)
+RETURNS BIGINT
+LANGUAGE SQL
+STABLE
+AS $$
+    SELECT GREATEST(0, balance - reserved_balance)
+    FROM users WHERE id = p_user_id
+$$;
+
+
+-- ============================================
+-- TRIGGERS: Updated Timestamps
+-- ============================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_tenants_updated_at ON tenants;
+CREATE TRIGGER update_tenants_updated_at
+    BEFORE UPDATE ON tenants
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- ============================================================
--- INITIAL SETUP: Register your Auth Service as a Tenant
--- ============================================================
--- Run this ONCE after creating the tables:
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- INSERT INTO tenants (id, name, issuer_url, jwks_uri, audience, tier)
--- VALUES (
---     'ten_formanova_001',
---     'FormaNova Auth',
---     'http://20.173.91.22:8002',
---     'http://20.173.91.22:8002/.well-known/jwks.json',
---     'fastapi-users:auth',
---     'enterprise'
--- );
+DROP TRIGGER IF EXISTS update_workflow_executions_updated_at ON workflow_executions;
+CREATE TRIGGER update_workflow_executions_updated_at
+    BEFORE UPDATE ON workflow_executions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_generations_updated_at ON user_generations;
+CREATE TRIGGER update_user_generations_updated_at
+    BEFORE UPDATE ON user_generations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ============================================
+-- COMMENTS (Documentation)
+-- ============================================
+
+COMMENT ON TABLE tenants IS 'B2B clients that own user bases and configure their own OIDC providers';
+COMMENT ON TABLE users IS 'End consumers with credit wallets, belonging to tenants';
+COMMENT ON TABLE credit_transactions IS 'Audit trail for all credit movements (reserve, charge, refund, topup)';
+COMMENT ON TABLE workflow_executions IS 'Each Temporal workflow run with billing attribution';
+COMMENT ON TABLE tool_invocations IS 'Per-step execution records for caching, billing, and RLHF';
+COMMENT ON TABLE artifacts IS 'Content-addressable storage metadata for Azure Blob artifacts';
+COMMENT ON TABLE user_generations IS 'Gallery of jewelry try-on results with Azure Blob URLs';
+
+COMMENT ON COLUMN users.balance IS 'Total credits owned by user';
+COMMENT ON COLUMN users.reserved_balance IS 'Credits held for running workflows (available = balance - reserved)';
+COMMENT ON COLUMN workflow_executions.actual_cost IS 'Credits charged to user (Revenue)';
+COMMENT ON COLUMN workflow_executions.total_provider_cost IS 'Infrastructure cost borne by tenant (Expense)';
+COMMENT ON COLUMN tool_invocations.input_hash IS 'SHA-256 of canonical input for cache lookup';
