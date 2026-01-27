@@ -13,3 +13,9 @@ export type { SkinTone, Gender } from './MetadataSelectors';
 export { default as BatchReviewConfirm } from './BatchReviewConfirm';
 
 export { default as BatchSubmittedConfirmation } from './BatchSubmittedConfirmation';
+
+// New modular components
+export { default as ImageUploadCard } from './ImageUploadCard';
+export { default as InputGuidePanel } from './InputGuidePanel';
+export { default as ProcessingTimeNotice } from './ProcessingTimeNotice';
+export { default as CategoryUploadStudio } from './CategoryUploadStudio';
