@@ -462,7 +462,7 @@ serve(async (req) => {
       console.log(`[workflow-proxy] Body size: ${body.length} chars`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
       try {
         const response = await fetch(`${STANDALONE_URL}/tools/image_classification/run`, {
