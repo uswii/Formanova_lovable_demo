@@ -33,7 +33,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry' }: ExampleGuidePanelProps)
           </div>
           <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {allowedImages.map((img, index) => (
             <div
               key={`allowed-${index}`}
@@ -45,7 +45,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry' }: ExampleGuidePanelProps)
                 className="w-full h-full object-cover"
               />
               {/* Tick mark badge */}
-              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+              <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
                 <Check className="w-3 h-3 text-white" />
               </div>
             </div>
@@ -64,33 +64,20 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry' }: ExampleGuidePanelProps)
           </div>
           <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {notAllowedImages.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-square rounded-lg overflow-hidden border border-destructive/30 opacity-70"
+              className="relative aspect-square rounded-lg overflow-hidden border border-destructive/30"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
-                className="w-full h-full object-cover grayscale-[30%]"
+                className="w-full h-full object-cover"
               />
               {/* X badge */}
-              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+              <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-destructive flex items-center justify-center shadow-lg">
                 <X className="w-3 h-3 text-white" />
-              </div>
-              {/* Diagonal line overlay */}
-              <div className="absolute inset-0 pointer-events-none">
-                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <line
-                    x1="0"
-                    y1="100"
-                    x2="100"
-                    y2="0"
-                    stroke="rgb(239 68 68 / 0.4)"
-                    strokeWidth="2"
-                  />
-                </svg>
               </div>
             </div>
           ))}
