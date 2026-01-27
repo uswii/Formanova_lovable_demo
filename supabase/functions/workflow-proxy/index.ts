@@ -454,18 +454,18 @@ serve(async (req) => {
       }
     }
 
-    // Image classification endpoint - forward to Temporal backend
+    // Image classification endpoint - forward to Image Utils API (port 8001)
     if (endpoint === '/tools/image_classification/run' && req.method === 'POST') {
       const body = await req.text();
       
-      console.log(`[workflow-proxy] Forwarding classification to ${STANDALONE_URL}/tools/image_classification/run`);
+      console.log(`[workflow-proxy] Forwarding classification to ${DIRECT_API_URL}/tools/image_classification/run`);
       console.log(`[workflow-proxy] Body size: ${body.length} chars`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
       try {
-        const response = await fetch(`${STANDALONE_URL}/tools/image_classification/run`, {
+        const response = await fetch(`${DIRECT_API_URL}/tools/image_classification/run`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
