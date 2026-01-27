@@ -31,6 +31,22 @@ except ImportError:
     HAS_DATABASE = False
     db_router = None
 
+# Admin pages import (optional)
+try:
+    from .admin_router import router as admin_router
+    HAS_ADMIN = True
+except ImportError:
+    HAS_ADMIN = False
+    admin_router = None
+
+# Image validation API import (optional)
+try:
+    from .image_validation_api import router as validation_router
+    HAS_VALIDATION = True
+except ImportError:
+    HAS_VALIDATION = False
+    validation_router = None
+
 # Simple logging format
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -53,6 +69,16 @@ app.add_middleware(
 if HAS_DATABASE and db_router:
     app.include_router(db_router)
     logger.info("✓ Database API routes enabled")
+
+# Include admin HTML pages if available
+if HAS_ADMIN and admin_router:
+    app.include_router(admin_router)
+    logger.info("✓ Admin pages enabled at /admin")
+
+# Include image validation API if available
+if HAS_VALIDATION and validation_router:
+    app.include_router(validation_router)
+    logger.info("✓ Image validation API enabled at /api/validate")
 
 temporal_client: Optional[Client] = None
 
