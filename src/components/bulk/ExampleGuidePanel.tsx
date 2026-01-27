@@ -77,11 +77,11 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-xs font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-square rounded-md overflow-hidden border border-green-500/30"
+              className="relative aspect-[3/4] rounded-md overflow-hidden border border-green-500/30"
             >
               <img
                 src={img}
@@ -107,11 +107,11 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-xs font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-square rounded-md overflow-hidden border border-destructive/30"
+              className="relative aspect-[3/4] rounded-md overflow-hidden border border-destructive/30"
             >
               <img
                 src={img}
