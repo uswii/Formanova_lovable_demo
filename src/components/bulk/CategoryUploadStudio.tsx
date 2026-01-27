@@ -440,24 +440,7 @@ const CategoryUploadStudio = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT SIDEBAR: Guide Panel (only when no images) */}
-        <AnimatePresence>
-          {images.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="w-72 border-l border-border/50 p-4 bg-muted/10 overflow-y-auto"
-            >
-              <div className="mb-4">
-                <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
-              </div>
-              <ExampleGuidePanel categoryName={categoryName} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* RIGHT SIDEBAR: Guide (when images exist) */}
+        {/* RIGHT SIDEBAR: Guide (only after uploads) */}
         <AnimatePresence>
           {images.length > 0 && (
             <motion.div
