@@ -77,19 +77,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-xs font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30 min-w-[120px]"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow">
-                <Check className="w-4 h-4 text-white" />
+              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow">
+                <Check className="w-5 h-5 text-white" />
               </div>
             </div>
           ))}
@@ -107,19 +107,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-xs font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30 min-w-[120px]"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center shadow">
-                <X className="w-4 h-4 text-white" />
+              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-destructive flex items-center justify-center shadow">
+                <X className="w-5 h-5 text-white" />
               </div>
             </div>
           ))}
