@@ -25,6 +25,14 @@ import braceletNotAllowed1 from '@/assets/examples/bracelet-notallowed-1.png';
 import braceletNotAllowed2 from '@/assets/examples/bracelet-notallowed-2.png';
 import braceletNotAllowed3 from '@/assets/examples/bracelet-notallowed-3.png';
 
+// Watch examples
+import watchAllowed1 from '@/assets/examples/watch-allowed-1.jpg';
+import watchAllowed2 from '@/assets/examples/watch-allowed-2.jpg';
+import watchAllowed3 from '@/assets/examples/watch-allowed-3.png';
+import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
+import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
+import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
+
 interface ExampleGuidePanelProps {
   categoryName?: string;
   categoryType?: string;
@@ -42,6 +50,10 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
   bracelets: {
     allowed: [braceletAllowed1, braceletAllowed2, braceletAllowed3],
     notAllowed: [braceletNotAllowed1, braceletNotAllowed2, braceletNotAllowed3],
+  },
+  watches: {
+    allowed: [watchAllowed1, watchAllowed2, watchAllowed3],
+    notAllowed: [watchNotAllowed1, watchNotAllowed2, watchNotAllowed3],
   },
 };
 
