@@ -6,10 +6,10 @@ const corsHeaders = {
 };
 
 // Backend URLs
-// Temporal gateway (20.173.91.22:8000) - for orchestrated workflows
+// Temporal gateway (20.173.91.22:8000) - for orchestrated workflows and standalone tools
 const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
-// A100 Standalone server (48.214.48.103:8000) - for direct api_server execution
-const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
+// Standalone server - now using Temporal backend (20.173.91.22:8000)
+const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
 // Direct API on Temporal server (20.173.91.22:8001) - for multipart/masking tools
 const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
 // Auth service for token validation
