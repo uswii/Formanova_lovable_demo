@@ -62,6 +62,15 @@ class Config:
     flux_fill_url: str = os.getenv("FLUX_FILL_URL", "https://nemoooooooooo--flux-fill-service-fastapi-app.modal.run")  # Image inpainting
     a100_server_url: str = os.getenv("A100_SERVER_URL", "http://localhost:8000")  # A100 GPU for heavy inference
     
+    # ========== Email Service (Resend) ==========
+    # Used for batch completion notifications
+    resend_api_key: str = os.getenv("RESEND_API_KEY", "")
+    email_from_address: str = os.getenv("EMAIL_FROM_ADDRESS", "noreply@formanova.com")
+    frontend_url: str = os.getenv("FRONTEND_URL", "https://formanova.lovable.app")
+    
+    # ========== Auth Service ==========
+    auth_service_url: str = os.getenv("AUTH_SERVICE_URL", "http://20.173.91.22:8002")
+    
     # ========== API Server ==========
     api_port: int = int(os.getenv("API_PORT", "8001"))
     
@@ -70,6 +79,7 @@ class Config:
     main_task_queue: str = "jewelry-generation"      # Main orchestration
     image_processing_queue: str = "image-processing" # CPU-bound image ops
     ml_inference_queue: str = "ml-inference"         # GPU-bound ML inference
+    batch_processing_queue: str = "batch-processing" # Bulk upload processing
 
 
 # Global config instance - import this in other modules

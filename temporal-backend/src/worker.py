@@ -9,6 +9,7 @@ from temporalio.worker import Worker
 
 from .config import config
 from .workflows import JewelryGenerationWorkflow, PreprocessingWorkflow, GenerationWorkflow
+from .batch_workflows import BatchProcessingWorkflow
 from .activities import (
     upload_to_azure,
     resize_image,
@@ -19,6 +20,11 @@ from .activities import (
     generate_images,
     check_a100_health,
     check_service_health
+)
+from .batch_activities import (
+    send_batch_completion_email,
+    send_batch_started_email,
+    fetch_user_info,
 )
 
 # Configure logging
@@ -48,9 +54,11 @@ async def main():
         workflows=[
             JewelryGenerationWorkflow,
             PreprocessingWorkflow,
-            GenerationWorkflow
+            GenerationWorkflow,
+            BatchProcessingWorkflow,
         ],
         activities=[
+            # Image processing activities
             upload_to_azure,
             resize_image,
             check_zoom,
@@ -59,7 +67,11 @@ async def main():
             refine_mask,
             generate_images,
             check_a100_health,
-            check_service_health
+            check_service_health,
+            # Batch processing activities
+            send_batch_completion_email,
+            send_batch_started_email,
+            fetch_user_info,
         ]
     )
     
