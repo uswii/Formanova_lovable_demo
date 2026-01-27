@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Pencil, X, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,10 +15,16 @@ const BatchSubmittedConfirmation = ({
   categoryName,
   imageCount,
   batchId,
-  onStartAnother,
 }: BatchSubmittedConfirmationProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
+
+  const handleSaveEmail = () => {
+    // TODO: Save to backend
+    setIsEditingEmail(false);
+  };
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
@@ -42,26 +49,62 @@ const BatchSubmittedConfirmation = ({
           We're on it
         </h2>
         
-        <p className="text-muted-foreground mb-8">
+        <p className="text-muted-foreground mb-6">
           Your <span className="text-foreground">{imageCount} {categoryName.toLowerCase()}</span> photoshoots 
           are being created and verified for accuracy.
         </p>
 
-        {/* Email info - simple inline */}
-        {user?.email && (
-          <p className="text-sm text-muted-foreground mb-8">
-            Results will be sent to <span className="text-foreground font-medium">{user.email}</span>
-          </p>
-        )}
+        {/* Email notification section */}
+        <div className="bg-muted/30 rounded-lg p-4 mb-6">
+          {isEditingEmail ? (
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                type="email"
+                value={notificationEmail}
+                onChange={(e) => setNotificationEmail(e.target.value)}
+                className="flex-1 bg-background border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-formanova-hero-accent"
+                placeholder="Enter email"
+                autoFocus
+              />
+              <button
+                onClick={handleSaveEmail}
+                className="px-3 py-1.5 text-xs bg-formanova-hero-accent text-primary-foreground rounded hover:bg-formanova-hero-accent/90 transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setNotificationEmail(user?.email || '');
+                  setIsEditingEmail(false);
+                }}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Results will be sent to{' '}
+                <span className="text-foreground font-medium">{notificationEmail}</span>
+              </span>
+              <button
+                onClick={() => setIsEditingEmail(true)}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                title="Edit email"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
 
-        {/* Primary Action */}
-        <button
-          onClick={onStartAnother}
-          className="inline-flex items-center gap-2 px-8 py-3 bg-formanova-hero-accent text-primary-foreground font-display text-sm uppercase tracking-wider rounded-lg hover:bg-formanova-hero-accent/90 transition-colors"
-        >
-          <Sparkles className="w-4 h-4" />
-          Create Another Batch
-        </button>
+        {/* Timeline message */}
+        <p className="text-sm text-muted-foreground">
+          We'll get back to you within <span className="text-foreground font-medium">24 hours</span>
+        </p>
       </motion.div>
 
       {/* Footer info - subtle, corner placement */}
