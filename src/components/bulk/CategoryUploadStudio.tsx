@@ -116,6 +116,14 @@ const CategoryUploadStudio = () => {
     });
   }, [selectedIndex]);
 
+  const handleSkinToneChange = useCallback((imageId: string, tone: SkinTone) => {
+    setImages(prev => 
+      prev.map(img => 
+        img.id === imageId ? { ...img, skinTone: tone } : img
+      )
+    );
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (images.length === 0 || !hasAcknowledgedTime) return;
 
@@ -182,30 +190,7 @@ const CategoryUploadStudio = () => {
           {categoryName}
         </h1>
 
-        {/* Skin tone selector in header for non-necklace */}
-        {showSkinTone && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Skin</span>
-            <div className="flex gap-1">
-              {SKIN_TONES.map((tone) => (
-                <button
-                  key={tone.id}
-                  onClick={() => setGlobalSkinTone(tone.id)}
-                  disabled={isSubmitting}
-                  title={tone.label}
-                  className={`w-5 h-5 rounded-full transition-all ${
-                    globalSkinTone === tone.id 
-                      ? 'ring-2 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110' 
-                      : 'hover:scale-110 opacity-70 hover:opacity-100'
-                  }`}
-                  style={{ backgroundColor: tone.color }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!showSkinTone && <div />}
+        <div />
       </div>
 
       {/* Main Content - Canva Layout */}
@@ -242,33 +227,61 @@ const CategoryUploadStudio = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     layout
-                    onClick={() => setSelectedIndex(index)}
-                    className={`relative aspect-square rounded overflow-hidden cursor-pointer group ${
-                      selectedIndex === index 
-                        ? 'ring-2 ring-formanova-hero-accent' 
-                        : 'hover:ring-1 hover:ring-foreground/30'
-                    }`}
+                    className="space-y-1"
                   >
-                    <img
-                      src={image.preview}
-                      alt={`Upload ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Remove button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveImage(image.id);
-                      }}
-                      disabled={isSubmitting}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                    {/* Thumbnail */}
+                    <div
+                      onClick={() => setSelectedIndex(index)}
+                      className={`relative aspect-square rounded overflow-hidden cursor-pointer group ${
+                        selectedIndex === index 
+                          ? 'ring-2 ring-formanova-hero-accent' 
+                          : 'hover:ring-1 hover:ring-foreground/30'
+                      }`}
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                    {/* Selection indicator */}
-                    {selectedIndex === index && (
-                      <div className="absolute bottom-1 left-1 w-4 h-4 rounded-full bg-formanova-hero-accent flex items-center justify-center">
-                        <span className="text-[8px] text-white font-bold">{index + 1}</span>
+                      <img
+                        src={image.preview}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Remove button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage(image.id);
+                        }}
+                        disabled={isSubmitting}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {/* Selection indicator */}
+                      {selectedIndex === index && (
+                        <div className="absolute bottom-1 left-1 w-4 h-4 rounded-full bg-formanova-hero-accent flex items-center justify-center">
+                          <span className="text-[8px] text-white font-bold">{index + 1}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Per-image skin tone selector (non-necklace only) */}
+                    {showSkinTone && (
+                      <div className="flex justify-center gap-0.5">
+                        {SKIN_TONES.map((tone) => (
+                          <button
+                            key={tone.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSkinToneChange(image.id, tone.id);
+                            }}
+                            disabled={isSubmitting}
+                            title={tone.label}
+                            className={`w-3.5 h-3.5 rounded-full transition-all ${
+                              image.skinTone === tone.id 
+                                ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110' 
+                                : 'opacity-60 hover:opacity-100 hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: tone.color }}
+                          />
+                        ))}
                       </div>
                     )}
                   </motion.div>
