@@ -67,64 +67,64 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-5"
+      className="space-y-8"
     >
       {/* Allowed examples */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center">
-            <Check className="w-2.5 h-2.5 text-green-500" />
+          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+            <Check className="w-3 h-3 text-green-500" />
           </div>
-          <span className="text-xs font-medium text-foreground">Good Examples</span>
+          <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30 min-w-[120px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow">
-                <Check className="w-5 h-5 text-white" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow">
+                <Check className="w-4 h-4 text-white" />
               </div>
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Worn on person
         </p>
       </div>
 
       {/* Not allowed examples */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center">
-            <X className="w-2.5 h-2.5 text-destructive" />
+          <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
+            <X className="w-3 h-3 text-destructive" />
           </div>
-          <span className="text-xs font-medium text-foreground">Not Accepted</span>
+          <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30 min-w-[120px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-destructive flex items-center justify-center shadow">
-                <X className="w-5 h-5 text-white" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center shadow">
+                <X className="w-4 h-4 text-white" />
               </div>
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Product shots without model
         </p>
       </div>
