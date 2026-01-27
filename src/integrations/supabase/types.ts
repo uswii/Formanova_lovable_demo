@@ -14,7 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      batch_images: {
+        Row: {
+          batch_id: string
+          classification_category: string | null
+          classification_flagged: boolean | null
+          classification_is_worn: boolean | null
+          created_at: string
+          error_message: string | null
+          id: string
+          mask_url: string | null
+          original_url: string
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          result_url: string | null
+          sequence_number: number
+          skin_tone: Database["public"]["Enums"]["skin_tone_type"] | null
+          status: Database["public"]["Enums"]["batch_status"]
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          classification_category?: string | null
+          classification_flagged?: boolean | null
+          classification_is_worn?: boolean | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mask_url?: string | null
+          original_url: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          result_url?: string | null
+          sequence_number: number
+          skin_tone?: Database["public"]["Enums"]["skin_tone_type"] | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          classification_category?: string | null
+          classification_flagged?: boolean | null
+          classification_is_worn?: boolean | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mask_url?: string | null
+          original_url?: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          result_url?: string | null
+          sequence_number?: number
+          skin_tone?: Database["public"]["Enums"]["skin_tone_type"] | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_images_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_jobs: {
+        Row: {
+          completed_at: string | null
+          completed_images: number
+          created_at: string
+          error_message: string | null
+          failed_images: number
+          id: string
+          jewelry_category: Database["public"]["Enums"]["jewelry_category_type"]
+          notification_email: string | null
+          status: Database["public"]["Enums"]["batch_status"]
+          total_images: number
+          updated_at: string
+          user_display_name: string | null
+          user_email: string
+          user_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_images?: number
+          created_at?: string
+          error_message?: string | null
+          failed_images?: number
+          id?: string
+          jewelry_category: Database["public"]["Enums"]["jewelry_category_type"]
+          notification_email?: string | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          total_images?: number
+          updated_at?: string
+          user_display_name?: string | null
+          user_email: string
+          user_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_images?: number
+          created_at?: string
+          error_message?: string | null
+          failed_images?: number
+          id?: string
+          jewelry_category?: Database["public"]["Enums"]["jewelry_category_type"]
+          notification_email?: string | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          total_images?: number
+          updated_at?: string
+          user_display_name?: string | null
+          user_email?: string
+          user_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +144,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      batch_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "partial"
+      jewelry_category_type:
+        | "necklace"
+        | "earring"
+        | "ring"
+        | "bracelet"
+        | "watch"
+      skin_tone_type: "fair" | "light" | "medium" | "tan" | "dark" | "deep"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +283,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      batch_status: ["pending", "processing", "completed", "failed", "partial"],
+      jewelry_category_type: [
+        "necklace",
+        "earring",
+        "ring",
+        "bracelet",
+        "watch",
+      ],
+      skin_tone_type: ["fair", "light", "medium", "tan", "dark", "deep"],
+    },
   },
 } as const
