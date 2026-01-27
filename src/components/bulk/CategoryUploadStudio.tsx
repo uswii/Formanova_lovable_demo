@@ -43,7 +43,7 @@ const CategoryUploadStudio = () => {
   
   const [images, setImages] = useState<ImageWithSkinTone[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [hasAcknowledgedTime, setHasAcknowledgedTime] = useState(false);
+  // Removed hasAcknowledgedTime - no longer needed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
@@ -122,7 +122,7 @@ const CategoryUploadStudio = () => {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (images.length === 0 || !hasAcknowledgedTime) return;
+    if (images.length === 0) return;
 
     setIsSubmitting(true);
     try {
@@ -135,13 +135,12 @@ const CategoryUploadStudio = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [images, hasAcknowledgedTime]);
+  }, [images]);
 
   const handleStartAnother = useCallback(() => {
     images.forEach(img => URL.revokeObjectURL(img.preview));
     setImages([]);
     setSelectedIndex(0);
-    setHasAcknowledgedTime(false);
     setIsSubmitted(false);
     setSubmittedBatchId(null);
   }, [images]);
@@ -153,7 +152,7 @@ const CategoryUploadStudio = () => {
     };
   }, []);
 
-  const canSubmit = images.length > 0 && hasAcknowledgedTime && !isSubmitting;
+  const canSubmit = images.length > 0 && !isSubmitting;
 
   // Show confirmation after submission
   if (isSubmitted) {
@@ -417,19 +416,10 @@ const CategoryUploadStudio = () => {
                       <span className="text-foreground font-medium">{images.length}</span> image{images.length !== 1 ? 's' : ''} · Ready in up to 24 hours
                     </span>
                     
-                    {!hasAcknowledgedTime ? (
-                      <button
-                        onClick={() => setHasAcknowledgedTime(true)}
-                        className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider marta-frame hover:bg-muted/50 transition-colors"
-                      >
-                        I understand
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-formanova-hero-accent">
-                        <Gift className="w-3 h-3" />
-                        <span>First batch free</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5 text-formanova-hero-accent">
+                      <Gift className="w-3 h-3" />
+                      <span>First batch free</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
