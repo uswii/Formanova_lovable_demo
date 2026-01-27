@@ -1,14 +1,19 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Send, Gift } from 'lucide-react';
+import { ArrowLeft, X, Send, Gift, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 
-import BulkUploadZone, { UploadedImage } from './BulkUploadZone';
 import { SkinTone } from './ImageUploadCard';
 import InputGuidePanel from './InputGuidePanel';
 import ProcessingTimeNotice from './ProcessingTimeNotice';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import EmailNotificationPanel from './EmailNotificationPanel';
+
+interface UploadedImage {
+  id: string;
+  file: File;
+  preview: string;
+}
 
 interface ImageWithSkinTone extends UploadedImage {
   skinTone: SkinTone;
@@ -31,61 +36,91 @@ const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
   { id: 'dark', color: '#6B4423', label: 'Dark' },
 ];
 
+const MAX_IMAGES = 10;
+
 const CategoryUploadStudio = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   
   const [images, setImages] = useState<ImageWithSkinTone[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [hasAcknowledgedTime, setHasAcknowledgedTime] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
   const [notificationEmail, setNotificationEmail] = useState('');
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
-  
-  // Necklaces don't show skin tone controls at all
-  const showSkinTonePerImage = jewelryType !== 'necklace';
+  const showSkinTone = jewelryType !== 'necklace';
 
-  // Handle base images from BulkUploadZone and add skin tone
-  const handleImagesChange = useCallback((newImages: UploadedImage[]) => {
-    setImages(prev => {
-      // Keep existing skin tones for images that already exist
-      const existingMap = new Map(prev.map(img => [img.id, img.skinTone]));
+  const selectedImage = images[selectedIndex] || null;
+
+  // Add files helper
+  const addFiles = useCallback((files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const remainingSlots = MAX_IMAGES - images.length;
+    const filesToAdd = fileArray.slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
+    
+    const newImages: ImageWithSkinTone[] = filesToAdd.map(file => ({
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      file,
+      preview: URL.createObjectURL(file),
+      skinTone: globalSkinTone,
+    }));
+
+    if (newImages.length > 0) {
+      setImages(prev => [...prev, ...newImages]);
+      // Select the first new image
+      setSelectedIndex(images.length);
+    }
+  }, [images.length, globalSkinTone]);
+
+  // Paste handler
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (isSubmitting) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
       
-      return newImages.map(img => ({
-        ...img,
-        skinTone: existingMap.get(img.id) || 'medium' as SkinTone,
-      }));
-    });
-  }, []);
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        addFiles(imageFiles);
+      }
+    };
 
-  const handleSkinToneChange = useCallback((imageId: string, tone: SkinTone) => {
-    setImages(prev => 
-      prev.map(img => 
-        img.id === imageId ? { ...img, skinTone: tone } : img
-      )
-    );
-  }, []);
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [addFiles, isSubmitting]);
 
   const handleRemoveImage = useCallback((imageId: string) => {
     setImages(prev => {
       const img = prev.find(i => i.id === imageId);
       if (img) URL.revokeObjectURL(img.preview);
-      return prev.filter(i => i.id !== imageId);
+      const newImages = prev.filter(i => i.id !== imageId);
+      // Adjust selected index
+      if (selectedIndex >= newImages.length && newImages.length > 0) {
+        setSelectedIndex(newImages.length - 1);
+      }
+      return newImages;
     });
-  }, []);
+  }, [selectedIndex]);
 
   const handleSubmit = useCallback(async () => {
     if (images.length === 0 || !hasAcknowledgedTime) return;
 
     setIsSubmitting(true);
     try {
-      // TODO: Implement actual batch submission via edge function
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
       const mockBatchId = `batch_${Date.now()}`;
       setSubmittedBatchId(mockBatchId);
       setIsSubmitted(true);
@@ -99,6 +134,7 @@ const CategoryUploadStudio = () => {
   const handleStartAnother = useCallback(() => {
     images.forEach(img => URL.revokeObjectURL(img.preview));
     setImages([]);
+    setSelectedIndex(0);
     setHasAcknowledgedTime(false);
     setIsSubmitted(false);
     setSubmittedBatchId(null);
@@ -130,158 +166,237 @@ const CategoryUploadStudio = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-4 md:px-8 lg:px-12">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col">
+      {/* Compact Header */}
+      <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+        <button
+          onClick={() => navigate('/studio')}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <button
-            onClick={() => navigate('/studio')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-mono uppercase tracking-wide">Back to Categories</span>
-          </button>
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-xs font-mono uppercase tracking-wide">Back</span>
+        </button>
+        
+        <h1 className="font-display text-lg uppercase tracking-wide">
+          {categoryName}
+        </h1>
 
-          <div className="text-center">
-            <span className="marta-label text-muted-foreground text-[10px]">Upload Studio</span>
-            <h1 className="font-display text-3xl md:text-4xl uppercase tracking-wide mt-1">
-              {categoryName}
-            </h1>
+        {/* Skin tone selector in header for non-necklace */}
+        {showSkinTone && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Skin</span>
+            <div className="flex gap-1">
+              {SKIN_TONES.map((tone) => (
+                <button
+                  key={tone.id}
+                  onClick={() => setGlobalSkinTone(tone.id)}
+                  disabled={isSubmitting}
+                  title={tone.label}
+                  className={`w-5 h-5 rounded-full transition-all ${
+                    globalSkinTone === tone.id 
+                      ? 'ring-2 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110' 
+                      : 'hover:scale-110 opacity-70 hover:opacity-100'
+                  }`}
+                  style={{ backgroundColor: tone.color }}
+                />
+              ))}
+            </div>
           </div>
-        </motion.div>
+        )}
 
-        {/* Main Content - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Upload & Controls */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Upload Zone with Canva-style grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="marta-frame p-6"
-            >
-              <BulkUploadZone
-                images={images}
-                onImagesChange={handleImagesChange}
-                maxImages={10}
-                disabled={isSubmitting}
+        {!showSkinTone && <div />}
+      </div>
+
+      {/* Main Content - Canva Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT SIDEBAR: Upload Panel */}
+        <div className="w-72 border-r border-border/50 flex flex-col bg-muted/20">
+          {/* Upload Button */}
+          <div className="p-3">
+            <label className="flex items-center justify-center gap-2 py-2.5 px-4 bg-formanova-hero-accent text-primary-foreground font-medium text-sm rounded cursor-pointer hover:bg-formanova-hero-accent/90 transition-colors">
+              <Upload className="w-4 h-4" />
+              Upload files
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                disabled={isSubmitting || images.length >= MAX_IMAGES}
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = '';
+                }}
               />
+            </label>
+          </div>
 
-              {/* Image thumbnails with remove buttons */}
-              {images.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs text-muted-foreground">
-                      {images.length} image{images.length !== 1 ? 's' : ''} selected
-                    </span>
-                    <button
-                      onClick={() => {
-                        images.forEach(img => URL.revokeObjectURL(img.preview));
-                        setImages([]);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                      disabled={isSubmitting}
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                  
-                  {/* Thumbnail strip with remove buttons */}
-                  <div className="flex gap-2 flex-wrap">
-                    {images.map((image, index) => (
-                      <div key={image.id} className="relative group">
-                        <div className="w-16 h-16 rounded overflow-hidden bg-muted/30">
-                          <img
-                            src={image.preview}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <button
-                          onClick={() => handleRemoveImage(image.id)}
-                          disabled={isSubmitting}
-                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-
-            {/* Skin Tone Selector (non-necklace only) */}
-            <AnimatePresence>
-              {images.length > 0 && showSkinTonePerImage && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="marta-frame p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Skin tone</span>
-                    <div className="flex gap-2">
-                      {SKIN_TONES.map((tone) => (
-                        <button
-                          key={tone.id}
-                          onClick={() => setGlobalSkinTone(tone.id)}
-                          disabled={isSubmitting}
-                          title={tone.label}
-                          className={`w-6 h-6 rounded-full transition-all ${
-                            globalSkinTone === tone.id 
-                              ? 'ring-2 ring-formanova-hero-accent ring-offset-2 ring-offset-background' 
-                              : 'hover:scale-110'
-                          } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          style={{ backgroundColor: tone.color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Processing Time & Submit */}
-            <AnimatePresence>
-              {images.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="space-y-4"
-                >
-                  <ProcessingTimeNotice
-                    imageCount={images.length}
-                    onAcknowledge={() => setHasAcknowledgedTime(true)}
-                    acknowledged={hasAcknowledgedTime}
-                  />
-
-                  {/* First Batch Free */}
+          {/* Images Grid */}
+          <div className="flex-1 overflow-y-auto p-3 pt-0">
+            <div className="grid grid-cols-3 gap-2">
+              <AnimatePresence mode="popLayout">
+                {images.map((image, index) => (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    key={image.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-2 justify-center p-3 bg-formanova-hero-accent/10 marta-frame border-formanova-hero-accent/30"
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    layout
+                    onClick={() => setSelectedIndex(index)}
+                    className={`relative aspect-square rounded overflow-hidden cursor-pointer group ${
+                      selectedIndex === index 
+                        ? 'ring-2 ring-formanova-hero-accent' 
+                        : 'hover:ring-1 hover:ring-foreground/30'
+                    }`}
                   >
-                    <Gift className="w-4 h-4 text-formanova-hero-accent" />
-                    <span className="text-sm text-formanova-hero-accent font-medium">
-                      Your first batch is free!
-                    </span>
+                    <img
+                      src={image.preview}
+                      alt={`Upload ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Remove button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(image.id);
+                      }}
+                      disabled={isSubmitting}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    {/* Selection indicator */}
+                    {selectedIndex === index && (
+                      <div className="absolute bottom-1 left-1 w-4 h-4 rounded-full bg-formanova-hero-accent flex items-center justify-center">
+                        <span className="text-[8px] text-white font-bold">{index + 1}</span>
+                      </div>
+                    )}
                   </motion.div>
+                ))}
+              </AnimatePresence>
 
-                  {/* Submit Button */}
+              {/* Add more tile */}
+              {images.length < MAX_IMAGES && images.length > 0 && (
+                <motion.label
+                  layout
+                  className="aspect-square rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all"
+                >
+                  <Plus className="w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    disabled={isSubmitting}
+                    onChange={(e) => {
+                      if (e.target.files) addFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </motion.label>
+              )}
+            </div>
+
+            {/* Empty state hint */}
+            {images.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs">Upload images to get started</p>
+                <p className="text-[10px] opacity-70 mt-1">or paste with Ctrl+V</p>
+              </div>
+            )}
+          </div>
+
+          {/* Counter */}
+          {images.length > 0 && (
+            <div className="p-3 border-t border-border/50 text-xs text-muted-foreground">
+              {images.length} of {MAX_IMAGES} images
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Canvas / Preview Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Canvas area */}
+          <div 
+            className={`flex-1 flex items-center justify-center p-8 transition-colors ${
+              isDragOver ? 'bg-formanova-hero-accent/5' : ''
+            }`}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+          >
+            {selectedImage ? (
+              <motion.div
+                key={selectedImage.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative max-w-full max-h-full"
+              >
+                <img
+                  src={selectedImage.preview}
+                  alt="Selected jewelry"
+                  className="max-h-[60vh] max-w-full object-contain rounded shadow-lg"
+                />
+              </motion.div>
+            ) : (
+              <div className="text-center text-muted-foreground">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                  <Upload className="w-8 h-8" />
+                </div>
+                <p className="text-sm font-medium">Drop images here</p>
+                <p className="text-xs mt-1 opacity-70">or use the upload button</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom panel: Submit controls */}
+          <AnimatePresence>
+            {images.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="border-t border-border/50 p-4 bg-background"
+              >
+                <div className="max-w-2xl mx-auto space-y-4">
+                  {/* Compact processing notice */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="text-foreground font-medium">{images.length} image{images.length !== 1 ? 's' : ''}</span>
+                        {' '}· Results delivered in up to 24 hours
+                      </p>
+                    </div>
+                    
+                    {!hasAcknowledgedTime ? (
+                      <button
+                        onClick={() => setHasAcknowledgedTime(true)}
+                        className="px-4 py-2 text-xs font-mono uppercase tracking-wider marta-frame hover:bg-muted/50 transition-colors"
+                      >
+                        I understand
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-formanova-hero-accent">
+                        <Gift className="w-3 h-3" />
+                        First batch free
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit button */}
                   <button
                     onClick={handleSubmit}
                     disabled={!canSubmit}
-                    className={`w-full py-4 marta-frame font-display text-lg uppercase tracking-wider transition-all flex items-center justify-center gap-3 ${
+                    className={`w-full py-3 marta-frame font-display text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                       canSubmit
-                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90 hover:shadow-lg'
+                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90'
                         : 'bg-muted text-muted-foreground cursor-not-allowed'
                     }`}
                   >
@@ -289,44 +404,52 @@ const CategoryUploadStudio = () => {
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
+                        className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
                       />
                     ) : (
                       <>
-                        <Send className="w-5 h-5" />
+                        <Send className="w-4 h-4" />
                         Submit Batch
                       </>
                     )}
                   </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Right Sidebar: Guide + Email */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="sticky top-24 space-y-6">
-              {/* Input Guide */}
-              <InputGuidePanel categoryName={categoryName} />
-
-              {/* Email notification (shows when images uploaded) */}
-              <AnimatePresence>
-                {images.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <EmailNotificationPanel
-                      defaultEmail={notificationEmail}
-                      onEmailChange={setNotificationEmail}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* RIGHT SIDEBAR: Guide Panel (only when no images) */}
+        <AnimatePresence>
+          {images.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="w-64 border-l border-border/50 p-4 bg-muted/10"
+            >
+              <InputGuidePanel categoryName={categoryName} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* RIGHT SIDEBAR: Email + Guide (when images exist) */}
+        <AnimatePresence>
+          {images.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="w-72 border-l border-border/50 p-4 bg-muted/10 overflow-y-auto space-y-6"
+            >
+              <EmailNotificationPanel
+                defaultEmail={notificationEmail}
+                onEmailChange={setNotificationEmail}
+              />
+              <InputGuidePanel categoryName={categoryName} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
