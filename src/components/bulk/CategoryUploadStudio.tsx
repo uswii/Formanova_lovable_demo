@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Gift, Plus, ImageIcon, Sparkles } from 'lucide-react';
+import { ArrowLeft, X, Gift, Plus, Diamond, Sparkles } from 'lucide-react';
 
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
@@ -286,10 +286,34 @@ const CategoryUploadStudio = () => {
                 </p>
               </div>
             ) : (
-              /* Minimal empty state */
-              <div className="text-center cursor-pointer">
-                <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground mb-1">Upload images to get started</p>
+              /* Diamond upload empty state */
+              <div className="text-center cursor-pointer group">
+                <motion.div
+                  className="relative w-24 h-24 mx-auto mb-6"
+                  animate={{ 
+                    rotateY: [0, 180, 360],
+                  }}
+                  transition={{ 
+                    duration: 8, 
+                    repeat: Infinity, 
+                    ease: "linear" 
+                  }}
+                >
+                  <Diamond 
+                    className="w-24 h-24 text-formanova-hero-accent/60 group-hover:text-formanova-hero-accent transition-colors duration-300" 
+                    strokeWidth={1}
+                  />
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Plus className="w-8 h-8 text-formanova-hero-accent/80" />
+                  </motion.div>
+                </motion.div>
+                <p className="text-sm text-muted-foreground mb-1 group-hover:text-foreground transition-colors">
+                  Drop images here or click to upload
+                </p>
                 <p className="text-xs text-muted-foreground/70">or paste with Ctrl+V</p>
                 
                 <input
