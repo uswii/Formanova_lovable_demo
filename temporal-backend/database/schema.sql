@@ -523,6 +523,209 @@ CREATE TRIGGER update_user_generations_updated_at
 
 
 -- ============================================
+-- BATCH JOBS (Bulk Upload Workflow)
+-- ============================================
+-- Users can submit up to 10 images per batch for async processing
+-- First batch (4 generations) is free per user
+
+DO $$ BEGIN
+    CREATE TYPE batch_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE skin_tone AS ENUM ('light', 'fair', 'medium', 'olive', 'brown', 'dark');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE model_gender AS ENUM ('female', 'male', 'neutral');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE jewelry_category AS ENUM ('necklace', 'ring', 'earring', 'bracelet', 'watch');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS batch_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Attribution
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    
+    -- Job details
+    jewelry_category jewelry_category NOT NULL,
+    skin_tone skin_tone NOT NULL DEFAULT 'medium',
+    gender model_gender NOT NULL DEFAULT 'female',
+    
+    -- Status tracking
+    status batch_status NOT NULL DEFAULT 'pending',
+    total_images INTEGER NOT NULL CHECK (total_images >= 1 AND total_images <= 10),
+    completed_images INTEGER NOT NULL DEFAULT 0,
+    failed_images INTEGER NOT NULL DEFAULT 0,
+    
+    -- Pricing (first batch free, then credits)
+    is_free_batch BOOLEAN NOT NULL DEFAULT FALSE,
+    credits_charged BIGINT NOT NULL DEFAULT 0,
+    
+    -- Processing details
+    error_message TEXT,
+    processing_started_at TIMESTAMPTZ,
+    estimated_completion_at TIMESTAMPTZ,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    
+    CONSTRAINT completed_not_exceed_total CHECK (completed_images <= total_images),
+    CONSTRAINT failed_not_exceed_total CHECK (failed_images <= total_images)
+);
+
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_user_id ON batch_jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_tenant_id ON batch_jobs(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_status ON batch_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_batch_jobs_created_at ON batch_jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_batch_jobs_latest ON batch_jobs(user_id, created_at DESC);
+
+
+-- ============================================
+-- BATCH IMAGES (Individual Images in a Batch)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS batch_images (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    batch_id UUID NOT NULL REFERENCES batch_jobs(id) ON DELETE CASCADE,
+    
+    -- Attribution (denormalized for fast queries)
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Sequence within batch (1-10)
+    sequence INTEGER NOT NULL CHECK (sequence >= 1 AND sequence <= 10),
+    
+    -- Azure Blob URLs (not base64!)
+    original_azure_uri TEXT NOT NULL,
+    result_azure_uri TEXT,
+    mask_azure_uri TEXT,
+    thumbnail_azure_uri TEXT,
+    
+    -- Status
+    status batch_status NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    
+    -- Quality metrics (from fidelity analysis)
+    fidelity_metrics JSONB,  -- { precision, recall, iou, growth_ratio }
+    
+    -- Linked workflow execution (if processed via Temporal)
+    workflow_id TEXT REFERENCES workflow_executions(id) ON DELETE SET NULL,
+    
+    -- Processing time
+    processing_time_ms INTEGER,
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    
+    CONSTRAINT unique_batch_sequence UNIQUE (batch_id, sequence)
+);
+
+CREATE INDEX IF NOT EXISTS idx_batch_images_batch_id ON batch_images(batch_id);
+CREATE INDEX IF NOT EXISTS idx_batch_images_user_id ON batch_images(user_id);
+CREATE INDEX IF NOT EXISTS idx_batch_images_status ON batch_images(status);
+
+
+-- ============================================
+-- USER BATCH CREDITS (Free Tier Tracking)
+-- ============================================
+-- Each user gets 1 free batch (4 generations max)
+
+CREATE TABLE IF NOT EXISTS user_batch_credits (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Free tier tracking
+    free_batches_used INTEGER NOT NULL DEFAULT 0,
+    free_batches_limit INTEGER NOT NULL DEFAULT 1,  -- 1 free batch
+    free_generations_in_batch INTEGER NOT NULL DEFAULT 4,  -- 4 gens per free batch
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+-- ============================================
+-- FUNCTION: Check Free Batch Availability
+-- ============================================
+
+CREATE OR REPLACE FUNCTION has_free_batch_available(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_free_used INTEGER;
+    v_free_limit INTEGER;
+BEGIN
+    SELECT free_batches_used, free_batches_limit 
+    INTO v_free_used, v_free_limit
+    FROM user_batch_credits 
+    WHERE user_id = p_user_id;
+    
+    -- If no record exists, user has not used any free batches
+    IF NOT FOUND THEN
+        RETURN TRUE;
+    END IF;
+    
+    RETURN v_free_used < v_free_limit;
+END;
+$$;
+
+
+-- ============================================
+-- FUNCTION: Use Free Batch Credit
+-- ============================================
+
+CREATE OR REPLACE FUNCTION use_free_batch(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Insert or update the user's batch credits
+    INSERT INTO user_batch_credits (user_id, free_batches_used, updated_at)
+    VALUES (p_user_id, 1, NOW())
+    ON CONFLICT (user_id) DO UPDATE SET
+        free_batches_used = user_batch_credits.free_batches_used + 1,
+        updated_at = NOW()
+    WHERE user_batch_credits.free_batches_used < user_batch_credits.free_batches_limit;
+    
+    RETURN FOUND;
+END;
+$$;
+
+
+-- ============================================
+-- TRIGGER: Update batch_jobs timestamps
+-- ============================================
+
+DROP TRIGGER IF EXISTS update_batch_jobs_updated_at ON batch_jobs;
+CREATE TRIGGER update_batch_jobs_updated_at
+    BEFORE UPDATE ON batch_jobs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_batch_images_updated_at ON batch_images;
+CREATE TRIGGER update_batch_images_updated_at
+    BEFORE UPDATE ON batch_images
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_batch_credits_updated_at ON user_batch_credits;
+CREATE TRIGGER update_user_batch_credits_updated_at
+    BEFORE UPDATE ON user_batch_credits
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ============================================
 -- COMMENTS (Documentation)
 -- ============================================
 
@@ -533,6 +736,9 @@ COMMENT ON TABLE workflow_executions IS 'Each Temporal workflow run with billing
 COMMENT ON TABLE tool_invocations IS 'Per-step execution records for caching, billing, and RLHF';
 COMMENT ON TABLE artifacts IS 'Content-addressable storage metadata for Azure Blob artifacts';
 COMMENT ON TABLE user_generations IS 'Gallery of jewelry try-on results with Azure Blob URLs';
+COMMENT ON TABLE batch_jobs IS 'Bulk upload jobs with up to 10 images per batch, first batch free';
+COMMENT ON TABLE batch_images IS 'Individual images within a batch job, each processed via Temporal';
+COMMENT ON TABLE user_batch_credits IS 'Free tier tracking for batch uploads (1 free batch per user)';
 
 COMMENT ON COLUMN users.balance IS 'Total credits owned by user';
 COMMENT ON COLUMN users.reserved_balance IS 'Credits held for running workflows (available = balance - reserved)';
