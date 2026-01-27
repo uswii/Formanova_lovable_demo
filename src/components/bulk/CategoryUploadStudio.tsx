@@ -1,14 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Send, Gift, Upload, Plus, Diamond, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, X, Send, Gift, Plus, Diamond, Image as ImageIcon, Mail, Check, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { SkinTone } from './ImageUploadCard';
-import InputGuidePanel from './InputGuidePanel';
-import ProcessingTimeNotice from './ProcessingTimeNotice';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
-import EmailNotificationPanel from './EmailNotificationPanel';
+import ExampleGuidePanel from './ExampleGuidePanel';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadedImage {
   id: string;
@@ -50,12 +49,22 @@ const CategoryUploadStudio = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
   const [notificationEmail, setNotificationEmail] = useState('');
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
   const showSkinTone = jewelryType !== 'necklace';
+  
+  const { user } = useAuth();
+
+  // Set default email from user auth
+  useEffect(() => {
+    if (user?.email && !notificationEmail) {
+      setNotificationEmail(user.email);
+    }
+  }, [user?.email]);
 
   const selectedImage = images[selectedIndex] || null;
 
@@ -309,7 +318,7 @@ const CategoryUploadStudio = () => {
           )}
         </div>
 
-        {/* RIGHT: Canvas / Preview Area */}
+        {/* CENTER: Canvas / Preview Area */}
         <div className="flex-1 flex flex-col">
           {/* Canvas area */}
           <div 
@@ -326,21 +335,24 @@ const CategoryUploadStudio = () => {
               setIsDragOver(true);
             }}
             onDragLeave={() => setIsDragOver(false)}
-            onClick={() => !selectedImage && fileInputRef.current?.click()}
+            onClick={() => images.length === 0 && fileInputRef.current?.click()}
           >
-            {selectedImage ? (
-              <motion.div
-                key={selectedImage.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative max-w-full max-h-full"
-              >
-                <img
-                  src={selectedImage.preview}
-                  alt="Selected jewelry"
-                  className="max-h-[60vh] max-w-full object-contain rounded shadow-lg"
-                />
-              </motion.div>
+            {images.length > 0 ? (
+              /* When images exist - show selected image preview */
+              selectedImage ? (
+                <motion.div
+                  key={selectedImage.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative max-w-full max-h-full"
+                >
+                  <img
+                    src={selectedImage.preview}
+                    alt="Selected jewelry"
+                    className="max-h-[60vh] max-w-full object-contain rounded shadow-lg"
+                  />
+                </motion.div>
+              ) : null
             ) : (
               /* Inviting empty state - matches single upload style */
               <div 
@@ -447,9 +459,12 @@ const CategoryUploadStudio = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="w-64 border-l border-border/50 p-4 bg-muted/10"
+              className="w-72 border-l border-border/50 p-4 bg-muted/10 overflow-y-auto"
             >
-              <InputGuidePanel categoryName={categoryName} />
+              <div className="mb-4">
+                <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
+              </div>
+              <ExampleGuidePanel categoryName={categoryName} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -463,11 +478,67 @@ const CategoryUploadStudio = () => {
               exit={{ opacity: 0, x: 20 }}
               className="w-72 border-l border-border/50 p-4 bg-muted/10 overflow-y-auto space-y-6"
             >
-              <EmailNotificationPanel
-                defaultEmail={notificationEmail}
-                onEmailChange={setNotificationEmail}
-              />
-              <InputGuidePanel categoryName={categoryName} />
+              {/* Email Notification Panel */}
+              <div className="marta-frame p-4 bg-gradient-to-br from-muted/30 to-transparent">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mail className="w-4 h-4 text-formanova-hero-accent" />
+                  <span className="marta-label text-muted-foreground text-[10px]">
+                    Delivery
+                  </span>
+                </div>
+
+                <p className="text-sm text-foreground mb-3">
+                  We'll email your results when ready
+                </p>
+
+                {isEditingEmail ? (
+                  <div className="space-y-2">
+                    <input
+                      type="email"
+                      value={notificationEmail}
+                      onChange={(e) => setNotificationEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-3 py-2 bg-background marta-frame text-sm focus:outline-none focus:border-formanova-hero-accent"
+                    />
+                    <button
+                      onClick={() => {
+                        if (notificationEmail && notificationEmail.includes('@')) {
+                          setIsEditingEmail(false);
+                        }
+                      }}
+                      disabled={!notificationEmail || !notificationEmail.includes('@')}
+                      className="w-full py-2 marta-frame text-xs font-mono uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-background/50 marta-frame">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                      <span className="text-sm truncate">{notificationEmail}</span>
+                    </div>
+                    <button
+                      onClick={() => setIsEditingEmail(true)}
+                      className="p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+                    >
+                      <Edit2 className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-muted-foreground/70 leading-relaxed mt-3">
+                  Most batches complete in 4–8 hours. You can safely close this tab.
+                </p>
+              </div>
+
+              {/* Example Guide */}
+              <div>
+                <div className="mb-3">
+                  <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
+                </div>
+                <ExampleGuidePanel categoryName={categoryName} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
