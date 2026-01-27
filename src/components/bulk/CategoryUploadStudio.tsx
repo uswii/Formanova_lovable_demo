@@ -411,10 +411,7 @@ const CategoryUploadStudio = () => {
                         className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
                       />
                     ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        Generate Photoshoots
-                      </>
+                      <>Generate Photoshoots</>
                     )}
                   </button>
 
