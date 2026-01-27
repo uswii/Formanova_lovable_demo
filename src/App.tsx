@@ -16,7 +16,7 @@ import Welcome from "./pages/Welcome";
 import Dashboard from "./pages/Dashboard";
 import Tutorial from "./pages/Tutorial";
 import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
-import JewelryStudio from "./pages/JewelryStudio";
+import { CategoryUploadStudio } from "@/components/bulk";
 import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -52,7 +52,7 @@ const App = () => (
                   <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
                   <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
                   <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
-                  <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} />
+                  <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} />
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
