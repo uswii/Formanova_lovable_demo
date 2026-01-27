@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Upload, ImagePlus, Send, Gift } from 'lucide-react';
+import { ArrowLeft, X, Send, Gift } from 'lucide-react';
 
 import BulkUploadZone, { UploadedImage } from './BulkUploadZone';
-import ImageUploadCard, { SkinTone } from './ImageUploadCard';
+import { SkinTone } from './ImageUploadCard';
 import InputGuidePanel from './InputGuidePanel';
 import ProcessingTimeNotice from './ProcessingTimeNotice';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
+import EmailNotificationPanel from './EmailNotificationPanel';
 
 interface ImageWithSkinTone extends UploadedImage {
   skinTone: SkinTone;
@@ -21,6 +22,15 @@ const CATEGORY_NAMES: Record<string, string> = {
   watches: 'Watches',
 };
 
+// Skin tone options
+const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
+  { id: 'light', color: '#FFE0BD', label: 'Light' },
+  { id: 'medium-light', color: '#E5C298', label: 'Medium Light' },
+  { id: 'medium', color: '#C8A27C', label: 'Medium' },
+  { id: 'medium-dark', color: '#A67C52', label: 'Medium Dark' },
+  { id: 'dark', color: '#6B4423', label: 'Dark' },
+];
+
 const CategoryUploadStudio = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
@@ -30,11 +40,13 @@ const CategoryUploadStudio = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
 
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
   
-  // Necklaces don't show per-image skin tone controls
+  // Necklaces don't show skin tone controls at all
   const showSkinTonePerImage = jewelryType !== 'necklace';
 
   // Handle base images from BulkUploadZone and add skin tone
@@ -142,100 +154,101 @@ const CategoryUploadStudio = () => {
           </div>
         </motion.div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left: Upload Zone & Images */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Upload Zone */}
+        {/* Main Content - Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Upload & Controls */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Upload Zone with Canva-style grid */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className="marta-frame p-6"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="marta-label text-muted-foreground text-xs">
-                  Drag, drop, or paste images
-                </span>
-              </div>
-
               <BulkUploadZone
                 images={images}
                 onImagesChange={handleImagesChange}
                 maxImages={10}
+                disabled={isSubmitting}
               />
+
+              {/* Image thumbnails with remove buttons */}
+              {images.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-muted-foreground">
+                      {images.length} image{images.length !== 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                      onClick={() => {
+                        images.forEach(img => URL.revokeObjectURL(img.preview));
+                        setImages([]);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                      disabled={isSubmitting}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  
+                  {/* Thumbnail strip with remove buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    {images.map((image, index) => (
+                      <div key={image.id} className="relative group">
+                        <div className="w-16 h-16 rounded overflow-hidden bg-muted/30">
+                          <img
+                            src={image.preview}
+                            alt={`Upload ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleRemoveImage(image.id)}
+                          disabled={isSubmitting}
+                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
 
-            {/* Image Grid with Per-Image Skin Tone */}
+            {/* Skin Tone Selector (non-necklace only) */}
             <AnimatePresence>
-              {images.length > 0 && (
+              {images.length > 0 && showSkinTonePerImage && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4"
+                  className="marta-frame p-4"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="marta-label text-muted-foreground text-xs">
-                      {images.length} image{images.length !== 1 ? 's' : ''} ready
-                    </span>
-                    {showSkinTonePerImage && (
-                      <span className="text-xs text-muted-foreground">
-                        Select skin tone for each
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {images.map(image => (
-                      <ImageUploadCard
-                        key={image.id}
-                        id={image.id}
-                        preview={image.preview}
-                        skinTone={image.skinTone}
-                        onSkinToneChange={handleSkinToneChange}
-                        onRemove={handleRemoveImage}
-                        showSkinTone={showSkinTonePerImage}
-                        disabled={isSubmitting}
-                      />
-                    ))}
-                    
-                    {/* Add More Button */}
-                    {images.length < 10 && (
-                      <motion.label
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="aspect-square marta-frame border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-formanova-hero-accent/50 hover:bg-muted/30 transition-all"
-                      >
-                        <ImagePlus className="w-6 h-6 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground font-mono">Add more</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            const remaining = 10 - images.length;
-                            const newImages = files.slice(0, remaining).map(file => ({
-                              id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                              file,
-                              preview: URL.createObjectURL(file),
-                              skinTone: 'medium' as SkinTone,
-                            }));
-                            setImages(prev => [...prev, ...newImages]);
-                            e.target.value = '';
-                          }}
+                    <span className="text-xs text-muted-foreground">Skin tone</span>
+                    <div className="flex gap-2">
+                      {SKIN_TONES.map((tone) => (
+                        <button
+                          key={tone.id}
+                          onClick={() => setGlobalSkinTone(tone.id)}
+                          disabled={isSubmitting}
+                          title={tone.label}
+                          className={`w-6 h-6 rounded-full transition-all ${
+                            globalSkinTone === tone.id 
+                              ? 'ring-2 ring-formanova-hero-accent ring-offset-2 ring-offset-background' 
+                              : 'hover:scale-110'
+                          } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          style={{ backgroundColor: tone.color }}
                         />
-                      </motion.label>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Processing Time Notice & Submit */}
+            {/* Processing Time & Submit */}
             <AnimatePresence>
               {images.length > 0 && (
                 <motion.div
@@ -290,10 +303,27 @@ const CategoryUploadStudio = () => {
             </AnimatePresence>
           </div>
 
-          {/* Right: Input Guide Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24">
+          {/* Right Sidebar: Guide + Email */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="sticky top-24 space-y-6">
+              {/* Input Guide */}
               <InputGuidePanel categoryName={categoryName} />
+
+              {/* Email notification (shows when images uploaded) */}
+              <AnimatePresence>
+                {images.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <EmailNotificationPanel
+                      defaultEmail={notificationEmail}
+                      onEmailChange={setNotificationEmail}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
