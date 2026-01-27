@@ -148,7 +148,7 @@ const BulkUploadZone = ({
   return (
     <div className="space-y-3">
       {/* Canva-style grid */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <AnimatePresence mode="popLayout">
           {images.map((image, index) => (
             <motion.div
@@ -165,8 +165,8 @@ const BulkUploadZone = ({
                 className="w-full h-full object-cover"
               />
               {/* Number badge */}
-              <div className="absolute bottom-1 left-1 w-5 h-5 rounded bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-[10px] font-mono text-foreground">{index + 1}</span>
+              <div className="absolute bottom-2 left-2 w-7 h-7 rounded bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-xs font-mono text-foreground">{index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -195,7 +195,7 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            <Plus className="w-5 h-5 text-muted-foreground" />
+            <Plus className="w-8 h-8 text-muted-foreground" />
           </motion.label>
         )}
       </div>
