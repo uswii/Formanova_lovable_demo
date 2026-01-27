@@ -95,7 +95,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           ))}
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Worn on model
+          Worn on person
         </p>
       </div>
 
