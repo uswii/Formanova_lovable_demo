@@ -449,7 +449,7 @@ const CategoryUploadStudio = () => {
               <div className="mb-4">
                 <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
               </div>
-              <ExampleGuidePanel categoryName={categoryName} />
+              <ExampleGuidePanel categoryName={categoryName} categoryType={jewelryType} />
             </motion.div>
           )}
         </AnimatePresence>
