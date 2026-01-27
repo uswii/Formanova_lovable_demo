@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Send, Gift, Plus, Diamond, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, X, Gift, Plus, Diamond, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { SkinTone } from './ImageUploadCard';
@@ -384,56 +384,53 @@ const CategoryUploadStudio = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="border-t border-border/50 p-4 bg-background"
+                className="border-t border-border bg-background p-5"
               >
-                <div className="max-w-2xl mx-auto space-y-4">
-                  {/* Compact processing notice */}
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">
-                        <span className="text-foreground font-medium">{images.length} image{images.length !== 1 ? 's' : ''}</span>
-                        {' '}· Results delivered in up to 24 hours
-                      </p>
-                    </div>
-                    
-                    {!hasAcknowledgedTime ? (
-                      <button
-                        onClick={() => setHasAcknowledgedTime(true)}
-                        className="px-4 py-2 text-xs font-mono uppercase tracking-wider marta-frame hover:bg-muted/50 transition-colors"
-                      >
-                        I understand
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2 text-xs text-formanova-hero-accent">
-                        <Gift className="w-3 h-3" />
-                        First batch free
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Submit button */}
+                <div className="max-w-xl mx-auto">
+                  {/* Main submit button - prominent placement */}
                   <button
                     onClick={handleSubmit}
                     disabled={!canSubmit}
-                    className={`w-full py-3 marta-frame font-display text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                    className={`w-full py-4 px-6 font-display text-base uppercase tracking-wider transition-all flex items-center justify-center gap-3 rounded-lg shadow-lg ${
                       canSubmit
-                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90'
-                        : 'bg-muted text-muted-foreground cursor-not-allowed'
+                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90 hover:shadow-xl'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed shadow-none'
                     }`}
                   >
                     {isSubmitting ? (
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
                       />
                     ) : (
                       <>
-                        <Send className="w-4 h-4" />
-                        Submit Batch
+                        <Sparkles className="w-5 h-5" />
+                        Generate Photoshoots
                       </>
                     )}
                   </button>
+
+                  {/* Info row below button */}
+                  <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                    <span>
+                      <span className="text-foreground font-medium">{images.length}</span> image{images.length !== 1 ? 's' : ''} · Ready in up to 24 hours
+                    </span>
+                    
+                    {!hasAcknowledgedTime ? (
+                      <button
+                        onClick={() => setHasAcknowledgedTime(true)}
+                        className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider marta-frame hover:bg-muted/50 transition-colors"
+                      >
+                        I understand
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-formanova-hero-accent">
+                        <Gift className="w-3 h-3" />
+                        <span>First batch free</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
