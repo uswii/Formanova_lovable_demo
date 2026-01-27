@@ -454,6 +454,69 @@ serve(async (req) => {
       }
     }
 
+    // Image classification endpoint - forward to Temporal backend
+    if (endpoint === '/tools/image_classification/run' && req.method === 'POST') {
+      const body = await req.text();
+      
+      console.log(`[workflow-proxy] Forwarding classification to ${STANDALONE_URL}/tools/image_classification/run`);
+      console.log(`[workflow-proxy] Body size: ${body.length} chars`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      try {
+        const response = await fetch(`${STANDALONE_URL}/tools/image_classification/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`[workflow-proxy] Classification service error: ${response.status}`);
+          // Return permissive response - don't block uploads
+          return new Response(
+            JSON.stringify({ 
+              category: 'unknown',
+              is_worn: true,
+              confidence: 0,
+              reason: 'Classification service unavailable',
+              flagged: false
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const data = await response.text();
+        console.log(`[workflow-proxy] Classification success, response: ${data.substring(0, 200)}`);
+
+        return new Response(data, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.warn(`[workflow-proxy] Classification error:`, e);
+        // Return permissive response on timeout/error
+        return new Response(
+          JSON.stringify({ 
+            category: 'unknown',
+            is_worn: true,
+            confidence: 0,
+            reason: e instanceof Error && e.name === 'AbortError' 
+              ? 'Classification timed out' 
+              : 'Classification error',
+            flagged: false
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
