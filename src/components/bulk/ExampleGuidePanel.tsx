@@ -4,7 +4,7 @@ import { Check, X } from 'lucide-react';
 // Necklace examples
 import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.jpg';
 import necklaceAllowed2 from '@/assets/examples/necklace-allowed-2.jpg';
-import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.png';
+import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.jpg';
 import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.png';
 import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.png';
 import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.png';
