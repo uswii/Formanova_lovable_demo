@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.auth-proxy]
 verify_jwt = false
+
+[functions.batch-submit]
+verify_jwt = false

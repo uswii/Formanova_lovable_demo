@@ -7,6 +7,11 @@ import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
 import { useImageValidation } from '@/hooks/use-image-validation';
+import { getStoredToken } from '@/lib/auth-api';
+import { toast } from '@/hooks/use-toast';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 
 interface UploadedImage {
@@ -176,18 +181,80 @@ const CategoryUploadStudio = () => {
 
     setIsSubmitting(true);
     setShowFlagWarning(false);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const mockBatchId = `batch_${Date.now()}`;
-      setSubmittedBatchId(mockBatchId);
+      // Convert images to data URIs for submission
+      const imageData = await Promise.all(
+        images.map(async (img) => {
+          // Read file as data URI
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(img.file);
+          });
+          
+          return {
+            data_uri: dataUri,
+            skin_tone: img.skinTone,
+            classification: img.isFlagged ? {
+              category: img.flagReason || 'unknown',
+              is_worn: false,
+              flagged: true,
+            } : undefined,
+          };
+        })
+      );
+
+      // Get auth token
+      const userToken = getStoredToken();
+      if (!userToken) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please log in to submit batches',
+          variant: 'destructive',
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Call batch-submit edge function
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/batch-submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'X-User-Token': userToken,
+        },
+        body: JSON.stringify({
+          jewelry_category: jewelryType,
+          images: imageData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit batch');
+      }
+
+      console.log('[CategoryUploadStudio] Batch submitted:', result);
+      setSubmittedBatchId(result.batch_id);
       setIsSubmitted(true);
       clearValidation();
+      
     } catch (error) {
       console.error('Failed to submit batch:', error);
+      toast({
+        title: 'Submission failed',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
-  }, [images, hasFlaggedImages, showFlagWarning, clearValidation]);
+  }, [images, hasFlaggedImages, showFlagWarning, clearValidation, jewelryType, navigate]);
 
   const handleStartAnother = useCallback(() => {
     images.forEach(img => URL.revokeObjectURL(img.preview));
