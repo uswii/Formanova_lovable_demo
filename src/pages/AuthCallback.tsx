@@ -21,6 +21,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
+    const accessToken = searchParams.get('access_token');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
@@ -36,6 +37,12 @@ export default function AuthCallback() {
       return;
     }
 
+    // Handle direct token from backend redirect
+    if (accessToken) {
+      handleDirectToken(accessToken);
+      return;
+    }
+
     if (code) {
       exchangeCodeForToken(code, state || undefined);
     } else {
@@ -43,6 +50,35 @@ export default function AuthCallback() {
       setTimeout(() => navigate('/auth'), 3000);
     }
   }, [searchParams]);
+
+  const handleDirectToken = async (token: string) => {
+    try {
+      console.log('[AuthCallback] Received direct token, storing...');
+      setStoredToken(token);
+      
+      setStatus('Getting your profile...');
+      const userData = await authApi.getCurrentUser();
+      
+      if (userData) {
+        console.log('[AuthCallback] User data:', userData.email);
+        dispatchAuthChange(userData);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      console.log('[AuthCallback] Redirecting to:', AUTH_SUCCESS_REDIRECT);
+      navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
+    } catch (err) {
+      console.error('[AuthCallback] Direct token error:', err);
+      setError('Something went wrong');
+      toast({
+        variant: 'destructive',
+        title: 'Sign in failed',
+        description: 'Please try again.',
+      });
+      setTimeout(() => navigate('/auth'), 3000);
+    }
+  };
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
