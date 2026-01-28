@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 
-export type SkinTone = 'light' | 'medium-light' | 'medium' | 'medium-dark' | 'dark';
+export type SkinTone = 'fair' | 'light' | 'medium' | 'tan' | 'dark' | 'deep';
 
 interface ImageUploadCardProps {
   id: string;
@@ -15,11 +15,12 @@ interface ImageUploadCardProps {
 }
 
 const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
-  { id: 'light', color: '#FFE0BD', label: 'Light' },
-  { id: 'medium-light', color: '#E5C298', label: 'Medium Light' },
+  { id: 'fair', color: '#FFE0BD', label: 'Fair' },
+  { id: 'light', color: '#F5D0B0', label: 'Light' },
   { id: 'medium', color: '#C8A27C', label: 'Medium' },
-  { id: 'medium-dark', color: '#A67C52', label: 'Medium Dark' },
+  { id: 'tan', color: '#A67C52', label: 'Tan' },
   { id: 'dark', color: '#6B4423', label: 'Dark' },
+  { id: 'deep', color: '#3D2314', label: 'Deep' },
 ];
 
 const ImageUploadCard = ({

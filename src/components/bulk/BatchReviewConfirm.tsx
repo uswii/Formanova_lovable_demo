@@ -18,11 +18,12 @@ interface BatchReviewConfirmProps {
 }
 
 const SKIN_TONE_LABELS: Record<SkinTone, string> = {
+  'fair': 'Fair',
   'light': 'Light',
-  'medium-light': 'Medium Light',
   'medium': 'Medium',
-  'medium-dark': 'Medium Dark',
+  'tan': 'Tan',
   'dark': 'Dark',
+  'deep': 'Deep',
 };
 
 const BatchReviewConfirm = ({
