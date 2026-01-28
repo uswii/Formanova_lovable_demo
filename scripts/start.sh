@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # =============================================================================
-# FormaNova Frontend - Start Script (with Fallbacks)
+# FormaNova Frontend - Start Script (with Fallbacks & Auto-Install)
 # =============================================================================
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_FILE="$PROJECT_DIR/.formanova-config"
+LOG_DIR="$PROJECT_DIR/logs"
 
 # Colors
 GREEN='\033[0;32m'
@@ -25,8 +26,22 @@ else
     USE_PM2=false
 fi
 
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
+
 echo ""
 echo -e "${YELLOW}Starting FormaNova...${NC}"
+
+# Check if dist folder exists, if not build first
+if [ ! -d "$PROJECT_DIR/dist" ]; then
+    echo -e "${YELLOW}No dist folder found, building...${NC}"
+    cd "$PROJECT_DIR"
+    if command -v bun &> /dev/null; then
+        bun install && bun run build
+    elif command -v npm &> /dev/null; then
+        npm install --legacy-peer-deps && npm run build
+    fi
+fi
 
 # Try systemd first
 if [ "$USE_SYSTEMD" = true ] || command -v systemctl &> /dev/null; then
@@ -65,16 +80,29 @@ if command -v pm2 &> /dev/null || [ -f "$PROJECT_DIR/node_modules/.bin/pm2" ]; t
     fi
 fi
 
-# Fallback: Direct serve
+# Check for serve, auto-install if missing
 SERVE_PATH=$(which serve 2>/dev/null || echo "$PROJECT_DIR/node_modules/.bin/serve")
+if [ ! -f "$SERVE_PATH" ] && ! command -v serve &> /dev/null; then
+    echo -e "${YELLOW}Installing serve...${NC}"
+    cd "$PROJECT_DIR"
+    if command -v bun &> /dev/null; then
+        bun add serve
+    elif command -v npm &> /dev/null; then
+        npm install serve --save-dev
+    fi
+    SERVE_PATH="$PROJECT_DIR/node_modules/.bin/serve"
+fi
+
+# Fallback: Direct serve
 if [ -f "$SERVE_PATH" ] || command -v serve &> /dev/null; then
+    SERVE_CMD=$(command -v serve 2>/dev/null || echo "$SERVE_PATH")
     echo -e "${YELLOW}Starting in foreground mode...${NC}"
     echo -e "Press Ctrl+C to stop"
     echo ""
     cd "$PROJECT_DIR"
-    $SERVE_PATH -s dist -l tcp://0.0.0.0:$PORT
+    $SERVE_CMD -s dist -l tcp://0.0.0.0:$PORT
 else
-    echo -e "${RED}Error: No way to start the server.${NC}"
-    echo "Run setup.sh first: ./scripts/setup.sh"
+    echo -e "${RED}Error: Failed to install serve.${NC}"
+    echo "Try running: npm install -g serve"
     exit 1
 fi
