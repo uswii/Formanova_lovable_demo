@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { getStoredToken, getStoredUser } from '@/lib/auth-api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
-export default function Auth() {
+const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -116,4 +116,6 @@ export default function Auth() {
       </Card>
     </div>
   );
-}
+});
+
+export default Auth;
