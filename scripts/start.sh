@@ -43,8 +43,24 @@ if [ ! -d "$PROJECT_DIR/dist" ]; then
     fi
 fi
 
-# Try systemd first
-if [ "$USE_SYSTEMD" = true ] || command -v systemctl &> /dev/null; then
+# Try systemd (user service first, then system)
+if command -v systemctl &> /dev/null; then
+    # Try user service
+    if systemctl --user list-unit-files 2>/dev/null | grep -q "formanova-frontend.service"; then
+        systemctl --user start formanova-frontend.service
+        sleep 2
+        if systemctl --user is-active --quiet formanova-frontend.service; then
+            echo -e "${GREEN}✓ Started via systemd (user)${NC}"
+            echo ""
+            echo -e "URL: ${GREEN}http://0.0.0.0:$PORT${NC}"
+            echo -e "     ${GREEN}http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT${NC}"
+            echo ""
+            echo -e "Logs: ${YELLOW}journalctl --user -u formanova-frontend -f${NC}"
+            exit 0
+        fi
+    fi
+    
+    # Try system service
     if sudo systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}.service"; then
         sudo systemctl start ${SERVICE_NAME}.service
         sleep 2
