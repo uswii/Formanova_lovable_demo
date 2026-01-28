@@ -77,18 +77,18 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-1"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-1 min-w-[150px] min-h-[200px]"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
                 className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
                 <Check className="w-4 h-4 text-white" />
               </div>
             </div>
@@ -107,18 +107,18 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-1"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-1 min-w-[150px] min-h-[200px]"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
                 className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
                 <X className="w-4 h-4 text-white" />
               </div>
             </div>
