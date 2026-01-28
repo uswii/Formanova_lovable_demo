@@ -4,9 +4,6 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
-// Direct backend URL for OAuth redirect (browser navigates directly)
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -76,17 +73,26 @@ export function dispatchAuthChange(user: AuthUser | null): void {
 // ========== Auth API Client ==========
 
 class AuthApi {
-  // Initiate Google OAuth login (browser navigates directly to backend)
-  initiateGoogleLogin(): void {
-    const authUrl = `${AUTH_SERVICE_URL}/auth/google/authorize`;
-    console.log('[Auth] Redirecting to Google OAuth:', authUrl);
+  // Initiate Google OAuth login via edge function proxy (avoids mixed content)
+  async initiateGoogleLogin(): Promise<void> {
+    console.log('[Auth] Starting Google OAuth via proxy...');
     
-    // Try window.location.href first, fallback to window.open
     try {
-      window.location.href = authUrl;
+      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
+      const data = await response.json();
+      
+      const redirectUrl = data.redirect_url || data.authorization_url;
+      if (redirectUrl) {
+        console.log('[Auth] Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;
+      } else if (data.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No redirect URL received');
+      }
     } catch (error) {
-      console.error('[Auth] Redirect failed, trying window.open:', error);
-      window.open(authUrl, '_self');
+      console.error('[Auth] OAuth initiation failed:', error);
+      throw error;
     }
   }
 

@@ -74,8 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signInWithGoogle = () => {
-    authApi.initiateGoogleLogin();
+  const signInWithGoogle = async () => {
+    try {
+      await authApi.initiateGoogleLogin();
+    } catch (error) {
+      console.error('[AuthContext] Google sign-in failed:', error);
+    }
   };
 
   const signOut = async () => {
