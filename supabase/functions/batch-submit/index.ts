@@ -48,17 +48,24 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
     return null;
   }
 
+  console.log('[batch-submit] Validating token against:', AUTH_SERVICE_URL);
+  console.log('[batch-submit] Token prefix:', userToken.substring(0, 20) + '...');
+
   try {
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
       headers: { 'Authorization': `Bearer ${userToken}` },
     });
 
+    console.log('[batch-submit] Auth response status:', response.status);
+
     if (!response.ok) {
-      console.log('[batch-submit] Token validation failed:', response.status);
+      const errorBody = await response.text();
+      console.log('[batch-submit] Token validation failed:', response.status, errorBody);
       return null;
     }
 
     const user = await response.json();
+    console.log('[batch-submit] User authenticated:', user.email, 'ID:', user.id || user.sub);
     return {
       id: user.id || user.sub,
       email: user.email,
