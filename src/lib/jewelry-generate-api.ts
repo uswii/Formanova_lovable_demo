@@ -1,6 +1,8 @@
 // Multi-Jewelry Generation API Client
 // Calls the jewelry-generate edge function which proxies to A100
 
+import { getStoredToken } from './auth-api';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // Map plural to singular jewelry types
@@ -55,9 +57,10 @@ export interface GenerateResponse {
 class JewelryGenerateApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const userToken = getStoredToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${anonKey}`,
+      'Authorization': `Bearer ${userToken || anonKey}`,
       'apikey': anonKey,
     };
   }
