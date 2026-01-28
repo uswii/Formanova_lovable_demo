@@ -258,9 +258,9 @@ const CategoryUploadStudio = () => {
             onClick={() => images.length === 0 && fileInputRef.current?.click()}
           >
             {images.length > 0 ? (
-              /* Grid of uploaded images */
-              <div className="w-full max-w-2xl">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              /* Grid of uploaded images - larger thumbnails */
+              <div className="w-full max-w-4xl">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                   <AnimatePresence mode="popLayout">
                     {images.map((image, index) => (
                       <motion.div
@@ -271,9 +271,9 @@ const CategoryUploadStudio = () => {
                         layout
                         className="space-y-1.5"
                       >
-                        {/* Thumbnail */}
-                        <div className={`relative aspect-square rounded-lg overflow-hidden group border ${
-                          image.isFlagged ? 'border-amber-500/70 ring-1 ring-amber-500/30' : 'border-border/50'
+                        {/* Thumbnail - much larger */}
+                        <div className={`relative aspect-square rounded-xl overflow-hidden group border-2 min-w-[200px] min-h-[200px] ${
+                          image.isFlagged ? 'border-amber-500/70 ring-2 ring-amber-500/30' : 'border-border/50'
                         }`}>
                           <img
                             src={image.preview}
@@ -331,9 +331,9 @@ const CategoryUploadStudio = () => {
                   {images.length < MAX_IMAGES && (
                     <motion.label
                       layout
-                      className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all"
+                      className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all min-w-[200px] min-h-[200px]"
                     >
-                      <Plus className="w-6 h-6 text-muted-foreground" />
+                      <Plus className="w-10 h-10 text-muted-foreground" />
                       <input
                         type="file"
                         accept="image/*"
@@ -502,8 +502,8 @@ const CategoryUploadStudio = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT SIDEBAR: Guide (always visible) */}
-        <div className="w-72 border-l border-border/50 p-4 bg-muted/10 overflow-y-auto flex-shrink-0">
+        {/* RIGHT SIDEBAR: Guide (always visible) - wider for larger examples */}
+        <div className="w-[480px] border-l border-border/50 p-6 bg-muted/10 overflow-y-auto flex-shrink-0">
           <div className="mb-4">
             <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
           </div>
