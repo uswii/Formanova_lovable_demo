@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // Auth service - consistent across all edge functions
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
+const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';

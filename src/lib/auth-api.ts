@@ -5,7 +5,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 // Direct backend URL for OAuth redirect (browser navigates directly)
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
+const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
 export interface AuthUser {
   id: string;
