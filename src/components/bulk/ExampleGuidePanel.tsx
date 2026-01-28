@@ -79,64 +79,64 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10 p-2"
+      className="space-y-6 lg:space-y-10 p-2"
     >
       {/* Allowed examples */}
-      <div className="space-y-4">
+      <div className="space-y-3 lg:space-y-4">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
             <Check className="w-3 h-3 text-green-500" />
           </div>
           <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-3 lg:gap-6">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-1 min-w-[150px] min-h-[200px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-0.5 lg:p-1 min-w-0"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
                 className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                <Check className="w-4 h-4 text-white" />
+              <div className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-5 h-5 lg:w-7 lg:h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                <Check className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs lg:text-sm text-muted-foreground">
           Worn on person
         </p>
       </div>
 
       {/* Not allowed examples */}
-      <div className="space-y-4">
+      <div className="space-y-3 lg:space-y-4">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
             <X className="w-3 h-3 text-destructive" />
           </div>
           <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-3 lg:gap-6">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-1 min-w-[150px] min-h-[200px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-0.5 lg:p-1 min-w-0"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
                 className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                <X className="w-4 h-4 text-white" />
+              <div className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-5 h-5 lg:w-7 lg:h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+                <X className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs lg:text-sm text-muted-foreground">
           Product shots without model
         </p>
       </div>

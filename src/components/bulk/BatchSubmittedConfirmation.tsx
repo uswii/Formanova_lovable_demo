@@ -53,29 +53,29 @@ const BatchSubmittedConfirmation = ({
   };
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+    <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 py-8 relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-center max-w-lg"
+        className="text-center max-w-lg w-full"
       >
         {/* Success Icon */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-          className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center"
+          className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6 rounded-full bg-green-500/10 flex items-center justify-center"
         >
-          <Check className="w-8 h-8 text-green-500" />
+          <Check className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
         </motion.div>
 
         {/* Main Message */}
-        <h2 className="font-display text-2xl md:text-3xl uppercase tracking-wide mb-3">
+        <h2 className="font-display text-xl sm:text-2xl md:text-3xl uppercase tracking-wide mb-2 sm:mb-3">
           We're on it
         </h2>
         
-        <p className="text-muted-foreground mb-6">
+        <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
           Your <span className="text-foreground">{imageCount} {categoryName.toLowerCase()}</span> photoshoots 
           are being created and verified for accuracy.
         </p>
@@ -135,12 +135,12 @@ const BatchSubmittedConfirmation = ({
         </p>
       </motion.div>
 
-      {/* Footer info - subtle, corner placement */}
+      {/* Footer info - mobile: relative, desktop: absolute */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="absolute bottom-6 left-6 text-xs text-muted-foreground/60"
+        className="mt-8 sm:mt-0 sm:absolute sm:bottom-6 sm:left-6 text-xs text-muted-foreground/60 text-center sm:text-left"
       >
         <button
           onClick={() => navigate('/batches')}
@@ -149,7 +149,7 @@ const BatchSubmittedConfirmation = ({
           View batch status →
         </button>
         {batchId && (
-          <span className="ml-3 font-mono">{batchId}</span>
+          <span className="block sm:inline sm:ml-3 font-mono mt-1 sm:mt-0 text-[10px]">{batchId}</span>
         )}
       </motion.div>
     </div>

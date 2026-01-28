@@ -320,7 +320,7 @@ const CategoryUploadStudio = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col">
+    <div className="min-h-[calc(100vh-5rem)] bg-background flex flex-col">
       {/* Compact Header */}
       <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
         <button
@@ -328,20 +328,20 @@ const CategoryUploadStudio = () => {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs font-mono uppercase tracking-wide">Back</span>
+          <span className="text-xs font-mono uppercase tracking-wide hidden sm:inline">Back</span>
         </button>
         
-        <h1 className="font-display text-lg uppercase tracking-wide">
+        <h1 className="font-display text-base sm:text-lg uppercase tracking-wide">
           {categoryName}
         </h1>
 
-        <div />
+        <div className="w-8" /> {/* Spacer for centering */}
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Content - Stack on mobile, side-by-side on desktop */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* CENTER COLUMN: Upload area + Submit */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Upload / Images Grid area */}
           <div 
             className={`flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto transition-colors ${
@@ -569,8 +569,8 @@ const CategoryUploadStudio = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT SIDEBAR: Guide (always visible) - wider for larger examples */}
-        <div className="w-[480px] border-l border-border/50 p-6 bg-muted/10 overflow-y-auto flex-shrink-0">
+        {/* RIGHT SIDEBAR: Guide - Hidden on mobile, visible on lg+ */}
+        <div className="hidden lg:block w-[380px] xl:w-[480px] border-l border-border/50 p-4 xl:p-6 bg-muted/10 overflow-y-auto flex-shrink-0">
           <div className="mb-4">
             <span className="marta-label text-muted-foreground text-[10px]">Upload Guide</span>
           </div>
@@ -606,7 +606,7 @@ const CategoryUploadStudio = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             onClick={() => setShowFlagWarning(false)}
           >
             <motion.div
@@ -614,22 +614,22 @@ const CategoryUploadStudio = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card border border-amber-500/50 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+              className="bg-card border border-amber-500/50 rounded-xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col"
             >
               {/* Header with warning icon */}
-              <div className="bg-amber-500/20 border-b border-amber-500/30 px-6 py-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/30 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <div className="bg-amber-500/20 border-b border-amber-500/30 px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 flex-shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-500/30 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 </div>
-                <div>
-                  <h2 className="font-display text-lg text-foreground">Flagged Images Detected</h2>
-                  <p className="text-sm text-amber-200/70">{images.filter(img => img.isFlagged).length} of {images.length} images need review</p>
+                <div className="min-w-0">
+                  <h2 className="font-display text-base sm:text-lg text-foreground truncate">Flagged Images Detected</h2>
+                  <p className="text-xs sm:text-sm text-amber-200/70">{images.filter(img => img.isFlagged).length} of {images.length} images need review</p>
                 </div>
               </div>
 
               {/* Flagged images preview */}
-              <div className="px-6 py-4 max-h-[200px] overflow-y-auto">
-                <div className="grid grid-cols-4 gap-2">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 max-h-[150px] sm:max-h-[200px] overflow-y-auto flex-shrink-0">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {images.filter(img => img.isFlagged).map((img) => (
                     <div 
                       key={img.id} 
@@ -650,27 +650,27 @@ const CategoryUploadStudio = () => {
               </div>
 
               {/* Warning message */}
-              <div className="px-6 py-4 border-t border-border/50">
-                <p className="text-sm text-muted-foreground">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border/50 flex-shrink-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   These images appear to be <span className="text-amber-400 font-medium">product shots, 3D renders, or flatlays</span>. 
-                  Our AI works best with photos of jewelry <span className="text-foreground font-medium">worn on a person</span> (mannequin or model).
+                  Our AI works best with photos of jewelry <span className="text-foreground font-medium">worn on a person</span>.
                 </p>
-                <p className="text-xs text-muted-foreground/70 mt-2">
+                <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-2">
                   Results for flagged images may not be usable.
                 </p>
               </div>
 
               {/* Actions */}
-              <div className="px-6 py-4 bg-muted/30 border-t border-border/50 flex gap-3">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 bg-muted/30 border-t border-border/50 flex flex-col sm:flex-row gap-2 sm:gap-3 flex-shrink-0">
                 <button
                   onClick={() => setShowFlagWarning(false)}
-                  className="flex-1 py-3 px-4 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-medium text-sm"
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-medium text-xs sm:text-sm order-2 sm:order-1"
                 >
-                  Go Back & Fix Images
+                  Go Back & Fix
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 py-3 px-4 rounded-lg bg-amber-600 text-white font-medium text-sm hover:bg-amber-500 transition-colors"
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-lg bg-amber-600 text-white font-medium text-xs sm:text-sm hover:bg-amber-500 transition-colors order-1 sm:order-2"
                 >
                   Submit Anyway
                 </button>
