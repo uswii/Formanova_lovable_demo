@@ -29,10 +29,19 @@ interface ImageWithSkinTone extends UploadedImage {
 
 const CATEGORY_NAMES: Record<string, string> = {
   necklace: 'Necklaces',
-  earrings: 'Earrings',
-  rings: 'Rings',
-  bracelets: 'Bracelets',
-  watches: 'Watches',
+  earring: 'Earrings',
+  ring: 'Rings',
+  bracelet: 'Bracelets',
+  watch: 'Watches',
+};
+
+// Map frontend plural category IDs to database singular enum values
+const CATEGORY_TO_DB_ENUM: Record<string, string> = {
+  necklace: 'necklace',
+  earrings: 'earring',
+  rings: 'ring',
+  bracelets: 'bracelet',
+  watches: 'watch',
 };
 
 // Skin tone options
@@ -236,7 +245,7 @@ const CategoryUploadStudio = () => {
           'X-User-Token': userToken,
         },
         body: JSON.stringify({
-          jewelry_category: jewelryType,
+          jewelry_category: CATEGORY_TO_DB_ENUM[jewelryType] || jewelryType,
           images: imageData,
         }),
       });
