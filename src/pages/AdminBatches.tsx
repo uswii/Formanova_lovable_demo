@@ -27,8 +27,11 @@ import {
   XCircle, 
   Loader2,
   Mail,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Download,
+  ExternalLink
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 // Secret key for admin access
@@ -147,6 +150,144 @@ export default function AdminBatches() {
     fetchBatchImages(batch.id);
   };
 
+  // Export all batches to XLS (CSV format for Excel compatibility)
+  const exportToXLS = () => {
+    if (batches.length === 0) {
+      toast({ title: 'No data to export', variant: 'destructive' });
+      return;
+    }
+
+    // CSV headers
+    const headers = [
+      'Batch ID',
+      'User ID',
+      'User Email',
+      'Display Name',
+      'Category',
+      'Notification Email',
+      'Status',
+      'Total Images',
+      'Completed',
+      'Failed',
+      'Workflow ID',
+      'Created At',
+      'Completed At',
+      'Error Message'
+    ];
+
+    // Convert batches to CSV rows
+    const rows = batches.map(batch => [
+      batch.id,
+      batch.user_id,
+      batch.user_email,
+      batch.user_display_name || '',
+      batch.jewelry_category,
+      batch.notification_email || batch.user_email,
+      batch.status,
+      batch.total_images,
+      batch.completed_images,
+      batch.failed_images,
+      batch.workflow_id || '',
+      batch.created_at,
+      batch.completed_at || '',
+      batch.error_message || ''
+    ]);
+
+    // Escape CSV values
+    const escapeCSV = (value: string | number) => {
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `formanova-batches-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    toast({ title: `Exported ${batches.length} batches to CSV` });
+  };
+
+  // Export batch images with Azure URLs
+  const exportBatchImages = async () => {
+    // Fetch all images for all batches
+    const { data: allImages, error } = await supabase
+      .from('batch_images')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !allImages?.length) {
+      toast({ title: 'No image data to export', variant: 'destructive' });
+      return;
+    }
+
+    const headers = [
+      'Image ID',
+      'Batch ID',
+      'Sequence',
+      'Status',
+      'Skin Tone',
+      'Classification Category',
+      'Is Worn',
+      'Flagged',
+      'Original URL (Azure)',
+      'Result URL (Azure)',
+      'Mask URL (Azure)',
+      'Thumbnail URL',
+      'Processing Started',
+      'Processing Completed',
+      'Error Message'
+    ];
+
+    const rows = (allImages as unknown as BatchImage[]).map(img => [
+      img.id,
+      img.batch_id,
+      img.sequence_number,
+      img.status,
+      img.skin_tone || '',
+      img.classification_category || '',
+      img.classification_is_worn ? 'Yes' : 'No',
+      img.classification_flagged ? 'Yes' : 'No',
+      img.original_url || '',
+      img.result_url || '',
+      img.mask_url || '',
+      img.thumbnail_url || '',
+      img.processing_started_at || '',
+      img.processing_completed_at || '',
+      img.error_message || ''
+    ]);
+
+    const escapeCSV = (value: string | number) => {
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `formanova-images-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    toast({ title: `Exported ${allImages.length} images with Azure URLs to CSV` });
+  };
+
   useEffect(() => {
     fetchBatches();
   }, []);
@@ -160,10 +301,20 @@ export default function AdminBatches() {
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
             <p className="text-muted-foreground mt-1">Batch Processing Monitor</p>
           </div>
-          <Button onClick={fetchBatches} variant="outline" className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={exportToXLS} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export Batches
+            </Button>
+            <Button onClick={exportBatchImages} variant="outline" className="gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Export Images + URLs
+            </Button>
+            <Button onClick={fetchBatches} variant="outline" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}

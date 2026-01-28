@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,10 @@ const AZURE_CONTAINER_NAME = Deno.env.get('AZURE_CONTAINER_NAME') || 'jewelry-up
 // Supabase config
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+// Resend for email notifications
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const ADMIN_EMAILS = ['uswa@raresense.so', 'hassan@raresense.so'];
 
 interface BatchImage {
   data_uri: string; // base64 data URI
@@ -355,6 +360,56 @@ serve(async (req) => {
 
     console.log(`[batch-submit] batch_images records created:`, imagesData?.length);
     console.log(`[batch-submit] Batch ${batchId} created successfully with ${imageRecords.length} images`);
+
+    // Send admin notification email (non-blocking)
+    if (RESEND_API_KEY) {
+      try {
+        const resend = new Resend(RESEND_API_KEY);
+        const adminHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #C9A55C;">🎉 New Batch Submitted!</h2>
+            
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Batch Details</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; color: #666;">User:</td><td style="padding: 8px 0;"><strong>${user.display_name || user.email}</strong></td></tr>
+                <tr><td style="padding: 8px 0; color: #666;">Email:</td><td style="padding: 8px 0;">${user.email}</td></tr>
+                <tr><td style="padding: 8px 0; color: #666;">Category:</td><td style="padding: 8px 0;"><strong style="text-transform: capitalize;">${body.jewelry_category}</strong></td></tr>
+                <tr><td style="padding: 8px 0; color: #666;">Images:</td><td style="padding: 8px 0;"><strong>${imageRecords.length}</strong></td></tr>
+                <tr><td style="padding: 8px 0; color: #666;">Batch ID:</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${batchId}</td></tr>
+                <tr><td style="padding: 8px 0; color: #666;">Time:</td><td style="padding: 8px 0;">${new Date().toLocaleString()}</td></tr>
+              </table>
+            </div>
+            
+            <a href="https://formanova.lovable.app/admin-batches?key=formanova-admin-2024" 
+               style="display: inline-block; background: #C9A55C; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 6px; font-weight: bold;">
+                View in Admin Dashboard
+            </a>
+            
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            
+            <p style="color: #999; font-size: 12px;">
+                FormaNova - AI Jewelry Photography
+            </p>
+          </div>
+        `;
+
+        await resend.emails.send({
+          from: 'FormaNova <noreply@raresense.so>',
+          to: ADMIN_EMAILS,
+          subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
+          html: adminHtml,
+        });
+
+        console.log('[batch-submit] Admin notification email sent to:', ADMIN_EMAILS.join(', '));
+      } catch (emailError) {
+        console.error('[batch-submit] Failed to send admin notification email:', emailError);
+        // Don't fail the request if email fails
+      }
+    } else {
+      console.log('[batch-submit] RESEND_API_KEY not configured, skipping admin notification');
+    }
 
     return new Response(
       JSON.stringify({
