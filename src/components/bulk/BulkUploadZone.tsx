@@ -157,7 +157,7 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden w-full max-w-[600px] min-h-[500px]"
+              className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden w-[800px] h-[800px]"
             >
               <img
                 src={image.preview}
@@ -179,7 +179,7 @@ const BulkUploadZone = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center w-full max-w-[600px] min-h-[500px] ${
+            className={`relative aspect-square rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center w-[800px] h-[800px] ${
               disabled 
                 ? 'opacity-50 cursor-not-allowed border-muted' 
                 : isDragOver 
