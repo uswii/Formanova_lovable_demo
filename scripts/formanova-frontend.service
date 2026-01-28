@@ -1,0 +1,16 @@
+[Unit]
+Description=FormaNova Frontend (serve)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/uswa/Formanova-frontend/Formanova_lovable_demo
+ExecStart=/usr/bin/npx serve -s dist -l tcp://0.0.0.0:8010
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/uswa/Formanova-frontend/Formanova_lovable_demo/logs/formanova.log
+StandardError=append:/home/uswa/Formanova-frontend/Formanova_lovable_demo/logs/formanova-error.log
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
