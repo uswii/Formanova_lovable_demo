@@ -485,44 +485,6 @@ const CategoryUploadStudio = () => {
                 className="border-t border-border bg-background p-5 flex-shrink-0"
               >
                 <div className="max-w-xl mx-auto">
-                  {/* Flag warning message */}
-                  {showFlagWarning && hasFlaggedImages && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg"
-                    >
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <div className="text-sm">
-                          <p className="font-medium text-amber-100 text-base">
-                            ⚠️ Please upload worn jewelry images
-                          </p>
-                          <p className="text-amber-200/80 mt-2 text-sm">
-                            {images.filter(img => img.isFlagged).length} of your images appear to be product shots, 3D renders, or flatlays. 
-                            Our AI works <span className="font-semibold">only with photos of jewelry worn on a person</span> (mannequin or model).
-                          </p>
-                          <p className="text-muted-foreground mt-2 text-xs">
-                            You can remove flagged images and upload new ones, or continue anyway — but results may not be usable.
-                          </p>
-                          <div className="flex gap-3 mt-4">
-                            <button
-                              onClick={() => setShowFlagWarning(false)}
-                              className="text-sm px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors font-medium"
-                            >
-                              Go Back & Fix Images
-                            </button>
-                            <button
-                              onClick={handleSubmit}
-                              className="text-sm px-4 py-2 rounded-lg bg-amber-600/80 text-amber-50 font-medium hover:bg-amber-600 transition-colors"
-                            >
-                              Submit Anyway
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
 
                   {/* Main submit button - prominent placement */}
                   <button
@@ -605,6 +567,87 @@ const CategoryUploadStudio = () => {
           )}
         </div>
       </div>
+
+      {/* Flagged Images Warning Modal - Center Screen Overlay */}
+      <AnimatePresence>
+        {showFlagWarning && hasFlaggedImages && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowFlagWarning(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-amber-500/50 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+            >
+              {/* Header with warning icon */}
+              <div className="bg-amber-500/20 border-b border-amber-500/30 px-6 py-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/30 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg text-foreground">Flagged Images Detected</h2>
+                  <p className="text-sm text-amber-200/70">{images.filter(img => img.isFlagged).length} of {images.length} images need review</p>
+                </div>
+              </div>
+
+              {/* Flagged images preview */}
+              <div className="px-6 py-4 max-h-[200px] overflow-y-auto">
+                <div className="grid grid-cols-4 gap-2">
+                  {images.filter(img => img.isFlagged).map((img) => (
+                    <div 
+                      key={img.id} 
+                      className="aspect-square rounded-lg overflow-hidden border-2 border-amber-500/50 relative"
+                    >
+                      <img 
+                        src={img.preview} 
+                        alt="Flagged"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-amber-500/20" />
+                      <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                        <AlertTriangle className="w-2.5 h-2.5 text-black" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Warning message */}
+              <div className="px-6 py-4 border-t border-border/50">
+                <p className="text-sm text-muted-foreground">
+                  These images appear to be <span className="text-amber-400 font-medium">product shots, 3D renders, or flatlays</span>. 
+                  Our AI works best with photos of jewelry <span className="text-foreground font-medium">worn on a person</span> (mannequin or model).
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-2">
+                  Results for flagged images may not be usable.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 bg-muted/30 border-t border-border/50 flex gap-3">
+                <button
+                  onClick={() => setShowFlagWarning(false)}
+                  className="flex-1 py-3 px-4 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-medium text-sm"
+                >
+                  Go Back & Fix Images
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 py-3 px-4 rounded-lg bg-amber-600 text-white font-medium text-sm hover:bg-amber-500 transition-colors"
+                >
+                  Submit Anyway
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

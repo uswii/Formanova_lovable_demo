@@ -239,14 +239,19 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Create Supabase client with service role key (bypasses RLS)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Generate batch ID
     const batchId = crypto.randomUUID();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     
-    console.log(`[batch-submit] Creating batch ${batchId} with ${body.images.length} images`);
+    console.log(`[batch-submit] Creating batch ${batchId} with ${body.images.length} images for user ${user.email}`);
 
     // Upload images to Azure and collect URLs
     const imageRecords: Array<{
@@ -291,7 +296,15 @@ serve(async (req) => {
     }
 
     // Create batch_jobs record
-    const { error: batchError } = await supabase
+    console.log(`[batch-submit] Inserting batch_jobs record:`, {
+      id: batchId,
+      user_id: user.id,
+      user_email: user.email,
+      jewelry_category: body.jewelry_category,
+      total_images: imageRecords.length,
+    });
+
+    const { data: batchData, error: batchError } = await supabase
       .from('batch_jobs')
       .insert({
         id: batchId,
@@ -302,31 +315,38 @@ serve(async (req) => {
         notification_email: body.notification_email || user.email,
         total_images: imageRecords.length,
         status: 'pending',
-      });
+      })
+      .select();
 
     if (batchError) {
-      console.error('[batch-submit] Failed to create batch_jobs record:', batchError);
+      console.error('[batch-submit] Failed to create batch_jobs record:', JSON.stringify(batchError));
       return new Response(
-        JSON.stringify({ error: 'Failed to create batch record' }),
+        JSON.stringify({ error: 'Failed to create batch record', details: batchError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`[batch-submit] batch_jobs record created:`, batchData);
+
     // Create batch_images records
-    const { error: imagesError } = await supabase
+    console.log(`[batch-submit] Inserting ${imageRecords.length} batch_images records`);
+    
+    const { data: imagesData, error: imagesError } = await supabase
       .from('batch_images')
-      .insert(imageRecords);
+      .insert(imageRecords)
+      .select();
 
     if (imagesError) {
-      console.error('[batch-submit] Failed to create batch_images records:', imagesError);
+      console.error('[batch-submit] Failed to create batch_images records:', JSON.stringify(imagesError));
       // Cleanup: delete the batch_jobs record
       await supabase.from('batch_jobs').delete().eq('id', batchId);
       return new Response(
-        JSON.stringify({ error: 'Failed to save image records' }),
+        JSON.stringify({ error: 'Failed to save image records', details: imagesError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`[batch-submit] batch_images records created:`, imagesData?.length);
     console.log(`[batch-submit] Batch ${batchId} created successfully with ${imageRecords.length} images`);
 
     return new Response(
