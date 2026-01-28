@@ -9,7 +9,7 @@ const corsHeaders = {
 const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
 
 // Auth service for token validation
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
+const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
 // Map plural jewelry types to singular for backend
 const JEWELRY_TYPE_MAP: Record<string, string> = {

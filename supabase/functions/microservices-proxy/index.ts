@@ -10,7 +10,7 @@ const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8005';
 const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
 const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
 // Auth service for token validation
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
+const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
 // Authentication helper - validates token against custom FastAPI auth service
 // Uses X-User-Token header (not Authorization, which Supabase intercepts)
