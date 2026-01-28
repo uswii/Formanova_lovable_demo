@@ -145,9 +145,22 @@ else
 fi
 
 # =============================================================================
-# Step 8: Start the service
+# Step 8: Restart auth service (if available)
 # =============================================================================
-echo -e "${YELLOW}[8/8] Starting service...${NC}"
+echo -e "${YELLOW}[8/9] Restarting auth service...${NC}"
+
+if systemctl --user list-unit-files 2>/dev/null | grep -q "formanova-auth.service"; then
+    systemctl --user restart formanova-auth.service 2>/dev/null && \
+        echo -e "${GREEN}✓ Auth service restarted${NC}" || \
+        echo -e "${YELLOW}⚠ Auth service restart skipped (not running as user service)${NC}"
+else
+    echo -e "${YELLOW}⚠ Auth service not found (skipping)${NC}"
+fi
+
+# =============================================================================
+# Step 9: Start the frontend service
+# =============================================================================
+echo -e "${YELLOW}[9/9] Starting frontend service...${NC}"
 
 if [ -f "$SCRIPTS_DIR/start.sh" ]; then
     "$SCRIPTS_DIR/start.sh"
