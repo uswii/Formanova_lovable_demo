@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,8 @@ import { format } from 'date-fns';
 
 // Secret key for admin access
 const ADMIN_SECRET = 'formanova-admin-2024';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ADMIN_API_URL = `${SUPABASE_URL}/functions/v1/admin-batches`;
 
 interface BatchJob {
   id: string;
@@ -113,15 +114,13 @@ export default function AdminBatches() {
   const fetchBatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('batch_jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBatches((data as unknown as BatchJob[]) || []);
+      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=list_batches`);
+      if (!response.ok) throw new Error('Failed to fetch batches');
+      const data = await response.json();
+      setBatches(data.batches || []);
     } catch (err) {
       console.error('Failed to fetch batches:', err);
+      toast({ title: 'Failed to load batches', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -130,16 +129,13 @@ export default function AdminBatches() {
   const fetchBatchImages = async (batchId: string) => {
     setLoadingImages(true);
     try {
-      const { data, error } = await supabase
-        .from('batch_images')
-        .select('*')
-        .eq('batch_id', batchId)
-        .order('sequence_number', { ascending: true });
-
-      if (error) throw error;
-      setBatchImages((data as unknown as BatchImage[]) || []);
+      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=get_images&batch_id=${batchId}`);
+      if (!response.ok) throw new Error('Failed to fetch images');
+      const data = await response.json();
+      setBatchImages(data.images || []);
     } catch (err) {
       console.error('Failed to fetch batch images:', err);
+      toast({ title: 'Failed to load images', variant: 'destructive' });
     } finally {
       setLoadingImages(false);
     }
@@ -219,16 +215,17 @@ export default function AdminBatches() {
 
   // Export batch images with Azure URLs
   const exportBatchImages = async () => {
-    // Fetch all images for all batches
-    const { data: allImages, error } = await supabase
-      .from('batch_images')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Fetch all images via edge function
+    try {
+      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=all_images`);
+      if (!response.ok) throw new Error('Failed to fetch images');
+      const data = await response.json();
+      const allImages = data.images as BatchImage[];
 
-    if (error || !allImages?.length) {
-      toast({ title: 'No image data to export', variant: 'destructive' });
-      return;
-    }
+      if (!allImages?.length) {
+        toast({ title: 'No image data to export', variant: 'destructive' });
+        return;
+      }
 
     const headers = [
       'Image ID',
@@ -286,6 +283,10 @@ export default function AdminBatches() {
     link.click();
 
     toast({ title: `Exported ${allImages.length} images with Azure URLs to CSV` });
+    } catch (err) {
+      console.error('Failed to export images:', err);
+      toast({ title: 'Failed to export images', variant: 'destructive' });
+    }
   };
 
   useEffect(() => {
