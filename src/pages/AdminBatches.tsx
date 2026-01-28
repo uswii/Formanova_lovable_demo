@@ -383,8 +383,7 @@ export default function AdminBatches() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead>User ID</TableHead>
-                      <TableHead>User Info</TableHead>
+                      <TableHead>User</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Notification Email</TableHead>
                       <TableHead>Images</TableHead>
@@ -404,19 +403,17 @@ export default function AdminBatches() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                            {batch.user_id.slice(0, 8)}...
-                          </code>
-                        </TableCell>
-                        <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium">
-                              {batch.user_display_name || '—'}
+                              {batch.user_display_name || batch.user_email.split('@')[0]}
                             </span>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {batch.user_email}
                             </span>
+                            <code className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
+                              {batch.user_id.slice(0, 8)}...
+                            </code>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -538,6 +535,11 @@ export default function AdminBatches() {
                                   src={img.original_url} 
                                   alt={`Image ${img.sequence_number}`}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-xs p-1 text-center">Azure URL<br/>(No SAS)</div>';
+                                  }}
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
