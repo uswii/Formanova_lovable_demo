@@ -233,6 +233,7 @@ const BulkUploadStudio = () => {
                       images={images}
                       onImagesChange={setImages}
                       maxImages={10}
+                      category={selectedCategory.id}
                     />
                   </div>
 

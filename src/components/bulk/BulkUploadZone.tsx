@@ -1,11 +1,15 @@
 import { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useImageValidation } from '@/hooks/use-image-validation';
 
 export interface UploadedImage {
   id: string;
   file: File;
   preview: string;
+  flagged?: boolean;
+  flagReason?: string;
 }
 
 interface BulkUploadZoneProps {
@@ -13,17 +17,30 @@ interface BulkUploadZoneProps {
   onImagesChange: (images: UploadedImage[]) => void;
   maxImages?: number;
   disabled?: boolean;
+  category?: string;
 }
 
 const BulkUploadZone = ({ 
   images, 
   onImagesChange, 
   maxImages = 10,
-  disabled = false 
+  disabled = false,
+  category = 'jewelry'
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const { validateImages, isValidating, error: validationError } = useImageValidation();
 
-  const handleFiles = useCallback((files: FileList | null) => {
+  // Show toast when validation service has issues
+  useEffect(() => {
+    if (validationError) {
+      toast.warning('Image validation unavailable', {
+        description: 'Uploads will proceed without quality checks',
+        duration: 5000,
+      });
+    }
+  }, [validationError]);
+
+  const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files || disabled) return;
     
     const remainingSlots = maxImages - images.length;
@@ -37,8 +54,40 @@ const BulkUploadZone = ({
         preview: URL.createObjectURL(file),
       }));
 
-    onImagesChange([...images, ...newImages]);
-  }, [images, onImagesChange, maxImages, disabled]);
+    // Add images immediately for responsive UI
+    const allImages = [...images, ...newImages];
+    onImagesChange(allImages);
+
+    // Run validation in background
+    if (newImages.length > 0) {
+      const filesToValidate = newImages.map(img => img.file);
+      const validationResult = await validateImages(filesToValidate, category);
+      
+      if (validationResult && validationResult.flagged_count > 0) {
+        // Update images with flagged status
+        const updatedImages = allImages.map((img, idx) => {
+          const originalIdx = idx - images.length;
+          if (originalIdx >= 0 && originalIdx < validationResult.results.length) {
+            const result = validationResult.results[originalIdx];
+            if (result.flags.length > 0) {
+              return {
+                ...img,
+                flagged: true,
+                flagReason: result.message || 'Image may not meet requirements',
+              };
+            }
+          }
+          return img;
+        });
+        onImagesChange(updatedImages);
+        
+        toast.warning(`${validationResult.flagged_count} image(s) flagged`, {
+          description: 'These may not be worn jewelry photos',
+          duration: 5000,
+        });
+      }
+    }
+  }, [images, onImagesChange, maxImages, disabled, category, validateImages]);
 
   // Global paste listener
   useEffect(() => {
@@ -157,13 +206,24 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden"
+              className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden ${
+                image.flagged ? 'ring-2 ring-amber-500/70' : ''
+              }`}
             >
               <img
                 src={image.preview}
                 alt={`Upload ${index + 1}`}
                 className="w-full h-full object-cover"
               />
+              {/* Flagged indicator */}
+              {image.flagged && (
+                <div 
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
+                  title={image.flagReason || 'Image may not meet requirements'}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
               {/* Number badge */}
               <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
                 <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
@@ -200,9 +260,17 @@ const BulkUploadZone = ({
         )}
       </div>
 
-      {/* Counter */}
+      {/* Counter and status */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-2 sm:px-4">
-        <span>{images.length} of {maxImages}</span>
+        <div className="flex items-center gap-2">
+          <span>{images.length} of {maxImages}</span>
+          {isValidating && (
+            <span className="flex items-center gap-1 text-formanova-hero-accent">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Checking...
+            </span>
+          )}
+        </div>
         <span className="text-[10px] hidden sm:inline">Ctrl+V to paste</span>
       </div>
     </div>
