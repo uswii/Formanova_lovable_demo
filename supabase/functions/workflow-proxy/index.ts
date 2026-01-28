@@ -12,8 +12,8 @@ const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'https://formanova-tem
 const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
 // Direct API (port 8001) via localtunnel - for multipart/masking tools
 const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-image-api.loca.lt').replace(/\/+$/, '');
-// Auth service - consistent across all edge functions
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Auth service - via ngrok tunnel (direct IP times out from Supabase edge functions)
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
 
 // Common headers for tunnel bypass (localtunnel and ngrok)
 const tunnelHeaders = {
@@ -49,9 +49,12 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
   }
 
   try {
-    // Validate token against custom auth service
+    // Validate token against custom auth service (via ngrok tunnel)
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
-      headers: { 'Authorization': `Bearer ${userToken}` },
+      headers: { 
+        'Authorization': `Bearer ${userToken}`,
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
 
     if (!response.ok) {
