@@ -563,8 +563,7 @@ const CategoryUploadStudio = () => {
                     
                     <div className="flex items-center gap-1 sm:gap-1.5 text-formanova-hero-accent">
                       <Diamond className="w-3 h-3" />
-                      <span className="hidden sm:inline">First batch free</span>
-                      <span className="sm:hidden">Free</span>
+                      <span>First batch free</span>
                     </div>
                   </div>
                 </div>
