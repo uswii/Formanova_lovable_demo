@@ -70,25 +70,25 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
       className="space-y-8"
     >
       {/* Allowed examples */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
             <Check className="w-3 h-3 text-green-500" />
           </div>
           <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30 min-w-[100px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/30 min-w-[140px]"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow">
+              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow">
                 <Check className="w-4 h-4 text-white" />
               </div>
             </div>
@@ -100,25 +100,25 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
       </div>
 
       {/* Not allowed examples */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
             <X className="w-3 h-3 text-destructive" />
           </div>
           <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30 min-w-[100px]"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/30 min-w-[140px]"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center shadow">
+              <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow">
                 <X className="w-4 h-4 text-white" />
               </div>
             </div>
