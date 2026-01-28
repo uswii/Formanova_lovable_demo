@@ -342,9 +342,9 @@ const CategoryUploadStudio = () => {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* CENTER COLUMN: Upload area + Submit */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          {/* Upload / Images Grid area */}
+          {/* Upload / Images Grid area - min height ensures visibility on mobile */}
           <div 
-            className={`flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto transition-colors ${
+            className={`flex-1 min-h-[300px] flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-y-auto transition-colors ${
               isDragOver ? 'bg-formanova-hero-accent/5 border-2 border-dashed border-formanova-hero-accent/50' : ''
             }`}
             onDrop={(e) => {
@@ -357,7 +357,6 @@ const CategoryUploadStudio = () => {
               setIsDragOver(true);
             }}
             onDragLeave={() => setIsDragOver(false)}
-            onClick={() => images.length === 0 && fileInputRef.current?.click()}
           >
             {images.length > 0 ? (
               // Grid of uploaded images - responsive
@@ -464,31 +463,29 @@ const CategoryUploadStudio = () => {
                 </div>
               </div>
             ) : (
-              /* Diamond upload empty state - striking ping animation */
-              <div className="text-center cursor-pointer group px-4">
-                <div className="relative mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-6">
-                  {/* Striking ping ring - expands outward */}
+              /* Diamond upload empty state - mobile-optimized */
+              <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer group px-6">
+                {/* Simplified upload icon for mobile */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-4">
+                  {/* Ping animation - subtle on mobile */}
                   <div 
-                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/20 animate-ping" 
+                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/15 animate-ping hidden sm:block" 
                     style={{ animationDuration: '2s' }} 
                   />
-                  {/* Second ping ring - offset timing */}
-                  <div 
-                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 animate-ping" 
-                    style={{ animationDuration: '2s', animationDelay: '0.5s' }} 
-                  />
-                  {/* Core diamond container */}
-                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/30 group-hover:border-formanova-hero-accent/60 transition-colors">
-                    <Diamond className="h-8 w-8 sm:h-10 sm:w-10 text-formanova-hero-accent" />
+                  {/* Core diamond */}
+                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/40 group-active:border-formanova-hero-accent transition-colors">
+                    <Diamond className="h-6 w-6 sm:h-8 sm:w-8 text-formanova-hero-accent" />
                   </div>
                 </div>
-                <p className="text-lg sm:text-xl font-display font-medium mb-2 group-hover:text-foreground transition-colors">
-                  Drop your jewelry images here
+                
+                {/* Text - compact on mobile */}
+                <p className="text-base sm:text-lg font-display font-medium mb-1 text-center">
+                  Tap to add photos
                 </p>
-                <p className="text-sm text-muted-foreground mb-1">
-                  or tap to browse
+                <p className="text-xs sm:text-sm text-muted-foreground text-center">
+                  or drop images here
                 </p>
-                <p className="text-xs text-muted-foreground/70 hidden sm:block">or paste with Ctrl+V</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-2 hidden sm:block">Ctrl+V to paste</p>
                 
                 <input
                   ref={fileInputRef}
@@ -502,7 +499,7 @@ const CategoryUploadStudio = () => {
                     e.target.value = '';
                   }}
                 />
-              </div>
+              </label>
             )}
           </div>
 
