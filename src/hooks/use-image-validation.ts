@@ -4,12 +4,12 @@ import { getStoredToken } from '@/lib/auth-api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// Use workflow-proxy to route to Temporal backend's image classification tool
+// Use workflow-proxy to route to Temporal's upload_validation workflow
 const WORKFLOW_PROXY_URL = `${SUPABASE_URL}/functions/v1/workflow-proxy`;
 
-// Build validation URL with endpoint query param for the Temporal tool adapter
+// Build validation URL using Temporal's /run/upload_validation workflow endpoint
 const getClassificationUrl = () => 
-  `${WORKFLOW_PROXY_URL}?endpoint=${encodeURIComponent('/tools/image_classification/run')}`;
+  `${WORKFLOW_PROXY_URL}?endpoint=${encodeURIComponent('/run/upload_validation')}`;
 
 /**
  * Get proper auth headers for edge function calls:

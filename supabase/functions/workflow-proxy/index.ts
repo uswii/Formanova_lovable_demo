@@ -457,18 +457,18 @@ serve(async (req) => {
       }
     }
 
-    // Image classification endpoint - forward to Image Utils API (port 8001)
-    if (endpoint === '/tools/image_classification/run' && req.method === 'POST') {
+    // Image classification via Temporal workflow - routes through /run/upload_validation
+    if (endpoint === '/run/upload_validation' && req.method === 'POST') {
       const body = await req.text();
       
-      console.log(`[workflow-proxy] Forwarding classification to ${DIRECT_API_URL}/tools/image_classification/run`);
+      console.log(`[workflow-proxy] Forwarding to Temporal workflow: ${TEMPORAL_URL}/run/upload_validation`);
       console.log(`[workflow-proxy] Body size: ${body.length} chars`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
       try {
-        const response = await fetch(`${DIRECT_API_URL}/tools/image_classification/run`, {
+        const response = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -480,7 +480,7 @@ serve(async (req) => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          console.warn(`[workflow-proxy] Classification service error: ${response.status}`);
+          console.warn(`[workflow-proxy] Temporal workflow error: ${response.status}`);
           // Return permissive response - don't block uploads
           return new Response(
             JSON.stringify({ 
@@ -495,7 +495,7 @@ serve(async (req) => {
         }
 
         const data = await response.text();
-        console.log(`[workflow-proxy] Classification success, response: ${data.substring(0, 200)}`);
+        console.log(`[workflow-proxy] Temporal workflow success, response: ${data.substring(0, 200)}`);
 
         return new Response(data, {
           status: 200,
@@ -503,7 +503,7 @@ serve(async (req) => {
         });
       } catch (e) {
         clearTimeout(timeoutId);
-        console.warn(`[workflow-proxy] Classification error:`, e);
+        console.warn(`[workflow-proxy] Temporal workflow error:`, e);
         // Return permissive response on timeout/error
         return new Response(
           JSON.stringify({ 
