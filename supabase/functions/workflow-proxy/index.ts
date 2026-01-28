@@ -5,15 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
 };
 
-// Backend URLs
-// Temporal gateway (20.157.122.64:8000) - for orchestrated workflows and standalone tools
-const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.157.122.64:8000').replace(/\/+$/, '');
-// Standalone server - now using Temporal backend (20.157.122.64:8000)
-const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://20.157.122.64:8000').replace(/\/+$/, '');
-// Direct API on Temporal server (20.157.122.64:8001) - for multipart/masking tools
-const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.157.122.64:8001').replace(/\/+$/, '');
-// Auth service for token validation
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Backend URLs via tunnels (Supabase can't reach private IPs directly)
+// Temporal gateway (port 8000) via localtunnel
+const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
+// Standalone server - same as Temporal gateway
+const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
+// Direct API (port 8001) via localtunnel - for multipart/masking tools
+const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-image-api.loca.lt').replace(/\/+$/, '');
+// Auth service (port 8002) via ngrok
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
 
 // Helper to get backend URL based on mode parameter
 // Usage: ?mode=standalone (default) or ?mode=temporal
