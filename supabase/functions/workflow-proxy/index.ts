@@ -6,14 +6,14 @@ const corsHeaders = {
 };
 
 // Backend URLs
-// Temporal gateway (20.173.91.22:8000) - for orchestrated workflows and standalone tools
-const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
-// Standalone server - now using Temporal backend (20.173.91.22:8000)
-const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://20.173.91.22:8000').replace(/\/+$/, '');
-// Direct API on Temporal server (20.173.91.22:8001) - for multipart/masking tools
-const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.173.91.22:8001').replace(/\/+$/, '');
+// Temporal gateway (20.157.122.64:8000) - for orchestrated workflows and standalone tools
+const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'http://20.157.122.64:8000').replace(/\/+$/, '');
+// Standalone server - now using Temporal backend (20.157.122.64:8000)
+const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'http://20.157.122.64:8000').replace(/\/+$/, '');
+// Direct API on Temporal server (20.157.122.64:8001) - for multipart/masking tools
+const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://20.157.122.64:8001').replace(/\/+$/, '');
 // Auth service for token validation
-const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
+const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
 // Helper to get backend URL based on mode parameter
 // Usage: ?mode=standalone (default) or ?mode=temporal
