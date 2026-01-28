@@ -69,7 +69,7 @@ class Config:
     frontend_url: str = os.getenv("FRONTEND_URL", "https://formanova.lovable.app")
     
     # ========== Auth Service ==========
-    auth_service_url: str = os.getenv("AUTH_SERVICE_URL", "http://20.173.91.22:8002")
+    auth_service_url: str = os.getenv("AUTH_SERVICE_URL", "http://20.157.122.64:8002")
     
     # ========== API Server ==========
     api_port: int = int(os.getenv("API_PORT", "8001"))
