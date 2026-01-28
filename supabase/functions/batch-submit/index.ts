@@ -362,6 +362,8 @@ serve(async (req) => {
     console.log(`[batch-submit] Batch ${batchId} created successfully with ${imageRecords.length} images`);
 
     // Send admin notification email (non-blocking)
+    console.log('[batch-submit] RESEND_API_KEY present:', !!RESEND_API_KEY, 'length:', RESEND_API_KEY?.length || 0);
+    
     if (RESEND_API_KEY) {
       try {
         const resend = new Resend(RESEND_API_KEY);
@@ -395,14 +397,20 @@ serve(async (req) => {
           </div>
         `;
 
-        await resend.emails.send({
+        console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
+        
+        const { data, error } = await resend.emails.send({
           from: 'FormaNova <noreply@raresense.so>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
           html: adminHtml,
         });
 
-        console.log('[batch-submit] Admin notification email sent to:', ADMIN_EMAILS.join(', '));
+        if (error) {
+          console.error('[batch-submit] Resend API error:', JSON.stringify(error));
+        } else {
+          console.log('[batch-submit] Email sent successfully, ID:', data?.id);
+        }
       } catch (emailError) {
         console.error('[batch-submit] Failed to send admin notification email:', emailError);
         // Don't fail the request if email fails
