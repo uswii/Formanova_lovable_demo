@@ -15,6 +15,12 @@ const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-i
 // Auth service - consistent across all edge functions
 const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
+// Common headers for tunnel bypass (localtunnel and ngrok)
+const tunnelHeaders = {
+  'Bypass-Tunnel-Reminder': 'true',  // localtunnel
+  'ngrok-skip-browser-warning': 'true',  // ngrok
+};
+
 // Helper to get backend URL based on mode parameter
 // Usage: ?mode=standalone (default) or ?mode=temporal
 function getBackendUrl(mode: string | null): string {
@@ -102,7 +108,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${BACKEND_URL}/health`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -126,7 +132,7 @@ serve(async (req) => {
       const workflowId = endpoint.replace('/status/', '');
       const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
       });
       const data = await response.text();
       
@@ -172,7 +178,7 @@ serve(async (req) => {
       const workflowId = endpoint.replace('/result/', '');
       const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
       });
       const data = await response.text();
       
@@ -213,6 +219,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': contentType, // Forward the multipart boundary
+            ...tunnelHeaders,
           },
           body: body,
           signal: controller.signal,
@@ -292,6 +299,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...tunnelHeaders,
           },
           body: JSON.stringify(transformedBody),
           signal: controller.signal,
@@ -356,6 +364,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': contentType,
+            ...tunnelHeaders,
           },
           body: body,
           signal: controller.signal,
@@ -412,6 +421,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...tunnelHeaders,
           },
           body: body,
           signal: controller.signal,
@@ -478,7 +488,7 @@ serve(async (req) => {
         // Step 1: Start the workflow
         const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
           body: JSON.stringify(temporalPayload),
         });
 
@@ -508,7 +518,7 @@ serve(async (req) => {
 
           const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
           });
 
           if (!statusResponse.ok) {
@@ -523,7 +533,7 @@ serve(async (req) => {
             // Step 3: Get the result
             const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
               method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
             });
 
             if (!resultResponse.ok) {
