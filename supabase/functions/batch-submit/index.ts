@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
 };
 
-// Auth service - consistent across all edge functions
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Auth service - use ngrok tunnel (direct IP times out from edge functions)
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
@@ -58,7 +58,10 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
 
   try {
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
-      headers: { 'Authorization': `Bearer ${userToken}` },
+      headers: { 
+        'Authorization': `Bearer ${userToken}`,
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
 
     console.log('[batch-submit] Auth response status:', response.status);
