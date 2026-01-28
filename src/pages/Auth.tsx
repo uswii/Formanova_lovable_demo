@@ -7,8 +7,9 @@ import { Loader2 } from 'lucide-react';
 import formanovaLogo from '@/assets/formanova-logo.png';
 import { getStoredToken, getStoredUser } from '@/lib/auth-api';
 
-// Direct auth service URL via ngrok (HTTPS)
-const AUTH_API_URL = 'https://interastral-joie-untough.ngrok-free.dev';
+// Edge function proxy URL for API calls
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const navigate = useNavigate();
@@ -36,9 +37,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
     setLoading(true);
     
     try {
-      const response = await fetch(`${AUTH_API_URL}/auth/google/authorize`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      });
+      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
       const data = await response.json();
       
       const redirectUrl = data.redirect_url || data.authorization_url;
