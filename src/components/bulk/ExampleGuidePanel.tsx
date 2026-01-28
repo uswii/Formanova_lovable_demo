@@ -33,6 +33,14 @@ import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
 
+// Ring examples
+import ringAllowed1 from '@/assets/examples/ring-allowed-1.png';
+import ringAllowed2 from '@/assets/examples/ring-allowed-2.png';
+import ringAllowed3 from '@/assets/examples/ring-allowed-3.jpg';
+import ringNotAllowed1 from '@/assets/examples/ring-notallowed-1.png';
+import ringNotAllowed2 from '@/assets/examples/ring-notallowed-2.png';
+import ringNotAllowed3 from '@/assets/examples/ring-notallowed-3.png';
+
 interface ExampleGuidePanelProps {
   categoryName?: string;
   categoryType?: string;
@@ -54,6 +62,10 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
   watches: {
     allowed: [watchAllowed1, watchAllowed2, watchAllowed3],
     notAllowed: [watchNotAllowed1, watchNotAllowed2, watchNotAllowed3],
+  },
+  rings: {
+    allowed: [ringAllowed1, ringAllowed2, ringAllowed3],
+    notAllowed: [ringNotAllowed1, ringNotAllowed2, ringNotAllowed3],
   },
 };
 
