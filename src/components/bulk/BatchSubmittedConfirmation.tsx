@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Pencil, X, Mail } from 'lucide-react';
+import { Check, Pencil, X, Mail, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface BatchSubmittedConfirmationProps {
   categoryName: string;
@@ -20,10 +22,34 @@ const BatchSubmittedConfirmation = ({
   const { user } = useAuth();
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveEmail = () => {
-    // TODO: Save to backend
-    setIsEditingEmail(false);
+  const handleSaveEmail = async () => {
+    if (!batchId || !notificationEmail) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('batch_jobs')
+        .update({ notification_email: notificationEmail })
+        .eq('id', batchId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Email updated',
+        description: `Results will be sent to ${notificationEmail}`,
+      });
+      setIsEditingEmail(false);
+    } catch (err) {
+      console.error('Failed to update email:', err);
+      toast({
+        title: 'Failed to update email',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -69,8 +95,10 @@ const BatchSubmittedConfirmation = ({
               />
               <button
                 onClick={handleSaveEmail}
-                className="px-3 py-1.5 text-xs bg-formanova-hero-accent text-primary-foreground rounded hover:bg-formanova-hero-accent/90 transition-colors"
+                disabled={isSaving}
+                className="px-3 py-1.5 text-xs bg-formanova-hero-accent text-primary-foreground rounded hover:bg-formanova-hero-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1"
               >
+                {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
                 Save
               </button>
               <button
