@@ -37,7 +37,10 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
     setLoading(true);
     
     try {
-      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
+      // Bypass edge function, call ngrok directly to avoid timeout
+      const response = await fetch('https://interastral-joie-untough.ngrok-free.dev/auth/google/authorize', {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
       const data = await response.json();
       
       const redirectUrl = data.redirect_url || data.authorization_url;
