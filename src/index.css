@@ -750,8 +750,9 @@
     filter: brightness(0) invert(1);
   }
   
+  /* Neon logo - no glow, just invert */
   [data-theme="neon"] .logo-adaptive {
-    filter: brightness(0) invert(1) drop-shadow(0 0 8px hsl(195 100% 50% / 0.8));
+    filter: brightness(0) invert(1);
   }
 
   /* Cyberpunk scanlines */
