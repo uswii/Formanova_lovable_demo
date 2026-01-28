@@ -147,8 +147,8 @@ const BulkUploadZone = ({
   // Canva-style grid when images exist
   return (
     <div className="space-y-3">
-      {/* Canva-style grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Grid with proper spacing */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 p-4">
         <AnimatePresence mode="popLayout">
           {images.map((image, index) => (
             <motion.div
@@ -157,7 +157,7 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square bg-muted/30 rounded-lg overflow-hidden min-w-[320px] min-h-[320px]"
+              className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden min-w-[400px] min-h-[400px]"
             >
               <img
                 src={image.preview}
@@ -165,8 +165,8 @@ const BulkUploadZone = ({
                 className="w-full h-full object-cover"
               />
               {/* Number badge */}
-              <div className="absolute bottom-4 left-4 w-12 h-12 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-lg font-mono text-foreground">{index + 1}</span>
+              <div className="absolute bottom-5 left-5 w-14 h-14 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-xl font-mono text-foreground">{index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -179,7 +179,7 @@ const BulkUploadZone = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center min-w-[320px] min-h-[320px] ${
+            className={`relative aspect-square rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center min-w-[400px] min-h-[400px] ${
               disabled 
                 ? 'opacity-50 cursor-not-allowed border-muted' 
                 : isDragOver 
@@ -195,7 +195,7 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            <Plus className="w-14 h-14 text-muted-foreground" />
+            <Plus className="w-16 h-16 text-muted-foreground" />
           </motion.label>
         )}
       </div>
