@@ -52,16 +52,28 @@ if command -v pm2 &> /dev/null || [ -f "$PROJECT_DIR/node_modules/.bin/pm2" ]; t
     fi
 fi
 
+# Check for PID file from serve background process
+PID_FILE="$PROJECT_DIR/.formanova.pid"
+if [ -f "$PID_FILE" ]; then
+    PID=$(cat "$PID_FILE")
+    if kill -0 "$PID" 2>/dev/null; then
+        kill "$PID" 2>/dev/null
+        echo -e "${GREEN}✓ Stopped serve process (PID: $PID)${NC}"
+        STOPPED=true
+    fi
+    rm -f "$PID_FILE"
+fi
+
 # Kill any remaining serve processes on our port
 if command -v lsof &> /dev/null; then
-    PID=$(lsof -t -i:${PORT:-4173} 2>/dev/null)
+    PID=$(lsof -t -i:${PORT:-8010} 2>/dev/null)
     if [ -n "$PID" ]; then
         kill $PID 2>/dev/null
-        echo -e "${GREEN}✓ Killed process on port ${PORT:-4173}${NC}"
+        echo -e "${GREEN}✓ Killed process on port ${PORT:-8010}${NC}"
         STOPPED=true
     fi
 elif command -v fuser &> /dev/null; then
-    fuser -k ${PORT:-4173}/tcp 2>/dev/null
+    fuser -k ${PORT:-8010}/tcp 2>/dev/null
     STOPPED=true
 fi
 

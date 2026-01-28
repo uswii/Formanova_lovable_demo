@@ -93,14 +93,30 @@ if [ ! -f "$SERVE_PATH" ] && ! command -v serve &> /dev/null; then
     SERVE_PATH="$PROJECT_DIR/node_modules/.bin/serve"
 fi
 
-# Fallback: Direct serve
+# Fallback: Direct serve (background mode)
 if [ -f "$SERVE_PATH" ] || command -v serve &> /dev/null; then
     SERVE_CMD=$(command -v serve 2>/dev/null || echo "$SERVE_PATH")
-    echo -e "${YELLOW}Starting in foreground mode...${NC}"
-    echo -e "Press Ctrl+C to stop"
-    echo ""
+    
+    # Run in background with nohup
+    echo -e "${YELLOW}Starting serve in background...${NC}"
     cd "$PROJECT_DIR"
-    $SERVE_CMD -s dist -l tcp://0.0.0.0:$PORT
+    nohup $SERVE_CMD -s dist -l tcp://0.0.0.0:$PORT >> "$LOG_DIR/formanova.log" 2>> "$LOG_DIR/formanova-error.log" &
+    SERVE_PID=$!
+    echo $SERVE_PID > "$PROJECT_DIR/.formanova.pid"
+    
+    sleep 2
+    if kill -0 "$SERVE_PID" 2>/dev/null; then
+        echo -e "${GREEN}✓ Started via serve (PID: $SERVE_PID)${NC}"
+        echo ""
+        echo -e "URL: ${GREEN}http://0.0.0.0:$PORT${NC}"
+        echo -e "     ${GREEN}http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT${NC}"
+        echo ""
+        echo -e "Logs: ${YELLOW}tail -f $LOG_DIR/formanova.log${NC}"
+        exit 0
+    else
+        echo -e "${RED}Error: serve failed to start${NC}"
+        exit 1
+    fi
 else
     echo -e "${RED}Error: Failed to install serve.${NC}"
     echo "Try running: npm install -g serve"
