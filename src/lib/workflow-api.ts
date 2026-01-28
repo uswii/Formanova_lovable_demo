@@ -240,10 +240,14 @@ class WorkflowApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-    return {
-      'Authorization': `Bearer ${userToken || anonKey}`,
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
       'apikey': anonKey,
     };
+    if (userToken) {
+      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
+    }
+    return headers;
   }
 
   /**
