@@ -400,7 +400,7 @@ serve(async (req) => {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         
         const { data, error } = await resend.emails.send({
-          from: 'FormaNova <noreply@raresense.so>',
+          from: 'FormaNova <onboarding@resend.dev>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
           html: adminHtml,
