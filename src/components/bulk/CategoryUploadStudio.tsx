@@ -344,7 +344,7 @@ const CategoryUploadStudio = () => {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Upload / Images Grid area */}
           <div 
-            className={`flex-1 flex items-center justify-center p-8 overflow-y-auto transition-colors ${
+            className={`flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto transition-colors ${
               isDragOver ? 'bg-formanova-hero-accent/5 border-2 border-dashed border-formanova-hero-accent/50' : ''
             }`}
             onDrop={(e) => {
@@ -360,9 +360,9 @@ const CategoryUploadStudio = () => {
             onClick={() => images.length === 0 && fileInputRef.current?.click()}
           >
             {images.length > 0 ? (
-              /* Grid of uploaded images - larger thumbnails */
-              <div className="w-full max-w-4xl">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              // Grid of uploaded images - responsive
+              <div className="w-full max-w-4xl px-2">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                   <AnimatePresence mode="popLayout">
                     {images.map((image, index) => (
                       <motion.div
@@ -373,8 +373,8 @@ const CategoryUploadStudio = () => {
                         layout
                         className="space-y-1.5"
                       >
-                        {/* Thumbnail - much larger */}
-                        <div className={`relative aspect-square rounded-xl overflow-hidden group border-2 min-w-[200px] min-h-[200px] ${
+                        {/* Thumbnail - responsive */}
+                        <div className={`relative aspect-square rounded-lg sm:rounded-xl overflow-hidden group border-2 ${
                           image.isFlagged ? 'border-amber-500/70 ring-2 ring-amber-500/30' : 'border-border/50'
                         }`}>
                           <img
@@ -390,14 +390,14 @@ const CategoryUploadStudio = () => {
                             </div>
                           )}
                           
-                          {/* Remove button */}
+                          {/* Remove button - always visible on mobile */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRemoveImage(image.id);
                             }}
                             disabled={isSubmitting}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                            className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/70 text-white flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-destructive"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -433,9 +433,9 @@ const CategoryUploadStudio = () => {
                   {images.length < MAX_IMAGES && (
                     <motion.label
                       layout
-                      className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all min-w-[200px] min-h-[200px]"
+                      className="aspect-square rounded-lg sm:rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all"
                     >
-                      <Plus className="w-10 h-10 text-muted-foreground" />
+                      <Plus className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
                       <input
                         type="file"
                         accept="image/*"

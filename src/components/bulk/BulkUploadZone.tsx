@@ -144,11 +144,11 @@ const BulkUploadZone = ({
     );
   }
 
-  // Canva-style grid when images exist
+  // Responsive grid when images exist
   return (
-    <div className="space-y-3">
-      {/* Grid with proper spacing - single column for large images */}
-      <div className="flex flex-col gap-12 p-4">
+    <div className="space-y-3 w-full">
+      {/* Responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
         <AnimatePresence mode="popLayout">
           {images.map((image, index) => (
             <motion.div
@@ -157,7 +157,7 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden w-[800px] h-[800px]"
+              className="relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden"
             >
               <img
                 src={image.preview}
@@ -165,8 +165,8 @@ const BulkUploadZone = ({
                 className="w-full h-full object-cover"
               />
               {/* Number badge */}
-              <div className="absolute bottom-6 left-6 w-16 h-16 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-2xl font-mono text-foreground">{index + 1}</span>
+              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -179,7 +179,7 @@ const BulkUploadZone = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center w-[800px] h-[800px] ${
+            className={`relative aspect-square rounded-lg sm:rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center ${
               disabled 
                 ? 'opacity-50 cursor-not-allowed border-muted' 
                 : isDragOver 
@@ -195,15 +195,15 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            <Plus className="w-20 h-20 text-muted-foreground" />
+            <Plus className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground" />
           </motion.label>
         )}
       </div>
 
       {/* Counter */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-2 sm:px-4">
         <span>{images.length} of {maxImages}</span>
-        <span className="text-[10px]">Ctrl+V to paste</span>
+        <span className="text-[10px] hidden sm:inline">Ctrl+V to paste</span>
       </div>
     </div>
   );
