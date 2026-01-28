@@ -77,19 +77,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">Good Examples</span>
         </div>
-        <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-3 gap-4">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-xl overflow-hidden border-[3px] border-green-500/40 bg-muted/20 p-1"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-1"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                <Check className="w-5 h-5 text-white" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                <Check className="w-4 h-4 text-white" />
               </div>
             </div>
           ))}
@@ -107,19 +107,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">Not Accepted</span>
         </div>
-        <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-3 gap-4">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-xl overflow-hidden border-[3px] border-destructive/40 bg-muted/20 p-1"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-1"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-cover rounded"
               />
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                <X className="w-5 h-5 text-white" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+                <X className="w-4 h-4 text-white" />
               </div>
             </div>
           ))}
