@@ -12,8 +12,8 @@ const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'https://formanova-tem
 const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
 // Direct API (port 8001) via localtunnel - for multipart/masking tools
 const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-image-api.loca.lt').replace(/\/+$/, '');
-// Auth service (port 8002) via ngrok
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
+// Auth service - consistent across all edge functions
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
 // Helper to get backend URL based on mode parameter
 // Usage: ?mode=standalone (default) or ?mode=temporal
