@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Direct connection to auth service (no ngrok dependency)
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Use ngrok tunnel URL (Azure NSG blocks direct IP from Supabase edge functions)
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
