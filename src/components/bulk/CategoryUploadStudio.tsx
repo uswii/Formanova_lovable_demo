@@ -208,6 +208,8 @@ const CategoryUploadStudio = () => {
 
       // Get auth token
       const userToken = getStoredToken();
+      console.log('[CategoryUploadStudio] User token:', userToken ? `${userToken.substring(0, 20)}...` : 'MISSING');
+      
       if (!userToken) {
         toast({
           title: 'Authentication required',
@@ -217,6 +219,12 @@ const CategoryUploadStudio = () => {
         navigate('/auth');
         return;
       }
+
+      console.log('[CategoryUploadStudio] Submitting to:', `${SUPABASE_URL}/functions/v1/batch-submit`);
+      console.log('[CategoryUploadStudio] Headers:', {
+        'X-User-Token': `${userToken.substring(0, 20)}...`,
+        'Authorization': 'Bearer [anon-key]',
+      });
 
       // Call batch-submit edge function
       const response = await fetch(`${SUPABASE_URL}/functions/v1/batch-submit`, {
@@ -232,6 +240,8 @@ const CategoryUploadStudio = () => {
           images: imageData,
         }),
       });
+      
+      console.log('[CategoryUploadStudio] Response status:', response.status);
 
       const result = await response.json();
 
