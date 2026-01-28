@@ -7,7 +7,7 @@ import { getStoredToken } from '@/lib/auth-api';
 // Use Supabase edge function proxy
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const getProxyUrl = (endpoint: string) => 
-  `${SUPABASE_URL}/functions/v1/temporal-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+  `${SUPABASE_URL}/functions/v1/workflow-proxy?endpoint=${encodeURIComponent(endpoint)}`;
 
 // ========== DAG Pipeline Types ==========
 
