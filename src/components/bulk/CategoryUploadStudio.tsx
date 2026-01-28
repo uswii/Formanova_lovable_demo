@@ -465,8 +465,8 @@ const CategoryUploadStudio = () => {
               </div>
             ) : (
               /* Diamond upload empty state - striking ping animation */
-              <div className="text-center cursor-pointer group">
-                <div className="relative mx-auto w-24 h-24 mb-6">
+              <div className="text-center cursor-pointer group px-4">
+                <div className="relative mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-6">
                   {/* Striking ping ring - expands outward */}
                   <div 
                     className="absolute inset-0 rounded-full bg-formanova-hero-accent/20 animate-ping" 
@@ -479,16 +479,16 @@ const CategoryUploadStudio = () => {
                   />
                   {/* Core diamond container */}
                   <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/30 group-hover:border-formanova-hero-accent/60 transition-colors">
-                    <Diamond className="h-10 w-10 text-formanova-hero-accent" />
+                    <Diamond className="h-8 w-8 sm:h-10 sm:w-10 text-formanova-hero-accent" />
                   </div>
                 </div>
-                <p className="text-xl font-display font-medium mb-2 group-hover:text-foreground transition-colors">
+                <p className="text-lg sm:text-xl font-display font-medium mb-2 group-hover:text-foreground transition-colors">
                   Drop your jewelry images here
                 </p>
                 <p className="text-sm text-muted-foreground mb-1">
-                  or click to browse
+                  or tap to browse
                 </p>
-                <p className="text-xs text-muted-foreground/70">or paste with Ctrl+V</p>
+                <p className="text-xs text-muted-foreground/70 hidden sm:block">or paste with Ctrl+V</p>
                 
                 <input
                   ref={fileInputRef}
@@ -513,7 +513,7 @@ const CategoryUploadStudio = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="border-t border-border bg-background p-5 flex-shrink-0"
+                className="border-t border-border bg-background p-3 sm:p-5 flex-shrink-0"
               >
                 <div className="max-w-xl mx-auto">
 
@@ -521,9 +521,9 @@ const CategoryUploadStudio = () => {
                   <button
                     onClick={handleSubmit}
                     disabled={!canSubmit || isValidating}
-                    className={`w-full py-4 px-6 font-display text-base uppercase tracking-wider transition-all flex items-center justify-center gap-3 rounded-lg shadow-lg ${
+                    className={`w-full py-3 sm:py-4 px-4 sm:px-6 font-display text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center gap-2 sm:gap-3 rounded-lg shadow-lg ${
                       canSubmit && !isValidating
-                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90 hover:shadow-xl'
+                        ? 'bg-formanova-hero-accent text-primary-foreground hover:bg-formanova-hero-accent/90 hover:shadow-xl active:scale-[0.98]'
                         : 'bg-muted text-muted-foreground cursor-not-allowed shadow-none'
                     }`}
                   >
@@ -531,7 +531,7 @@ const CategoryUploadStudio = () => {
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
+                        className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full"
                       />
                     ) : isValidating ? (
                       <>
@@ -540,7 +540,7 @@ const CategoryUploadStudio = () => {
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                           className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
                         />
-                        <span className="text-sm">Checking images...</span>
+                        <span className="text-xs sm:text-sm">Checking...</span>
                       </>
                     ) : (
                       <>Generate Photoshoots</>
@@ -548,19 +548,21 @@ const CategoryUploadStudio = () => {
                   </button>
 
                   {/* Info row below button */}
-                  <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                    <span>
-                      <span className="text-foreground font-medium">{images.length}</span> image{images.length !== 1 ? 's' : ''} · Ready in up to 24 hours
+                  <div className="flex items-center justify-between mt-2 sm:mt-3 text-[10px] sm:text-xs text-muted-foreground">
+                    <span className="flex flex-wrap items-center gap-1">
+                      <span><span className="text-foreground font-medium">{images.length}</span> image{images.length !== 1 ? 's' : ''}</span>
+                      <span className="hidden xs:inline">· Up to 24h</span>
                       {hasFlaggedImages && !showFlagWarning && (
-                        <span className="ml-2 text-amber-500">
+                        <span className="text-amber-500">
                           ({images.filter(img => img.isFlagged).length} flagged)
                         </span>
                       )}
                     </span>
                     
-                    <div className="flex items-center gap-1.5 text-formanova-hero-accent">
+                    <div className="flex items-center gap-1 sm:gap-1.5 text-formanova-hero-accent">
                       <Diamond className="w-3 h-3" />
-                      <span>First batch free</span>
+                      <span className="hidden sm:inline">First batch free</span>
+                      <span className="sm:hidden">Free</span>
                     </div>
                   </div>
                 </div>
