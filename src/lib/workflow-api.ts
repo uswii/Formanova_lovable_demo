@@ -8,10 +8,11 @@
  * 3. all_jewelry_pipeline - Complete pipeline for rings, bracelets, earrings, watches
  */
 
+import { getStoredToken } from './auth-api';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const getProxyUrl = (endpoint: string) =>
   `${SUPABASE_URL}/functions/v1/workflow-proxy?endpoint=${encodeURIComponent(endpoint)}`;
-
 // ========== Types ==========
 
 export type JewelryType = 'necklace' | 'ring' | 'bracelet' | 'earrings' | 'watch';
@@ -238,8 +239,9 @@ export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_g
 class WorkflowApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const userToken = getStoredToken();
     return {
-      'Authorization': `Bearer ${anonKey}`,
+      'Authorization': `Bearer ${userToken || anonKey}`,
       'apikey': anonKey,
     };
   }
