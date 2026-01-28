@@ -237,39 +237,33 @@ class TemporalApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
       'apikey': anonKey,
     };
-    
-    // Prefer user JWT for authenticated requests to backend
+
     if (userToken) {
-      headers['Authorization'] = `Bearer ${userToken}`;
-      headers['X-User-Token'] = userToken; // Send user token separately for proxy
-    } else {
-      headers['Authorization'] = `Bearer ${anonKey}`;
+      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
     }
-    
+
     return headers;
   }
-  
+
   private getFormDataHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-    
+
     const headers: Record<string, string> = {
+      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
       'apikey': anonKey,
     };
-    
-    // Prefer user JWT for authenticated requests
+
     if (userToken) {
-      headers['Authorization'] = `Bearer ${userToken}`;
-      headers['X-User-Token'] = userToken;
-    } else {
-      headers['Authorization'] = `Bearer ${anonKey}`;
+      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
     }
-    
+
     return headers;
   }
 
