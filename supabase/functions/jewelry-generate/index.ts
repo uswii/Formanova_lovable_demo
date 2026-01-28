@@ -1,13 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
 };
 
 // A100 server endpoint - use same secret as a100-proxy
 const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
+
+// Auth service for token validation
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
 // Map plural jewelry types to singular for backend
 const JEWELRY_TYPE_MAP: Record<string, string> = {
@@ -24,38 +26,47 @@ const JEWELRY_TYPE_MAP: Record<string, string> = {
   'watch': 'watch',
 };
 
-// Authentication helper - validates JWT and returns user ID
+// Authentication helper - validates token against custom FastAPI auth service
+// Uses X-User-Token header (not Authorization, which Supabase intercepts)
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  const userToken = req.headers.get('X-User-Token');
+  if (!userToken) {
+    console.log('[jewelry-generate] Auth failed: missing X-User-Token header');
     return {
-      error: new Response(JSON.stringify({ error: 'Unauthorized - missing or invalid token' }), {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - missing X-User-Token header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     };
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
+  try {
+    // Validate token against custom auth service
+    const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+      headers: { 'Authorization': `Bearer ${userToken}` },
+    });
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabase.auth.getUser(token);
-  
-  if (error || !data?.user) {
-    console.log('[jewelry-generate] Auth failed:', error?.message);
+    if (!response.ok) {
+      console.log('[jewelry-generate] Auth failed: token validation returned', response.status);
+      return {
+        error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      };
+    }
+
+    const user = await response.json();
+    return { userId: user.id || user.email || 'authenticated' };
+  } catch (e) {
+    console.log('[jewelry-generate] Auth service error:', e);
     return {
-      error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - auth service unavailable' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     };
   }
-
-  return { userId: data.user.id };
 }
 
 serve(async (req) => {
