@@ -1,3 +1,4 @@
+// CategoryUploadStudio - Bulk jewelry upload interface
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
