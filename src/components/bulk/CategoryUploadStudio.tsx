@@ -463,18 +463,23 @@ const CategoryUploadStudio = () => {
                 </div>
               </div>
             ) : (
-              /* Diamond upload empty state - mobile-optimized */
+              /* Diamond upload empty state - striking on all devices */
               <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer group px-6">
-                {/* Simplified upload icon for mobile */}
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-4">
-                  {/* Ping animation - subtle on mobile */}
+                {/* Striking upload icon with ping effect */}
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-4">
+                  {/* Outer ping ring */}
                   <div 
-                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/15 animate-ping hidden sm:block" 
+                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/20 animate-ping" 
                     style={{ animationDuration: '2s' }} 
                   />
-                  {/* Core diamond */}
-                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/40 group-active:border-formanova-hero-accent transition-colors">
-                    <Diamond className="h-6 w-6 sm:h-8 sm:w-8 text-formanova-hero-accent" />
+                  {/* Inner ping ring - offset timing */}
+                  <div 
+                    className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 animate-ping" 
+                    style={{ animationDuration: '2s', animationDelay: '0.5s' }} 
+                  />
+                  {/* Core diamond container */}
+                  <div className="absolute inset-0 rounded-full bg-formanova-hero-accent/10 flex items-center justify-center border-2 border-formanova-hero-accent/40 group-active:border-formanova-hero-accent group-active:scale-95 transition-all">
+                    <Diamond className="h-8 w-8 sm:h-10 sm:w-10 text-formanova-hero-accent" />
                   </div>
                 </div>
                 
