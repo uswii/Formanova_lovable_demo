@@ -226,73 +226,89 @@ export default function AdminBatches() {
                 <p>No batches submitted yet</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Images</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batches.map((batch) => (
-                    <TableRow key={batch.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <StatusIcon status={batch.status} />
-                          <Badge className={statusColors[batch.status] || statusColors.pending}>
-                            {batch.status}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {batch.user_display_name || 'Unknown'}
-                          </span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {batch.user_email}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {batch.jewelry_category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-green-400">{batch.completed_images}</span>
-                        <span className="text-muted-foreground">/</span>
-                        <span>{batch.total_images}</span>
-                        {batch.failed_images > 0 && (
-                          <span className="text-red-400 ml-1">
-                            ({batch.failed_images} failed)
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(batch.created_at), 'MMM d, HH:mm')}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handleViewBatch(batch)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>User Info</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Notification Email</TableHead>
+                      <TableHead>Images</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {batches.map((batch) => (
+                      <TableRow key={batch.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <StatusIcon status={batch.status} />
+                            <Badge className={statusColors[batch.status] || statusColors.pending}>
+                              {batch.status}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {batch.user_id.slice(0, 8)}...
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {batch.user_display_name || '—'}
+                            </span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {batch.user_email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {batch.jewelry_category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {batch.notification_email || batch.user_email}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-green-400">{batch.completed_images}</span>
+                            <span className="text-muted-foreground">/</span>
+                            <span>{batch.total_images}</span>
+                            {batch.failed_images > 0 && (
+                              <span className="text-red-400 ml-1">
+                                ({batch.failed_images} ✗)
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {format(new Date(batch.created_at), 'MMM d, HH:mm')}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleViewBatch(batch)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
