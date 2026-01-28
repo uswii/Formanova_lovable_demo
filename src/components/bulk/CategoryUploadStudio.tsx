@@ -98,7 +98,7 @@ const CategoryUploadStudio = () => {
             return {
               ...img,
               isFlagged: true,
-              flagReason: getFlagMessage(result.flags),
+              flagReason: getFlagMessage(result.flags, result.category),
             };
           }
         }
@@ -108,8 +108,14 @@ const CategoryUploadStudio = () => {
   }, [images.length, globalSkinTone, validateImages, jewelryType]);
 
   // Get human-readable flag message
-  const getFlagMessage = (flags: string[]): string => {
-    if (flags.includes('not_worn')) return 'Flatlay/product shot detected';
+  const getFlagMessage = (flags: string[], category?: string): string => {
+    if (flags.includes('not_worn')) {
+      if (category === '3d_render') return '3D render detected - needs worn photo';
+      if (category === 'flatlay') return 'Flatlay detected - needs worn photo';
+      if (category === 'packshot') return 'Product shot detected - needs worn photo';
+      if (category === 'floating') return 'Floating product detected - needs worn photo';
+      return 'Not worn on person';
+    }
     if (flags.includes('no_jewelry')) return 'No jewelry detected';
     if (flags.includes('wrong_category')) return 'Wrong jewelry type';
     if (flags.includes('low_quality')) return 'Low quality image';
@@ -420,25 +426,28 @@ const CategoryUploadStudio = () => {
                       className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg"
                     >
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                         <div className="text-sm">
-                          <p className="font-medium text-amber-200">
-                            {images.filter(img => img.isFlagged).length} image{images.filter(img => img.isFlagged).length !== 1 ? 's' : ''} may not be suitable
+                          <p className="font-medium text-amber-100 text-base">
+                            ⚠️ Please upload worn jewelry images
                           </p>
-                          <p className="text-muted-foreground mt-1 text-xs">
-                            We detected flatlay or product shots. Our system works best with worn jewelry photos. 
-                            You can still submit, but results may vary.
+                          <p className="text-amber-200/80 mt-2 text-sm">
+                            {images.filter(img => img.isFlagged).length} of your images appear to be product shots, 3D renders, or flatlays. 
+                            Our AI works <span className="font-semibold">only with photos of jewelry worn on a person</span> (mannequin or model).
                           </p>
-                          <div className="flex gap-2 mt-3">
+                          <p className="text-muted-foreground mt-2 text-xs">
+                            You can remove flagged images and upload new ones, or continue anyway — but results may not be usable.
+                          </p>
+                          <div className="flex gap-3 mt-4">
                             <button
                               onClick={() => setShowFlagWarning(false)}
-                              className="text-xs px-3 py-1.5 rounded bg-muted hover:bg-muted/80 transition-colors"
+                              className="text-sm px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted transition-colors font-medium"
                             >
-                              Cancel
+                              Go Back & Fix Images
                             </button>
                             <button
                               onClick={handleSubmit}
-                              className="text-xs px-3 py-1.5 rounded bg-amber-500 text-black font-medium hover:bg-amber-400 transition-colors"
+                              className="text-sm px-4 py-2 rounded-lg bg-amber-600/80 text-amber-50 font-medium hover:bg-amber-600 transition-colors"
                             >
                               Submit Anyway
                             </button>
