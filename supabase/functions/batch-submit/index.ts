@@ -21,7 +21,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 // Resend for email notifications
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const ADMIN_EMAILS = ['uswa@raresense.so', 'hassan@raresense.so'];
+const ADMIN_EMAILS = ['uswa@raresense.so']; // Only owner email works with test domain
 
 interface BatchImage {
   data_uri: string; // base64 data URI
