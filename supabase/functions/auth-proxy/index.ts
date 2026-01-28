@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Auth service - consistent across all edge functions
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Auth service via ngrok tunnel (direct IP times out from edge functions)
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +31,7 @@ serve(async (req) => {
       const response = await fetch(targetUrl, {
         method: 'GET',
         redirect: 'manual', // Don't auto-follow redirects
+        headers: { 'ngrok-skip-browser-warning': 'true' },
       });
       
       console.log(`[auth-proxy] OAuth response status: ${response.status}`);
@@ -66,6 +67,7 @@ serve(async (req) => {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Content-Type': contentType,
+      'ngrok-skip-browser-warning': 'true',
     };
 
     // Forward authorization header if present
