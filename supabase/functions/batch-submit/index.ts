@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
 };
 
-// Auth service via ngrok tunnel (Supabase can't reach private IPs)
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
+// Auth service - consistent across all edge functions
+const AUTH_SERVICE_URL = 'http://20.173.91.22:8002';
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
