@@ -7,7 +7,7 @@ import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
 import { useImageValidation } from '@/hooks/use-image-validation';
-import { useAuth } from '@/contexts/AuthContext';
+
 
 interface UploadedImage {
   id: string;
@@ -44,7 +44,6 @@ const MAX_IMAGES = 10;
 const CategoryUploadStudio = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
-  const { getAuthHeader } = useAuth();
   
   const [images, setImages] = useState<ImageWithSkinTone[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,9 +85,8 @@ const CategoryUploadStudio = () => {
 
     setImages(prev => [...prev, ...newImages]);
 
-    // Validate the new images
-    const authHeader = getAuthHeader();
-    const validation = await validateImages(filesToAdd, jewelryType, authHeader);
+    // Validate the new images (auth headers handled internally)
+    const validation = await validateImages(filesToAdd, jewelryType);
     
     if (validation && validation.flagged_count > 0) {
       // Update images with flag status
@@ -107,7 +105,7 @@ const CategoryUploadStudio = () => {
         return img;
       }));
     }
-  }, [images.length, globalSkinTone, validateImages, getAuthHeader, jewelryType]);
+  }, [images.length, globalSkinTone, validateImages, jewelryType]);
 
   // Get human-readable flag message
   const getFlagMessage = (flags: string[]): string => {

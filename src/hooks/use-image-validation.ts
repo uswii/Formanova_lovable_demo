@@ -1,12 +1,33 @@
 import { useState, useCallback } from 'react';
+import { getStoredToken } from '@/lib/auth-api';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 // Use workflow-proxy to route to Temporal backend's image classification tool
 const WORKFLOW_PROXY_URL = `${SUPABASE_URL}/functions/v1/workflow-proxy`;
 
 // Build validation URL with endpoint query param for the Temporal tool adapter
 const getClassificationUrl = () => 
   `${WORKFLOW_PROXY_URL}?endpoint=${encodeURIComponent('/tools/image_classification/run')}`;
+
+/**
+ * Get proper auth headers for edge function calls:
+ * - Authorization: Bearer <anon-key> for Supabase gateway routing
+ * - apikey: <anon-key> for Supabase function access
+ * - X-User-Token: <user-jwt> for custom FastAPI auth service validation
+ */
+function getAuthHeaders(): Record<string, string> {
+  const userToken = getStoredToken();
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'apikey': SUPABASE_ANON_KEY,
+  };
+  if (userToken) {
+    headers['X-User-Token'] = userToken;
+  }
+  return headers;
+}
 
 // Response from the classification service
 export interface ClassificationResult {
@@ -96,8 +117,7 @@ export function useImageValidation() {
    * Classify a single image with timeout
    */
   const classifyImage = useCallback(async (
-    dataUri: string,
-    authHeader?: Record<string, string>
+    dataUri: string
   ): Promise<ClassificationResult | null> => {
     // Create abort controller for timeout
     const controller = new AbortController();
@@ -109,7 +129,7 @@ export function useImageValidation() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeader,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           data: {
@@ -148,8 +168,7 @@ export function useImageValidation() {
    */
   const validateImages = useCallback(async (
     files: File[],
-    category: string,
-    authHeader?: Record<string, string>
+    category: string
   ): Promise<ValidationResponse | null> => {
     if (files.length === 0) return null;
 
@@ -161,7 +180,7 @@ export function useImageValidation() {
 
       // Classify all images in parallel
       const classificationResults = await Promise.all(
-        dataUris.map(uri => classifyImage(uri, authHeader))
+        dataUris.map(uri => classifyImage(uri))
       );
 
       // Map results to validation format
