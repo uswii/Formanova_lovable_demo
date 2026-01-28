@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   BulkCategorySelector,
@@ -12,8 +13,12 @@ import {
   JEWELRY_CATEGORIES,
 } from '@/components/bulk';
 import type { JewelryCategory, UploadedImage, SkinTone, Gender } from '@/components/bulk';
+import { getStoredToken } from '@/lib/auth-api';
 
 type Step = 'category' | 'upload' | 'review' | 'confirmation';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const BATCH_SUBMIT_URL = `${SUPABASE_URL}/functions/v1/batch-submit`;
 
 const STEPS: Step[] = ['category', 'upload', 'review', 'confirmation'];
 
@@ -65,19 +70,61 @@ const BulkUploadStudio = () => {
 
     setIsSubmitting(true);
     try {
-      // TODO: Implement actual batch submission via edge function
-      // For now, simulate a submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockBatchId = `batch_${Date.now()}`;
-      setSubmittedBatchId(mockBatchId);
+      // Get auth token
+      const token = getStoredToken();
+      if (!token) {
+        toast.error('Please log in to submit a batch');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Convert images to base64 data URIs
+      const imageDataUris: Array<{ data_uri: string; skin_tone: string }> = await Promise.all(
+        images.map(async (img) => {
+          const response = await fetch(img.preview);
+          const blob = await response.blob();
+          return new Promise<{ data_uri: string; skin_tone: string }>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve({
+                data_uri: reader.result as string,
+                skin_tone: skinTone,
+              });
+            };
+            reader.readAsDataURL(blob);
+          });
+        })
+      );
+
+      // Submit to edge function
+      const response = await fetch(BATCH_SUBMIT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Token': token,
+        },
+        body: JSON.stringify({
+          jewelry_category: selectedCategory.id,
+          images: imageDataUris,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit batch');
+      }
+
+      toast.success(`Batch submitted! ${result.image_count} images queued.`);
+      setSubmittedBatchId(result.batch_id);
       setCurrentStep('confirmation');
     } catch (error) {
       console.error('Failed to submit batch:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to submit batch');
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedCategory, images]);
+  }, [selectedCategory, images, skinTone]);
 
   const handleStartAnother = useCallback(() => {
     // Reset all state
