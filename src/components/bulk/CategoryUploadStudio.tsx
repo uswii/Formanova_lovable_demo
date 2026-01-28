@@ -29,19 +29,29 @@ interface ImageWithSkinTone extends UploadedImage {
 
 const CATEGORY_NAMES: Record<string, string> = {
   necklace: 'Necklaces',
+  earrings: 'Earrings',
+  rings: 'Rings',
+  bracelets: 'Bracelets',
+  watches: 'Watches',
+  // Also support singular forms (DB enum values)
   earring: 'Earrings',
   ring: 'Rings',
   bracelet: 'Bracelets',
   watch: 'Watches',
 };
 
-// Map frontend plural category IDs to database singular enum values
+// Map frontend category IDs to database singular enum values
 const CATEGORY_TO_DB_ENUM: Record<string, string> = {
   necklace: 'necklace',
   earrings: 'earring',
   rings: 'ring',
   bracelets: 'bracelet',
   watches: 'watch',
+  // Also support singular forms (already correct)
+  earring: 'earring',
+  ring: 'ring',
+  bracelet: 'bracelet',
+  watch: 'watch',
 };
 
 // Skin tone options
