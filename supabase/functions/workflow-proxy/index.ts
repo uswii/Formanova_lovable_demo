@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
 };
 
 // Backend URLs
@@ -28,11 +28,14 @@ function getBackendUrl(mode: string | null): string {
 }
 
 // Authentication helper - validates token against custom FastAPI auth service
+// Uses X-User-Token header (not Authorization, which Supabase intercepts)
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  // Read user token from X-User-Token header (frontend sends user JWT here)
+  const userToken = req.headers.get('X-User-Token');
+  if (!userToken) {
+    console.log('[workflow-proxy] Auth failed: missing X-User-Token header');
     return {
-      error: new Response(JSON.stringify({ error: 'Unauthorized - missing or invalid token' }), {
+      error: new Response(JSON.stringify({ error: 'Unauthorized - missing X-User-Token header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -42,7 +45,7 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
   try {
     // Validate token against custom auth service
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
-      headers: { 'Authorization': authHeader },
+      headers: { 'Authorization': `Bearer ${userToken}` },
     });
 
     if (!response.ok) {

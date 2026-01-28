@@ -58,11 +58,15 @@ class JewelryGenerateApi {
   private getAuthHeaders(): Record<string, string> {
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${userToken || anonKey}`,
+      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
       'apikey': anonKey,
     };
+    if (userToken) {
+      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
+    }
+    return headers;
   }
 
   private getProxyUrl(endpoint: string): string {
