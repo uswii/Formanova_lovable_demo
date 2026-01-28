@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Plus, Diamond, AlertTriangle, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
 
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
@@ -78,7 +78,6 @@ const CategoryUploadStudio = () => {
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
   const [showFlagWarning, setShowFlagWarning] = useState(false);
-  const [showMobileGuide, setShowMobileGuide] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
@@ -343,41 +342,6 @@ const CategoryUploadStudio = () => {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* CENTER COLUMN: Upload area + Submit */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          
-          {/* Mobile Example Guide - Collapsible */}
-          <div className="lg:hidden border-b border-border/50">
-            <button
-              onClick={() => setShowMobileGuide(!showMobileGuide)}
-              className="w-full px-4 py-3 flex items-center justify-between text-sm"
-            >
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <HelpCircle className="w-4 h-4" />
-                <span>What photos work best?</span>
-              </div>
-              {showMobileGuide ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-            
-            <AnimatePresence>
-              {showMobileGuide && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pb-4">
-                    <ExampleGuidePanel categoryName={categoryName} categoryType={jewelryType} />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          
           {/* Upload / Images Grid area - min height ensures visibility on mobile */}
           <div 
             className={`flex-1 min-h-[300px] flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-y-auto transition-colors ${
@@ -631,6 +595,14 @@ const CategoryUploadStudio = () => {
               </div>
             </div>
           )}
+        </div>
+        
+        {/* MOBILE BOTTOM: Example Guide - visible only on mobile */}
+        <div className="lg:hidden border-t border-border/50 bg-muted/10 p-4 overflow-y-auto max-h-[40vh]">
+          <div className="mb-3">
+            <span className="text-xs font-medium text-muted-foreground">Photo Guide</span>
+          </div>
+          <ExampleGuidePanel categoryName={categoryName} categoryType={jewelryType} />
         </div>
       </div>
 
