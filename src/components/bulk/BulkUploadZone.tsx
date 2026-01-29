@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface UploadedImage {
   id: string;
@@ -29,6 +30,7 @@ const BulkUploadZone = ({
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const { validateImages, isValidating, error: validationError } = useImageValidation();
+  const isMobile = useIsMobile();
 
   // Show toast when validation service has issues
   useEffect(() => {
@@ -179,10 +181,10 @@ const BulkUploadZone = ({
           </div>
           <div className="text-center">
             <p className="text-sm text-foreground font-medium">
-              Drop images here
+              {isMobile ? 'Tap to add photos' : 'Drop images here'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              or click to browse · paste with Ctrl+V
+              {isMobile ? 'or select from gallery' : 'or click to browse · paste with Ctrl+V'}
             </p>
           </div>
           <span className="text-[10px] text-muted-foreground/60 font-mono">
@@ -271,7 +273,7 @@ const BulkUploadZone = ({
             </span>
           )}
         </div>
-        <span className="text-[10px] hidden sm:inline">Ctrl+V to paste</span>
+        {!isMobile && <span className="text-[10px]">Ctrl+V to paste</span>}
       </div>
     </div>
   );
