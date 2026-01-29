@@ -181,10 +181,10 @@ const BulkUploadZone = ({
           </div>
           <div className="text-center">
             <p className="text-sm text-foreground font-medium">
-              {isMobile ? 'Tap to add photos' : 'Drop images here'}
+              {isMobile ? 'Tap to add photos' : 'Click to upload or drag'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isMobile ? 'or select from gallery' : 'or click to browse · paste with Ctrl+V'}
+              {isMobile ? 'or select from gallery' : 'paste with Ctrl+V'}
             </p>
           </div>
           <span className="text-[10px] text-muted-foreground/60 font-mono">
