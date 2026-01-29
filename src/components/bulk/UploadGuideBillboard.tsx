@@ -35,12 +35,12 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
         <div className="relative aspect-[4/3] marta-frame overflow-hidden">
           <img 
             src={heroNecklace} 
-            alt="Acceptable: Jewelry worn on model" 
+            alt="Acceptable: Jewelry worn on model or product shot" 
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-background/90 to-transparent">
             <span className="text-[10px] font-mono text-foreground/80">
-              {categoryName} on model/person
+              Model photos or product shots
             </span>
           </div>
           <div className="absolute top-1 right-1 w-5 h-5 bg-formanova-success flex items-center justify-center">
@@ -62,12 +62,12 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
         <div className="relative aspect-[4/3] marta-frame overflow-hidden opacity-60">
           <img 
             src={necklacePearl} 
-            alt="Not acceptable: Flatlay product shot" 
+            alt="Not acceptable: 3D renders or AI-generated" 
             className="w-full h-full object-cover grayscale"
           />
           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-background/90 to-transparent">
             <span className="text-[10px] font-mono text-foreground/80">
-              Flatlay / Product only
+              3D renders / AI-generated
             </span>
           </div>
           <div className="absolute top-1 right-1 w-5 h-5 bg-destructive flex items-center justify-center">
@@ -83,8 +83,8 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
       {/* Guidance Text */}
       <div className="pt-2 border-t border-border/50">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          All images must show <span className="text-foreground font-medium">{categoryName} being worn</span> on a model or person. 
-          Product-only and flatlay photos cannot be processed.
+          Upload <span className="text-foreground font-medium">{categoryName} photos</span>—worn on models or product shots. 
+          3D renders and AI-generated images cannot be processed.
         </p>
       </div>
     </motion.div>
