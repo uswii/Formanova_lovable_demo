@@ -137,12 +137,28 @@ async function generateSasToken(
   return sasParams.toString();
 }
 
+// Maximum payload size: 20MB (images up to ~15MB base64 encoded)
+const MAX_PAYLOAD_SIZE = 20 * 1024 * 1024;
+// Maximum decoded image size: 15MB
+const MAX_IMAGE_SIZE = 15 * 1024 * 1024;
+// Allowed content types
+const ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Check payload size before processing
+  const contentLength = parseInt(req.headers.get('content-length') || '0');
+  if (contentLength > MAX_PAYLOAD_SIZE) {
+    return new Response(
+      JSON.stringify({ error: 'Payload too large. Maximum size is 20MB.' }),
+      { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Authenticate request
@@ -181,6 +197,23 @@ serve(async (req) => {
       );
     }
 
+    // Validate content type
+    const normalizedContentType = (content_type || 'image/jpeg').toLowerCase();
+    if (!ALLOWED_CONTENT_TYPES.includes(normalizedContentType)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid content type. Allowed: ${ALLOWED_CONTENT_TYPES.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate filename if provided (prevent path traversal)
+    if (filename && (filename.includes('..') || filename.includes('/') || filename.includes('\\'))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid filename. Path separators and parent references are not allowed.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Strip data URI prefix if present (e.g., "data:image/jpeg;base64,")
     let cleanBase64 = base64;
     if (base64.includes(',')) {
@@ -196,6 +229,14 @@ serve(async (req) => {
 
     // Decode base64 to binary
     const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+
+    // Validate decoded image size
+    if (binaryData.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: `Image too large. Maximum decoded size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB.` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Azure Blob Storage REST API - URL encode the blob name for the request
     const encodedBlobName = encodeURIComponent(blobName);

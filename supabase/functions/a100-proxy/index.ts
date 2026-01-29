@@ -69,11 +69,23 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
   }
 }
 
+// Maximum payload size: 20MB
+const MAX_PAYLOAD_SIZE = 20 * 1024 * 1024;
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Check payload size before processing
+  const contentLength = parseInt(req.headers.get('content-length') || '0');
+  if (contentLength > MAX_PAYLOAD_SIZE) {
+    return new Response(
+      JSON.stringify({ error: 'Payload too large. Maximum size is 20MB.' }),
+      { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Authenticate request
