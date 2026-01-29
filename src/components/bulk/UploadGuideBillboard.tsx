@@ -40,7 +40,7 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
           />
           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-background/90 to-transparent">
             <span className="text-[10px] font-mono text-foreground/80">
-              Model photos or product shots
+              {categoryName} on model/person
             </span>
           </div>
           <div className="absolute top-1 right-1 w-5 h-5 bg-formanova-success flex items-center justify-center">
@@ -62,12 +62,12 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
         <div className="relative aspect-[4/3] marta-frame overflow-hidden opacity-60">
           <img 
             src={necklacePearl} 
-            alt="Not acceptable: 3D renders or AI-generated" 
+            alt="Not acceptable: Product shots" 
             className="w-full h-full object-cover grayscale"
           />
           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-background/90 to-transparent">
             <span className="text-[10px] font-mono text-foreground/80">
-              3D renders / AI-generated
+              Product shots
             </span>
           </div>
           <div className="absolute top-1 right-1 w-5 h-5 bg-destructive flex items-center justify-center">
@@ -83,8 +83,8 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
       {/* Guidance Text */}
       <div className="pt-2 border-t border-border/50">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          Upload <span className="text-foreground font-medium">{categoryName} photos</span>—worn on models or product shots. 
-          3D renders and AI-generated images cannot be processed.
+          All images must show <span className="text-foreground font-medium">{categoryName} being worn</span> on a model or person. 
+          Product shots cannot be processed.
         </p>
       </div>
     </motion.div>

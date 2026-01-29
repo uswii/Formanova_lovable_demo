@@ -107,7 +107,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           ))}
         </div>
         <p className="text-xs lg:text-sm text-muted-foreground">
-          Worn on person or product shots
+          Worn on person
         </p>
       </div>
 
@@ -137,7 +137,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           ))}
         </div>
         <p className="text-xs lg:text-sm text-muted-foreground">
-          3D renders or AI-generated
+          Product shots
         </p>
       </div>
     </motion.div>
