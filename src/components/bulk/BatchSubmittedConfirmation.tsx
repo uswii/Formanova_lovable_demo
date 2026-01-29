@@ -72,12 +72,12 @@ const BatchSubmittedConfirmation = ({
 
         {/* Main Message */}
         <h2 className="font-display text-xl sm:text-2xl md:text-3xl uppercase tracking-wide mb-2 sm:mb-3">
-          We're on it
+          Generation Started
         </h2>
         
         <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-          Your <span className="text-foreground">{imageCount} {categoryName.toLowerCase()}</span> photoshoots 
-          are being created and verified for accuracy.
+          Your <span className="text-foreground">{imageCount} {categoryName.toLowerCase()}</span> {imageCount === 1 ? 'photo is' : 'photos are'} being 
+          generated and verified for accuracy.
         </p>
 
         {/* Email notification section */}
