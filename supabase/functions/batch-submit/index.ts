@@ -1,11 +1,52 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+// Input validation schemas
+const SkinToneSchema = z.enum(['fair', 'light', 'medium', 'tan', 'dark', 'deep']);
+const JewelryCategorySchema = z.enum(['necklace', 'earring', 'ring', 'bracelet', 'watch']);
+
+const ClassificationSchema = z.object({
+  category: z.string().max(100),
+  is_worn: z.boolean(),
+  flagged: z.boolean(),
+}).optional();
+
+const BatchImageSchema = z.object({
+  data_uri: z.string()
+    .regex(/^data:image\/(jpeg|png|webp|jpg);base64,/, 'Invalid image data URI format')
+    .max(15_000_000, 'Image too large (max 10MB)'),
+  skin_tone: SkinToneSchema.optional(),
+  classification: ClassificationSchema,
+});
+
+const BatchSubmitRequestSchema = z.object({
+  jewelry_category: JewelryCategorySchema,
+  images: z.array(BatchImageSchema).min(1, 'At least one image required').max(10, 'Maximum 10 images per batch'),
+  notification_email: z.string().email().max(255).optional(),
+});
 
 // Auth service - use ngrok tunnel (direct IP times out from edge functions)
 const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';
@@ -21,10 +62,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 // Resend for email notifications
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const ADMIN_EMAILS = ['uswa@raresense.so']; // Only owner email works with test domain
+const ADMIN_EMAILS = ['uswa@raresense.so'];
 
 interface BatchImage {
-  data_uri: string; // base64 data URI
+  data_uri: string;
   skin_tone?: string;
   classification?: {
     category: string;
@@ -53,9 +94,6 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
     return null;
   }
 
-  console.log('[batch-submit] Validating token against:', AUTH_SERVICE_URL);
-  console.log('[batch-submit] Token prefix:', userToken.substring(0, 20) + '...');
-
   try {
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
       headers: { 
@@ -64,16 +102,12 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
       },
     });
 
-    console.log('[batch-submit] Auth response status:', response.status);
-
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.log('[batch-submit] Token validation failed:', response.status, errorBody);
+      console.log('[batch-submit] Token validation failed:', response.status);
       return null;
     }
 
     const user = await response.json();
-    console.log('[batch-submit] User authenticated:', user.email, 'ID:', user.id || user.sub);
     return {
       id: user.id || user.sub,
       email: user.email,
@@ -85,61 +119,8 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
   }
 }
 
-// Generate Azure SAS token for uploading
-function generateSasToken(blobPath: string): string {
-  const now = new Date();
-  const expiry = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
-
-  const signedPermissions = 'rcw'; // read, create, write
-  const signedStart = now.toISOString().split('.')[0] + 'Z';
-  const signedExpiry = expiry.toISOString().split('.')[0] + 'Z';
-  const signedResource = 'b'; // blob
-  const signedVersion = '2022-11-02';
-
-  const canonicalizedResource = `/blob/${AZURE_ACCOUNT_NAME}/${AZURE_CONTAINER_NAME}/${blobPath}`;
-  
-  const stringToSign = [
-    signedPermissions,
-    signedStart,
-    signedExpiry,
-    canonicalizedResource,
-    '', // signedIdentifier
-    '', // signedIP
-    '', // signedProtocol
-    signedVersion,
-    signedResource,
-    '', // signedSnapshotTime
-    '', // signedEncryptionScope
-    '', // rscc
-    '', // rscd
-    '', // rsce
-    '', // rscl
-    '', // rsct
-  ].join('\n');
-
-  // HMAC-SHA256 signature
-  const encoder = new TextEncoder();
-  const keyData = Uint8Array.from(atob(AZURE_ACCOUNT_KEY), c => c.charCodeAt(0));
-  
-  // Use Web Crypto API for HMAC
-  const cryptoKey = crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  // For sync operation, we'll use a simpler approach with direct upload
-  return `sp=${signedPermissions}&st=${encodeURIComponent(signedStart)}&se=${encodeURIComponent(signedExpiry)}&spr=https&sv=${signedVersion}&sr=${signedResource}&sig=`;
-}
-
 // Upload image to Azure Blob Storage
-async function uploadToAzure(
-  dataUri: string,
-  blobPath: string
-): Promise<string> {
-  // Extract base64 data from data URI
+async function uploadToAzure(dataUri: string, blobPath: string): Promise<string> {
   const matches = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!matches) {
     throw new Error('Invalid data URI format');
@@ -149,41 +130,19 @@ async function uploadToAzure(
   const base64Data = matches[2];
   const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-  // Generate signature
   const now = new Date();
   const dateString = now.toUTCString();
 
-  // Create authorization header using Shared Key
   const canonicalizedHeaders = `x-ms-blob-type:BlockBlob\nx-ms-date:${dateString}\nx-ms-version:2022-11-02`;
   const canonicalizedResource = `/${AZURE_ACCOUNT_NAME}/${AZURE_CONTAINER_NAME}/${blobPath}`;
   
   const stringToSign = [
-    'PUT',
-    '', // Content-Encoding
-    '', // Content-Language
-    binaryData.length.toString(), // Content-Length
-    '', // Content-MD5
-    contentType, // Content-Type
-    '', // Date
-    '', // If-Modified-Since
-    '', // If-Match
-    '', // If-None-Match
-    '', // If-Unmodified-Since
-    '', // Range
-    canonicalizedHeaders,
-    canonicalizedResource,
+    'PUT', '', '', binaryData.length.toString(), '', contentType, '', '', '', '', '', '',
+    canonicalizedHeaders, canonicalizedResource,
   ].join('\n');
 
-  // Import key and sign
   const keyData = Uint8Array.from(atob(AZURE_ACCOUNT_KEY), c => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
+  const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(stringToSign));
   const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
 
@@ -203,17 +162,15 @@ async function uploadToAzure(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[batch-submit] Azure upload failed:', response.status, errorText);
     throw new Error(`Azure upload failed: ${response.status}`);
   }
 
-  console.log('[batch-submit] Uploaded to Azure:', blobPath);
   return blobUrl;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -226,7 +183,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user
     const user = await authenticateRequest(req);
     if (!user) {
       return new Response(
@@ -235,9 +191,6 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[batch-submit] User authenticated: ${user.email}`);
-
-    // Parse request body
     const body: BatchSubmitRequest = await req.json();
     
     if (!body.jewelry_category || !body.images || body.images.length === 0) {
@@ -254,21 +207,13 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role key (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Generate batch ID
     const batchId = crypto.randomUUID();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     
-    console.log(`[batch-submit] Creating batch ${batchId} with ${body.images.length} images for user ${user.email}`);
-
-    // Upload images to Azure and collect URLs
     const imageRecords: Array<{
       batch_id: string;
       sequence_number: number;
@@ -286,7 +231,6 @@ serve(async (req) => {
       
       try {
         const azureUrl = await uploadToAzure(img.data_uri, blobPath);
-        
         imageRecords.push({
           batch_id: batchId,
           sequence_number: i + 1,
@@ -299,7 +243,6 @@ serve(async (req) => {
         });
       } catch (uploadError) {
         console.error(`[batch-submit] Failed to upload image ${i + 1}:`, uploadError);
-        // Continue with other images
       }
     }
 
@@ -310,16 +253,7 @@ serve(async (req) => {
       );
     }
 
-    // Create batch_jobs record
-    console.log(`[batch-submit] Inserting batch_jobs record:`, {
-      id: batchId,
-      user_id: user.id,
-      user_email: user.email,
-      jewelry_category: body.jewelry_category,
-      total_images: imageRecords.length,
-    });
-
-    const { data: batchData, error: batchError } = await supabase
+    const { error: batchError } = await supabase
       .from('batch_jobs')
       .insert({
         id: batchId,
@@ -330,30 +264,18 @@ serve(async (req) => {
         notification_email: body.notification_email || user.email,
         total_images: imageRecords.length,
         status: 'pending',
-      })
-      .select();
+      });
 
     if (batchError) {
-      console.error('[batch-submit] Failed to create batch_jobs record:', JSON.stringify(batchError));
       return new Response(
         JSON.stringify({ error: 'Failed to create batch record', details: batchError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[batch-submit] batch_jobs record created:`, batchData);
-
-    // Create batch_images records
-    console.log(`[batch-submit] Inserting ${imageRecords.length} batch_images records`);
-    
-    const { data: imagesData, error: imagesError } = await supabase
-      .from('batch_images')
-      .insert(imageRecords)
-      .select();
+    const { error: imagesError } = await supabase.from('batch_images').insert(imageRecords);
 
     if (imagesError) {
-      console.error('[batch-submit] Failed to create batch_images records:', JSON.stringify(imagesError));
-      // Cleanup: delete the batch_jobs record
       await supabase.from('batch_jobs').delete().eq('id', batchId);
       return new Response(
         JSON.stringify({ error: 'Failed to save image records', details: imagesError.message }),
@@ -361,65 +283,19 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[batch-submit] batch_images records created:`, imagesData?.length);
-    console.log(`[batch-submit] Batch ${batchId} created successfully with ${imageRecords.length} images`);
-
-    // Send admin notification email (non-blocking)
-    console.log('[batch-submit] RESEND_API_KEY present:', !!RESEND_API_KEY, 'length:', RESEND_API_KEY?.length || 0);
-    
+    // Send admin notification (non-blocking)
     if (RESEND_API_KEY) {
       try {
         const resend = new Resend(RESEND_API_KEY);
-        const adminHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #C9A55C;">🎉 New Batch Submitted!</h2>
-            
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0;">Batch Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; color: #666;">User:</td><td style="padding: 8px 0;"><strong>${user.display_name || user.email}</strong></td></tr>
-                <tr><td style="padding: 8px 0; color: #666;">Email:</td><td style="padding: 8px 0;">${user.email}</td></tr>
-                <tr><td style="padding: 8px 0; color: #666;">Category:</td><td style="padding: 8px 0;"><strong style="text-transform: capitalize;">${body.jewelry_category}</strong></td></tr>
-                <tr><td style="padding: 8px 0; color: #666;">Images:</td><td style="padding: 8px 0;"><strong>${imageRecords.length}</strong></td></tr>
-                <tr><td style="padding: 8px 0; color: #666;">Batch ID:</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${batchId}</td></tr>
-                <tr><td style="padding: 8px 0; color: #666;">Time:</td><td style="padding: 8px 0;">${new Date().toLocaleString()}</td></tr>
-              </table>
-            </div>
-            
-            <a href="https://formanova.lovable.app/admin-batches?key=formanova-admin-2024" 
-               style="display: inline-block; background: #C9A55C; color: white; padding: 12px 24px; 
-                      text-decoration: none; border-radius: 6px; font-weight: bold;">
-                View in Admin Dashboard
-            </a>
-            
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-            
-            <p style="color: #999; font-size: 12px;">
-                FormaNova - AI Jewelry Photography
-            </p>
-          </div>
-        `;
-
-        console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
-        
-        const { data, error } = await resend.emails.send({
+        await resend.emails.send({
           from: 'FormaNova <onboarding@resend.dev>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
-          html: adminHtml,
+          html: `<p>Batch ${batchId} created with ${imageRecords.length} images.</p>`,
         });
-
-        if (error) {
-          console.error('[batch-submit] Resend API error:', JSON.stringify(error));
-        } else {
-          console.log('[batch-submit] Email sent successfully, ID:', data?.id);
-        }
       } catch (emailError) {
-        console.error('[batch-submit] Failed to send admin notification email:', emailError);
-        // Don't fail the request if email fails
+        console.error('[batch-submit] Email failed:', emailError);
       }
-    } else {
-      console.log('[batch-submit] RESEND_API_KEY not configured, skipping admin notification');
     }
 
     return new Response(
@@ -427,7 +303,7 @@ serve(async (req) => {
         success: true,
         batch_id: batchId,
         image_count: imageRecords.length,
-        message: `Batch submitted successfully. You'll receive an email at ${body.notification_email || user.email} when processing is complete.`,
+        message: `Batch submitted successfully.`,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

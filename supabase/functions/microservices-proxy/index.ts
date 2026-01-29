@@ -1,43 +1,50 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+];
 
-// Microservice endpoints
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
 const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8005';
 const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
 const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
-// Auth service for token validation
 const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
-// Authentication helper - validates token against custom FastAPI auth service
-// Uses X-User-Token header (not Authorization, which Supabase intercepts)
-async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string } | { error: Response }> {
   const userToken = req.headers.get('X-User-Token');
   if (!userToken) {
-    console.log('[microservices-proxy] Auth failed: missing X-User-Token header');
     return {
       error: new Response(JSON.stringify({ error: 'Unauthorized - missing X-User-Token header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     };
   }
 
   try {
-    // Validate token against custom auth service
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
       headers: { 'Authorization': `Bearer ${userToken}` },
     });
 
     if (!response.ok) {
-      console.log('[microservices-proxy] Auth failed: token validation returned', response.status);
       return {
         error: new Response(JSON.stringify({ error: 'Unauthorized - invalid token' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       };
     }
@@ -45,28 +52,23 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
     const user = await response.json();
     return { userId: user.id || user.email || 'authenticated' };
   } catch (e) {
-    console.log('[microservices-proxy] Auth service error:', e);
     return {
       error: new Response(JSON.stringify({ error: 'Unauthorized - auth service unavailable' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     };
   }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Authenticate request
-  const auth = await authenticateRequest(req);
-  if ('error' in auth) {
-    return auth.error;
-  }
-  console.log(`[microservices-proxy] Authenticated user: ${auth.userId}`);
+  const auth = await authenticateRequest(req, corsHeaders);
+  if ('error' in auth) return auth.error;
 
   try {
     const url = new URL(req.url);
@@ -79,44 +81,26 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Proxying ${req.method} to ${endpoint}`);
-
     let targetUrl: string;
-    let targetMethod = req.method;
     let targetBody: string | undefined;
-    let targetHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const targetHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
 
-    // Route to appropriate microservice
     if (endpoint === '/resize') {
       targetUrl = `${IMAGE_MANIPULATOR_URL}/resize`;
-      if (req.method === 'POST') {
-        targetBody = await req.text();
-        console.log('Resize request body:', targetBody);
-      }
+      if (req.method === 'POST') targetBody = await req.text();
     } else if (endpoint === '/zoom-check') {
       targetUrl = `${IMAGE_MANIPULATOR_URL}/zoom_check`;
-      if (req.method === 'POST') {
-        targetBody = await req.text();
-        console.log('Zoom check request body:', targetBody);
-      }
+      if (req.method === 'POST') targetBody = await req.text();
     } else if (endpoint === '/birefnet/jobs') {
       targetUrl = `${BIREFNET_URL}/jobs`;
-      if (req.method === 'POST') {
-        targetBody = await req.text();
-      }
+      if (req.method === 'POST') targetBody = await req.text();
     } else if (endpoint.startsWith('/birefnet/jobs/')) {
-      const jobId = endpoint.replace('/birefnet/jobs/', '');
-      targetUrl = `${BIREFNET_URL}/jobs/${jobId}`;
+      targetUrl = `${BIREFNET_URL}/jobs/${endpoint.replace('/birefnet/jobs/', '')}`;
     } else if (endpoint === '/sam3/jobs') {
       targetUrl = `${SAM3_URL}/jobs`;
-      if (req.method === 'POST') {
-        targetBody = await req.text();
-      }
+      if (req.method === 'POST') targetBody = await req.text();
     } else if (endpoint.startsWith('/sam3/jobs/')) {
-      const jobId = endpoint.replace('/sam3/jobs/', '');
-      targetUrl = `${SAM3_URL}/jobs/${jobId}`;
+      targetUrl = `${SAM3_URL}/jobs/${endpoint.replace('/sam3/jobs/', '')}`;
     } else {
       return new Response(
         JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
@@ -124,47 +108,20 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Forwarding to: ${targetUrl}`);
-
-    const fetchOptions: RequestInit = {
-      method: targetMethod,
-      headers: targetHeaders,
-    };
-
-    if (targetBody && (targetMethod === 'POST' || targetMethod === 'PUT')) {
+    const fetchOptions: RequestInit = { method: req.method, headers: targetHeaders };
+    if (targetBody && (req.method === 'POST' || req.method === 'PUT')) {
       fetchOptions.body = targetBody;
     }
 
     const response = await fetch(targetUrl, fetchOptions);
     const responseData = await response.text();
 
-    console.log(`Response from ${endpoint}: status=${response.status}`);
-    if (response.status >= 400) {
-      console.error(`Error response body:`, responseData);
-    }
-    try {
-      const jsonData = JSON.parse(responseData);
-      if (endpoint.includes('/jobs') && !endpoint.includes('/jobs/')) {
-        console.log(`Job created:`, jsonData);
-      }
-      // Log SAM3 poll responses to debug mask_uri
-      if (endpoint.startsWith('/sam3/jobs/')) {
-        console.log(`SAM3 job status:`, JSON.stringify(jsonData));
-      }
-    } catch {
-      // Not JSON, that's fine
-    }
-
     return new Response(responseData, {
       status: response.status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': response.headers.get('Content-Type') || 'application/json' },
     });
 
   } catch (error) {
-    console.error('Microservices proxy error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Proxy error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

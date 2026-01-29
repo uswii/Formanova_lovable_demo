@@ -1,9 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 
 // Auth service for token validation
 const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
@@ -11,6 +27,7 @@ const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 // Authentication helper - validates token against custom FastAPI auth service
 // Uses X-User-Token header (not Authorization, which Supabase intercepts)
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+  const corsHeaders = getCorsHeaders(req);
   const userToken = req.headers.get('X-User-Token');
   if (!userToken) {
     console.log('[azure-upload] Auth failed: missing X-User-Token header');
@@ -69,7 +86,6 @@ async function generateSasToken(
   
   // SAS parameters
   const signedPermissions = 'r'; // read only
-  const signedService = 'b'; // blob
   const signedResourceType = 'b'; // blob
   const signedProtocol = 'https';
   const signedVersion = '2020-10-02';
@@ -122,6 +138,8 @@ async function generateSasToken(
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -170,8 +188,9 @@ serve(async (req) => {
     }
 
     // Generate unique blob name with user ID prefix for organization
+    // Use crypto.randomUUID() for cryptographically secure random values
     const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
+    const random = crypto.randomUUID();
     const extension = content_type?.includes('png') ? 'png' : 'jpg';
     const blobName = filename || `${auth.userId}/${timestamp}_${random}.${extension}`;
 
