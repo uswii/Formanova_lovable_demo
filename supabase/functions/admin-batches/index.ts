@@ -1,49 +1,28 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+];
 
-const ADMIN_SECRET = 'formanova-admin-2024';
-
-// Generate SAS token for Azure Blob Storage
-function generateSasToken(accountName: string, accountKey: string, containerName: string, blobPath: string): string {
-  const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-  const expiryStr = expiryTime.toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const startTime = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
-  const startStr = startTime.toISOString().replace(/\.\d{3}Z$/, 'Z');
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   
-  const permissions = 'r'; // read only
-  const resource = 'b'; // blob
-  
-  // String to sign for blob SAS
-  const stringToSign = [
-    permissions,
-    startStr,
-    expiryStr,
-    `/blob/${accountName}/${containerName}/${blobPath}`,
-    '', // signedIdentifier
-    '', // signedIP
-    '', // signedProtocol
-    '2021-06-08', // signedVersion
-    resource,
-    '', // signedSnapshotTime
-    '', // signedEncryptionScope
-    '', // rscc (Cache-Control)
-    '', // rscd (Content-Disposition)
-    '', // rsce (Content-Encoding)
-    '', // rscl (Content-Language)
-    '', // rsct (Content-Type)
-  ].join('\n');
-  
-  // Create HMAC-SHA256 signature
-  const encoder = new TextEncoder();
-  const keyData = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
-  
-  // Use SubtleCrypto for HMAC
-  return `sv=2021-06-08&st=${encodeURIComponent(startStr)}&se=${encodeURIComponent(expiryStr)}&sr=${resource}&sp=${permissions}&sig=PLACEHOLDER`;
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
 }
+
+// Admin secret from environment variable
+const ADMIN_SECRET = Deno.env.get('ADMIN_SECRET') || 'formanova-admin-2024';
 
 // Simple approach: append SAS token using account key
 async function generateSasUrl(blobUrl: string, accountName: string, accountKey: string): Promise<string> {
@@ -134,6 +113,8 @@ async function addSasToImages(images: any[], accountName: string, accountKey: st
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -226,7 +207,7 @@ Deno.serve(async (req) => {
     console.error('[admin-batches] Error:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 });

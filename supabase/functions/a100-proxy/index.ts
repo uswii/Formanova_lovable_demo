@@ -6,13 +6,30 @@ const A100_BASE_URL = (Deno.env.get("A100_STANDALONE_URL") || "http://48.214.48.
 // Auth service for token validation
 const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 
 // Authentication helper - validates token against custom FastAPI auth service
 async function authenticateRequest(req: Request): Promise<{ userId: string } | { error: Response }> {
+  const corsHeaders = getCorsHeaders(req);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return {
@@ -53,6 +70,8 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
