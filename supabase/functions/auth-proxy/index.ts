@@ -10,6 +10,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:8080',
+  'http://localhost:8010',
+  'http://20.157.122.64:8010',
 ];
 
 function getCorsHeaders(req: Request): Record<string, string> {
