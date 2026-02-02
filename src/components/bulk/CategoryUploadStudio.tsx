@@ -8,6 +8,7 @@ import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
 import { useImageValidation } from '@/hooks/use-image-validation';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { getStoredToken } from '@/lib/auth-api';
 import { toast } from '@/hooks/use-toast';
 
@@ -70,6 +71,7 @@ const MAX_IMAGES = 10;
 const CategoryUploadStudio = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const [images, setImages] = useState<ImageWithSkinTone[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -483,14 +485,14 @@ const CategoryUploadStudio = () => {
                   </div>
                 </div>
                 
-                {/* Text - compact on mobile */}
+                {/* Text - device-appropriate */}
                 <p className="text-base sm:text-lg font-display font-medium mb-1 text-center">
-                  Tap to add photos
+                  {isMobile ? 'Tap to add photos' : 'Click to upload or drag'}
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                  or drop images here
+                  {isMobile ? 'or select from gallery' : 'or drop images here'}
                 </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-2 hidden sm:block">Ctrl+V to paste</p>
+                {!isMobile && <p className="text-[10px] text-muted-foreground/60 mt-2">Ctrl+V to paste</p>}
                 
                 <input
                   ref={fileInputRef}
