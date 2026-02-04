@@ -49,7 +49,7 @@ const BatchSubmitRequestSchema = z.object({
 });
 
 // Auth service URL from environment (no fallback - must be configured)
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
+const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
