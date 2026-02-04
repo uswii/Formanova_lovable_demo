@@ -22,10 +22,10 @@ function getCorsHeaders(req: Request): Record<string, string> {
 }
 
 // All URLs from environment (no fallbacks - must be configured)
-const IMAGE_MANIPULATOR_URL = Deno.env.get('IMAGE_MANIPULATOR_URL');
-const BIREFNET_URL = Deno.env.get('BIREFNET_URL');
-const SAM3_URL = Deno.env.get('SAM3_URL');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
+const IMAGE_MANIPULATOR_URL = (Deno.env.get('IMAGE_MANIPULATOR_URL') || '').trim();
+const BIREFNET_URL = (Deno.env.get('BIREFNET_URL') || '').trim();
+const SAM3_URL = (Deno.env.get('SAM3_URL') || '').trim();
+const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
 
 async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string } | { error: Response }> {
   const userToken = req.headers.get('X-User-Token');
