@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 // Auth service for token validation (no fallback - must be configured)
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
+const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';

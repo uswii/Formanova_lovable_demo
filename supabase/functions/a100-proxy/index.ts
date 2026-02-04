@@ -3,8 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // A100 Standalone Server (api_server.py) - direct FastAPI endpoints
 // This is the unified API handling all jewelry types: necklace, ring, bracelet, earring, watch
 // All URLs from environment (no fallbacks - must be configured)
-const A100_BASE_URL = (Deno.env.get("A100_STANDALONE_URL") || '').replace(/\/+$/, '');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
+const A100_BASE_URL = (Deno.env.get("A100_STANDALONE_URL") || '').trim().replace(/\/+$/, '');
+const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [

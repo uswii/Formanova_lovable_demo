@@ -22,8 +22,8 @@ function getCorsHeaders(req: Request): Record<string, string> {
 }
 
 // All URLs from environment (no fallbacks - must be configured)
-const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || '').replace(/\/+$/, '');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
+const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || '').trim().replace(/\/+$/, '');
+const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
 
 const JEWELRY_TYPE_MAP: Record<string, string> = {
   'rings': 'ring', 'bracelets': 'bracelet', 'earrings': 'earring',
