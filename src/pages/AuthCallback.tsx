@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 // Redirect destination after successful auth - go straight to studio
 const AUTH_SUCCESS_REDIRECT = '/studio';
@@ -11,18 +11,28 @@ import { useToast } from '@/hooks/use-toast';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
+// CRITICAL: Capture hash fragment IMMEDIATELY on module load
+// This prevents React Router or SPA hosting from stripping it
+const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
+const INITIAL_HREF = typeof window !== 'undefined' ? window.location.href : '';
+console.log('[AuthCallback Module] Captured on load - hash:', INITIAL_HASH, 'href:', INITIAL_HREF);
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('Signing you in...');
+  const processedRef = useRef(false); // Prevent double-processing
 
   useEffect(() => {
-    // DEBUG: Log full URL info immediately
+    // Prevent double-processing (React StrictMode can double-invoke effects)
+    if (processedRef.current) return;
+    
+    // DEBUG: Log all URL info
+    console.log('[AuthCallback] Current hash:', window.location.hash);
+    console.log('[AuthCallback] Initial hash (captured on load):', INITIAL_HASH);
     console.log('[AuthCallback] Full URL:', window.location.href);
-    console.log('[AuthCallback] Hash:', window.location.hash);
-    console.log('[AuthCallback] Search:', window.location.search);
     
     // Parse query params
     const code = searchParams.get('code');
@@ -30,27 +40,31 @@ export default function AuthCallback() {
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    // Check both query params and hash fragment for access_token
-    // Backend may redirect with token in either location
+    // Check query params first for access_token
     let accessToken = searchParams.get('access_token');
     
-    // Also check hash fragment (OAuth implicit flow uses this)
+    // Then check CURRENT hash fragment
     if (!accessToken && window.location.hash) {
-      const hashString = window.location.hash.substring(1); // Remove leading #
-      console.log('[AuthCallback] Parsing hash fragment:', hashString.substring(0, 50) + '...');
+      const hashString = window.location.hash.substring(1);
+      console.log('[AuthCallback] Parsing current hash:', hashString.substring(0, 50) + '...');
       const hashParams = new URLSearchParams(hashString);
       accessToken = hashParams.get('access_token');
-      if (accessToken) {
-        console.log('[AuthCallback] Found access_token in hash fragment, length:', accessToken.length);
-      }
+    }
+    
+    // Finally check INITIAL hash (captured before React loaded)
+    if (!accessToken && INITIAL_HASH) {
+      const hashString = INITIAL_HASH.substring(1);
+      console.log('[AuthCallback] Parsing initial hash:', hashString.substring(0, 50) + '...');
+      const hashParams = new URLSearchParams(hashString);
+      accessToken = hashParams.get('access_token');
     }
 
-    console.log('[AuthCallback] Params:', { 
+    console.log('[AuthCallback] Result:', { 
       hasCode: !!code, 
       hasAccessToken: !!accessToken, 
       hasError: !!errorParam,
-      hash: window.location.hash ? 'present' : 'none',
-      hashLength: window.location.hash.length
+      currentHash: window.location.hash ? 'present' : 'none',
+      initialHash: INITIAL_HASH ? 'present' : 'none'
     });
 
     if (errorParam) {
@@ -67,12 +81,14 @@ export default function AuthCallback() {
 
     // Handle direct token from backend redirect (either query param or hash)
     if (accessToken) {
+      processedRef.current = true;
       handleDirectToken(accessToken);
       return;
     }
 
     // Handle OAuth code exchange flow
     if (code) {
+      processedRef.current = true;
       exchangeCodeForToken(code, state || undefined);
       return;
     }
