@@ -36,8 +36,9 @@ echo -e "${YELLOW}[1/6] Stopping service...${NC}"
 if [ -f "$SCRIPTS_DIR/stop.sh" ]; then
     "$SCRIPTS_DIR/stop.sh" 2>/dev/null || true
 else
+    sudo systemctl stop formanova-frontend.service 2>/dev/null || true
     sudo systemctl stop formanova.service 2>/dev/null || true
-    pm2 stop formanova 2>/dev/null || true
+    pm2 stop formanova-frontend 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Service stopped${NC}"
 
@@ -165,7 +166,7 @@ echo -e "${YELLOW}[9/9] Starting frontend service...${NC}"
 if [ -f "$SCRIPTS_DIR/start.sh" ]; then
     "$SCRIPTS_DIR/start.sh"
 else
-    sudo systemctl start formanova.service 2>/dev/null || pm2 start formanova 2>/dev/null
+    sudo systemctl start formanova-frontend.service 2>/dev/null || pm2 start formanova-frontend 2>/dev/null
 fi
 
 echo ""

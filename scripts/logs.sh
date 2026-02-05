@@ -12,7 +12,7 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
     LOG_DIR="$PROJECT_DIR/logs"
-    SERVICE_NAME="formanova"
+    SERVICE_NAME="formanova-frontend"
 fi
 
 # Colors
@@ -35,7 +35,7 @@ fi
 
 # Try journalctl for system service first
 if command -v journalctl &> /dev/null; then
-    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+    for svc in "${SERVICE_NAME}" "formanova"; do
         if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
             echo -e "Showing logs for ${svc}.service..."
             sudo journalctl -u ${svc}.service -f

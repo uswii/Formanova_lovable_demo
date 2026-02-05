@@ -18,7 +18,7 @@ NC='\033[0m'
 if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
-    SERVICE_NAME="formanova"
+    SERVICE_NAME="formanova-frontend"
     PORT=8010
     LOG_DIR="$PROJECT_DIR/logs"
 fi
