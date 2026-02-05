@@ -19,7 +19,7 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
     # Defaults
-    SERVICE_NAME="formanova"
+    SERVICE_NAME="formanova-frontend"
     PORT=8010
     LOG_DIR="$PROJECT_DIR/logs"
     USE_SYSTEMD=false
@@ -46,7 +46,7 @@ fi
 # Try systemd (system-level service)
 if command -v systemctl &> /dev/null; then
     # Check for system service (formanova or formanova-frontend)
-    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+    for svc in "${SERVICE_NAME}" "formanova"; do
         if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
             sudo systemctl start ${svc}.service
             sleep 2

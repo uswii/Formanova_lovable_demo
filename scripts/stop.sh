@@ -17,7 +17,7 @@ NC='\033[0m'
 if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
-    SERVICE_NAME="formanova"
+    SERVICE_NAME="formanova-frontend"
     PORT=8010
 fi
 
@@ -28,7 +28,7 @@ STOPPED=false
 
 # Try systemd (system-level services)
 if command -v systemctl &> /dev/null; then
-    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+    for svc in "${SERVICE_NAME}" "formanova"; do
         if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
             sudo systemctl stop ${svc}.service 2>/dev/null
             if ! sudo systemctl is-active --quiet ${svc}.service 2>/dev/null; then
