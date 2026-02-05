@@ -23,7 +23,7 @@ NC='\033[0m'
 # Get absolute path to project
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
-SERVICE_NAME="formanova"
+SERVICE_NAME="formanova-frontend"
 LOG_DIR="$PROJECT_DIR/logs"
 PORT=8010
 
