@@ -28,6 +28,15 @@ const TEMPORAL_URL = 'https://formanova.ai/api';                                
 const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
 const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
 const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
+const TEMPORAL_API_KEY = Deno.env.get('ADMIN_SECRET') || '';                                     // API key for Temporal gateway
+
+function getTemporalHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (TEMPORAL_API_KEY) {
+    headers['X-API-Key'] = TEMPORAL_API_KEY;
+  }
+  return headers;
+}
 
 function getBackendUrl(mode: string | null): string {
   if (mode === 'temporal') return TEMPORAL_URL;
@@ -119,7 +128,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/status/')) {
       const workflowId = endpoint.replace('/status/', '');
       const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
-        method: 'GET', headers: { 'Content-Type': 'application/json' },
+        method: 'GET', headers: getTemporalHeaders(),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -129,7 +138,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/result/')) {
       const workflowId = endpoint.replace('/result/', '');
       const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
-        method: 'GET', headers: { 'Content-Type': 'application/json' },
+        method: 'GET', headers: getTemporalHeaders(),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -271,7 +280,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${TEMPORAL_URL}${endpoint}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getTemporalHeaders(),
           body: body,
           signal: controller.signal,
         });
@@ -308,7 +317,7 @@ serve(async (req) => {
 
         const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getTemporalHeaders(),
           body: JSON.stringify(temporalPayload),
         });
 
@@ -333,7 +342,7 @@ serve(async (req) => {
           pollCount++;
 
           const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
-            method: 'GET', headers: { 'Content-Type': 'application/json' },
+            method: 'GET', headers: getTemporalHeaders(),
           });
 
           if (!statusResponse.ok) {
@@ -347,7 +356,7 @@ serve(async (req) => {
 
           if (state === 'completed') {
             const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
-              method: 'GET', headers: { 'Content-Type': 'application/json' },
+              method: 'GET', headers: getTemporalHeaders(),
             });
 
             if (!resultResponse.ok) {
