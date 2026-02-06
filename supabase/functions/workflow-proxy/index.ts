@@ -30,7 +30,7 @@ const STANDALONE_URL = 'http://48.214.48.103:8000';                             
 const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
 const IMAGE_UTILS_URL = 'http://20.157.122.64:8001';                                              // Image Utils (classification, etc.)
 const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
-const TEMPORAL_API_KEY = Deno.env.get('TEMPORAL_API_KEY') || Deno.env.get('ADMIN_SECRET') || '';   // API key for Temporal gateway
+const TEMPORAL_API_KEY = Deno.env.get('TEMPORAL_API_KEY') || '';                                    // API key for Temporal gateway (never fallback to ADMIN_SECRET)
 
 function getTemporalHeaders(userId?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
