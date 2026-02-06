@@ -2,7 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" id="favicon" type="image/png" href="/favicon-light.png" />
+    <script>
+      // Dynamic favicon for light/dark mode
+      (function() {
+        var fav = document.getElementById('favicon');
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        function setFav(e) { fav.href = e.matches ? '/favicon-dark.png' : '/favicon-light.png'; }
+        setFav(mq);
+        mq.addEventListener('change', setFav);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FormaNova | AI Jewelry Photoshoot Studio</title>
     <meta name="description" content="Transform your jewelry images into stunning professional photoshoots with trustworthy AI that preserves your product perfectly." />
