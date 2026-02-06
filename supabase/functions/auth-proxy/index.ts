@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // ═══════════════════════════════════════════════════════════════
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';  // Auth service
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -53,7 +53,6 @@ serve(async (req) => {
       const response = await fetch(targetUrl, {
         method: 'GET',
         redirect: 'manual', // Don't auto-follow redirects
-        headers: { 'ngrok-skip-browser-warning': 'true' },
       });
       
       console.log(`[auth-proxy] OAuth response status: ${response.status}`);
@@ -89,7 +88,6 @@ serve(async (req) => {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Content-Type': contentType,
-      'ngrok-skip-browser-warning': 'true',
     };
 
     // Forward authorization header if present
