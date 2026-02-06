@@ -38,7 +38,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
     
     try {
       // Pass redirect_uri so backend knows where to send the user after Google auth
-      const frontendCallbackUrl = `${window.location.origin}/auth/callback`;
+      const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
       const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
       
       console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);

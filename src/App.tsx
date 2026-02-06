@@ -45,7 +45,7 @@ const App = () => (
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/oauth-callback" element={<AuthCallback />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   
                   {/* Protected routes - require sign in */}
