@@ -25,7 +25,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
 const A100_URL = 'http://48.214.48.103:8000';                                                   // A100 jewelry generation server
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';                      // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
 
 const JEWELRY_TYPE_MAP: Record<string, string> = {
   'rings': 'ring', 'bracelets': 'bracelet', 'earrings': 'earring',

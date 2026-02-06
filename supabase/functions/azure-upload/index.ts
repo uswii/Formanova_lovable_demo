@@ -24,7 +24,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 // ═══════════════════════════════════════════════════════════════
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';  // Auth service
 
 // Authentication helper - validates token against custom FastAPI auth service
 // Uses X-User-Token header (not Authorization, which Supabase intercepts)

@@ -5,7 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // No Cloud secrets needed for URLs anymore
 // ═══════════════════════════════════════════════════════════════
 const A100_BASE_URL = 'http://48.214.48.103:8000';           // A100 standalone server
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';        // Auth service
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
