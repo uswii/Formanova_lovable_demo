@@ -314,11 +314,16 @@ serve(async (req) => {
     // Upload validation — Temporal start + poll
     if (endpoint === '/run/upload_validation' && req.method === 'POST') {
       try {
-        const body = await req.json();
+      const body = await req.json();
         const imageData = body.data?.image;
         const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
-        const temporalPayload = { payload: { original_path: imageData } };
+        // Extract flat URI string to prevent normalise_payload from double-wrapping
+        // imageData may be { uri: "data:..." } or a plain string
+        const imageUri = typeof imageData === 'object' && imageData?.uri 
+          ? imageData.uri 
+          : imageData;
+        const temporalPayload = { payload: { original_path: imageUri } };
         console.log('[workflow-proxy] Starting Temporal image_classification workflow...');
 
         const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
