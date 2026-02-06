@@ -314,7 +314,7 @@ serve(async (req) => {
       try {
         const body = await req.json();
         const imageData = body.data?.image;
-        const temporalPayload = { payload: { original_path: imageData } };
+        const temporalPayload = { payload: { image: imageData } };
 
         console.log('[workflow-proxy] Starting image_classification workflow...');
         console.log('[workflow-proxy] Image data type:', typeof imageData, imageData ? (typeof imageData === 'object' ? JSON.stringify(Object.keys(imageData)) : String(imageData).substring(0, 100)) : 'null');
