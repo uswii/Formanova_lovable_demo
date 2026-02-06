@@ -51,7 +51,7 @@ const BatchSubmitRequestSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';  // Auth service
 const ADMIN_EMAILS = ['your-admin@email.com'];  // Admin notification recipients
 
 // Azure Blob Storage config
@@ -101,7 +101,6 @@ async function authenticateRequest(req: Request): Promise<UserInfo | null> {
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
       headers: { 
         'Authorization': `Bearer ${userToken}`,
-        'ngrok-skip-browser-warning': 'true',
       },
     });
 

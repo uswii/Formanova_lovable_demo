@@ -23,17 +23,11 @@ function getCorsHeaders(req: Request): Record<string, string> {
 
 // ═══════════════════════════════════════════════════════════════
 // SERVICE URLs — Edit these directly when endpoints change
-// No Cloud secrets needed for URLs anymore
 // ═══════════════════════════════════════════════════════════════
-const TEMPORAL_URL = 'http://20.157.122.64:8005';                                                 // Temporal/DAG gateway
+const TEMPORAL_URL = 'https://formanova.ai/api';                                                  // Temporal/DAG gateway
 const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
 const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';                      // Auth service (ngrok → 20.157.122.64:8002)
-
-const tunnelHeaders = {
-  'Bypass-Tunnel-Reminder': 'true',
-  'ngrok-skip-browser-warning': 'true',
-};
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
 
 function getBackendUrl(mode: string | null): string {
   if (mode === 'temporal') return TEMPORAL_URL;
@@ -52,7 +46,7 @@ async function authenticateRequest(req: Request, corsHeaders: Record<string, str
 
   try {
     const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
-      headers: { 'Authorization': `Bearer ${userToken}`, 'ngrok-skip-browser-warning': 'true' },
+      headers: { 'Authorization': `Bearer ${userToken}` },
     });
 
     if (!response.ok) {
@@ -109,7 +103,7 @@ serve(async (req) => {
       
       try {
         const response = await fetch(`${BACKEND_URL}/health`, {
-          method: 'GET', headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+          method: 'GET', headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -125,7 +119,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/status/')) {
       const workflowId = endpoint.replace('/status/', '');
       const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
-        method: 'GET', headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+        method: 'GET', headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -135,7 +129,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/result/')) {
       const workflowId = endpoint.replace('/result/', '');
       const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
-        method: 'GET', headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+        method: 'GET', headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -152,7 +146,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${BACKEND_URL}/process`, {
           method: 'POST',
-          headers: { 'Content-Type': contentType, ...tunnelHeaders },
+          headers: { 'Content-Type': contentType },
           body: body,
           signal: controller.signal,
         });
@@ -198,7 +192,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${STANDALONE_URL}/tools/agentic_masking/run`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(transformedBody),
           signal: controller.signal,
         });
@@ -238,7 +232,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${STANDALONE_URL}/tools/agentic_photoshoot/run-multipart`, {
           method: 'POST',
-          headers: { 'Content-Type': contentType, ...tunnelHeaders },
+          headers: { 'Content-Type': contentType },
           body: body,
           signal: controller.signal,
         });
@@ -277,7 +271,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${TEMPORAL_URL}${endpoint}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+          headers: { 'Content-Type': 'application/json' },
           body: body,
           signal: controller.signal,
         });
@@ -311,7 +305,7 @@ serve(async (req) => {
 
         const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(temporalPayload),
         });
 
@@ -331,7 +325,7 @@ serve(async (req) => {
           await new Promise(r => setTimeout(r, 1000));
 
           const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
-            method: 'GET', headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+            method: 'GET', headers: { 'Content-Type': 'application/json' },
           });
 
           if (!statusResponse.ok) continue;
@@ -340,7 +334,7 @@ serve(async (req) => {
 
           if (statusData.progress?.state === 'completed') {
             const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
-              method: 'GET', headers: { 'Content-Type': 'application/json', ...tunnelHeaders },
+              method: 'GET', headers: { 'Content-Type': 'application/json' },
             });
 
             if (!resultResponse.ok) {

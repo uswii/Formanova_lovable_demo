@@ -27,7 +27,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8005';                                       // Image manipulator (Azure VM)
 const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';           // Background removal (Modal)
 const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';                    // Segment Anything 3 (Modal)
-const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';                      // Auth service (ngrok → 20.157.122.64:8002)
+const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
 
 async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string } | { error: Response }> {
   const userToken = req.headers.get('X-User-Token');
