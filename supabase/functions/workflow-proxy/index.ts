@@ -303,6 +303,9 @@ serve(async (req) => {
         const imageData = body.data?.image;
         const temporalPayload = { payload: { original_path: imageData } };
 
+        console.log('[workflow-proxy] Starting upload_validation workflow...');
+        console.log('[workflow-proxy] Image data type:', typeof imageData, imageData ? (typeof imageData === 'object' ? JSON.stringify(Object.keys(imageData)) : String(imageData).substring(0, 100)) : 'null');
+
         const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -310,71 +313,91 @@ serve(async (req) => {
         });
 
         if (!startResponse.ok) {
+          const errorText = await startResponse.text();
+          console.error('[workflow-proxy] Failed to start workflow:', startResponse.status, errorText);
           return new Response(
-            JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+            JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'workflow_start_failed', _status: startResponse.status }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
         const startData = await startResponse.json();
         const workflowId = startData.workflow_id;
+        console.log('[workflow-proxy] Workflow started:', workflowId);
 
         // Poll for result
         const pollStart = Date.now();
+        let pollCount = 0;
         while (Date.now() - pollStart < 60000) {
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 1500));
+          pollCount++;
 
           const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
             method: 'GET', headers: { 'Content-Type': 'application/json' },
           });
 
-          if (!statusResponse.ok) continue;
+          if (!statusResponse.ok) {
+            console.warn(`[workflow-proxy] Poll ${pollCount}: status check failed (${statusResponse.status})`);
+            continue;
+          }
 
           const statusData = await statusResponse.json();
+          const state = statusData.progress?.state || statusData.state || 'unknown';
+          console.log(`[workflow-proxy] Poll ${pollCount}: state=${state}`);
 
-          if (statusData.progress?.state === 'completed') {
+          if (state === 'completed') {
             const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
               method: 'GET', headers: { 'Content-Type': 'application/json' },
             });
 
             if (!resultResponse.ok) {
+              const errText = await resultResponse.text();
+              console.error('[workflow-proxy] Failed to fetch result:', resultResponse.status, errText);
               return new Response(
-                JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+                JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'result_fetch_failed' }),
                 { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
             }
 
             const resultData = await resultResponse.json();
+            console.log('[workflow-proxy] Result data keys:', JSON.stringify(Object.keys(resultData)));
+            console.log('[workflow-proxy] Full result:', JSON.stringify(resultData).substring(0, 500));
+
             const classificationResults = resultData.image_classification;
             if (classificationResults && classificationResults.length > 0) {
+              console.log('[workflow-proxy] Classification result:', JSON.stringify(classificationResults[0]));
               return new Response(
                 JSON.stringify(classificationResults[0]),
                 { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
             }
 
+            console.warn('[workflow-proxy] No image_classification in result. Keys:', JSON.stringify(Object.keys(resultData)));
             return new Response(
-              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'no_classification_in_result', _resultKeys: Object.keys(resultData) }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
 
-          if (statusData.progress?.state === 'failed') {
+          if (state === 'failed') {
+            console.error('[workflow-proxy] Workflow failed:', JSON.stringify(statusData));
             return new Response(
-              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'workflow_failed', _details: statusData.error || statusData.progress?.error }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
         }
 
+        console.warn('[workflow-proxy] Workflow timed out after 60s, polls:', pollCount);
         return new Response(
-          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'timeout' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
       } catch (e) {
+        console.error('[workflow-proxy] Upload validation error:', e instanceof Error ? e.message : e);
         return new Response(
-          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false }),
+          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'exception', _error: e instanceof Error ? e.message : 'unknown' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
