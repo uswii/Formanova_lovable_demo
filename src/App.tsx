@@ -57,7 +57,7 @@ const App = () => (
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
                   
                   {/* Admin route - secret key protected */}
-                  <Route path="/admin/batches" element={<AdminBatches />} />
+                  <Route path="/admin" element={<AdminBatches />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

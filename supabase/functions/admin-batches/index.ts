@@ -11,27 +11,48 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const isAllowed = ALLOWED_ORIGINS.includes(origin) || /^https:\/\/.*\.lovable\.app$/.test(origin);
+  const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token, x-admin-secret',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
   };
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CONFIG — Edit these directly when needed
+// CONFIG
 // ═══════════════════════════════════════════════════════════════
-const ADMIN_SECRET = 'formanova-admin-2024';  // Admin access key
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://formanova.ai/auth';
+const ADMIN_SECRET = Deno.env.get('ADMIN_SECRET') || '';
+const ADMIN_EMAILS_RAW = Deno.env.get('ADMIN_EMAILS') || '';
+
+function getAdminEmails(): string[] {
+  if (!ADMIN_EMAILS_RAW) return [];
+  return ADMIN_EMAILS_RAW.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+}
+
+// Authenticate user via custom auth service, return user info
+async function authenticateUser(userToken: string): Promise<{ id: string; email: string } | null> {
+  try {
+    const response = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+      headers: { 'Authorization': `Bearer ${userToken}` },
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    return { id: user.id || '', email: (user.email || '').toLowerCase() };
+  } catch {
+    return null;
+  }
+}
 
 // Simple approach: append SAS token using account key
 async function generateSasUrl(blobUrl: string, accountName: string, accountKey: string): Promise<string> {
   if (!blobUrl || !accountName || !accountKey) return blobUrl;
   
   try {
-    // Parse the blob URL to get container and path
     const url = new URL(blobUrl);
     const pathParts = url.pathname.split('/').filter(Boolean);
     if (pathParts.length < 2) return blobUrl;
@@ -39,8 +60,7 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
     const containerName = pathParts[0];
     const blobPath = pathParts.slice(1).join('/');
     
-    // Generate SAS parameters
-    const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiryTime = new Date(Date.now() + 60 * 60 * 1000);
     const expiryStr = expiryTime.toISOString().split('.')[0] + 'Z';
     const startTime = new Date(Date.now() - 5 * 60 * 1000);
     const startStr = startTime.toISOString().split('.')[0] + 'Z';
@@ -48,54 +68,20 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
     const permissions = 'r';
     const resource = 'b';
     const version = '2021-06-08';
-    
-    // Canonical resource
     const canonicalResource = `/blob/${accountName}/${containerName}/${blobPath}`;
     
-    // String to sign (Service SAS for blob)
     const stringToSign = [
-      permissions,      // sp
-      startStr,         // st
-      expiryStr,        // se
-      canonicalResource,
-      '',               // si (signed identifier)
-      '',               // sip
-      '',               // spr (protocol)
-      version,          // sv
-      resource,         // sr
-      '',               // snapshot time
-      '',               // encryption scope
-      '',               // rscc
-      '',               // rscd
-      '',               // rsce
-      '',               // rscl
-      '',               // rsct
+      permissions, startStr, expiryStr, canonicalResource,
+      '', '', '', version, resource, '', '', '', '', '', '',
     ].join('\n');
     
-    // Create HMAC-SHA256 signature
     const keyBytes = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyBytes,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
+    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const encoder = new TextEncoder();
     const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(stringToSign));
     const sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
     
-    // Build SAS query string
-    const sasParams = new URLSearchParams({
-      sv: version,
-      st: startStr,
-      se: expiryStr,
-      sr: resource,
-      sp: permissions,
-      sig: sig,
-    });
-    
+    const sasParams = new URLSearchParams({ sv: version, st: startStr, se: expiryStr, sr: resource, sp: permissions, sig });
     return `${blobUrl}?${sasParams.toString()}`;
   } catch (err) {
     console.error('[SAS generation error]', err);
@@ -103,7 +89,6 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
   }
 }
 
-// Add SAS tokens to all Azure URLs in image records
 async function addSasToImages(images: any[], accountName: string, accountKey: string): Promise<any[]> {
   return Promise.all(images.map(async (img) => ({
     ...img,
@@ -117,30 +102,58 @@ async function addSasToImages(images: any[], accountName: string, accountKey: st
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const url = new URL(req.url);
-    const secretKey = url.searchParams.get('key');
-    const batchId = url.searchParams.get('batch_id');
     const action = url.searchParams.get('action') || 'list_batches';
+    const batchId = url.searchParams.get('batch_id');
 
-    // Verify admin access
-    if (secretKey !== ADMIN_SECRET) {
+    // ── Dual Authentication ──
+    // 1. Validate user token (Google sign-in)
+    const userToken = req.headers.get('X-User-Token');
+    if (!userToken) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized - missing user token. Sign in with Google first.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get Azure credentials for SAS generation
+    const user = await authenticateUser(userToken);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 2. Check email whitelist
+    const adminEmails = getAdminEmails();
+    if (adminEmails.length > 0 && !adminEmails.includes(user.email)) {
+      console.warn(`[admin-batches] Access denied for ${user.email} - not in ADMIN_EMAILS`);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - your email is not authorized for admin access' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 3. Validate admin secret
+    const adminSecret = req.headers.get('X-Admin-Secret') || url.searchParams.get('key');
+    if (!adminSecret || adminSecret !== ADMIN_SECRET) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - invalid admin secret' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[admin-batches] Admin access granted: ${user.email}`);
+
+    // ── Data Access ──
     const azureAccountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
     const azureAccountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
 
-    // Create Supabase client with service role (bypasses RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -148,55 +161,39 @@ Deno.serve(async (req) => {
     );
 
     if (action === 'list_batches') {
-      // Fetch all batches
       const { data, error } = await supabaseAdmin
         .from('batch_jobs')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      return new Response(
-        JSON.stringify({ batches: data }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ batches: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (action === 'get_images' && batchId) {
-      // Fetch images for a specific batch
       const { data, error } = await supabaseAdmin
         .from('batch_images')
         .select('*')
         .eq('batch_id', batchId)
         .order('sequence_number', { ascending: true });
-
       if (error) throw error;
-
-      // Add SAS tokens to URLs
       const imagesWithSas = await addSasToImages(data || [], azureAccountName, azureAccountKey);
-
-      return new Response(
-        JSON.stringify({ images: imagesWithSas }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ images: imagesWithSas }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (action === 'all_images') {
-      // Fetch all images for export
       const { data, error } = await supabaseAdmin
         .from('batch_images')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      // Add SAS tokens to URLs
       const imagesWithSas = await addSasToImages(data || [], azureAccountName, azureAccountKey);
-
-      return new Response(
-        JSON.stringify({ images: imagesWithSas }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ images: imagesWithSas }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(
