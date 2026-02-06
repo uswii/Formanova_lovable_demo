@@ -1,41 +1,26 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Navigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
 import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle 
 } from '@/components/ui/dialog';
 import { 
-  RefreshCw, 
-  Eye, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Loader2,
-  Mail,
-  Image as ImageIcon,
-  Download,
-  ExternalLink
+  RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
+  Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { getStoredToken } from '@/lib/auth-api';
 
-// Secret key for admin access
-const ADMIN_SECRET = 'formanova-admin-2024';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const ADMIN_API_URL = `${SUPABASE_URL}/functions/v1/admin-batches`;
 
 interface BatchJob {
@@ -85,37 +70,49 @@ const statusColors: Record<string, string> = {
 
 const StatusIcon = ({ status }: { status: string }) => {
   switch (status) {
-    case 'completed':
-      return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-    case 'failed':
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    case 'processing':
-      return <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />;
-    default:
-      return <Clock className="h-4 w-4 text-yellow-400" />;
+    case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-400" />;
+    case 'failed': return <XCircle className="h-4 w-4 text-red-400" />;
+    case 'processing': return <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />;
+    default: return <Clock className="h-4 w-4 text-yellow-400" />;
   }
 };
 
 export default function AdminBatches() {
-  const [searchParams] = useSearchParams();
+  const { user, signInWithGoogle, signOut } = useAuth();
+  const [adminSecret, setAdminSecret] = useState<string | null>(() => sessionStorage.getItem('admin_secret'));
+  const [secretInput, setSecretInput] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [gateError, setGateError] = useState('');
   const [batches, setBatches] = useState<BatchJob[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<BatchJob | null>(null);
   const [batchImages, setBatchImages] = useState<BatchImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
 
-  const secretKey = searchParams.get('key');
-  
-  // Verify admin access
-  if (secretKey !== ADMIN_SECRET) {
-    return <Navigate to="/" replace />;
-  }
+  const isAuthenticated = !!user && !!adminSecret;
 
-  const fetchBatches = async () => {
+  const getAdminHeaders = useCallback((): Record<string, string> => {
+    const userToken = getStoredToken();
+    return {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+      ...(userToken ? { 'X-User-Token': userToken } : {}),
+      ...(adminSecret ? { 'X-Admin-Secret': adminSecret } : {}),
+    };
+  }, [adminSecret]);
+
+  const fetchBatches = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=list_batches`);
-      if (!response.ok) throw new Error('Failed to fetch batches');
+      const response = await fetch(`${ADMIN_API_URL}?action=list_batches`, { headers: getAdminHeaders() });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          sessionStorage.removeItem('admin_secret');
+          setAdminSecret(null);
+          return;
+        }
+        throw new Error('Failed to fetch batches');
+      }
       const data = await response.json();
       setBatches(data.batches || []);
     } catch (err) {
@@ -124,12 +121,12 @@ export default function AdminBatches() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAdminHeaders]);
 
-  const fetchBatchImages = async (batchId: string) => {
+  const fetchBatchImages = useCallback(async (batchId: string) => {
     setLoadingImages(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=get_images&batch_id=${batchId}`);
+      const response = await fetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
       setBatchImages(data.images || []);
@@ -139,6 +136,46 @@ export default function AdminBatches() {
     } finally {
       setLoadingImages(false);
     }
+  }, [getAdminHeaders]);
+
+  // Auto-fetch batches on successful auth
+  useEffect(() => {
+    if (isAuthenticated) fetchBatches();
+  }, [isAuthenticated, fetchBatches]);
+
+  const handleVerifySecret = async () => {
+    if (!secretInput.trim()) { setGateError('Please enter the admin secret'); return; }
+    setVerifying(true);
+    setGateError('');
+    try {
+      const userToken = getStoredToken();
+      const response = await fetch(`${ADMIN_API_URL}?action=list_batches`, {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          ...(userToken ? { 'X-User-Token': userToken } : {}),
+          'X-Admin-Secret': secretInput.trim(),
+        },
+      });
+      if (response.ok) {
+        sessionStorage.setItem('admin_secret', secretInput.trim());
+        setAdminSecret(secretInput.trim());
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setGateError(data.error || 'Access denied');
+      }
+    } catch {
+      setGateError('Failed to verify — check your connection');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_secret');
+    setAdminSecret(null);
+    setSecretInput('');
+    signOut();
   };
 
   const handleViewBatch = (batch: BatchJob) => {
@@ -146,153 +183,112 @@ export default function AdminBatches() {
     fetchBatchImages(batch.id);
   };
 
-  // Export all batches to XLS (CSV format for Excel compatibility)
-  const exportToXLS = () => {
-    if (batches.length === 0) {
-      toast({ title: 'No data to export', variant: 'destructive' });
-      return;
-    }
-
-    // CSV headers
-    const headers = [
-      'Batch ID',
-      'User ID',
-      'User Email',
-      'Display Name',
-      'Category',
-      'Notification Email',
-      'Status',
-      'Total Images',
-      'Completed',
-      'Failed',
-      'Workflow ID',
-      'Created At',
-      'Completed At',
-      'Error Message'
-    ];
-
-    // Convert batches to CSV rows
-    const rows = batches.map(batch => [
-      batch.id,
-      batch.user_id,
-      batch.user_email,
-      batch.user_display_name || '',
-      batch.jewelry_category,
-      batch.notification_email || batch.user_email,
-      batch.status,
-      batch.total_images,
-      batch.completed_images,
-      batch.failed_images,
-      batch.workflow_id || '',
-      batch.created_at,
-      batch.completed_at || '',
-      batch.error_message || ''
-    ]);
-
-    // Escape CSV values
-    const escapeCSV = (value: string | number) => {
-      const str = String(value);
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    };
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(escapeCSV).join(','))
-    ].join('\n');
-
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const exportToCSV = useCallback(() => {
+    if (batches.length === 0) { toast({ title: 'No data to export', variant: 'destructive' }); return; }
+    const headers = ['Batch ID','User Email','Display Name','Category','Notification Email','Status','Total Images','Completed','Failed','Workflow ID','Created At','Completed At','Error Message'];
+    const escapeCSV = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = batches.map(b => [b.id, b.user_email, b.user_display_name || '', b.jewelry_category, b.notification_email || b.user_email, b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', b.created_at, b.completed_at || '', b.error_message || '']);
+    const csv = [headers.join(','), ...rows.map(r => r.map(escapeCSV).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `formanova-batches-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    toast({ title: `Exported ${batches.length} batches` });
+  }, [batches]);
 
-    toast({ title: `Exported ${batches.length} batches to CSV` });
-  };
-
-  // Export batch images with Azure URLs
-  const exportBatchImages = async () => {
-    // Fetch all images via edge function
+  const exportBatchImages = useCallback(async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}?key=${ADMIN_SECRET}&action=all_images`);
+      const response = await fetch(`${ADMIN_API_URL}?action=all_images`, { headers: getAdminHeaders() });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
       const allImages = data.images as BatchImage[];
-
-      if (!allImages?.length) {
-        toast({ title: 'No image data to export', variant: 'destructive' });
-        return;
-      }
-
-    const headers = [
-      'Image ID',
-      'Batch ID',
-      'Sequence',
-      'Status',
-      'Skin Tone',
-      'Classification Category',
-      'Is Worn',
-      'Flagged',
-      'Original URL (Azure)',
-      'Result URL (Azure)',
-      'Mask URL (Azure)',
-      'Thumbnail URL',
-      'Processing Started',
-      'Processing Completed',
-      'Error Message'
-    ];
-
-    const rows = (allImages as unknown as BatchImage[]).map(img => [
-      img.id,
-      img.batch_id,
-      img.sequence_number,
-      img.status,
-      img.skin_tone || '',
-      img.classification_category || '',
-      img.classification_is_worn ? 'Yes' : 'No',
-      img.classification_flagged ? 'Yes' : 'No',
-      img.original_url || '',
-      img.result_url || '',
-      img.mask_url || '',
-      img.thumbnail_url || '',
-      img.processing_started_at || '',
-      img.processing_completed_at || '',
-      img.error_message || ''
-    ]);
-
-    const escapeCSV = (value: string | number) => {
-      const str = String(value);
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    };
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(escapeCSV).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `formanova-images-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-
-    toast({ title: `Exported ${allImages.length} images with Azure URLs to CSV` });
+      if (!allImages?.length) { toast({ title: 'No image data to export', variant: 'destructive' }); return; }
+      const headers = ['Image ID','Batch ID','Seq','Status','Skin Tone','Category','Is Worn','Flagged','Original URL','Result URL','Mask URL','Thumbnail URL','Started','Completed','Error'];
+      const escapeCSV = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+      const rows = allImages.map(i => [i.id, i.batch_id, i.sequence_number, i.status, i.skin_tone || '', i.classification_category || '', i.classification_is_worn ? 'Yes' : 'No', i.classification_flagged ? 'Yes' : 'No', i.original_url || '', i.result_url || '', i.mask_url || '', i.thumbnail_url || '', i.processing_started_at || '', i.processing_completed_at || '', i.error_message || '']);
+      const csv = [headers.join(','), ...rows.map(r => r.map(escapeCSV).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `formanova-images-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast({ title: `Exported ${allImages.length} images` });
     } catch (err) {
       console.error('Failed to export images:', err);
       toast({ title: 'Failed to export images', variant: 'destructive' });
     }
-  };
+  }, [getAdminHeaders]);
 
-  useEffect(() => {
-    fetchBatches();
-  }, []);
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER: Auth Gate
+  // ═══════════════════════════════════════════════════════════════
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-6">
+        <Card className="w-full max-w-md bg-card/80 backdrop-blur border-border/50">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="text-xl">Admin Access</CardTitle>
+            <p className="text-sm text-muted-foreground">Sign in with Google and enter the admin secret</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Step 1: Google */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Step 1 — Google Account</label>
+              {user ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                  <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{user.full_name || user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+              ) : (
+                <Button onClick={signInWithGoogle} className="w-full gap-2" variant="outline">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continue with Google
+                </Button>
+              )}
+            </div>
+            {/* Step 2: Secret */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Step 2 — Admin Secret</label>
+              <Input
+                type="password"
+                placeholder="Enter admin secret..."
+                value={secretInput}
+                onChange={(e) => { setSecretInput(e.target.value); setGateError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && user && handleVerifySecret()}
+                disabled={!user}
+                className="font-mono"
+              />
+            </div>
+            {gateError && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <p className="text-sm text-destructive">{gateError}</p>
+              </div>
+            )}
+            <Button onClick={handleVerifySecret} disabled={!user || !secretInput.trim() || verifying} className="w-full gap-2">
+              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {verifying ? 'Verifying...' : 'Access Dashboard'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER: Dashboard
+  // ═══════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -300,82 +296,50 @@ export default function AdminBatches() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Batch Processing Monitor</p>
+            <p className="text-muted-foreground mt-1">
+              Signed in as <span className="text-foreground font-medium">{user.email}</span>
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={exportToXLS} variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export Batches
+            <Button onClick={exportToCSV} variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" /> Export Batches
             </Button>
-            <Button onClick={exportBatchImages} variant="outline" className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Export Images + URLs
+            <Button onClick={exportBatchImages} variant="outline" size="sm" className="gap-2">
+              <ExternalLink className="h-4 w-4" /> Export Images
             </Button>
-            <Button onClick={fetchBatches} variant="outline" className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+            <Button onClick={fetchBatches} variant="outline" size="sm" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
+            <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+              <LogOut className="h-4 w-4" /> Sign Out
             </Button>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Batches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{batches.length}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Processing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-400">
-                {batches.filter(b => b.status === 'processing').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">
-                {batches.filter(b => b.status === 'completed').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Failed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-400">
-                {batches.filter(b => b.status === 'failed').length}
-              </div>
-            </CardContent>
-          </Card>
+          {[
+            { label: 'Total Batches', value: batches.length, color: '' },
+            { label: 'Processing', value: batches.filter(b => b.status === 'processing').length, color: 'text-blue-400' },
+            { label: 'Completed', value: batches.filter(b => b.status === 'completed').length, color: 'text-green-400' },
+            { label: 'Failed', value: batches.filter(b => b.status === 'failed').length, color: 'text-red-400' },
+          ].map(({ label, value, color }) => (
+            <Card key={label} className="bg-card/50 border-border/50">
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle></CardHeader>
+              <CardContent><div className={`text-2xl font-bold ${color}`}>{value}</div></CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Batches Table */}
+        {/* Table */}
         <Card className="bg-card/50 border-border/50">
-          <CardHeader>
-            <CardTitle>Recent Batches</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Recent Batches</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
+              <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : batches.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No batches submitted yet</p>
+                <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No batches submitted yet</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -397,61 +361,29 @@ export default function AdminBatches() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <StatusIcon status={batch.status} />
-                            <Badge className={statusColors[batch.status] || statusColors.pending}>
-                              {batch.status}
-                            </Badge>
+                            <Badge className={statusColors[batch.status] || statusColors.pending}>{batch.status}</Badge>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium">
-                              {batch.user_display_name || batch.user_email.split('@')[0]}
-                            </span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {batch.user_email}
-                            </span>
-                            <code className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                              {batch.user_id.slice(0, 8)}...
-                            </code>
+                            <span className="font-medium">{batch.user_display_name || batch.user_email.split('@')[0]}</span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" /> {batch.user_email}</span>
+                            <code className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">{batch.user_id.slice(0, 8)}...</code>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {batch.jewelry_category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {batch.notification_email || batch.user_email}
-                          </span>
-                        </TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{batch.jewelry_category}</Badge></TableCell>
+                        <TableCell><span className="text-sm text-muted-foreground">{batch.notification_email || batch.user_email}</span></TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <span className="text-green-400">{batch.completed_images}</span>
                             <span className="text-muted-foreground">/</span>
                             <span>{batch.total_images}</span>
-                            {batch.failed_images > 0 && (
-                              <span className="text-red-400 ml-1">
-                                ({batch.failed_images} ✗)
-                              </span>
-                            )}
+                            {batch.failed_images > 0 && <span className="text-red-400 ml-1">({batch.failed_images} ✗)</span>}
                           </div>
                         </TableCell>
+                        <TableCell><span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(batch.created_at), 'MMM d, HH:mm')}</span></TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            {format(new Date(batch.created_at), 'MMM d, HH:mm')}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleViewBatch(batch)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleViewBatch(batch)}><Eye className="h-4 w-4 mr-1" /> View</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -462,65 +394,33 @@ export default function AdminBatches() {
           </CardContent>
         </Card>
 
-        {/* Batch Detail Dialog */}
+        {/* Detail Dialog */}
         <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <StatusIcon status={selectedBatch?.status || 'pending'} />
-                Batch Details
+                <StatusIcon status={selectedBatch?.status || 'pending'} /> Batch Details
               </DialogTitle>
             </DialogHeader>
-            
             {selectedBatch && (
               <div className="space-y-6">
-                {/* Batch Info */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Batch ID:</span>
-                    <p className="font-mono text-xs mt-1">{selectedBatch.id}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">User:</span>
-                    <p className="mt-1">{selectedBatch.user_email}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Category:</span>
-                    <p className="mt-1 capitalize">{selectedBatch.jewelry_category}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Notification Email:</span>
-                    <p className="mt-1">{selectedBatch.notification_email || 'Same as user'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Workflow ID:</span>
-                    <p className="font-mono text-xs mt-1">{selectedBatch.workflow_id || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Created:</span>
-                    <p className="mt-1">{format(new Date(selectedBatch.created_at), 'PPpp')}</p>
-                  </div>
+                  <div><span className="text-muted-foreground">Batch ID:</span><p className="font-mono text-xs mt-1">{selectedBatch.id}</p></div>
+                  <div><span className="text-muted-foreground">User:</span><p className="mt-1">{selectedBatch.user_email}</p></div>
+                  <div><span className="text-muted-foreground">Category:</span><p className="mt-1 capitalize">{selectedBatch.jewelry_category}</p></div>
+                  <div><span className="text-muted-foreground">Notification Email:</span><p className="mt-1">{selectedBatch.notification_email || 'Same as user'}</p></div>
+                  <div><span className="text-muted-foreground">Workflow ID:</span><p className="font-mono text-xs mt-1">{selectedBatch.workflow_id || 'N/A'}</p></div>
+                  <div><span className="text-muted-foreground">Created:</span><p className="mt-1">{format(new Date(selectedBatch.created_at), 'PPpp')}</p></div>
                 </div>
-
-                {/* Error Message */}
                 {selectedBatch.error_message && (
                   <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <p className="text-red-400 text-sm">{selectedBatch.error_message}</p>
                   </div>
                 )}
-
-                {/* Images */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">
-                    Images ({batchImages.length})
-                  </h3>
-                  
+                  <h3 className="text-lg font-semibold mb-3">Images ({batchImages.length})</h3>
                   {loadingImages ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-32 w-full" />
-                      ))}
-                    </div>
+                    <div className="grid grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
                   ) : batchImages.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No images</p>
                   ) : (
@@ -528,81 +428,31 @@ export default function AdminBatches() {
                       {batchImages.map((img) => (
                         <Card key={img.id} className="p-3 bg-muted/30">
                           <div className="flex items-start gap-4">
-                            {/* Thumbnail */}
                             <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                               {img.original_url ? (
-                                <img 
-                                  src={img.original_url} 
-                                  alt={`Image ${img.sequence_number}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-xs p-1 text-center">Azure URL<br/>(No SAS)</div>';
-                                  }}
+                                <img src={img.original_url} alt={`Image ${img.sequence_number}`} className="w-full h-full object-cover"
+                                  onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; t.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-xs p-1 text-center">No preview</div>'; }}
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                                </div>
+                                <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground" /></div>
                               )}
                             </div>
-                            
-                            {/* Details */}
                             <div className="flex-1 min-w-0 text-sm space-y-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">#{img.sequence_number}</span>
-                                <Badge className={statusColors[img.status] || statusColors.pending}>
-                                  {img.status}
-                                </Badge>
-                                {img.classification_flagged && (
-                                  <Badge variant="destructive">Flagged</Badge>
-                                )}
+                                <Badge className={statusColors[img.status] || statusColors.pending}>{img.status}</Badge>
+                                {img.classification_flagged && <Badge variant="destructive">Flagged</Badge>}
                               </div>
-                              
                               <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
                                 <div>Skin Tone: {img.skin_tone || 'N/A'}</div>
                                 <div>Category: {img.classification_category || 'N/A'}</div>
                                 <div>Worn: {img.classification_is_worn ? 'Yes' : 'No'}</div>
-                                {img.error_message && (
-                                  <div className="col-span-2 text-red-400">
-                                    Error: {img.error_message}
-                                  </div>
-                                )}
+                                {img.error_message && <div className="col-span-2 text-red-400">Error: {img.error_message}</div>}
                               </div>
-                              
-                              {/* URLs */}
                               <div className="flex flex-wrap gap-2 pt-1">
-                                {img.original_url && (
-                                  <a 
-                                    href={img.original_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline"
-                                  >
-                                    Original
-                                  </a>
-                                )}
-                                {img.result_url && (
-                                  <a 
-                                    href={img.result_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline"
-                                  >
-                                    Result
-                                  </a>
-                                )}
-                                {img.mask_url && (
-                                  <a 
-                                    href={img.mask_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline"
-                                  >
-                                    Mask
-                                  </a>
-                                )}
+                                {img.original_url && <a href={img.original_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Original</a>}
+                                {img.result_url && <a href={img.result_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Result</a>}
+                                {img.mask_url && <a href={img.mask_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Mask</a>}
                               </div>
                             </div>
                           </div>
