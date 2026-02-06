@@ -91,7 +91,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
+                Getting your profile...
               </>
             ) : (
               <>
