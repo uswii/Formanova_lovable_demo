@@ -127,9 +127,10 @@ export default function AuthCallback() {
     }
   };
 
-  // Render identical to Auth.tsx sign-in page but in "Connecting..." state
+  // Render identical to Auth.tsx sign-in page but in loading state
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      {/* Same logo as Auth.tsx */}
       <img 
         src={formanovaLogo} 
         alt="Formanova" 
