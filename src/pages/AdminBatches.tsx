@@ -1,21 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle 
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { 
+import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
-  Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut
+  Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
+  ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStoredToken } from '@/lib/auth-api';
 
@@ -23,6 +23,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const ADMIN_API_URL = `${SUPABASE_URL}/functions/v1/admin-batches`;
 
+// ═══════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════
 interface BatchJob {
   id: string;
   user_id: string;
@@ -60,23 +63,55 @@ interface BatchImage {
   created_at: string;
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-  processing: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-  completed: 'bg-green-500/20 text-green-400 border-green-500/50',
-  failed: 'bg-red-500/20 text-red-400 border-red-500/50',
-  partial: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function toPKT(dateStr: string): string {
+  const d = new Date(dateStr);
+  // PKT = UTC+5
+  const pkt = new Date(d.getTime() + 5 * 60 * 60 * 1000);
+  const day = pkt.getUTCDate().toString().padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[pkt.getUTCMonth()];
+  const year = pkt.getUTCFullYear();
+  const h = pkt.getUTCHours();
+  const m = pkt.getUTCMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${day} ${month} ${year}, ${h12}:${m} ${ampm} PKT`;
+}
+
+const statusConfig: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
+  pending: { bg: 'bg-amber-500/15 border-amber-500/30', text: 'text-amber-400', icon: Clock },
+  processing: { bg: 'bg-blue-500/15 border-blue-500/30', text: 'text-blue-400', icon: Loader2 },
+  completed: { bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-400', icon: CheckCircle2 },
+  failed: { bg: 'bg-red-500/15 border-red-500/30', text: 'text-red-400', icon: XCircle },
+  partial: { bg: 'bg-orange-500/15 border-orange-500/30', text: 'text-orange-400', icon: AlertTriangle },
+  delivered: { bg: 'bg-violet-500/15 border-violet-500/30', text: 'text-violet-400', icon: Truck },
 };
 
-const StatusIcon = ({ status }: { status: string }) => {
-  switch (status) {
-    case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-    case 'failed': return <XCircle className="h-4 w-4 text-red-400" />;
-    case 'processing': return <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />;
-    default: return <Clock className="h-4 w-4 text-yellow-400" />;
-  }
-};
+const ALL_STATUSES = ['pending', 'processing', 'completed', 'failed', 'partial', 'delivered'];
 
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusConfig[status] || statusConfig.pending;
+  const Icon = cfg.icon;
+  const isSpinning = status === 'processing';
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}>
+      <Icon className={`h-3 w-3 ${isSpinning ? 'animate-spin' : ''}`} />
+      {status}
+    </span>
+  );
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text);
+  toast({ title: 'Copied to clipboard' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════
 export default function AdminBatches() {
   const { user, signInWithGoogle, signOut } = useAuth();
   const [adminSecret, setAdminSecret] = useState<string | null>(() => sessionStorage.getItem('admin_secret'));
@@ -85,9 +120,11 @@ export default function AdminBatches() {
   const [gateError, setGateError] = useState('');
   const [batches, setBatches] = useState<BatchJob[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedBatch, setSelectedBatch] = useState<BatchJob | null>(null);
-  const [batchImages, setBatchImages] = useState<BatchImage[]>([]);
-  const [loadingImages, setLoadingImages] = useState(false);
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+  const [batchImages, setBatchImages] = useState<Record<string, BatchImage[]>>({});
+  const [loadingImages, setLoadingImages] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -124,27 +161,58 @@ export default function AdminBatches() {
   }, [getAdminHeaders]);
 
   const fetchBatchImages = useCallback(async (batchId: string) => {
-    setLoadingImages(true);
+    if (batchImages[batchId]) return; // already loaded
+    setLoadingImages(batchId);
     try {
       const response = await fetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
-      setBatchImages(data.images || []);
+      setBatchImages(prev => ({ ...prev, [batchId]: data.images || [] }));
     } catch (err) {
       console.error('Failed to fetch batch images:', err);
       toast({ title: 'Failed to load images', variant: 'destructive' });
     } finally {
-      setLoadingImages(false);
+      setLoadingImages(null);
+    }
+  }, [getAdminHeaders, batchImages]);
+
+  const handleUpdateStatus = useCallback(async (batchId: string, newStatus: string) => {
+    setUpdatingStatus(batchId);
+    try {
+      const response = await fetch(`${ADMIN_API_URL}?action=update_status`, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId, status: newStatus }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to update status');
+      }
+      const data = await response.json();
+      setBatches(prev => prev.map(b => b.id === batchId ? { ...b, ...data.batch } : b));
+      toast({ title: `Status updated to "${newStatus}"` });
+    } catch (err: any) {
+      toast({ title: err.message || 'Failed to update', variant: 'destructive' });
+    } finally {
+      setUpdatingStatus(null);
     }
   }, [getAdminHeaders]);
 
-  // Auto-fetch batches on successful auth
   useEffect(() => {
     if (isAuthenticated) fetchBatches();
   }, [isAuthenticated, fetchBatches]);
 
+  const toggleBatch = (batchId: string) => {
+    if (expandedBatchId === batchId) {
+      setExpandedBatchId(null);
+    } else {
+      setExpandedBatchId(batchId);
+      fetchBatchImages(batchId);
+    }
+  };
+
   const handleVerifySecret = async () => {
-    if (!secretInput.trim()) { setGateError('Please enter the admin secret'); return; }
+    if (!secretInput.trim()) { setGateError('Enter password'); return; }
     setVerifying(true);
     setGateError('');
     try {
@@ -165,7 +233,7 @@ export default function AdminBatches() {
         setGateError(data.error || 'Access denied');
       }
     } catch {
-      setGateError('Failed to verify — check your connection');
+      setGateError('Connection failed');
     } finally {
       setVerifying(false);
     }
@@ -178,17 +246,12 @@ export default function AdminBatches() {
     signOut();
   };
 
-  const handleViewBatch = (batch: BatchJob) => {
-    setSelectedBatch(batch);
-    fetchBatchImages(batch.id);
-  };
-
   const exportToCSV = useCallback(() => {
-    if (batches.length === 0) { toast({ title: 'No data to export', variant: 'destructive' }); return; }
-    const headers = ['Batch ID','User Email','Display Name','Category','Notification Email','Status','Total Images','Completed','Failed','Workflow ID','Created At','Completed At','Error Message'];
-    const escapeCSV = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = batches.map(b => [b.id, b.user_email, b.user_display_name || '', b.jewelry_category, b.notification_email || b.user_email, b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', b.created_at, b.completed_at || '', b.error_message || '']);
-    const csv = [headers.join(','), ...rows.map(r => r.map(escapeCSV).join(','))].join('\n');
+    if (batches.length === 0) return;
+    const headers = ['Batch ID', 'User Email', 'Display Name', 'Category', 'Notification Email', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Created At (PKT)', 'Completed At (PKT)', 'Error Message'];
+    const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = batches.map(b => [b.id, b.user_email, b.user_display_name || '', b.jewelry_category, b.notification_email || b.user_email, b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', toPKT(b.created_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
+    const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -197,275 +260,448 @@ export default function AdminBatches() {
     toast({ title: `Exported ${batches.length} batches` });
   }, [batches]);
 
-  const exportBatchImages = useCallback(async () => {
-    try {
-      const response = await fetch(`${ADMIN_API_URL}?action=all_images`, { headers: getAdminHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch images');
-      const data = await response.json();
-      const allImages = data.images as BatchImage[];
-      if (!allImages?.length) { toast({ title: 'No image data to export', variant: 'destructive' }); return; }
-      const headers = ['Image ID','Batch ID','Seq','Status','Skin Tone','Category','Is Worn','Flagged','Original URL','Result URL','Mask URL','Thumbnail URL','Started','Completed','Error'];
-      const escapeCSV = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-      const rows = allImages.map(i => [i.id, i.batch_id, i.sequence_number, i.status, i.skin_tone || '', i.classification_category || '', i.classification_is_worn ? 'Yes' : 'No', i.classification_flagged ? 'Yes' : 'No', i.original_url || '', i.result_url || '', i.mask_url || '', i.thumbnail_url || '', i.processing_started_at || '', i.processing_completed_at || '', i.error_message || '']);
-      const csv = [headers.join(','), ...rows.map(r => r.map(escapeCSV).join(','))].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `formanova-images-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-      toast({ title: `Exported ${allImages.length} images` });
-    } catch (err) {
-      console.error('Failed to export images:', err);
-      toast({ title: 'Failed to export images', variant: 'destructive' });
-    }
-  }, [getAdminHeaders]);
-
   // ═══════════════════════════════════════════════════════════════
-  // RENDER: Auth Gate
+  // AUTH GATE — Not logged in
   // ═══════════════════════════════════════════════════════════════
-  // Not logged in at all
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-6">
-        <Card className="w-full max-w-md bg-card/80 backdrop-blur border-border/50">
-          <CardHeader className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6 text-destructive" />
-            </div>
-            <CardTitle className="text-xl">Admin Access</CardTitle>
-            <p className="text-sm text-muted-foreground">You must be signed in to access the admin dashboard.</p>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button onClick={signInWithGoogle} className="gap-2">
-              Sign In
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="relative w-full max-w-sm">
+          <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 blur-xl opacity-60" />
+          <Card className="relative bg-card/90 backdrop-blur border-border/40 shadow-2xl">
+            <CardContent className="pt-10 pb-8 px-8 text-center space-y-6">
+              <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
+                <ShieldCheck className="h-7 w-7 text-primary" />
+              </div>
+              <Button onClick={signInWithGoogle} className="w-full gap-2 font-semibold">
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  // Logged in but need admin secret
+  // ═══════════════════════════════════════════════════════════════
+  // AUTH GATE — Need admin password
+  // ═══════════════════════════════════════════════════════════════
   if (!adminSecret) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-6">
-        <Card className="w-full max-w-md bg-card/80 backdrop-blur border-border/50">
-          <CardHeader className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-xl">Admin Access</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">{user.email}</span>
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Enter Admin Password</label>
-              <Input
-                type="password"
-                placeholder="Enter admin password..."
-                value={secretInput}
-                onChange={(e) => { setSecretInput(e.target.value); setGateError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleVerifySecret()}
-                className="font-mono"
-              />
-            </div>
-            {gateError && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                <p className="text-sm text-destructive">{gateError}</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="relative w-full max-w-sm">
+          <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 blur-xl opacity-60" />
+          <Card className="relative bg-card/90 backdrop-blur border-border/40 shadow-2xl">
+            <CardContent className="pt-10 pb-8 px-8 space-y-6">
+              <div className="text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.2)] mb-4">
+                  <ShieldCheck className="h-7 w-7 text-primary" />
+                </div>
+                <p className="text-xs text-muted-foreground font-mono">{user.email}</p>
               </div>
-            )}
-            <Button onClick={handleVerifySecret} disabled={!secretInput.trim() || verifying} className="w-full gap-2">
-              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              {verifying ? 'Verifying...' : 'Access Dashboard'}
-            </Button>
-          </CardContent>
-        </Card>
+              <div className="space-y-3">
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={secretInput}
+                  onChange={(e) => { setSecretInput(e.target.value); setGateError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifySecret()}
+                  className="font-mono text-center text-lg tracking-widest bg-background/50 border-border/50 h-12"
+                />
+                {gateError && (
+                  <p className="text-xs text-destructive text-center">{gateError}</p>
+                )}
+                <Button
+                  onClick={handleVerifySecret}
+                  disabled={!secretInput.trim() || verifying}
+                  className="w-full h-11 font-semibold shadow-[0_0_20px_hsl(var(--primary)/0.15)]"
+                >
+                  {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enter'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RENDER: Dashboard
+  // DASHBOARD
   // ═══════════════════════════════════════════════════════════════
+  const stats = {
+    total: batches.length,
+    pending: batches.filter(b => b.status === 'pending').length,
+    processing: batches.filter(b => b.status === 'processing').length,
+    completed: batches.filter(b => b.status === 'completed').length,
+    delivered: batches.filter(b => b.status === 'delivered').length,
+    failed: batches.filter(b => b.status === 'failed').length,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Signed in as <span className="text-foreground font-medium">{user.email}</span>
-            </p>
+    <div className="min-h-screen bg-background">
+      {/* Top Bar */}
+      <div className="border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-30">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_hsl(145_60%_50%/0.6)]" />
+            <span className="font-display text-lg tracking-wider">ADMIN</span>
+            <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
+              {user.email}
+            </span>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={exportToCSV} variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Export Batches
+          <div className="flex items-center gap-2">
+            <Button onClick={exportToCSV} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <Download className="h-3.5 w-3.5" /> CSV
             </Button>
-            <Button onClick={exportBatchImages} variant="outline" size="sm" className="gap-2">
-              <ExternalLink className="h-4 w-4" /> Export Images
+            <Button onClick={fetchBatches} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button onClick={fetchBatches} variant="outline" size="sm" className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-            </Button>
-            <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-              <LogOut className="h-4 w-4" /> Sign Out
+            <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <LogOut className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Batches', value: batches.length, color: '' },
-            { label: 'Processing', value: batches.filter(b => b.status === 'processing').length, color: 'text-blue-400' },
-            { label: 'Completed', value: batches.filter(b => b.status === 'completed').length, color: 'text-green-400' },
-            { label: 'Failed', value: batches.filter(b => b.status === 'failed').length, color: 'text-red-400' },
-          ].map(({ label, value, color }) => (
-            <Card key={label} className="bg-card/50 border-border/50">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle></CardHeader>
-              <CardContent><div className={`text-2xl font-bold ${color}`}>{value}</div></CardContent>
-            </Card>
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6">
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {([
+            { label: 'Total', value: stats.total, glow: 'primary' },
+            { label: 'Pending', value: stats.pending, glow: 'amber' },
+            { label: 'Processing', value: stats.processing, glow: 'blue' },
+            { label: 'Completed', value: stats.completed, glow: 'emerald' },
+            { label: 'Delivered', value: stats.delivered, glow: 'violet' },
+            { label: 'Failed', value: stats.failed, glow: 'red' },
+          ] as const).map(({ label, value, glow }) => (
+            <div
+              key={label}
+              className="relative group rounded-lg border border-border/40 bg-card/40 backdrop-blur-sm p-4 transition-all hover:border-border/60"
+            >
+              <div className={`absolute inset-0 rounded-lg bg-${glow}-500/5 group-hover:bg-${glow}-500/10 transition-colors`} />
+              <div className="relative">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
+                <p className={`text-2xl font-display mt-1 ${
+                  glow === 'amber' ? 'text-amber-400' :
+                  glow === 'blue' ? 'text-blue-400' :
+                  glow === 'emerald' ? 'text-emerald-400' :
+                  glow === 'violet' ? 'text-violet-400' :
+                  glow === 'red' ? 'text-red-400' : 'text-foreground'
+                }`}>
+                  {value}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Table */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader><CardTitle>Recent Batches</CardTitle></CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-            ) : batches.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No batches submitted yet</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Notification Email</TableHead>
-                      <TableHead>Images</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {batches.map((batch) => (
-                      <TableRow key={batch.id} className="hover:bg-muted/30">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <StatusIcon status={batch.status} />
-                            <Badge className={statusColors[batch.status] || statusColors.pending}>{batch.status}</Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{batch.user_display_name || batch.user_email.split('@')[0]}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" /> {batch.user_email}</span>
-                            <code className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">{batch.user_id.slice(0, 8)}...</code>
-                          </div>
-                        </TableCell>
-                        <TableCell><Badge variant="outline" className="capitalize">{batch.jewelry_category}</Badge></TableCell>
-                        <TableCell><span className="text-sm text-muted-foreground">{batch.notification_email || batch.user_email}</span></TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="text-green-400">{batch.completed_images}</span>
-                            <span className="text-muted-foreground">/</span>
-                            <span>{batch.total_images}</span>
-                            {batch.failed_images > 0 && <span className="text-red-400 ml-1">({batch.failed_images} ✗)</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell><span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(batch.created_at), 'MMM d, HH:mm')}</span></TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => handleViewBatch(batch)}><Eye className="h-4 w-4 mr-1" /> View</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Batches List */}
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
+          </div>
+        ) : batches.length === 0 ? (
+          <div className="text-center py-24 text-muted-foreground">
+            <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm">No batches yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {batches.map((batch) => {
+              const isExpanded = expandedBatchId === batch.id;
+              const images = batchImages[batch.id] || [];
+              const isLoadingThisImages = loadingImages === batch.id;
 
-        {/* Detail Dialog */}
-        <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <StatusIcon status={selectedBatch?.status || 'pending'} /> Batch Details
-              </DialogTitle>
-            </DialogHeader>
-            {selectedBatch && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Batch ID:</span><p className="font-mono text-xs mt-1">{selectedBatch.id}</p></div>
-                  <div><span className="text-muted-foreground">User:</span><p className="mt-1">{selectedBatch.user_email}</p></div>
-                  <div><span className="text-muted-foreground">Category:</span><p className="mt-1 capitalize">{selectedBatch.jewelry_category}</p></div>
-                  <div><span className="text-muted-foreground">Notification Email:</span><p className="mt-1">{selectedBatch.notification_email || 'Same as user'}</p></div>
-                  <div><span className="text-muted-foreground">Workflow ID:</span><p className="font-mono text-xs mt-1">{selectedBatch.workflow_id || 'N/A'}</p></div>
-                  <div><span className="text-muted-foreground">Created:</span><p className="mt-1">{format(new Date(selectedBatch.created_at), 'PPpp')}</p></div>
-                </div>
-                {selectedBatch.error_message && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <p className="text-red-400 text-sm">{selectedBatch.error_message}</p>
+              return (
+                <div
+                  key={batch.id}
+                  className={`rounded-lg border transition-all duration-300 ${
+                    isExpanded
+                      ? 'border-primary/30 bg-card/60 shadow-[0_0_30px_hsl(var(--primary)/0.08)]'
+                      : 'border-border/30 bg-card/20 hover:border-border/50 hover:bg-card/30'
+                  }`}
+                >
+                  {/* Batch Row */}
+                  <div
+                    className="flex items-center gap-4 px-4 md:px-6 py-4 cursor-pointer select-none"
+                    onClick={() => toggleBatch(batch.id)}
+                  >
+                    {/* Expand icon */}
+                    <div className="flex-shrink-0 text-muted-foreground">
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex-shrink-0">
+                      <StatusBadge status={batch.status} />
+                    </div>
+
+                    {/* Batch ID */}
+                    <div className="flex-shrink-0 hidden lg:flex items-center gap-1">
+                      <Hash className="h-3 w-3 text-muted-foreground/50" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); copyToClipboard(batch.id); }}
+                        className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        title={batch.id}
+                      >
+                        {batch.id.slice(0, 8)}
+                      </button>
+                    </div>
+
+                    {/* Category */}
+                    <Badge variant="outline" className="capitalize text-[10px] flex-shrink-0 hidden sm:inline-flex">
+                      {batch.jewelry_category}
+                    </Badge>
+
+                    {/* User Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">
+                          {batch.user_display_name || batch.user_email.split('@')[0]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                        <span className="truncate">{batch.user_email}</span>
+                        {batch.notification_email && batch.notification_email !== batch.user_email && (
+                          <span className="flex items-center gap-1 text-primary/70">
+                            <Mail className="h-2.5 w-2.5" />
+                            <span className="truncate">{batch.notification_email}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Images count */}
+                    <div className="flex-shrink-0 text-right hidden md:block">
+                      <div className="flex items-center gap-1 text-sm">
+                        <span className="text-emerald-400">{batch.completed_images}</span>
+                        <span className="text-muted-foreground/50">/</span>
+                        <span>{batch.total_images}</span>
+                        {batch.failed_images > 0 && <span className="text-red-400 text-xs">({batch.failed_images}✗)</span>}
+                      </div>
+                      {/* Progress bar */}
+                      <div className="w-20 bg-border/30 rounded-full h-1 mt-1">
+                        <div
+                          className="bg-emerald-500/80 h-1 rounded-full transition-all"
+                          style={{ width: `${batch.total_images > 0 ? (batch.completed_images / batch.total_images) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="flex-shrink-0 text-right hidden xl:block">
+                      <p className="text-[11px] text-muted-foreground">{toPKT(batch.created_at)}</p>
+                      {batch.completed_at && (
+                        <p className="text-[10px] text-emerald-400/70">{toPKT(batch.completed_at)}</p>
+                      )}
+                    </div>
                   </div>
-                )}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Images ({batchImages.length})</h3>
-                  {loadingImages ? (
-                    <div className="grid grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
-                  ) : batchImages.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No images</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {batchImages.map((img) => (
-                        <Card key={img.id} className="p-3 bg-muted/30">
-                          <div className="flex items-start gap-4">
-                            <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                              {img.original_url ? (
-                                <img src={img.original_url} alt={`Image ${img.sequence_number}`} className="w-full h-full object-cover"
-                                  onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; t.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-xs p-1 text-center">No preview</div>'; }}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground" /></div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0 text-sm space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">#{img.sequence_number}</span>
-                                <Badge className={statusColors[img.status] || statusColors.pending}>{img.status}</Badge>
-                                {img.classification_flagged && <Badge variant="destructive">Flagged</Badge>}
-                              </div>
-                              <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                                <div>Skin Tone: {img.skin_tone || 'N/A'}</div>
-                                <div>Category: {img.classification_category || 'N/A'}</div>
-                                <div>Worn: {img.classification_is_worn ? 'Yes' : 'No'}</div>
-                                {img.error_message && <div className="col-span-2 text-red-400">Error: {img.error_message}</div>}
-                              </div>
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                {img.original_url && <a href={img.original_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Original</a>}
-                                {img.result_url && <a href={img.result_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Result</a>}
-                                {img.mask_url && <a href={img.mask_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Mask</a>}
-                              </div>
-                            </div>
+
+                  {/* Expanded Detail */}
+                  {isExpanded && (
+                    <div className="border-t border-border/20 px-4 md:px-6 py-5 space-y-5">
+                      {/* Batch Metadata */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Batch ID</span>
+                          <button onClick={() => copyToClipboard(batch.id)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                            {batch.id.slice(0, 12)}…
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">User Name</span>
+                          <span className="text-foreground">{batch.user_display_name || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Sign-in Email</span>
+                          <span className="text-foreground">{batch.user_email}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Results Email</span>
+                          <span className="text-foreground">{batch.notification_email || batch.user_email}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Created (PKT)</span>
+                          <span className="text-foreground">{toPKT(batch.created_at)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Updated (PKT)</span>
+                          <span className="text-foreground">{toPKT(batch.updated_at)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Completed (PKT)</span>
+                          <span className="text-foreground">{batch.completed_at ? toPKT(batch.completed_at) : '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Workflow ID</span>
+                          {batch.workflow_id ? (
+                            <button onClick={() => copyToClipboard(batch.workflow_id!)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                              {batch.workflow_id.slice(0, 12)}…
+                              <Copy className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Manual Status Update */}
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border/30">
+                        <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Update Status</span>
+                        <Select
+                          value={batch.status}
+                          onValueChange={(val) => handleUpdateStatus(batch.id, val)}
+                          disabled={updatingStatus === batch.id}
+                        >
+                          <SelectTrigger className="w-40 h-8 text-xs bg-card/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_STATUSES.map(s => (
+                              <SelectItem key={s} value={s} className="capitalize text-xs">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {updatingStatus === batch.id && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                      </div>
+
+                      {/* Error */}
+                      {batch.error_message && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                          {batch.error_message}
+                        </div>
+                      )}
+
+                      {/* Images */}
+                      <div>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                          Images ({isLoadingThisImages ? '…' : images.length})
+                        </h4>
+                        {isLoadingThisImages ? (
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
                           </div>
-                        </Card>
-                      ))}
+                        ) : images.length === 0 ? (
+                          <p className="text-muted-foreground text-xs text-center py-6">No images in this batch</p>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            {images.map((img) => (
+                              <div key={img.id} className="relative group rounded-lg border border-border/30 bg-card/30 overflow-hidden">
+                                {/* Thumbnail */}
+                                <div
+                                  className="aspect-square bg-muted/30 cursor-pointer overflow-hidden"
+                                  onClick={() => img.original_url && setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
+                                >
+                                  {img.thumbnail_url || img.original_url ? (
+                                    <img
+                                      src={img.thumbnail_url || img.original_url}
+                                      alt={`Image ${img.sequence_number}`}
+                                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Image info */}
+                                <div className="p-2 space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold text-muted-foreground">#{img.sequence_number}</span>
+                                    <StatusBadge status={img.status} />
+                                  </div>
+                                  {img.classification_flagged && (
+                                    <Badge variant="destructive" className="text-[9px] px-1.5 py-0">Flagged</Badge>
+                                  )}
+                                  {/* URL Links */}
+                                  <div className="flex flex-wrap gap-1 pt-1">
+                                    {img.original_url && (
+                                      <button
+                                        onClick={() => setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
+                                        className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      >
+                                        Original
+                                      </button>
+                                    )}
+                                    {img.result_url && (
+                                      <button
+                                        onClick={() => setImagePreview({ url: img.result_url!, title: `#${img.sequence_number} Result` })}
+                                        className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                      >
+                                        Result
+                                      </button>
+                                    )}
+                                    {img.mask_url && (
+                                      <button
+                                        onClick={() => setImagePreview({ url: img.mask_url!, title: `#${img.sequence_number} Mask` })}
+                                        className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                                      >
+                                        Mask
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!imagePreview} onOpenChange={() => setImagePreview(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-background/95 backdrop-blur border-border/40">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="text-sm font-mono flex items-center justify-between">
+              <span>{imagePreview?.title}</span>
+              {imagePreview?.url && (
+                <div className="flex gap-2">
+                  <a
+                    href={imagePreview.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Open
+                  </a>
+                  <a
+                    href={imagePreview.url}
+                    download
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <Download className="h-3 w-3" /> Download
+                  </a>
+                </div>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 pt-2 flex items-center justify-center">
+            {imagePreview?.url && (
+              <img
+                src={imagePreview.url}
+                alt={imagePreview.title}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '';
+                  (e.target as HTMLImageElement).alt = 'Failed to load image';
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

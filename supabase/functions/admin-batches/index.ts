@@ -112,11 +112,11 @@ Deno.serve(async (req) => {
     const batchId = url.searchParams.get('batch_id');
 
     // ── Dual Authentication ──
-    // 1. Validate user token (Google sign-in)
+    // 1. Validate user token
     const userToken = req.headers.get('X-User-Token');
     if (!userToken) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - missing user token. Sign in with Google first.' }),
+        JSON.stringify({ error: 'Unauthorized - missing user token. Sign in first.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // ── LIST BATCHES ──
     if (action === 'list_batches') {
       const { data, error } = await supabaseAdmin
         .from('batch_jobs')
@@ -171,6 +172,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── GET IMAGES ──
     if (action === 'get_images' && batchId) {
       const { data, error } = await supabaseAdmin
         .from('batch_images')
@@ -184,6 +186,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── ALL IMAGES ──
     if (action === 'all_images') {
       const { data, error } = await supabaseAdmin
         .from('batch_images')
@@ -192,6 +195,51 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const imagesWithSas = await addSasToImages(data || [], azureAccountName, azureAccountKey);
       return new Response(JSON.stringify({ images: imagesWithSas }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── UPDATE BATCH STATUS ──
+    if (action === 'update_status' && req.method === 'POST') {
+      const body = await req.json();
+      const { batch_id, status } = body;
+      
+      if (!batch_id || !status) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id or status' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const validStatuses = ['pending', 'processing', 'completed', 'failed', 'partial', 'delivered'];
+      if (!validStatuses.includes(status)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const updateData: Record<string, any> = { 
+        status,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (status === 'completed' || status === 'delivered') {
+        updateData.completed_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('batch_jobs')
+        .update(updateData)
+        .eq('id', batch_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log(`[admin-batches] Status updated: batch ${batch_id} → ${status} by ${user.email}`);
+      
+      return new Response(JSON.stringify({ success: true, batch: data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
