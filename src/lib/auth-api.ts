@@ -79,7 +79,7 @@ class AuthApi {
     
     try {
       // Pass the current origin so backend knows where to redirect back
-      const frontendCallbackUrl = `${window.location.origin}/auth/callback`;
+      const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
       const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
       
       console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);
