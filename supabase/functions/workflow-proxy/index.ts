@@ -27,7 +27,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 const TEMPORAL_URL = 'https://formanova.ai/api';                                                  // Temporal/DAG gateway
 const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
 const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
-const IMAGE_UTILS_URL = 'http://20.173.91.22:8001';                                              // Image Utils (classification, etc.)
+const IMAGE_UTILS_URL = 'http://20.157.122.64:8001';                                              // Image Utils (classification, etc.)
 const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
 const TEMPORAL_API_KEY = Deno.env.get('ADMIN_SECRET') || '';                                     // API key for Temporal gateway
 
