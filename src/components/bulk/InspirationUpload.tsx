@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImagePlus, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 
 export interface InspirationImage {
@@ -123,8 +123,8 @@ const InspirationUpload = ({
               className="sr-only"
             />
             <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3">
-              <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center">
-                <ImagePlus className="w-4 h-4 text-muted-foreground" />
+              <div className="w-10 h-10 rounded-full bg-muted/30 flex items-center justify-center border border-foreground/15">
+                <Upload className="w-5 h-5 text-foreground/70" />
               </div>
               <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide text-center leading-tight">
                 Drop or click to add
