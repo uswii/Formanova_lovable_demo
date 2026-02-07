@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Pencil, X, Mail, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { getStoredToken } from '@/lib/auth-api';
 import { toast } from '@/hooks/use-toast';
@@ -21,7 +21,6 @@ const BatchSubmittedConfirmation = ({
   imageCount,
   batchId,
 }: BatchSubmittedConfirmationProps) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
@@ -176,23 +175,17 @@ const BatchSubmittedConfirmation = ({
         </p>
       </motion.div>
 
-      {/* Footer info - mobile: relative, desktop: absolute */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="mt-8 sm:mt-0 sm:absolute sm:bottom-6 sm:left-6 text-xs text-muted-foreground/60 text-center sm:text-left"
-      >
-        <button
-          onClick={() => navigate('/batches')}
-          className="hover:text-muted-foreground transition-colors"
+      {/* Footer info */}
+      {batchId && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8 sm:mt-0 sm:absolute sm:bottom-6 sm:left-6 text-xs text-muted-foreground/60 text-center sm:text-left"
         >
-          View batch status →
-        </button>
-        {batchId && (
-          <span className="block sm:inline sm:ml-3 font-mono mt-1 sm:mt-0 text-[10px]">{batchId}</span>
-        )}
-      </motion.div>
+          <span className="font-mono text-[10px]">{batchId}</span>
+        </motion.div>
+      )}
     </div>
   );
 };
