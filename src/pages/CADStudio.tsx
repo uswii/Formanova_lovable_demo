@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock } from 'lucide-react';
+import { ArrowRight, Lock, Mail } from 'lucide-react';
 
 // Import jewelry images
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
@@ -168,6 +168,40 @@ const CADStudio = () => {
             )}
           </motion.button>
         ))}
+      </motion.div>
+
+      {/* Access Notice + Video */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.5 }}
+        className="max-w-7xl mx-auto mt-10 space-y-8"
+      >
+        {/* Access Notice */}
+        <div className="flex items-center justify-center gap-3 p-4 rounded-lg border border-border/40 bg-card/30 backdrop-blur-sm">
+          <Mail className="h-4 w-4 text-primary flex-shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            Available to select jewelry brands.{' '}
+            <a
+              href="mailto:sophia@raresense.so"
+              className="text-primary hover:underline font-medium"
+            >
+              Email sophia@raresense.so
+            </a>{' '}
+            to request access.
+          </p>
+        </div>
+
+        {/* YouTube Video */}
+        <div className="aspect-video w-full max-w-4xl mx-auto rounded-lg overflow-hidden border border-border/40">
+          <iframe
+            src="https://www.youtube.com/embed/OYvhYxGzQAY"
+            title="CAD to Photo Rendering"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
       </motion.div>
     </div>
   );
