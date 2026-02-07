@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 // Import jewelry images
 import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
@@ -23,7 +22,7 @@ const categories: JewelryCategory[] = [
     name: 'Rings',
     subtitle: 'Bands & statement',
     image: heroModelRings,
-    available: true,
+    available: false,
   },
   {
     id: 'necklace',
@@ -77,13 +76,6 @@ const itemVariants = {
 };
 
 const CADStudio = () => {
-  const navigate = useNavigate();
-
-  const handleCategoryClick = (category: JewelryCategory) => {
-    if (category.available) {
-      navigate(`/studio-cad/${category.id}`);
-    }
-  };
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
@@ -112,18 +104,10 @@ const CADStudio = () => {
         className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4"
       >
         {categories.map((category, index) => (
-          <motion.button
+          <motion.div
             key={category.id}
             variants={itemVariants}
-            whileHover={category.available ? { scale: 1.02, y: -4 } : {}}
-            whileTap={category.available ? { scale: 0.98 } : {}}
-            onClick={() => handleCategoryClick(category)}
-            disabled={!category.available}
-            className={`group relative aspect-[4/3] marta-frame overflow-hidden transition-all duration-300 ${
-              category.available 
-                ? 'cursor-pointer hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]' 
-                : 'cursor-not-allowed opacity-70'
-            } ${
+            className={`group relative aspect-[4/3] marta-frame overflow-hidden transition-all duration-300 opacity-90 ${
               index === 4 ? 'col-span-2 md:col-span-1 aspect-[8/3] md:aspect-[4/3]' : ''
             }`}
           >
@@ -131,69 +115,48 @@ const CADStudio = () => {
             <img
               src={category.image}
               alt={category.name}
-              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out ${
-                category.available ? 'group-hover:scale-110' : 'grayscale'
-              }`}
+              className="absolute inset-0 w-full h-full object-cover grayscale-[30%]"
             />
             
-            {/* Subtle gradient at bottom for text readability */}
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/80 to-transparent" />
+            {/* Gradient for readability */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background/90 to-transparent" />
 
-            {/* Coming Soon Overlay */}
-            {!category.available && (
-              <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                <div className="flex items-center gap-2 bg-background/80 px-4 py-2 rounded-full border border-border">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
-                    Coming Soon
-                  </span>
-                </div>
+            {/* Access Notice Overlay */}
+            <div className="absolute inset-0 bg-background/40 flex items-center justify-center p-4">
+              <div className="flex flex-col items-center gap-2 bg-background/80 backdrop-blur-sm px-5 py-3 rounded-lg border border-border/60 text-center max-w-[90%]">
+                <Mail className="h-4 w-4 text-primary" />
+                <span className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-muted-foreground leading-relaxed">
+                  Available to select jewelry brands.{' '}
+                  <a
+                    href="mailto:sophia@raresense.so"
+                    className="text-primary hover:underline font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Email sophia@raresense.so
+                  </a>{' '}
+                  to request access.
+                </span>
               </div>
-            )}
+            </div>
 
-            {/* Content */}
-            <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6 text-left">
-              <h2 className={`font-display text-xl md:text-2xl lg:text-3xl uppercase tracking-wide text-foreground transition-transform duration-300 ${
-                category.available ? 'group-hover:translate-x-1' : ''
-              }`}>
+            {/* Category Name */}
+            <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6 text-left pointer-events-none">
+              <h2 className="font-display text-xl md:text-2xl lg:text-3xl uppercase tracking-wide text-foreground">
                 {category.name}
               </h2>
             </div>
-
-            {/* Arrow indicator - only for available categories */}
-            {category.available && (
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 translate-x-2">
-                <ArrowRight className="h-5 w-5 text-foreground" />
-              </div>
-            )}
-          </motion.button>
+          </motion.div>
         ))}
       </motion.div>
 
-      {/* Access Notice + Video */}
+      {/* Video */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.5 }}
-        className="max-w-7xl mx-auto mt-10 space-y-8"
+        className="max-w-4xl mx-auto mt-10"
       >
-        {/* Access Notice */}
-        <div className="flex items-center justify-center gap-3 p-4 rounded-lg border border-border/40 bg-card/30 backdrop-blur-sm">
-          <Mail className="h-4 w-4 text-primary flex-shrink-0" />
-          <p className="text-sm text-muted-foreground">
-            Available to select jewelry brands.{' '}
-            <a
-              href="mailto:sophia@raresense.so"
-              className="text-primary hover:underline font-medium"
-            >
-              Email sophia@raresense.so
-            </a>{' '}
-            to request access.
-          </p>
-        </div>
-
-        {/* YouTube Video */}
-        <div className="aspect-video w-full max-w-4xl mx-auto rounded-lg overflow-hidden border border-border/40">
+        <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/40">
           <iframe
             src="https://www.youtube.com/embed/OYvhYxGzQAY"
             title="CAD to Photo Rendering"
