@@ -489,7 +489,7 @@ const CategoryUploadStudio = () => {
                       ))}
                       {globalInspirations.length < MAX_INSPIRATIONS && (
                         <label className="w-5 h-5 rounded border border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-foreground/30 transition-colors">
-                          <Plus className="w-2.5 h-2.5 text-muted-foreground/40" />
+                          <Plus className="w-3 h-3 text-foreground/60" />
                           <input
                             ref={globalInspirationInputRef}
                             type="file"
@@ -562,7 +562,7 @@ const CategoryUploadStudio = () => {
                       layout
                       className="aspect-square rounded-lg sm:rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-foreground/50 hover:bg-muted/30 transition-all"
                     >
-                      <Plus className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
+                      <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-foreground/70" />
                       <input
                         type="file"
                         accept="image/*"
@@ -923,7 +923,7 @@ const ImageCard = ({
               {/* Add more button (up to 3) */}
               {image.inspirations.length < MAX_INSPIRATIONS_PER_IMAGE && (
                 <label className="w-8 h-8 rounded border border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-foreground/30 hover:bg-muted/10 transition-all flex-shrink-0">
-                  <Plus className="w-3 h-3 text-muted-foreground/40" />
+                  <Plus className="w-3.5 h-3.5 text-foreground/60" />
                   <input
                     type="file"
                     accept="image/*"
@@ -944,7 +944,7 @@ const ImageCard = ({
           /* Before upload: dashed box with text inside */
           <label className="block cursor-pointer">
             <div className="flex flex-col items-center justify-center gap-2 py-5 sm:py-6 rounded border border-dashed border-foreground/25 hover:border-foreground/50 hover:bg-muted/15 transition-all">
-              <Upload className="w-6 h-6 text-foreground/60" />
+              <Upload className="w-7 h-7 text-foreground/80" />
               <span className="text-[9px] sm:text-[10px] text-foreground/70 font-mono text-center leading-tight px-2 font-medium">
                 Upload inspirational photo or mood board <span className="text-foreground font-semibold">(Optional)</span>
               </span>
