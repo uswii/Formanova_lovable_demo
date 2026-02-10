@@ -416,17 +416,14 @@ serve(async (req) => {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         const resend = new Resend(RESEND_API_KEY);
         const hasInspiration = !!globalInspirationUrl || imageRecords.some(r => r.inspiration_url);
-        // onboarding@resend.dev can only send to account owner — send individually, skip failures
-        const emailPromises = ADMIN_EMAILS.map(email =>
-          resend.emails.send({
-            from: 'FormaNova <onboarding@resend.dev>',
-            to: [email],
+        // Send single email to all admins in one call (onboarding@resend.dev works best this way)
+        const emailResult = await resend.emails.send({
+          from: 'FormaNova <onboarding@resend.dev>',
+          to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
           html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
-          }).catch(e => ({ error: e, email }))
-        );
-        const emailResults = await Promise.allSettled(emailPromises);
-        console.log('[batch-submit] Email results:', JSON.stringify(emailResults.map((r, i) => ({ email: ADMIN_EMAILS[i], status: r.status }))));
+        });
+        console.log('[batch-submit] Email sent:', JSON.stringify(emailResult));
       } catch (emailError) {
         console.error('[batch-submit] Email failed:', emailError instanceof Error ? emailError.message : emailError);
       }
