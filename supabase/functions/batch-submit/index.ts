@@ -423,7 +423,7 @@ serve(async (req) => {
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
           html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
         });
-        console.log('[batch-submit] Email sent to owner:', ownerEmail, JSON.stringify(emailResult));
+        console.log('[batch-submit] Email sent to admins:', ADMIN_EMAILS, JSON.stringify(emailResult));
       } catch (emailError) {
         console.error('[batch-submit] Email failed:', emailError instanceof Error ? emailError.message : emailError);
       }
