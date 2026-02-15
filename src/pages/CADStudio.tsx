@@ -18,8 +18,10 @@ const CADStudio = () => {
           <p className="font-mono text-xs sm:text-sm tracking-wide text-muted-foreground leading-relaxed max-w-lg">
             This functionality is only available for select jewelry brands. To request access please contact Sophia at{' '}
             <a
-              href="mailto:sophia@raresense.so"
+              href="mailto:sophia@raresense.so?subject=Request%20for%20CAD%20Access&body=Hi%20Sophia%2C%20I'd%20like%20to%20request%20access%20to%20the%20CAD%20functionality%20for%20my%20jewelry%20brand."
               className="text-primary hover:underline font-medium"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               sophia@raresense.so
             </a>
