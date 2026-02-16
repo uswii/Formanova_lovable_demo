@@ -2,24 +2,25 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Box, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// CAD Studio gateway — two-card layout only
 
-const features = [
+const cadFeatures = [
   {
     title: "CAD → Catalog",
-    description: "Turn your CAD files into realistic product visuals and catalog-ready images.",
+    description:
+      "Turn your CAD files into realistic product visuals and catalog-ready images.",
     icon: Box,
     route: "/cad-to-catalog",
   },
   {
     title: "Text → CAD",
-    description: "Generate detailed jewelry CAD concepts from text prompts.",
+    description:
+      "Generate detailed jewelry CAD concepts from text prompts.",
     icon: Sparkles,
     route: "/text-to-cad",
   },
 ];
 
-const CADStudio = () => {
+export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
@@ -42,7 +43,7 @@ const CADStudio = () => {
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {features.map((feature, i) => (
+          {cadFeatures.map((feature, i) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, y: 30 }}
@@ -73,7 +74,4 @@ const CADStudio = () => {
       </div>
     </div>
   );
-};
-
-export default CADStudio;
-
+}
