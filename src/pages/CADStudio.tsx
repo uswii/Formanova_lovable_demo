@@ -60,18 +60,8 @@ export default function CADStudio() {
           </motion.h1>
         </div>
 
-        {/* Cursor hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-muted-foreground/40 text-sm -mt-8 mb-8"
-        >
-          Move your cursor to explore the ring
-        </motion.p>
-
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl -mt-4 mb-20">
           {cadFeatures.map((feature, i) => (
             <motion.div
               key={feature.title}
@@ -79,11 +69,7 @@ export default function CADStudio() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 + 0.15 * i }}
               whileHover={{ y: -4, scale: 1.01 }}
-              className="group relative rounded-xl overflow-hidden flex flex-col items-center text-center p-8"
-              style={{
-                background: "hsl(var(--card) / 0.08)",
-                border: "1px solid hsl(var(--border) / 0.15)",
-              }}
+              className="group relative rounded-xl overflow-hidden flex flex-col items-center text-center p-8 bg-card border border-border/50 hover:border-border transition-colors"
             >
               <div className="w-14 h-14 rounded-xl bg-muted/10 flex items-center justify-center mb-5 group-hover:bg-muted/20 transition-colors">
                 <feature.icon className="w-6 h-6 text-muted-foreground/60" />
