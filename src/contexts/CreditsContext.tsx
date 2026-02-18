@@ -22,7 +22,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const data = await getUserCredits(user.id);
-      setCredits(data.balance);
+      setCredits(data.available);
     } catch (error) {
       console.warn('[Credits] Failed to fetch balance:', error);
       // Don't clear credits on failure - keep stale value
