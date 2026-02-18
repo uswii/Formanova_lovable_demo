@@ -29,7 +29,7 @@ export function InsufficientCreditsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="items-center text-center">
-          <img src={creditCoinIcon} alt="Credits" className="h-16 w-16 object-contain mb-2" />
+          <img src={creditCoinIcon} alt="Credits" className="h-24 w-24 object-contain mb-3" />
           <DialogTitle className="text-xl">Insufficient Credits</DialogTitle>
           <DialogDescription className="text-base pt-2 space-y-1">
             <span className="block">
@@ -52,7 +52,7 @@ export function InsufficientCreditsModal({
             }}
             className="gap-2"
           >
-            <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
+            <img src={creditCoinIcon} alt="" className="h-8 w-8 object-contain" />
             Get More Credits
           </Button>
         </DialogFooter>
