@@ -12,6 +12,8 @@ export const TOOL_COSTS: Record<string, number> = {
 
 export interface CreditBalance {
   balance: number;
+  reserved_balance: number;
+  available: number;
 }
 
 export async function getUserCredits(userId: string): Promise<CreditBalance> {
