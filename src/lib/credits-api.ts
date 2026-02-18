@@ -15,26 +15,11 @@ export interface CreditBalance {
   available: number;
 }
 
-export async function getUserCredits(): Promise<CreditBalance> {
+export async function getUserCredits(userId: string): Promise<CreditBalance> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
 
-  // Step 1: Fetch authenticated user profile to get internal_user_id
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const profileResponse = await fetch(`${SUPABASE_URL}/functions/v1/auth-proxy/users/me`, {
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
-
-  if (!profileResponse.ok) {
-    throw new Error('Failed to fetch user profile');
-  }
-
-  const profile = await profileResponse.json();
-  const internalUserId = profile.id;
-  if (!internalUserId) throw new Error('No internal user ID found in profile');
-
-  // Step 2: Fetch balance using internal_user_id
-  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${internalUserId}`, {
+  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${userId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
