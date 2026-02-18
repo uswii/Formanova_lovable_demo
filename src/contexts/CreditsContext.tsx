@@ -18,10 +18,10 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   const refreshCredits = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
     setLoading(true);
     try {
-      const data = await getUserCredits();
+      const data = await getUserCredits(user.id);
       setCredits(data.available);
     } catch (error) {
       console.warn('[Credits] Failed to fetch balance:', error);
@@ -29,15 +29,15 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       refreshCredits();
     } else {
       setCredits(null);
     }
-  }, [user, refreshCredits]);
+  }, [user?.id, refreshCredits]);
 
   const canAfford = useCallback((toolName: string) => {
     const cost = TOOL_COSTS[toolName] ?? 0;
