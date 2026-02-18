@@ -70,7 +70,7 @@ export default function Pricing() {
 
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-5">
-            <img src={creditCoinIcon} alt="Credits" className="h-14 w-14 object-contain" />
+            <img src={creditCoinIcon} alt="Credits" className="h-20 w-20 object-contain" />
             <h1 className="text-4xl font-display">Get Credits</h1>
           </div>
           <p className="text-muted-foreground text-lg leading-relaxed">
@@ -104,7 +104,7 @@ export default function Pricing() {
                   <span className="text-4xl font-bold text-foreground">${plan.price}</span>
                 </CardDescription>
                 <div className="flex items-center justify-center gap-1.5 pt-1">
-                  <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
+                  <img src={creditCoinIcon} alt="" className="h-8 w-8 object-contain" />
                   <span className="text-lg font-semibold text-foreground">{plan.credits} credits</span>
                 </div>
               </CardHeader>

@@ -20,7 +20,7 @@ export default function PaymentSuccess() {
           <PartyPopper className="h-12 w-12 text-primary" />
           <h1 className="text-3xl font-display">Payment Successful!</h1>
           <div className="flex items-center gap-2">
-            <img src={creditCoinIcon} alt="Credits" className="h-8 w-8 object-contain" />
+            <img src={creditCoinIcon} alt="Credits" className="h-14 w-14 object-contain" />
             <span className="text-2xl font-bold text-foreground">
               {credits !== null ? credits : '...'} credits
             </span>

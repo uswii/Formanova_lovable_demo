@@ -44,24 +44,24 @@ export default function Credits() {
         <h1 className="text-3xl font-display mb-10">My Credits</h1>
 
         <Card className="border-border/50 bg-card/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-4 text-xl">
-              <img src={creditCoinIcon} alt="Credits" className="h-10 w-10 object-contain" />
+          <CardHeader className="p-8 pb-6">
+            <CardTitle className="flex items-center gap-5 text-2xl tracking-wide">
+              <img src={creditCoinIcon} alt="Credits" className="h-14 w-14 object-contain" />
               Credit Balance
             </CardTitle>
-            <CardDescription className="mt-1">Your available credits for generating images</CardDescription>
+            <CardDescription className="mt-3 text-base">Your available credits for generating images</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
+          <CardContent className="px-8 pb-8">
+            <div className="flex items-baseline gap-3">
               <span className="text-5xl font-display text-foreground">
                 {creditsLoading ? '...' : (credits !== null ? credits : '—')}
               </span>
-              <span className="text-muted-foreground">credits available</span>
+              <span className="text-muted-foreground text-lg">credits available</span>
             </div>
-            <div className="mt-6">
-              <Button asChild>
+            <div className="mt-8">
+              <Button asChild size="lg">
                 <Link to="/pricing" className="gap-2">
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  <img src={creditCoinIcon} alt="" className="h-6 w-6 object-contain" />
                   Get More Credits
                 </Link>
               </Button>
