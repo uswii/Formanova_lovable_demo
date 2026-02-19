@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
 
 interface EditToolbarProps {
   onApplyMaterial: (matId: string) => void;
   onSceneAction: (action: string) => void;
+  hasSelection: boolean;
 }
 
-export default function EditToolbar({ onApplyMaterial, onSceneAction }: EditToolbarProps) {
+export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection }: EditToolbarProps) {
   const [activeFlyout, setActiveFlyout] = useState<string | null>(null);
   const [activeDisplayToggles, setActiveDisplayToggles] = useState<Set<string>>(new Set());
 
@@ -15,15 +16,20 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction }: EditTool
     setActiveFlyout((prev) => (prev === flyout ? null : flyout));
   };
 
+  // Don't close flyout when selection changes — keep it open
+  // Only close on explicit click-away or button toggle
+
   const toggleDisplay = (id: string) => {
     setActiveDisplayToggles((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
         if (id === "Wireframe") onSceneAction("wireframe-off");
+        if (id === "Flat Shading") onSceneAction("flat-shading-off");
       } else {
         next.add(id);
         if (id === "Wireframe") onSceneAction("wireframe-on");
+        if (id === "Flat Shading") onSceneAction("flat-shading-on");
       }
       return next;
     });
@@ -93,26 +99,30 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction }: EditTool
                 : activeFlyout === "modifiers" ? "144px"
                 : activeFlyout === "materials" ? "188px"
                 : activeFlyout === "display" ? "232px"
-                : activeFlyout === "sculpt" ? "276px"
-                : "320px",
+                : "276px",
               background: "linear-gradient(180deg, rgba(30,30,30,0.88) 0%, rgba(18,18,18,0.94) 100%)",
               backdropFilter: "blur(30px)",
               border: "1px solid rgba(255,255,255,0.1)",
               boxShadow: "8px 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
+            {!hasSelection && activeFlyout !== "display" && (
+              <div className="mb-3 px-3 py-2.5 rounded-lg text-[11px] text-amber-400/90 font-medium"
+                style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                ⚠ Select a mesh in the viewport first
+              </div>
+            )}
             {activeFlyout === "transform" && <TransformFlyout onAction={onSceneAction} />}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
             {activeFlyout === "modifiers" && <ModifiersFlyout onAction={onSceneAction} />}
             {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
             {activeFlyout === "sculpt" && <SculptFlyout onAction={onSceneAction} />}
-            {activeFlyout === "snap" && <SnapFlyout onAction={onSceneAction} />}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Click-away */}
+      {/* Click-away — only close when clicking the viewport background */}
       {activeFlyout && (
         <div className="absolute inset-0 z-[44]" onClick={() => setActiveFlyout(null)} />
       )}
@@ -168,48 +178,18 @@ function FoSep() {
   return <div className="h-px bg-white/5 my-3" />;
 }
 
-function NumInput({ label, color, step, value, min }: {
-  label: string; color: string; step: string; value: string; min?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-2">
-      <label className="text-[13px] font-bold w-9 text-center rounded-md py-1" style={{ color }}>{label}</label>
-      <input
-        type="number"
-        step={step}
-        defaultValue={value}
-        min={min}
-        className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-white focus:outline-none"
-        style={{
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          backdropFilter: "blur(8px)",
-        }}
-      />
-    </div>
-  );
-}
-
-// ── FLYOUT CONTENTS (now wired to onAction) ──
+// ── FLYOUT CONTENTS ──
 
 function TransformFlyout({ onAction }: { onAction: (a: string) => void }) {
   return (
     <>
       <FlyoutTitle>Transform</FlyoutTitle>
-      <FlyoutSubtitle>Position (precise)</FlyoutSubtitle>
-      <NumInput label="X" color="#f44" step="0.001" value="0" />
-      <NumInput label="Y" color="#4f4" step="0.001" value="0" />
-      <NumInput label="Z" color="#48f" step="0.001" value="0" />
-      <FlyoutSubtitle>Rotation (degrees)</FlyoutSubtitle>
-      <NumInput label="RX" color="#f44" step="1" value="0" />
-      <NumInput label="RY" color="#4f4" step="1" value="0" />
-      <NumInput label="RZ" color="#48f" step="1" value="0" />
-      <FlyoutSubtitle>Scale (per-axis)</FlyoutSubtitle>
-      <NumInput label="SX" color="#f44" step="0.01" value="1" min="0.01" />
-      <NumInput label="SY" color="#4f4" step="0.01" value="1" min="0.01" />
-      <NumInput label="SZ" color="#48f" step="0.01" value="1" min="0.01" />
-      <FlyoutSubtitle>Tools</FlyoutSubtitle>
+      <FoBtn shortcut="G" onClick={() => onAction("set-mode-translate")}>Move</FoBtn>
+      <FoBtn shortcut="R" onClick={() => onAction("set-mode-rotate")}>Rotate</FoBtn>
+      <FoBtn shortcut="S" onClick={() => onAction("set-mode-scale")}>Scale</FoBtn>
+      <FoSep />
       <FoBtn onClick={() => onAction("reset-transform")}>Reset Transform</FoBtn>
+      <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
       <FoSep />
       <FlyoutSubtitle>Mirror</FlyoutSubtitle>
       <div className="flex gap-1.5 mb-1">
@@ -217,7 +197,6 @@ function TransformFlyout({ onAction }: { onAction: (a: string) => void }) {
         <FoBtn onClick={() => onAction("mirror-y")}>Mirror Y</FoBtn>
         <FoBtn onClick={() => onAction("mirror-z")}>Mirror Z</FoBtn>
       </div>
-      <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
     </>
   );
 }
@@ -228,8 +207,6 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
       <FlyoutTitle>Mesh</FlyoutTitle>
       <FoBtn shortcut="X" onClick={() => onAction("delete")}>Delete Selected</FoBtn>
       <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
-      <FoBtn onClick={() => onAction("merge")}>Merge Selected</FoBtn>
-      <FoBtn onClick={() => onAction("separate")}>Separate Loose Parts</FoBtn>
       <FoSep />
       <FoBtn onClick={() => onAction("flip-normals")}>Flip Normals</FoBtn>
       <FoBtn onClick={() => onAction("center-origin")}>Center Origin</FoBtn>
@@ -250,13 +227,6 @@ function ModifiersFlyout({ onAction }: { onAction: (a: string) => void }) {
       <FlyoutSubtitle>Reduce</FlyoutSubtitle>
       <FoBtn onClick={() => onAction("decimate-50")}>Decimate 50%</FoBtn>
       <FoBtn onClick={() => onAction("decimate-25")}>Decimate 25%</FoBtn>
-      <FoBtn onClick={() => onAction("decimate-10")}>Decimate 10%</FoBtn>
-      <FlyoutSubtitle>Mirror Modifier</FlyoutSubtitle>
-      <div className="flex gap-1.5 mb-1">
-        <FoBtn onClick={() => onAction("mirror-x")}>Mirror X</FoBtn>
-        <FoBtn onClick={() => onAction("mirror-y")}>Mirror Y</FoBtn>
-        <FoBtn onClick={() => onAction("mirror-z")}>Mirror Z</FoBtn>
-      </div>
     </>
   );
 }
@@ -319,21 +289,17 @@ function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: 
   return (
     <>
       <FlyoutTitle>Display</FlyoutTitle>
-      {["Wireframe", "Flat Shading", "X-Ray", "Bounding Box", "Show Normals"].map((label) => (
+      {["Wireframe", "Flat Shading", "Bounding Box", "Show Normals"].map((label) => (
         <FoBtn key={label} active={toggles.has(label)} onClick={() => onToggle(label)}>{label}</FoBtn>
       ))}
-      <FoSep />
-      <FoBtn>Toggle Auto-Rotate</FoBtn>
-      <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold">Exposure</label>
-        <input type="range" min="0.1" max="3" step="0.05" defaultValue={1.2} className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">1.2</span>
-      </div>
     </>
   );
 }
 
 function SculptFlyout({ onAction }: { onAction: (a: string) => void }) {
+  const [brushSize, setBrushSize] = useState(0.2);
+  const [brushStrength, setBrushStrength] = useState(0.3);
+
   return (
     <>
       <FlyoutTitle>Sculpt</FlyoutTitle>
@@ -343,37 +309,19 @@ function SculptFlyout({ onAction }: { onAction: (a: string) => void }) {
       <FoBtn onClick={() => onAction("sculpt-flatten")}>Flatten</FoBtn>
       <FoSep />
       <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold">Size</label>
-        <input type="range" min="0.02" max="1" step="0.01" defaultValue={0.2} className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">0.20</span>
+        <label className="text-[13px] font-bold text-white">Size</label>
+        <input type="range" min="0.02" max="1" step="0.01" value={brushSize}
+          onChange={(e) => setBrushSize(parseFloat(e.target.value))}
+          className="flex-1 h-[3px] accent-white" />
+        <span className="text-[10px] text-[#888] w-9 text-right font-mono">{brushSize.toFixed(2)}</span>
       </div>
       <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold">Strength</label>
-        <input type="range" min="0.01" max="1" step="0.01" defaultValue={0.3} className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">0.30</span>
+        <label className="text-[13px] font-bold text-white">Strength</label>
+        <input type="range" min="0.01" max="1" step="0.01" value={brushStrength}
+          onChange={(e) => setBrushStrength(parseFloat(e.target.value))}
+          className="flex-1 h-[3px] accent-white" />
+        <span className="text-[10px] text-[#888] w-9 text-right font-mono">{brushStrength.toFixed(2)}</span>
       </div>
-      <FoBtn onClick={() => onAction("sculpt-enable")}>
-        <span style={{ color: "#f80" }}>Enable Sculpt Mode</span>
-      </FoBtn>
-    </>
-  );
-}
-
-function SnapFlyout({ onAction }: { onAction: (a: string) => void }) {
-  return (
-    <>
-      <FlyoutTitle>Snap &amp; Pivot</FlyoutTitle>
-      <FoBtn onClick={() => onAction("snap-toggle")}>Grid Snap: OFF</FoBtn>
-      <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold">Grid Size</label>
-        <input type="range" min="0.01" max="0.5" step="0.01" defaultValue={0.1} className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">0.10</span>
-      </div>
-      <FoSep />
-      <FlyoutSubtitle>Pivot</FlyoutSubtitle>
-      <FoBtn active onClick={() => onAction("pivot-median")}>Median Point</FoBtn>
-      <FoBtn onClick={() => onAction("pivot-individual")}>Individual Origins</FoBtn>
-      <FoBtn onClick={() => onAction("pivot-world")}>World Origin</FoBtn>
     </>
   );
 }
