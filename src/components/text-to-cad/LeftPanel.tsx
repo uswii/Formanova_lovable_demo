@@ -40,8 +40,8 @@ const primaryBtn = {
 };
 
 const editActionBtn = {
-  background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
-  boxShadow: "0 4px 20px rgba(74,222,128,0.2), 0 0 1px rgba(74,222,128,0.3)",
+  background: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)",
+  boxShadow: "0 4px 20px rgba(255,255,255,0.15), 0 0 1px rgba(255,255,255,0.3)",
   border: "none",
   fontFamily: "Inter, sans-serif",
 };
@@ -278,7 +278,7 @@ export default function LeftPanel({
               <button
                 onClick={onEdit}
                 disabled={isGenerating || !editPrompt.trim()}
-                className="w-full py-4 mt-2.5 rounded-xl text-[14px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-black disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_6px_30px_rgba(74,222,128,0.2)] hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full py-4 mt-2.5 rounded-xl text-[14px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-black disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_6px_30px_rgba(255,255,255,0.2)] hover:scale-[1.01] active:scale-[0.99]"
                 style={editActionBtn}
               >
                 ✎ APPLY EDIT

@@ -122,10 +122,7 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
         )}
       </AnimatePresence>
 
-      {/* Click-away — only close when clicking the viewport background */}
-      {activeFlyout && (
-        <div className="absolute inset-0 z-[44]" onClick={() => setActiveFlyout(null)} />
-      )}
+      {/* Click-away removed — flyout stays open during viewport interaction */}
     </>
   );
 }
