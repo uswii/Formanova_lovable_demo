@@ -1,4 +1,7 @@
 // ── Shared types & constants for Text-to-CAD studio ──
+// Material library is shared with CAD-to-Catalog studio
+export { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
+export type { MaterialDef } from "@/components/cad-studio/materials";
 
 export const AI_MODELS = [
   { id: "gemini", name: "FORMANOVA1", desc: "Advanced" },
@@ -30,10 +33,10 @@ export const PART_REGEN_PARTS = [
 ] as const;
 
 export const TRANSFORM_MODES = [
-  { id: "orbit", label: "Orbit", shortcut: "" },
-  { id: "translate", label: "Move", shortcut: "G" },
-  { id: "rotate", label: "Rotate", shortcut: "R" },
-  { id: "scale", label: "Scale", shortcut: "S" },
+  { id: "orbit", label: "Orbit", shortcut: "", color: "" },
+  { id: "translate", label: "Move", shortcut: "G", color: "#4ade80" },
+  { id: "rotate", label: "Rotate", shortcut: "R", color: "#60a5fa" },
+  { id: "scale", label: "Scale", shortcut: "S", color: "#f59e0b" },
 ] as const;
 
 export const EDIT_TOOLS = [
@@ -44,24 +47,6 @@ export const EDIT_TOOLS = [
   { id: "display", icon: "◭", label: "View", flyout: "display", tip: "Display options" },
   { id: "sculpt", icon: "✎", label: "Sculpt", flyout: "sculpt", tip: "Sculpt tools" },
   { id: "snap", icon: "∋", label: "Snap", flyout: "snap", tip: "Snap & pivot" },
-] as const;
-
-export const METAL_PRESETS = [
-  { id: "gold", name: "Gold", swatch: "#D4AF37" },
-  { id: "rose-gold", name: "Rose Gold", swatch: "#B76E79" },
-  { id: "white-gold", name: "White Gold", swatch: "#E8E8E8" },
-  { id: "platinum", name: "Platinum", swatch: "#E5E4E2" },
-  { id: "silver", name: "Silver", swatch: "#C0C0C0" },
-  { id: "copper", name: "Copper", swatch: "#B87333" },
-] as const;
-
-export const GEM_PRESETS = [
-  { id: "diamond", name: "Diamond", swatch: "#ffffff" },
-  { id: "ruby", name: "Ruby", swatch: "#E0115F" },
-  { id: "emerald", name: "Emerald", swatch: "#50C878" },
-  { id: "sapphire", name: "Sapphire", swatch: "#0F52BA" },
-  { id: "amethyst", name: "Amethyst", swatch: "#9966CC" },
-  { id: "topaz", name: "Topaz", swatch: "#FFC87C" },
 ] as const;
 
 export const PROGRESS_STEPS = [

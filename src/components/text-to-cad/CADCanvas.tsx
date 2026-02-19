@@ -1,33 +1,128 @@
-import { useRef, Suspense, useCallback } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useGLTF, Environment, OrbitControls } from "@react-three/drei";
+import { useRef, useState, useCallback, useEffect, Suspense } from "react";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { useGLTF, Environment, OrbitControls, TransformControls, GizmoHelper, GizmoViewport } from "@react-three/drei";
 import * as THREE from "three";
 
-function RingModel({ autoRotate }: { autoRotate: boolean }) {
-  const { scene } = useGLTF("/models/ring.glb");
-  const groupRef = useRef<THREE.Group>(null);
-  const autoAngle = useRef(0);
+// Clickable mesh wrapper — highlights selected, emits click
+function SelectableMesh({
+  mesh,
+  isSelected,
+  onClick,
+}: {
+  mesh: THREE.Mesh;
+  isSelected: boolean;
+  onClick: (e: any) => void;
+}) {
+  const ref = useRef<THREE.Mesh>(null);
 
-  useFrame((_, delta) => {
-    if (!groupRef.current) return;
-    if (autoRotate) {
-      autoAngle.current += delta * 0.5;
-      groupRef.current.rotation.y = autoAngle.current;
+  useEffect(() => {
+    if (!ref.current) return;
+    const mat = ref.current.material as THREE.MeshStandardMaterial;
+    if (mat && "emissive" in mat) {
+      mat.emissive = new THREE.Color(isSelected ? 0x334455 : 0x000000);
+      mat.emissiveIntensity = isSelected ? 0.4 : 0;
     }
-  });
+  }, [isSelected]);
 
   return (
-    <group ref={groupRef}>
-      <primitive object={scene.clone()} scale={10} position={[0, 0, 0]} />
+    <mesh
+      ref={ref}
+      geometry={mesh.geometry}
+      material={mesh.material}
+      position={mesh.position.clone()}
+      rotation={mesh.rotation.clone()}
+      scale={mesh.scale.clone()}
+      onClick={onClick}
+    />
+  );
+}
+
+function LoadedModel({
+  url,
+  selectedMeshNames,
+  onMeshClick,
+  transformMode,
+}: {
+  url: string;
+  selectedMeshNames: Set<string>;
+  onMeshClick: (name: string, multi: boolean) => void;
+  transformMode: string;
+}) {
+  const { scene } = useGLTF(url);
+  const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
+  const groupRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    const found: THREE.Mesh[] = [];
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        // Ensure material is cloned so emissive changes are independent
+        if (Array.isArray(m.material)) {
+          m.material = m.material.map((mat) => mat.clone());
+        } else {
+          m.material = m.material.clone();
+        }
+        found.push(m);
+      }
+    });
+    setMeshes(found);
+  }, [scene]);
+
+  // Get the first selected mesh for TransformControls
+  const selectedMesh = meshes.find((m) => selectedMeshNames.has(m.name));
+
+  return (
+    <group ref={groupRef} scale={10}>
+      {meshes.map((mesh) => (
+        <SelectableMesh
+          key={mesh.uuid}
+          mesh={mesh}
+          isSelected={selectedMeshNames.has(mesh.name)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMeshClick(mesh.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+          }}
+        />
+      ))}
+      {selectedMesh && transformMode !== "orbit" && (
+        <TransformControls
+          object={selectedMesh}
+          mode={transformMode as "translate" | "rotate" | "scale"}
+          size={0.6}
+        />
+      )}
     </group>
   );
 }
 
-interface CADCanvasProps {
-  hasModel: boolean;
+// Deselect on empty click
+function ClickAwayHandler({ onDeselect }: { onDeselect: () => void }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      // Only if clicking on the canvas background
+      if ((e.target as HTMLElement)?.tagName === "CANVAS") {
+        // We'll rely on the mesh onClick stopPropagation
+      }
+    };
+    gl.domElement.addEventListener("pointerdown", handler);
+    return () => gl.domElement.removeEventListener("pointerdown", handler);
+  }, [gl, onDeselect]);
+  return null;
 }
 
-export default function CADCanvas({ hasModel }: CADCanvasProps) {
+interface CADCanvasProps {
+  hasModel: boolean;
+  glbUrl?: string;
+  selectedMeshNames: Set<string>;
+  onMeshClick: (name: string, multi: boolean) => void;
+  transformMode: string;
+}
+
+export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode }: CADCanvasProps) {
+  const modelUrl = glbUrl || "/models/ring.glb";
+
   return (
     <div className="w-full h-full" style={{ background: "#111" }}>
       <Canvas
@@ -39,6 +134,7 @@ export default function CADCanvas({ hasModel }: CADCanvasProps) {
         }}
         dpr={[1, 2]}
         camera={{ fov: 30, near: 0.1, far: 100, position: [0, 2, 5] }}
+        onPointerMissed={() => onMeshClick("", false)}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.6} />
@@ -47,7 +143,14 @@ export default function CADCanvas({ hasModel }: CADCanvasProps) {
           <directionalLight position={[0, -5, 3]} intensity={1.0} color="#aaccff" />
           <directionalLight position={[8, 2, 0]} intensity={1.5} color="#aaccff" />
           <Environment preset="studio" />
-          {hasModel && <RingModel autoRotate={false} />}
+          {hasModel && (
+            <LoadedModel
+              url={modelUrl}
+              selectedMeshNames={selectedMeshNames}
+              onMeshClick={onMeshClick}
+              transformMode={transformMode}
+            />
+          )}
           <OrbitControls
             enablePan={true}
             enableZoom={true}
@@ -57,7 +160,11 @@ export default function CADCanvas({ hasModel }: CADCanvasProps) {
             autoRotateSpeed={1.0}
             minDistance={1}
             maxDistance={20}
+            makeDefault
           />
+          <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
+            <GizmoViewport labelColor="white" axisHeadScale={0.8} />
+          </GizmoHelper>
         </Suspense>
       </Canvas>
 
