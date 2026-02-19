@@ -176,6 +176,7 @@ export default function CADToCatalog() {
             meshMaterials={meshMaterials}
             onMeshesDetected={handleMeshesDetected}
             selectedMesh={selectedMesh}
+            onMeshClick={setSelectedMesh}
             isProcessing={isProcessing}
             progress={progress}
             progressStep={progressStep}
