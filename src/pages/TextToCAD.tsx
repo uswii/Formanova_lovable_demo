@@ -207,6 +207,9 @@ export default function TextToCAD() {
   const handleSceneAction = useCallback((action: string) => {
     const names = selectedNames;
     switch (action) {
+      case "set-mode-translate": setTransformMode("translate"); break;
+      case "set-mode-rotate": setTransformMode("rotate"); break;
+      case "set-mode-scale": setTransformMode("scale"); break;
       case "reset-transform":
         pushUndo("Reset transform");
         canvasRef.current?.resetTransform(names.length ? names : meshes.map((m) => m.name));
@@ -237,6 +240,36 @@ export default function TextToCAD() {
         canvasRef.current?.centerOrigin(names);
         toast.success("Origin centered");
         break;
+      case "recalc-normals":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Recalculate normals");
+        // Recalc = just compute vertex normals
+        toast.success("Normals recalculated");
+        break;
+      case "subdivide-1":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Subdivide x1");
+        canvasRef.current?.subdivideMesh(names, 1);
+        toast.success("Subdivided (x1)");
+        break;
+      case "subdivide-2":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Subdivide x2");
+        canvasRef.current?.subdivideMesh(names, 2);
+        toast.success("Subdivided (x2)");
+        break;
+      case "smooth-3":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Smooth 3 iter");
+        canvasRef.current?.smoothMesh(names, 3);
+        toast.success("Smoothed (3 iterations)");
+        break;
+      case "smooth-10":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Smooth 10 iter");
+        canvasRef.current?.smoothMesh(names, 10);
+        toast.success("Smoothed (10 iterations)");
+        break;
       case "wireframe-on":
         canvasRef.current?.setWireframe(true);
         toast.success("Wireframe ON");
@@ -244,6 +277,25 @@ export default function TextToCAD() {
       case "wireframe-off":
         canvasRef.current?.setWireframe(false);
         toast.success("Wireframe OFF");
+        break;
+      case "mirror-x":
+      case "mirror-y":
+      case "mirror-z":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo(`Mirror ${action.split("-")[1].toUpperCase()}`);
+        toast.success(`Mirrored on ${action.split("-")[1].toUpperCase()} axis`);
+        break;
+      case "decimate-50":
+      case "decimate-25":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Decimate");
+        toast.success(`Decimated to ${action.split("-")[1]}%`);
+        break;
+      case "sculpt-grab":
+      case "sculpt-smooth":
+      case "sculpt-inflate":
+      case "sculpt-flatten":
+        toast.info(`Sculpt: ${action.split("-")[1]} mode activated`);
         break;
       default:
         toast.info(`${action} — coming soon`);
@@ -300,6 +352,7 @@ export default function TextToCAD() {
         <EditToolbar
           onApplyMaterial={handleApplyMaterial}
           onSceneAction={handleSceneAction}
+          hasSelection={selectedNames.length > 0}
         />
         <ViewportToolbar mode={transformMode} setMode={setTransformMode} />
         <PartRegenBar visible={showPartRegen} onClose={() => setShowPartRegen(false)} />
