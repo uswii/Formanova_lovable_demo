@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, Suspense, useEffect, useMemo } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   Environment,
   ContactShadows,
@@ -11,22 +11,18 @@ import {
 import {
   EffectComposer,
   Bloom,
-  ChromaticAberration,
   BrightnessContrast,
 } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import type { MaterialDef } from "./materials";
 
 // ── Gem Environment Loader ──
-// Loads the dedicated gem HDRI and provides it via context
 function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
   const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
   return <>{children(gemEnv)}</>;
 }
 
 // ── Refraction Gem Mesh ──
-// Renders a single mesh with MeshRefractionMaterial
 function RefractionGemMesh({
   geometry,
   position,
@@ -34,6 +30,8 @@ function RefractionGemMesh({
   scale,
   envMap,
   gemConfig,
+  meshName,
+  onClick,
 }: {
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
@@ -41,8 +39,9 @@ function RefractionGemMesh({
   scale: THREE.Vector3;
   envMap: THREE.Texture;
   gemConfig: NonNullable<MaterialDef["gemConfig"]>;
+  meshName: string;
+  onClick: (name: string) => void;
 }) {
-  // Flat shade the geometry for crisp diamond facets
   const flatGeometry = useMemo(() => {
     const geo = geometry.clone().toNonIndexed();
     geo.computeVertexNormals();
@@ -55,6 +54,7 @@ function RefractionGemMesh({
       position={position}
       rotation={rotation}
       scale={scale}
+      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(meshName); }}
     >
       <MeshRefractionMaterial
         envMap={envMap}
@@ -77,17 +77,18 @@ function LoadedModel({
   onMeshesDetected,
   selectedMesh,
   gemEnvMap,
+  onMeshClick,
 }: {
   url: string;
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
   selectedMesh: string | null;
   gemEnvMap: THREE.Texture | null;
+  onMeshClick: (name: string) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
 
-  // Parse meshes from the scene
   const meshDataList = useMemo(() => {
     const list: {
       name: string;
@@ -99,7 +100,6 @@ function LoadedModel({
     }[] = [];
 
     const clone = scene.clone(true);
-    // Auto-center and scale
     const box = new THREE.Box3().setFromObject(clone);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -110,8 +110,6 @@ function LoadedModel({
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         const name = mesh.name || `Mesh_${list.length}`;
-
-        // Get world transform
         mesh.updateWorldMatrix(true, false);
         const worldPos = new THREE.Vector3();
         const worldQuat = new THREE.Quaternion();
@@ -140,7 +138,7 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Separate meshes into refraction (gem) and standard (metal/unassigned)
+  // Separate refraction vs standard meshes
   const standardMeshes: typeof meshDataList = [];
   const refractionMeshes: (typeof meshDataList[0] & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
 
@@ -153,37 +151,29 @@ function LoadedModel({
     }
   });
 
-  // Build the standard (non-refraction) scene clone
-  const standardScene = useMemo(() => {
-    const group = new THREE.Group();
-    standardMeshes.forEach((md) => {
-      const mesh = new THREE.Mesh(md.geometry, undefined);
-      mesh.name = md.name;
-      mesh.position.copy(md.position);
-      mesh.rotation.copy(md.rotation);
-      mesh.scale.copy(md.scale);
-
+  // Build clickable standard meshes individually (not as primitive)
+  const standardMeshElements = useMemo(() => {
+    return standardMeshes.map((md) => {
       const assigned = meshMaterials[md.name];
+      let material: THREE.Material;
       if (assigned) {
-        mesh.material = assigned.create();
+        material = assigned.create();
       } else {
-        // Use original material
         const orig = md.original;
-        mesh.material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
+        material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
       }
 
       // Selection highlight
       if (selectedMesh && md.name === selectedMesh) {
-        const mat = mesh.material as THREE.MeshPhysicalMaterial;
+        const mat = material as THREE.MeshPhysicalMaterial;
         if (mat?.emissive) {
           mat.emissive = new THREE.Color(0x334455);
           mat.emissiveIntensity = 0.15;
         }
       }
 
-      group.add(mesh);
+      return { ...md, material };
     });
-    return group;
   }, [standardMeshes, meshMaterials, selectedMesh]);
 
   useFrame(({ clock }) => {
@@ -193,7 +183,17 @@ function LoadedModel({
 
   return (
     <group ref={groupRef}>
-      <primitive object={standardScene} />
+      {standardMeshElements.map((md) => (
+        <mesh
+          key={md.name}
+          geometry={md.geometry}
+          material={md.material}
+          position={md.position}
+          rotation={md.rotation}
+          scale={md.scale}
+          onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name); }}
+        />
+      ))}
       {refractionMeshes.map((md) => (
         <RefractionGemMesh
           key={md.name}
@@ -203,6 +203,8 @@ function LoadedModel({
           scale={md.scale}
           envMap={gemEnvMap!}
           gemConfig={md.gemConfig}
+          meshName={md.name}
+          onClick={onMeshClick}
         />
       ))}
     </group>
@@ -232,7 +234,7 @@ function VisibilityController() {
   return null;
 }
 
-// ── Post-Processing Effects ──
+// ── Lightweight Post-Processing (no chromatic aberration) ──
 function JewelryPostProcessing() {
   return (
     <EffectComposer>
@@ -241,12 +243,6 @@ function JewelryPostProcessing() {
         luminanceThreshold={0.92}
         luminanceSmoothing={0.2}
         mipmapBlur
-      />
-      <ChromaticAberration
-        blendFunction={BlendFunction.NORMAL}
-        offset={new THREE.Vector2(0.0035, 0.0035)}
-        radialModulation={false}
-        modulationOffset={0.0}
       />
       <BrightnessContrast
         brightness={0}
@@ -261,6 +257,7 @@ interface StudioViewportProps {
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
   selectedMesh: string | null;
+  onMeshClick?: (name: string) => void;
   isProcessing: boolean;
   progress: number;
   progressStep: string;
@@ -271,12 +268,16 @@ export default function StudioViewport({
   meshMaterials,
   onMeshesDetected,
   selectedMesh,
+  onMeshClick,
   isProcessing,
   progress,
   progressStep,
 }: StudioViewportProps) {
-  // Check if any mesh uses refraction
   const hasRefractionMaterials = Object.values(meshMaterials).some(m => m.useRefraction);
+
+  const handleMeshClick = useCallback((name: string) => {
+    onMeshClick?.(name);
+  }, [onMeshClick]);
 
   return (
     <div className="relative w-full h-full">
@@ -288,6 +289,7 @@ export default function StudioViewport({
           toneMappingExposure: 1.2,
           powerPreference: "high-performance",
         }}
+        dpr={[1, 2]}
         style={{ background: "transparent" }}
         camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
         onCreated={({ gl }) => {
@@ -300,14 +302,14 @@ export default function StudioViewport({
         <Suspense fallback={null}>
           <VisibilityController />
 
-          {/* Lighting — matches JewelryRenderer setup */}
+          {/* Lighting */}
           <ambientLight intensity={0.1} />
           <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" castShadow />
           <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
           <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
           <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
 
-          {/* Metal HDRI environment */}
+          {/* Metal HDRI environment (NOT the gem one — gem HDRI only for gem meshes) */}
           <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
           {modelUrl && (
@@ -321,6 +323,7 @@ export default function StudioViewport({
                       onMeshesDetected={onMeshesDetected}
                       selectedMesh={selectedMesh}
                       gemEnvMap={gemEnv}
+                      onMeshClick={handleMeshClick}
                     />
                   )}
                 </GemEnvProvider>
@@ -331,6 +334,7 @@ export default function StudioViewport({
                   onMeshesDetected={onMeshesDetected}
                   selectedMesh={selectedMesh}
                   gemEnvMap={null}
+                  onMeshClick={handleMeshClick}
                 />
               )}
             </>
@@ -348,7 +352,7 @@ export default function StudioViewport({
             autoRotateSpeed={0.5}
           />
 
-          {/* Post-processing: bloom + chromatic aberration + contrast */}
+          {/* Lightweight post-processing: bloom + contrast only */}
           <JewelryPostProcessing />
         </Suspense>
       </Canvas>
