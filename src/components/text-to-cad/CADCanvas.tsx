@@ -45,9 +45,25 @@ function RefractionGemMesh({
     return geo;
   }, [mesh.geometry]);
 
+  // Compute world matrix to correctly position refraction mesh
+  const worldData = useMemo(() => {
+    mesh.updateWorldMatrix(true, false);
+    const pos = new THREE.Vector3();
+    const rot = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    mesh.matrixWorld.decompose(pos, rot, scl);
+    return { pos, rot, scl };
+  }, [mesh]);
+
   return (
     <mesh
-      ref={(ref) => { if (ref) { ref.position.copy(mesh.position); ref.rotation.copy(mesh.rotation); ref.scale.copy(mesh.scale); } }}
+      ref={(ref) => {
+        if (ref) {
+          ref.position.copy(worldData.pos);
+          ref.quaternion.copy(worldData.rot);
+          ref.scale.copy(worldData.scl);
+        }
+      }}
       geometry={flatGeometry}
       onClick={onClick}
     >
@@ -102,7 +118,7 @@ function TransformControlsWrapper({
       ref={controlsRef}
       object={object}
       mode={mode}
-      size={2.5}
+      size={5}
     />
   );
 }
