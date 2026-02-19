@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { EDIT_TOOLS, METAL_PRESETS, GEM_PRESETS } from "./types";
+import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
 
 interface EditToolbarProps {
   onApplyMaterial: (preset: string) => void;
@@ -23,43 +23,46 @@ export default function EditToolbar({ onApplyMaterial }: EditToolbarProps) {
     });
   };
 
+  const metals = MATERIAL_LIBRARY.filter((m) => m.category === "metal");
+  const gems = MATERIAL_LIBRARY.filter((m) => m.category === "gemstone");
+
   return (
     <>
       {/* Vertical toolbar */}
       <div
         className="absolute top-[70px] left-0 z-[45] flex flex-col gap-0.5 px-1.5 py-2"
         style={{
-          background: "linear-gradient(180deg, rgba(22,22,22,0.95) 0%, rgba(14,14,14,0.98) 100%)",
-          backdropFilter: "blur(20px)",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: "4px 0 20px rgba(0,0,0,0.4)",
+          background: "linear-gradient(180deg, rgba(22,22,22,0.92) 0%, rgba(14,14,14,0.96) 100%)",
+          backdropFilter: "blur(24px)",
+          borderRight: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "4px 0 24px rgba(0,0,0,0.5)",
         }}
       >
         {EDIT_TOOLS.map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
-            className={`w-[52px] h-[46px] flex flex-col items-center justify-center gap-0.5 rounded cursor-pointer transition-all duration-150 relative group ${
+            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 rounded-md cursor-pointer transition-all duration-150 relative group ${
               activeFlyout === tool.flyout
-                ? "text-white shadow-[0_0_8px_rgba(255,255,255,0.04)]"
-                : "text-[#666] hover:text-white hover:bg-[#252525]"
+                ? "text-white shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                : "text-[#777] hover:text-white hover:bg-white/5"
             }`}
             style={{
               background: activeFlyout === tool.flyout
-                ? "linear-gradient(180deg, rgba(45,45,45,0.9) 0%, rgba(35,35,35,0.95) 100%)"
+                ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)"
                 : "transparent",
-              border: "none",
+              border: activeFlyout === tool.flyout ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent",
               fontFamily: "Inter, sans-serif",
             }}
           >
-            <span className="text-[18px]">{tool.icon}</span>
-            <span className="text-[7px] uppercase tracking-[0.5px] text-[#555] font-semibold">{tool.label}</span>
+            <span className="text-[20px]">{tool.icon}</span>
+            <span className="text-[7px] uppercase tracking-[0.5px] text-[#666] font-semibold">{tool.label}</span>
             {/* Tooltip */}
-            <span className="hidden group-hover:block absolute left-[60px] top-1/2 -translate-y-1/2 z-50 text-[12px] text-[#e0e0e0] px-3.5 py-2 rounded-md whitespace-nowrap font-medium tracking-[0.3px] pointer-events-none"
+            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 text-[12px] text-[#e0e0e0] px-3.5 py-2 rounded-md whitespace-nowrap font-medium tracking-[0.3px] pointer-events-none"
               style={{
                 background: "linear-gradient(180deg, rgba(35,35,35,0.95) 0%, rgba(25,25,25,0.98) 100%)",
                 backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.1)",
                 boxShadow: "4px 4px 16px rgba(0,0,0,0.5)",
               }}
             >
@@ -78,26 +81,26 @@ export default function EditToolbar({ onApplyMaterial }: EditToolbarProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[280px] rounded-lg p-4"
+            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] rounded-xl p-4"
             style={{
-              left: "66px",
+              left: "70px",
               top: activeFlyout === "transform" ? "56px"
-                : activeFlyout === "mesh" ? "94px"
-                : activeFlyout === "modifiers" ? "132px"
-                : activeFlyout === "materials" ? "170px"
-                : activeFlyout === "display" ? "208px"
-                : activeFlyout === "sculpt" ? "246px"
-                : "284px",
-              background: "linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(20,20,20,0.98) 100%)",
-              backdropFilter: "blur(25px)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "8px 8px 40px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.05)",
+                : activeFlyout === "mesh" ? "100px"
+                : activeFlyout === "modifiers" ? "144px"
+                : activeFlyout === "materials" ? "188px"
+                : activeFlyout === "display" ? "232px"
+                : activeFlyout === "sculpt" ? "276px"
+                : "320px",
+              background: "linear-gradient(180deg, rgba(30,30,30,0.88) 0%, rgba(18,18,18,0.94) 100%)",
+              backdropFilter: "blur(30px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              boxShadow: "8px 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
             {activeFlyout === "transform" && <TransformFlyout />}
             {activeFlyout === "mesh" && <MeshFlyout />}
             {activeFlyout === "modifiers" && <ModifiersFlyout />}
-            {activeFlyout === "materials" && <MaterialsFlyout onApply={onApplyMaterial} />}
+            {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
             {activeFlyout === "sculpt" && <SculptFlyout />}
             {activeFlyout === "snap" && <SnapFlyout />}
@@ -113,40 +116,41 @@ export default function EditToolbar({ onApplyMaterial }: EditToolbarProps) {
   );
 }
 
-// ── Flyout button style ──
+// ── Glassmorphism button ──
 function FoBtn({ children, shortcut, active, onClick }: {
   children: React.ReactNode; shortcut?: string; active?: boolean; onClick?: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-2.5 mb-1 rounded-md text-[12px] text-left cursor-pointer transition-all duration-150 font-medium ${
+      className={`block w-full px-3.5 py-3 mb-1.5 rounded-lg text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold ${
         active
-          ? "text-white border-white/30 shadow-[0_0_8px_rgba(255,255,255,0.04)]"
-          : "text-[#999] border-[#2a2a2a] hover:text-white"
+          ? "text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+          : "text-[#aaa] hover:text-white"
       }`}
       style={{
         background: active
-          ? "linear-gradient(180deg, rgba(40,40,40,0.9) 0%, rgba(30,30,30,0.95) 100%)"
-          : "transparent",
-        border: `1px solid ${active ? "rgba(255,255,255,0.3)" : "#2a2a2a"}`,
+          ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)"
+          : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
+        backdropFilter: "blur(12px)",
+        border: `1px solid ${active ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.06)"}`,
         fontFamily: "Inter, sans-serif",
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-          e.currentTarget.style.background = "linear-gradient(180deg, rgba(42,42,42,0.9) 0%, rgba(32,32,32,0.95) 100%)";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+          e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)";
         }
       }}
       onMouseLeave={(e) => {
         if (!active) {
-          e.currentTarget.style.borderColor = "#2a2a2a";
-          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+          e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)";
         }
       }}
     >
       {children}
-      {shortcut && <kbd className="float-right text-[10px] text-[#555] font-semibold">{shortcut}</kbd>}
+      {shortcut && <kbd className="float-right text-[10px] text-[#666] font-semibold">{shortcut}</kbd>}
     </button>
   );
 }
@@ -156,15 +160,15 @@ function FlyoutTitle({ children }: { children: React.ReactNode }) {
 }
 
 function FlyoutSubtitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-[10px] text-[#666] mt-3.5 mb-2 uppercase tracking-[1.5px] font-semibold">{children}</h4>;
+  return <h4 className="text-[10px] text-[#777] mt-4 mb-2 uppercase tracking-[1.5px] font-semibold">{children}</h4>;
 }
 
 function FoSep() {
-  return <div className="h-px bg-[#2a2a2a] my-2.5" />;
+  return <div className="h-px bg-white/5 my-3" />;
 }
 
-function NumInput({ label, color, id, step, value, min }: {
-  label: string; color: string; id?: string; step: string; value: string; min?: string;
+function NumInput({ label, color, step, value, min }: {
+  label: string; color: string; step: string; value: string; min?: string;
 }) {
   return (
     <div className="flex items-center gap-2 mb-2">
@@ -174,10 +178,11 @@ function NumInput({ label, color, id, step, value, min }: {
         step={step}
         defaultValue={value}
         min={min}
-        className="flex-1 px-2.5 py-1.5 rounded text-[11px] font-mono text-white focus:outline-none"
+        className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-white focus:outline-none"
         style={{
           background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          backdropFilter: "blur(8px)",
         }}
       />
     </div>
@@ -205,8 +210,8 @@ function TransformFlyout() {
       <div className="flex items-center gap-2 mt-1 mb-2">
         <label className="text-[9px] text-white/50 w-9 text-center">Uniform</label>
         <input type="number" step="0.01" defaultValue="1" min="0.01"
-          className="flex-1 px-2.5 py-1.5 rounded text-[11px] font-mono text-white focus:outline-none"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+          className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-white focus:outline-none"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
         />
       </div>
       <FlyoutSubtitle>Tools</FlyoutSubtitle>
@@ -269,39 +274,69 @@ function ModifiersFlyout() {
   );
 }
 
-function MaterialsFlyout({ onApply }: { onApply: (preset: string) => void }) {
+function MaterialsFlyout({ metals, gems, onApply }: {
+  metals: typeof MATERIAL_LIBRARY;
+  gems: typeof MATERIAL_LIBRARY;
+  onApply: (preset: string) => void;
+}) {
   return (
     <>
       <FlyoutTitle>Materials</FlyoutTitle>
-      <FlyoutSubtitle>Metals</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1 mb-2">
-        {METAL_PRESETS.map((m) => (
+      <FlyoutSubtitle>Metals ({metals.length})</FlyoutSubtitle>
+      <div className="grid grid-cols-2 gap-1.5 mb-3">
+        {metals.map((m) => (
           <button
             key={m.id}
             onClick={() => onApply(m.name)}
-            className="py-2 px-2.5 rounded-md text-[10px] text-[#999] text-center cursor-pointer transition-all duration-150 hover:text-white hover:border-white/10"
-            style={{ background: "#1e1e1e", border: "1px solid #2a2a2a", fontFamily: "Inter, sans-serif" }}
+            className="py-2.5 px-3 rounded-lg text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white font-medium"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              fontFamily: "Inter, sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+              e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)";
+            }}
           >
             <span
-              className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle"
-              style={{ background: m.swatch, border: "1px solid rgba(255,255,255,0.15)" }}
+              className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle"
+              style={{ background: m.preview, border: "1px solid rgba(255,255,255,0.2)" }}
             />
             {m.name}
           </button>
         ))}
       </div>
-      <FlyoutSubtitle>Gems</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1 mb-2">
-        {GEM_PRESETS.map((g) => (
+      <FlyoutSubtitle>Gems ({gems.length})</FlyoutSubtitle>
+      <div className="grid grid-cols-2 gap-1.5 mb-3">
+        {gems.map((g) => (
           <button
             key={g.id}
             onClick={() => onApply(g.name)}
-            className="py-2 px-2.5 rounded-md text-[10px] text-[#999] text-center cursor-pointer transition-all duration-150 hover:text-white hover:border-white/10"
-            style={{ background: "#1e1e1e", border: "1px solid #2a2a2a", fontFamily: "Inter, sans-serif" }}
+            className="py-2.5 px-3 rounded-lg text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white font-medium"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              fontFamily: "Inter, sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+              e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)";
+            }}
           >
             <span
-              className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle"
-              style={{ background: g.swatch, border: "1px solid rgba(255,255,255,0.15)" }}
+              className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle"
+              style={{ background: g.preview, border: "1px solid rgba(255,255,255,0.2)" }}
             />
             {g.name}
           </button>
@@ -311,7 +346,7 @@ function MaterialsFlyout({ onApply }: { onApply: (preset: string) => void }) {
       <FlyoutSubtitle>Custom Material</FlyoutSubtitle>
       <div className="flex items-center gap-2 mb-2">
         <label className="text-[13px] font-bold">Color</label>
-        <input type="color" defaultValue="#D4AF37" className="w-9 h-7 rounded-md cursor-pointer" style={{ border: "1px solid #333", background: "none", padding: 0 }} />
+        <input type="color" defaultValue="#D4AF37" className="w-9 h-7 rounded-md cursor-pointer" style={{ border: "1px solid rgba(255,255,255,0.15)", background: "none", padding: 0 }} />
       </div>
       <SliderRow label="Metalness" defaultValue={0.95} />
       <SliderRow label="Roughness" defaultValue={0.15} />

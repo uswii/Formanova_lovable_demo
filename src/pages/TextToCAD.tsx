@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
@@ -43,6 +43,12 @@ export default function TextToCAD() {
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
+  const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+
+  const selectedMeshNames = useMemo(
+    () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
+    [meshes]
+  );
 
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
@@ -95,6 +101,20 @@ export default function TextToCAD() {
     setEditPrompt(preset);
   }, []);
 
+  const handleGlbUpload = useCallback((file: File) => {
+    const url = URL.createObjectURL(file);
+    setGlbUrl(url);
+    setHasModel(true);
+    setShowPartRegen(true);
+    // We can't introspect real mesh data from the file input alone, so use placeholder
+    setMeshes([
+      { name: "Uploaded_Model", verts: 0, faces: 0, visible: true, selected: false },
+    ]);
+    setModules([]);
+    setStats({ meshes: 1, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+    toast.success(`Loaded ${file.name}`);
+  }, []);
+
   const handleReset = () => {
     setPrompt("");
     setEditPrompt("");
@@ -106,9 +126,16 @@ export default function TextToCAD() {
     setShowPartRegen(false);
     setMeshes([]);
     setModules([]);
+    if (glbUrl) URL.revokeObjectURL(glbUrl);
+    setGlbUrl(undefined);
   };
 
   const handleSelectMesh = (name: string, multi: boolean) => {
+    if (!name) {
+      // Clicked empty space — deselect all
+      setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
+      return;
+    }
     setMeshes((prev) =>
       prev.map((m) =>
         m.name === name
@@ -148,12 +175,19 @@ export default function TextToCAD() {
         onEdit={simulateEdit}
         onQuickEdit={handleQuickEdit}
         onMagicTexture={() => toast.info("Magic Texturing coming soon")}
+        onGlbUpload={handleGlbUpload}
       />
 
       {/* Viewport */}
       <div className="flex-1 relative" style={{ background: "#111" }}>
         {/* 3D Canvas */}
-        <CADCanvas hasModel={hasModel} />
+        <CADCanvas
+          hasModel={hasModel}
+          glbUrl={glbUrl}
+          selectedMeshNames={selectedMeshNames}
+          onMeshClick={handleSelectMesh}
+          transformMode={transformMode}
+        />
 
         {/* Overlays */}
         <EditToolbar onApplyMaterial={(preset) => toast.info(`Applied ${preset}`)} />
