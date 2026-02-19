@@ -35,10 +35,10 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
         >
           {/* Axis indicator lines for active transform modes */}
           {tm.id !== "orbit" && mode === tm.id && (
-            <span className="flex gap-[2px] mr-1">
-              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#ef4444" }} />
-              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#22c55e" }} />
-              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#3b82f6" }} />
+            <span className="flex gap-[3px] mr-1.5">
+              <span className="w-[5px] h-[20px] rounded-full" style={{ background: "#ef4444" }} />
+              <span className="w-[5px] h-[20px] rounded-full" style={{ background: "#22c55e" }} />
+              <span className="w-[5px] h-[20px] rounded-full" style={{ background: "#3b82f6" }} />
             </span>
           )}
           {tm.label}
