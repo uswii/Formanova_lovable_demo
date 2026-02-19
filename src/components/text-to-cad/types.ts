@@ -46,7 +46,6 @@ export const EDIT_TOOLS = [
   { id: "materials", icon: "◉", label: "Mat", flyout: "materials", tip: "Materials" },
   { id: "display", icon: "◭", label: "View", flyout: "display", tip: "Display options" },
   { id: "sculpt", icon: "✎", label: "Sculpt", flyout: "sculpt", tip: "Sculpt tools" },
-  { id: "snap", icon: "∋", label: "Snap", flyout: "snap", tip: "Snap & pivot" },
 ] as const;
 
 export const PROGRESS_STEPS = [
