@@ -14,11 +14,37 @@ import {
 } from "@react-three/postprocessing";
 import * as THREE from "three";
 import type { MaterialDef } from "./materials";
+import { getQualitySettings } from "@/lib/gpu-detect";
+
+// ── Quality settings (cached, runs once) ──
+const Q = getQualitySettings();
 
 // ── Gem Environment Loader ──
 function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
   const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
+  useEffect(() => {
+    if (!Q.envMapMipmaps && gemEnv) {
+      gemEnv.minFilter = THREE.LinearFilter;
+      gemEnv.generateMipmaps = false;
+      gemEnv.needsUpdate = true;
+    }
+  }, [gemEnv]);
   return <>{children(gemEnv)}</>;
+}
+
+// ── Flat geometry cache (module-level for session reuse) ──
+const flatGeoCache = new Map<string, THREE.BufferGeometry>();
+// ── Material cache ──
+const matCache = new Map<string, THREE.Material>();
+
+function getFlatGeo(key: string, geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  let cached = flatGeoCache.get(key);
+  if (!cached) {
+    cached = geometry.clone().toNonIndexed();
+    cached.computeVertexNormals();
+    flatGeoCache.set(key, cached);
+  }
+  return cached;
 }
 
 // ── Refraction Gem Mesh ──
@@ -41,11 +67,7 @@ function RefractionGemMesh({
   meshName: string;
   onClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
 }) {
-  const flatGeometry = useMemo(() => {
-    const geo = geometry.clone().toNonIndexed();
-    geo.computeVertexNormals();
-    return geo;
-  }, [geometry]);
+  const flatGeometry = useMemo(() => getFlatGeo(`studio_${meshName}`, geometry), [geometry, meshName]);
 
   return (
     <mesh
@@ -59,8 +81,8 @@ function RefractionGemMesh({
         envMap={envMap}
         color={new THREE.Color(gemConfig.color)}
         ior={gemConfig.ior}
-        aberrationStrength={gemConfig.aberrationStrength}
-        bounces={gemConfig.bounces}
+        aberrationStrength={gemConfig.aberrationStrength * Q.aberrationScale}
+        bounces={Math.min(gemConfig.bounces, Q.gemBounces)}
         fresnel={gemConfig.fresnel}
         fastChroma
         toneMapped={false}
@@ -138,28 +160,38 @@ function LoadedModel({
   }, [meshDataList, onMeshesDetected]);
 
   // Separate refraction vs standard meshes
-  const standardMeshes: typeof meshDataList = [];
-  const refractionMeshes: (typeof meshDataList[0] & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+  const { standardMeshes, refractionMeshes } = useMemo(() => {
+    const std: typeof meshDataList = [];
+    const refr: (typeof meshDataList[0] & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+    meshDataList.forEach((md) => {
+      const assigned = meshMaterials[md.name];
+      if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
+        refr.push({ ...md, gemConfig: assigned.gemConfig });
+      } else {
+        std.push(md);
+      }
+    });
+    return { standardMeshes: std, refractionMeshes: refr };
+  }, [meshDataList, meshMaterials, gemEnvMap]);
 
-  meshDataList.forEach((md) => {
-    const assigned = meshMaterials[md.name];
-    if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
-      refractionMeshes.push({ ...md, gemConfig: assigned.gemConfig });
-    } else {
-      standardMeshes.push(md);
-    }
-  });
-
-  // Build clickable standard meshes individually (not as primitive)
+  // Build materials with caching
   const standardMeshElements = useMemo(() => {
     return standardMeshes.map((md) => {
       const assigned = meshMaterials[md.name];
+      const cacheKey = assigned ? `studio_${md.name}_${assigned.id}` : `studio_orig_${md.name}`;
       let material: THREE.Material;
-      if (assigned) {
-        material = assigned.create();
+
+      const cached = matCache.get(cacheKey);
+      if (cached) {
+        material = cached;
       } else {
-        const orig = md.original;
-        material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
+        if (assigned) {
+          material = assigned.create();
+        } else {
+          const orig = md.original;
+          material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
+        }
+        matCache.set(cacheKey, material);
       }
 
       // Selection highlight
@@ -174,8 +206,6 @@ function LoadedModel({
       return { ...md, material };
     });
   }, [standardMeshes, meshMaterials, selectedMeshes]);
-
-  // No bobbing animation — static model for performance
 
   return (
     <group ref={groupRef}>
@@ -207,33 +237,10 @@ function LoadedModel({
   );
 }
 
-// ── Visibility Controller ──
-function VisibilityController() {
-  const { gl } = useThree();
-  const state = useThree();
-
-  useEffect(() => {
-    const handle = () => {
-      if (document.hidden) {
-        gl.setAnimationLoop(null);
-      } else {
-        gl.setAnimationLoop(() => state.advance(performance.now()));
-      }
-    };
-    document.addEventListener("visibilitychange", handle);
-    return () => {
-      document.removeEventListener("visibilitychange", handle);
-      gl.setAnimationLoop(null);
-    };
-  }, [gl, state]);
-
-  return null;
-}
-
-// ── Lightweight Post-Processing (no chromatic aberration) ──
+// ── Lightweight Post-Processing ──
 function JewelryPostProcessing() {
   return (
-    <EffectComposer>
+    <EffectComposer multisampling={0}>
       <Bloom
         intensity={0.28}
         luminanceThreshold={0.92}
@@ -281,33 +288,34 @@ export default function StudioViewport({
     <div className="relative w-full h-full">
       <Canvas
         gl={{
-          antialias: true,
+          antialias: Q.antialias,
           alpha: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
           powerPreference: "high-performance",
         }}
-        dpr={[1, 2]}
+        dpr={Q.dpr}
         style={{ background: "transparent" }}
         camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
+        frameloop="demand"
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
           gl.outputColorSpace = THREE.SRGBColorSpace;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
         <Suspense fallback={null}>
-          <VisibilityController />
-
-          {/* Lighting */}
+          {/* Lighting — reduced on low tier */}
           <ambientLight intensity={0.1} />
-          <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" castShadow />
-          <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+          <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
+          {Q.maxLights >= 4 && (
+            <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+          )}
           <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
-          <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
+          {Q.maxLights >= 5 && (
+            <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
+          )}
 
-          {/* Metal HDRI environment (NOT the gem one — gem HDRI only for gem meshes) */}
+          {/* Metal HDRI environment */}
           <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
           {modelUrl && (
@@ -349,8 +357,8 @@ export default function StudioViewport({
             autoRotateSpeed={0.5}
           />
 
-          {/* Lightweight post-processing: bloom + contrast only */}
-          <JewelryPostProcessing />
+          {/* Post-processing only on medium/high tier */}
+          {Q.postProcessing && <JewelryPostProcessing />}
         </Suspense>
       </Canvas>
 

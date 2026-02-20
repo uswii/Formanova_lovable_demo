@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
-import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree, ThreeEvent, invalidate } from "@react-three/fiber";
 import {
   useGLTF,
   Environment,
@@ -18,14 +18,26 @@ import {
 import * as THREE from "three";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
+import { getQualitySettings } from "@/lib/gpu-detect";
 
-// ── Preload gem HDRI once at module level ──
+// ── Quality settings (cached, runs once) ──
+const Q = getQualitySettings();
+
+// ── Gem HDRI path ──
 const GEM_HDRI_PATH = "/hdri/diamond-gemstone-studio.hdr";
 
 // ── Gem env loaded once inside Canvas, never unmounts ──
 function GemEnvLoader({ onLoaded }: { onLoaded: (tex: THREE.Texture) => void }) {
   const gemEnv = useEnvironment({ files: GEM_HDRI_PATH });
-  useEffect(() => { onLoaded(gemEnv); }, [gemEnv, onLoaded]);
+  useEffect(() => {
+    // On low/medium tier, disable mipmaps on gem env to save VRAM
+    if (!Q.envMapMipmaps && gemEnv) {
+      gemEnv.minFilter = THREE.LinearFilter;
+      gemEnv.generateMipmaps = false;
+      gemEnv.needsUpdate = true;
+    }
+    onLoaded(gemEnv);
+  }, [gemEnv, onLoaded]);
   return null;
 }
 
@@ -42,7 +54,7 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
-// ── Post-Processing (lightweight) ──
+// ── Post-Processing (lightweight, skipped on low tier) ──
 const JewelryPostProcessing = React.memo(function JewelryPostProcessing() {
   return (
     <EffectComposer multisampling={0}>
@@ -52,7 +64,11 @@ const JewelryPostProcessing = React.memo(function JewelryPostProcessing() {
   );
 });
 
-
+// ── Invalidate helper for demand mode ──
+function useInvalidate() {
+  const { invalidate: inv } = useThree();
+  return inv;
+}
 
 // ── Disable OrbitControls while dragging TransformControls ──
 function TransformControlsWrapper({
@@ -65,6 +81,7 @@ function TransformControlsWrapper({
   onDragEnd?: () => void;
 }) {
   const { gl } = useThree();
+  const inv = useInvalidate();
   const controlsRef = useRef<any>(null);
 
   useEffect(() => {
@@ -73,12 +90,22 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
+      // While dragging, invalidate every frame
+      if (e.value) {
+        inv();
+      }
       // Fire onDragEnd when user finishes dragging
       if (!e.value && onDragEnd) onDragEnd();
     };
     controls.addEventListener("dragging-changed", handler);
-    return () => controls.removeEventListener("dragging-changed", handler);
-  }, [gl, onDragEnd]);
+    // Also invalidate on object-change during drag
+    const onChange = () => inv();
+    controls.addEventListener("objectChange", onChange);
+    return () => {
+      controls.removeEventListener("dragging-changed", handler);
+      controls.removeEventListener("objectChange", onChange);
+    };
+  }, [gl, onDragEnd, inv]);
 
   return (
     <TransformControls
@@ -145,8 +172,9 @@ const LoadedModel = forwardRef<
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
-  // Cache flat geometries for refraction gems to avoid re-creating every render
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
+  const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  const inv = useInvalidate();
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -193,10 +221,15 @@ const LoadedModel = forwardRef<
       }
     });
 
+    // Dispose old caches
+    flatGeoCache.current.forEach((g) => g.dispose());
+    flatGeoCache.current.clear();
+    materialCache.current.forEach((m) => m.dispose());
+    materialCache.current.clear();
+
     setMeshDataList(list);
     setAssignedMaterials({});
-    flatGeoCache.current.clear();
-    materialCache.current.clear();
+    inv();
 
     if (onMeshesDetected) {
       onMeshesDetected(list.map((m) => ({
@@ -205,20 +238,26 @@ const LoadedModel = forwardRef<
         faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
       })));
     }
-  }, [scene, onMeshesDetected]);
+  }, [scene, onMeshesDetected, inv]);
 
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
     applyMaterial: (matId: string, meshNames: string[]) => {
       const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
       if (!matDef) return;
-      // Clear caches for meshes that change material type
-      meshNames.forEach((n) => { flatGeoCache.current.delete(n); materialCache.current.delete(`assigned_${n}_${matDef.id}`); });
+      meshNames.forEach((n) => {
+        flatGeoCache.current.delete(n);
+        const key = `assigned_${n}_${matDef.id}`;
+        const old = materialCache.current.get(key);
+        if (old) old.dispose();
+        materialCache.current.delete(key);
+      });
       setAssignedMaterials((prev) => {
         const next = { ...prev };
         meshNames.forEach((n) => { next[n] = matDef; });
         return next;
       });
+      inv();
     },
     resetTransform: (meshNames: string[]) => {
       const names = new Set(meshNames);
@@ -226,15 +265,21 @@ const LoadedModel = forwardRef<
         if (!names.has(md.name)) return md;
         return { ...md, position: md.origPos.clone(), rotation: md.origRot.clone(), scale: md.origScale.clone() };
       }));
+      inv();
     },
     deleteMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.filter((m) => !names.has(m.name)));
       setAssignedMaterials((prev) => {
         const next = { ...prev };
-        meshNames.forEach((n) => { delete next[n]; flatGeoCache.current.delete(n); });
+        meshNames.forEach((n) => {
+          delete next[n];
+          const fg = flatGeoCache.current.get(n);
+          if (fg) { fg.dispose(); flatGeoCache.current.delete(n); }
+        });
         return next;
       });
+      inv();
     },
     duplicateMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
@@ -255,6 +300,7 @@ const LoadedModel = forwardRef<
         });
         return [...prev, ...newItems];
       });
+      inv();
     },
     flipNormals: (meshNames: string[]) => {
       const names = new Set(meshNames);
@@ -269,6 +315,7 @@ const LoadedModel = forwardRef<
           }
         }
       });
+      inv();
     },
     centerOrigin: (meshNames: string[]) => {
       const names = new Set(meshNames);
@@ -280,24 +327,28 @@ const LoadedModel = forwardRef<
         md.geometry.translate(-c.x, -c.y, -c.z);
         return { ...md, position: md.position.clone().add(c) };
       }));
+      inv();
     },
     subdivideMesh: (meshNames: string[], _iterations: number) => {
       const names = new Set(meshNames);
       meshDataList.forEach((md) => {
         if (names.has(md.name)) md.geometry.computeVertexNormals();
       });
+      inv();
     },
     setWireframe: (on: boolean) => {
       meshRefs.current.forEach((meshObj) => {
         const mat = meshObj.material as THREE.MeshStandardMaterial;
         if (mat && "wireframe" in mat) mat.wireframe = on;
       });
+      inv();
     },
     smoothMesh: (meshNames: string[], _iterations: number) => {
       const names = new Set(meshNames);
       meshDataList.forEach((md) => {
         if (names.has(md.name)) md.geometry.computeVertexNormals();
       });
+      inv();
     },
     getSnapshot: (): CanvasSnapshot => ({
       meshDataList: meshDataList.map((md) => ({
@@ -314,28 +365,28 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => {
       setMeshDataList(snap.meshDataList);
       setAssignedMaterials(snap.assignedMaterials);
+      flatGeoCache.current.forEach((g) => g.dispose());
       flatGeoCache.current.clear();
+      materialCache.current.forEach((m) => m.dispose());
       materialCache.current.clear();
+      inv();
     },
-  }), [meshDataList, assignedMaterials]);
+  }), [meshDataList, assignedMaterials, inv]);
 
   // ── Separate standard vs refraction meshes (memoized) ──
   const { standardMeshes, refractionMeshes } = useMemo(() => {
     const std: MeshData[] = [];
-    const ref: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+    const refr: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
     meshDataList.forEach((md) => {
       const assigned = assignedMaterials[md.name];
       if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
-        ref.push({ ...md, gemConfig: assigned.gemConfig });
+        refr.push({ ...md, gemConfig: assigned.gemConfig });
       } else {
         std.push(md);
       }
     });
-    return { standardMeshes: std, refractionMeshes: ref };
+    return { standardMeshes: std, refractionMeshes: refr };
   }, [meshDataList, assignedMaterials, gemEnvMap]);
-
-  // ── Material cache to avoid re-creating every render ──
-  const materialCache = useRef<Map<string, THREE.Material>>(new Map());
 
   // Build materials for standard meshes (memoized)
   const standardElements = useMemo(() => {
@@ -405,8 +456,8 @@ const LoadedModel = forwardRef<
             envMap={gemEnvMap!}
             color={new THREE.Color(md.gemConfig.color)}
             ior={md.gemConfig.ior}
-            aberrationStrength={md.gemConfig.aberrationStrength}
-            bounces={md.gemConfig.bounces}
+            aberrationStrength={md.gemConfig.aberrationStrength * Q.aberrationScale}
+            bounces={Math.min(md.gemConfig.bounces, Q.gemBounces)}
             fresnel={md.gemConfig.fresnel}
             fastChroma
             toneMapped={false}
@@ -456,16 +507,16 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
-    // Gem env map loaded once and cached
     const [gemEnvMap, setGemEnvMap] = useState<THREE.Texture | null>(null);
+
+    // Only load gem env when a refraction material is actually needed
+    // For now we keep it mounted since toggling causes remount lag
     const handleGemEnvLoaded = useCallback((tex: THREE.Texture) => {
       setGemEnvMap(tex);
     }, []);
 
     useImperativeHandle(ref, () => ({
-      applyMaterial: (matId, meshNames) => {
-        modelRef.current?.applyMaterial(matId, meshNames);
-      },
+      applyMaterial: (matId, meshNames) => modelRef.current?.applyMaterial(matId, meshNames),
       resetTransform: (meshNames) => modelRef.current?.resetTransform(meshNames),
       deleteMeshes: (meshNames) => modelRef.current?.deleteMeshes(meshNames),
       duplicateMeshes: (meshNames) => modelRef.current?.duplicateMeshes(meshNames),
@@ -482,31 +533,35 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       <div className="w-full h-full" style={{ background: "#111" }}>
         <Canvas
           gl={{
-            antialias: true,
+            antialias: Q.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 1.2,
             powerPreference: "high-performance",
           }}
-          dpr={[1, 1.5]}
+          dpr={Q.dpr}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
-          frameloop="always"
+          frameloop="demand"
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
             gl.outputColorSpace = THREE.SRGBColorSpace;
           }}
         >
           <Suspense fallback={null}>
+            {/* Lighting — reduced on low tier */}
             <ambientLight intensity={0.1} />
             <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
-            <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+            {Q.maxLights >= 4 && (
+              <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+            )}
             <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
-            <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
+            {Q.maxLights >= 5 && (
+              <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
+            )}
 
             <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
-            {/* Always load gem env so toggling diamond doesn't remount */}
             <GemEnvLoader onLoaded={handleGemEnvLoaded} />
 
             {hasModel && (
@@ -535,7 +590,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               <GizmoViewport labelColor="white" axisHeadScale={0.8} />
             </GizmoHelper>
 
-            <JewelryPostProcessing />
+            {/* Post-processing only on medium/high tier */}
+            {Q.postProcessing && <JewelryPostProcessing />}
           </Suspense>
         </Canvas>
 
