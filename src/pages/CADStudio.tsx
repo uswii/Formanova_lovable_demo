@@ -6,18 +6,20 @@ import InteractiveRing from "@/components/cad/InteractiveRing";
 
 const cadFeatures = [
   {
-    title: "CAD → Catalog",
-    description:
-      "Turn your CAD files into realistic product visuals and catalog-ready images.",
-    icon: Box,
-    route: "/cad-to-catalog",
-  },
-  {
     title: "Text → CAD",
     description:
       "Generate detailed jewelry CAD concepts from text prompts.",
     icon: Sparkles,
     route: "/text-to-cad",
+    comingSoon: false,
+  },
+  {
+    title: "CAD → Catalog",
+    description:
+      "Turn your CAD files into realistic product visuals and catalog-ready images.",
+    icon: Box,
+    route: "/cad-to-catalog",
+    comingSoon: true,
   },
 ];
 
@@ -71,13 +73,23 @@ export default function CADStudio() {
               <p className="text-muted-foreground/60 mb-4 leading-relaxed text-sm">
                 {feature.description}
               </p>
-              <Button
-                variant="secondary"
-                className="w-full mt-auto"
-                onClick={() => navigate(feature.route)}
-              >
-                Open Studio →
-              </Button>
+              {feature.comingSoon ? (
+                <Button
+                  variant="secondary"
+                  className="w-full mt-auto opacity-60 cursor-not-allowed"
+                  disabled
+                >
+                  Coming Soon
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="w-full mt-auto"
+                  onClick={() => navigate(feature.route)}
+                >
+                  Open Studio →
+                </Button>
+              )}
             </motion.div>
           ))}
         </div>
