@@ -3,7 +3,6 @@
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
 import { getStoredToken, authApi } from '@/lib/auth-api';
-import { authFetch } from '@/lib/auth-fetch';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
@@ -40,7 +39,7 @@ export async function getUserCredits(): Promise<CreditBalance> {
 
   const internalId = await resolveInternalUserId();
 
-  const response = await authFetch(`${API_GATEWAY_URL}/credits/balance/${internalId}`, {
+  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${internalId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -60,7 +59,7 @@ export async function startCheckout(tierName: string): Promise<string> {
 
   const internalId = await resolveInternalUserId();
 
-  const response = await authFetch(`${API_GATEWAY_URL}/create-checkout-session`, {
+  const response = await fetch(`${API_GATEWAY_URL}/create-checkout-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

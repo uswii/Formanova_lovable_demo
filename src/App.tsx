@@ -11,7 +11,6 @@ import { ThemeDecorations } from "@/components/ThemeDecorations";
 import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
 import { FloatingElements } from '@/components/FloatingElements';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { SessionExpiredBanner } from '@/components/SessionExpiredBanner';
 
 // Pages
 import Welcome from "./pages/Welcome";
@@ -42,7 +41,6 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <SessionExpiredBanner />
             <FloatingElements />
             <ScrollProgressIndicator />
             <ThemeDecorations />
