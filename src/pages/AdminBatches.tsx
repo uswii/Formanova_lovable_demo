@@ -1000,13 +1000,30 @@ export default function AdminBatches() {
                   >
                     <ExternalLink className="h-3 w-3" /> Open
                   </a>
-                  <a
-                    href={imagePreview.url}
-                    download
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(imagePreview!.url);
+                        if (!res.ok) throw new Error('Download failed');
+                        const blob = await res.blob();
+                        const contentType = blob.type || 'image/jpeg';
+                        const ext = contentType.includes('png') ? 'png' : 'jpg';
+                        const filename = `${(imagePreview!.title || 'image').replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = filename;
+                        a.click();
+                        URL.revokeObjectURL(blobUrl);
+                      } catch (err) {
+                        console.error('Image download failed:', err);
+                        toast({ title: 'Download failed', variant: 'destructive' });
+                      }
+                    }}
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                   >
                     <Download className="h-3 w-3" /> Download
-                  </a>
+                  </button>
                 </div>
               )}
             </DialogTitle>
