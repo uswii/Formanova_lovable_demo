@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 interface Props {
   before: string;
@@ -73,7 +74,7 @@ export function BeforeAfterSlider({ before, after }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[3/4] overflow-hidden rounded-xl border-2 border-border bg-muted/20 select-none touch-none"
+      className="relative w-full aspect-[3/4] overflow-hidden rounded-xl border-2 border-border bg-muted select-none touch-none"
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
@@ -82,9 +83,10 @@ export function BeforeAfterSlider({ before, after }: Props) {
       onTouchEnd={handleTouchEnd}
     >
       {/* Before Image (full background) */}
-      <img
+      <OptimizedImage
         src={before}
         alt="Before"
+        priority
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         draggable={false}
       />
@@ -94,9 +96,10 @@ export function BeforeAfterSlider({ before, after }: Props) {
         className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ width: `${sliderPosition}%` }}
       >
-        <img
+        <OptimizedImage
           src={after}
           alt="After"
+          priority
           className="absolute inset-0 w-full h-full object-cover"
           style={{ 
             width: containerRef.current ? containerRef.current.clientWidth : '100%',

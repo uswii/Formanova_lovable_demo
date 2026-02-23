@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { OptimizedImage } from '@/components/ui/optimized-image';
+import { OptimizedImage, preloadImages } from '@/components/ui/optimized-image';
 
 interface CinematicHeroProps {
   images: { src: string; alt: string }[];
@@ -66,6 +66,11 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Preload all hero images on mount
+  useEffect(() => {
+    preloadImages(images.map((img) => img.src));
+  }, [images]);
 
   // Auto-advance when not actively scrolling
   useEffect(() => {
