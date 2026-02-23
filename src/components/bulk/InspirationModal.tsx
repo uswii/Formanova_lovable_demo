@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,7 @@ const InspirationModal = ({
           {/* Source image reference */}
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/50 flex-shrink-0">
-              <img src={imagePreview} alt={`Image ${imageIndex + 1}`} className="w-full h-full object-cover" />
+              <OptimizedImage src={imagePreview} alt={`Image ${imageIndex + 1}`} className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">
               <p className="text-xs text-foreground font-medium">Product image {imageIndex + 1}</p>
@@ -116,7 +117,7 @@ const InspirationModal = ({
                       onClick={() => setEnlargedPreview(inspiration.preview)}
                       className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border border-border/50 hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer"
                     >
-                      <img src={inspiration.preview} alt="Inspiration reference" className="w-full h-full object-cover" />
+                      <OptimizedImage src={inspiration.preview} alt="Inspiration reference" className="w-full h-full object-cover" />
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-foreground/80 font-medium">Custom inspiration</p>
@@ -180,14 +181,19 @@ const InspirationModal = ({
               className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-6"
               onClick={() => setEnlargedPreview(null)}
             >
-              <motion.img
+              <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.8 }}
-                src={enlargedPreview}
-                alt="Enlarged inspiration"
-                className="max-w-full max-h-full rounded-lg object-contain"
-              />
+                className="max-w-full max-h-full"
+              >
+                <OptimizedImage
+                  src={enlargedPreview}
+                  alt="Enlarged inspiration"
+                  priority
+                  className="max-w-full max-h-full rounded-lg object-contain"
+                />
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
