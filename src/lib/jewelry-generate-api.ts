@@ -2,7 +2,6 @@
 // Calls the jewelry-generate edge function which proxies to A100
 
 import { getStoredToken } from './auth-api';
-import { authFetch } from './auth-fetch';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -76,7 +75,7 @@ class JewelryGenerateApi {
 
   async checkHealth(): Promise<{ status: string; gemini_available: boolean } | null> {
     try {
-      const response = await authFetch(this.getProxyUrl('/health'), {
+      const response = await fetch(this.getProxyUrl('/health'), {
         method: 'GET',
         headers: this.getAuthHeaders(),
       });
@@ -127,7 +126,7 @@ class JewelryGenerateApi {
 
     console.log(`[JewelryAPI] Sending request, image size: ${(body.image_base64 as string).length}, mask size: ${(body.mask_base64 as string).length}`);
 
-    const response = await authFetch(this.getProxyUrl('/generate'), {
+    const response = await fetch(this.getProxyUrl('/generate'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(body),
