@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Canvas, useThree, ThreeEvent, invalidate } from "@react-three/fiber";
 import {
-  useGLTF,
   Environment,
   OrbitControls,
   TransformControls,
@@ -16,9 +15,12 @@ import {
   BrightnessContrast,
 } from "@react-three/postprocessing";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
+
+// ── Quality settings (cached, runs once) ──
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
@@ -174,7 +176,31 @@ const LoadedModel = forwardRef<
     onTransformEnd?: () => void;
   }
 >(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap, onTransformEnd }, ref) => {
-  const { scene } = useGLTF(url);
+  const [scene, setScene] = useState<THREE.Group | null>(null);
+  const loadedUrlRef = useRef<string>("");
+
+  // Load GLB using GLTFLoader directly (handles remote URLs without extension)
+  useEffect(() => {
+    if (!url || loadedUrlRef.current === url) return;
+    loadedUrlRef.current = url;
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      (gltf) => {
+        console.log("[CADCanvas] GLB loaded successfully from:", url.substring(0, 80));
+        setScene(gltf.scene);
+      },
+      (progress) => {
+        if (progress.total > 0) {
+          console.log(`[CADCanvas] GLB loading: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+        }
+      },
+      (error) => {
+        console.error("[CADCanvas] Failed to load GLB:", error);
+        console.error("[CADCanvas] URL was:", url.substring(0, 120));
+      }
+    );
+  }, [url]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
@@ -184,6 +210,7 @@ const LoadedModel = forwardRef<
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
+    if (!scene) return;
     const clone = scene.clone(true);
     const box = new THREE.Box3().setFromObject(clone);
     const size = box.getSize(new THREE.Vector3());
@@ -689,4 +716,4 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 CADCanvas.displayName = "CADCanvas";
 export default CADCanvas;
 
-useGLTF.preload("/models/ring.glb");
+// Static ring.glb is preloaded via standard fetch for the default viewport
