@@ -38,11 +38,14 @@ async function generateSasUrl(azureUri: string): Promise<string | null> {
   const st = fmt(now);
   const se = fmt(expiry);
 
+  // rsct = response content-type override so Azure serves as GLB
+  const rsct = "model/gltf-binary";
+
   const stringToSign = [
     "r", st, se,
     `/blob/${accountName}/${containerName}/${blobName}`,
     "", "", "https", "2020-10-02", "b",
-    "", "", "", "", "", "",
+    "", "", "", "", "", rsct,
   ].join("\n");
 
   const keyData = Uint8Array.from(atob(accountKey), (c) => c.charCodeAt(0));
@@ -50,7 +53,7 @@ async function generateSasUrl(azureUri: string): Promise<string | null> {
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(stringToSign));
   const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
 
-  const qs = new URLSearchParams({ sv: "2020-10-02", st, se, sr: "b", sp: "r", spr: "https", sig: sigB64 });
+  const qs = new URLSearchParams({ sv: "2020-10-02", st, se, sr: "b", sp: "r", spr: "https", sig: sigB64, rsct });
   const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${qs.toString()}`;
   console.log(`[formanova-proxy] Resolved: ${containerName}/${blobName}`);
   return url;
