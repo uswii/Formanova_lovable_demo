@@ -121,16 +121,19 @@ async function generateSasToken(
   return sasParams.toString();
 }
 
-async function generateSasUrlFromHttps(blobUrl: string, accountName: string, accountKey: string, expiryMinutes = 120): Promise<string> {
+async function generateSasUrlFromHttps(blobUrl: string, _accountName: string, accountKey: string, expiryMinutes = 120): Promise<string> {
   try {
     const url = new URL(blobUrl);
+    // Extract account name from hostname (e.g. "snapwear" from "snapwear.blob.core.windows.net")
+    const hostAccountName = url.hostname.split('.')[0];
     const pathParts = url.pathname.split('/').filter(Boolean);
     if (pathParts.length < 2) return blobUrl;
     const containerName = decodeURIComponent(pathParts[0]);
     const blobPath = pathParts.slice(1).map(p => decodeURIComponent(p)).join('/');
-    const sas = await generateSasToken(accountName, accountKey, containerName, blobPath, expiryMinutes);
+    const sas = await generateSasToken(hostAccountName, accountKey, containerName, blobPath, expiryMinutes);
     return `${blobUrl}?${sas}`;
-  } catch {
+  } catch (err) {
+    console.error('[delivery-manager] SAS generation error:', err);
     return blobUrl;
   }
 }
@@ -238,7 +241,7 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   // ── Public actions (token-validated, no admin auth) ──
-  if (action === 'gallery' || action === 'download') {
+  if (action === 'gallery' || action === 'download' || action === 'thumbnail') {
     const token = url.searchParams.get('token');
     if (!token) return json({ error: 'Missing token' }, 400);
 
@@ -258,7 +261,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === 'download') {
+    // Shared image proxy for both download and thumbnail
+    if (action === 'download' || action === 'thumbnail') {
       const imageId = url.searchParams.get('image_id');
       if (!imageId) return json({ error: 'Missing image_id' }, 400);
 
@@ -267,27 +271,28 @@ Deno.serve(async (req) => {
         .eq('delivery_batch_id', delivery.id).single();
       if (iErr || !image) return json({ error: 'Image not found' }, 404);
 
-      const accountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
       const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
-      const sasUrl = await generateSasUrlFromHttps(image.image_url, accountName, accountKey, 60);
+      const sasUrl = await generateSasUrlFromHttps(image.image_url, '', accountKey, 60);
 
       try {
         const blobResp = await fetch(sasUrl);
         if (!blobResp.ok) {
-          console.error(`[delivery-manager] Blob fetch failed: ${blobResp.status}`);
+          const errBody = await blobResp.text();
+          console.error(`[delivery-manager] Blob fetch failed: ${blobResp.status}`, errBody.substring(0, 200));
           return json({ error: 'Failed to fetch image from storage' }, 502);
         }
 
         const contentType = blobResp.headers.get('Content-Type') || 'image/jpeg';
         const filename = image.image_filename || `image_${image.sequence}.jpg`;
+        const isDownload = action === 'download';
 
         return new Response(blobResp.body, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': contentType,
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Cache-Control': 'private, max-age=3600',
+            'Content-Disposition': isDownload ? `attachment; filename="${filename}"` : 'inline',
+            'Cache-Control': isDownload ? 'private, max-age=3600' : 'public, max-age=7200',
           },
         });
       } catch (err) {
@@ -415,11 +420,10 @@ Deno.serve(async (req) => {
         .eq('delivery_batch_id', deliveryId).order('sequence');
 
       // Generate preview SAS URLs
-      const accountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
       const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
       const previewImages = await Promise.all((images || []).map(async (img: any) => ({
         ...img,
-        preview_url: await generateSasUrlFromHttps(img.image_url, accountName, accountKey, 30),
+        preview_url: await generateSasUrlFromHttps(img.image_url, '', accountKey, 30),
       })));
 
       return json({ delivery: batch, images: previewImages });
