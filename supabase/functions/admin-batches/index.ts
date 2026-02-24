@@ -663,14 +663,14 @@ Deno.serve(async (req) => {
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const matchFilter: any = { user_email: d.user_email };
-        if (d.category) matchFilter.jewelry_category = d.category;
-
-        const { data: jobs } = await supabaseAdmin
+        let jobQuery = supabaseAdmin
           .from('batch_jobs')
           .select('id')
-          .match(matchFilter)
+          .ilike('user_email', d.user_email)
           .neq('status', 'delivered');
+        if (d.category) jobQuery = jobQuery.eq('jewelry_category', d.category);
+
+        const { data: jobs } = await jobQuery;
 
         if (jobs && jobs.length > 0) {
           const ids = jobs.map((j: any) => j.id);
