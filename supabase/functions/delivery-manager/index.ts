@@ -510,10 +510,18 @@ Deno.serve(async (req) => {
           }).eq('id', deliveryId);
 
           // Also update corresponding batch_jobs to 'delivered'
-          await db.from('batch_jobs').update({
-            status: 'delivered',
-            completed_at: now,
-          }).eq('id', delivery.batch_id).in('status', ['completed', 'partial']);
+          // Match by user_email since CSV batch_id may not be the batch_jobs UUID
+          const { data: matchedJobs } = await db.from('batch_jobs')
+            .select('id')
+            .eq('user_email', delivery.user_email);
+          if (matchedJobs && matchedJobs.length > 0) {
+            const jobIds = matchedJobs.map((j: any) => j.id);
+            await db.from('batch_jobs').update({
+              status: 'delivered',
+              completed_at: now,
+            }).in('id', jobIds);
+            console.log(`[delivery-manager] Updated ${jobIds.length} batch_jobs to delivered for ${delivery.user_email}`);
+          }
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
           results.push({ id: deliveryId, email: recipientEmail, status: 'sent' });
