@@ -396,14 +396,15 @@ Deno.serve(async (req) => {
       const missing = required.filter(r => !(r in rows[0]));
       if (missing.length > 0) return json({ error: `Missing CSV columns: ${missing.join(', ')}` }, 400);
 
-      // Group by batch_id + user_email
-      const groups: Record<string, { batch_id: string; user_email: string; safe_email: string; images: { filename: string; url: string }[] }> = {};
+      // Group by batch_id + user_email + category
+      const groups: Record<string, { batch_id: string; user_email: string; safe_email: string; category: string; images: { filename: string; url: string }[] }> = {};
       for (const row of rows) {
         // Strip trailing .N suffix from user_email (e.g. "user@gmail.com.1" → "user@gmail.com")
         const cleanEmail = row.user_email.replace(/\.\d+$/, '');
-        const key = `${row.batch_id}::${cleanEmail}`;
+        const rowCategory = (row.category || body.category || 'necklace').toLowerCase().trim();
+        const key = `${row.batch_id}::${cleanEmail}::${rowCategory}`;
         if (!groups[key]) {
-          groups[key] = { batch_id: row.batch_id, user_email: cleanEmail, safe_email: row.safe_email.replace(/_\d+$/, ''), images: [] };
+          groups[key] = { batch_id: row.batch_id, user_email: cleanEmail, safe_email: row.safe_email.replace(/_\d+$/, ''), category: rowCategory, images: [] };
         }
         // Normalize URL: ensure https:// prefix
         let imageUrl = row.image_url;
@@ -415,13 +416,12 @@ Deno.serve(async (req) => {
         groups[key].images.push({ filename, url: imageUrl }); // keep full URL including any SAS token
       }
 
-      const category = body.category || 'necklace';
-      const created: { id: string; batch_id: string; user_email: string; image_count: number }[] = [];
+      const created: { id: string; batch_id: string; user_email: string; category: string; image_count: number }[] = [];
 
       for (const group of Object.values(groups)) {
-        // Check if delivery already exists for this batch_id + user_email
+        // Check if delivery already exists for this batch_id + user_email + category
         const { data: existing } = await db.from('delivery_batches')
-          .select('id, delivery_status').eq('batch_id', group.batch_id).eq('user_email', group.user_email).limit(1);
+          .select('id, delivery_status').eq('batch_id', group.batch_id).eq('user_email', group.user_email).eq('category', group.category).limit(1);
         if (existing && existing.length > 0) {
           // Already delivered — skip entirely to prevent duplicate emails
           if (existing[0].delivery_status === 'delivered') {
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
           user_email: group.user_email,
           safe_email: group.safe_email,
           override_email: overrideEmail,
-          category,
+          category: group.category,
           delivery_status: 'completed',
         }).select().single();
 
@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
         }));
 
         await db.from('delivery_images').insert(imageInserts);
-        created.push({ id: batch.id, batch_id: group.batch_id, user_email: group.user_email, image_count: group.images.length });
+        created.push({ id: batch.id, batch_id: group.batch_id, user_email: group.user_email, category: group.category, image_count: group.images.length });
       }
 
       console.log(`[delivery-manager] CSV uploaded: ${created.length} delivery batches created by ${user.email}`);
@@ -554,7 +554,7 @@ Deno.serve(async (req) => {
               from: 'FormaNova <noreply@formanova.ai>',
               reply_to: 'studio@formanova.ai',
               to: [recipientEmail],
-              subject: `Your ${category} results are ready — FormaNova`,
+              subject: `Your results are ready — FormaNova`,
               html,
               headers: {
                 'X-Entity-Ref-ID': uniqueId,
