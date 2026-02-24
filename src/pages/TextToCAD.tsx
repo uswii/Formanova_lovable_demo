@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
@@ -104,24 +105,80 @@ export default function TextToCAD() {
     setIsGenerating(true);
     setProgress(0);
     setHasModel(false);
-    for (let i = 0; i < PROGRESS_STEPS.length; i++) {
-      setProgressStep(PROGRESS_STEPS[i]);
-      const target = Math.round(((i + 1) / PROGRESS_STEPS.length) * 100);
-      for (let p = Math.round((i / PROGRESS_STEPS.length) * 100); p <= target; p += 2) {
-        setProgress(p);
-        await new Promise((r) => setTimeout(r, 60));
+    setProgressStep("Starting pipeline…");
+
+    try {
+      // 1. Start the pipeline
+      const runRes = await startRingPipeline(prompt, model);
+      const { status_url, result_url, projected_cost } = runRes;
+      if (projected_cost) toast.info(`Estimated cost: $${projected_cost.toFixed(2)}`);
+
+      // 2. Poll status until complete
+      setProgressStep("Analyzing your design…");
+      let done = false;
+      let pollErrors = 0;
+      while (!done) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const statusRes = await pollStatus(status_url);
+          const pct = calcProgress(statusRes);
+          setProgress(pct);
+          setProgressStep(statusRes.current_step || getProgressLabel(pct));
+
+          const s = (statusRes.status || "").toLowerCase();
+          if (s === "completed" || s === "done" || pct >= 100) {
+            done = true;
+          } else if (s === "failed" || s === "error") {
+            throw new Error("Pipeline failed");
+          }
+          pollErrors = 0;
+        } catch (err) {
+          pollErrors++;
+          if (pollErrors >= 5) throw err;
+          // transient error — keep polling
+        }
       }
-      await new Promise((r) => setTimeout(r, 400));
+
+      // 3. Fetch result and extract GLB URL
+      setProgress(95);
+      setProgressStep("Downloading your ring…");
+      const resultRes = await fetchResult(result_url);
+      const glbUrl = resultRes.glb_url;
+
+      if (!glbUrl) {
+        toast.error("No 3D model found in the result");
+        setIsGenerating(false);
+        return;
+      }
+
+      // 4. Load the GLB into the viewer
+      if (glbUrl) {
+        setGlbUrl(glbUrl);
+      }
+      setProgress(100);
+      setIsGenerating(false);
+      setHasModel(true);
+      setShowPartRegen(true);
+      toast.success("Ring generated successfully");
+
+    } catch (err) {
+      console.error("Generation failed:", err);
+      toast.error(err instanceof Error ? err.message : "Generation failed");
+      setIsGenerating(false);
+      setProgress(0);
+      setProgressStep("");
     }
-    setProgress(100);
-    setIsGenerating(false);
-    setHasModel(true);
-    setShowPartRegen(true);
-    setMeshes(DEMO_MESHES);
-    setModules(["Band", "Prongs", "Gems", "Setting"]);
-    setStats({ meshes: 9, sizeKB: 384, timeSec: 12 });
-    toast.success("Ring generated successfully");
-  }, [prompt]);
+  }, [prompt, model]);
+
+  // Map progress percentage to a user-friendly label
+  function getProgressLabel(pct: number): string {
+    if (pct < 15) return "Analyzing your design…";
+    if (pct < 35) return "Sculpting geometry…";
+    if (pct < 55) return "Refining details…";
+    if (pct < 75) return "Polishing surfaces…";
+    if (pct < 90) return "Preparing your ring…";
+    return "Almost ready…";
+  }
 
   const simulateEdit = useCallback(async () => {
     if (!editPrompt.trim()) { toast.error("Please describe the edit"); return; }
