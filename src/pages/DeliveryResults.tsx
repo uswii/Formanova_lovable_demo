@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -24,6 +24,7 @@ export default function DeliveryResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -37,6 +38,9 @@ export default function DeliveryResults() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  const getThumbnailUrl = (imageId: string) =>
+    `${DELIVERY_API}?action=thumbnail&token=${token}&image_id=${imageId}`;
+
   const handleDownload = async (image: GalleryImage) => {
     setDownloading(image.id);
     try {
@@ -47,7 +51,9 @@ export default function DeliveryResults() {
       const a = document.createElement('a');
       a.href = url;
       a.download = image.image_filename || `image_${image.sequence}.jpg`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
       alert('Download failed. Please try again.');
@@ -58,11 +64,12 @@ export default function DeliveryResults() {
 
   const handleDownloadAll = async () => {
     if (!data) return;
+    setDownloadingAll(true);
     for (const img of data.images) {
       await handleDownload(img);
-      // Small delay between downloads
       await new Promise(r => setTimeout(r, 500));
     }
+    setDownloadingAll(false);
   };
 
   if (loading) {
@@ -101,9 +108,11 @@ export default function DeliveryResults() {
         <div className="text-center mb-8">
           <Button
             onClick={handleDownloadAll}
+            disabled={downloadingAll}
             className="bg-gradient-to-r from-[#c8a97e] to-[#a88b5e] text-[#0a0a0a] hover:opacity-90 font-semibold tracking-wide gap-2"
           >
-            <Download className="h-4 w-4" /> Download All Images
+            {downloadingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download All Images
           </Button>
         </div>
       )}
@@ -113,9 +122,13 @@ export default function DeliveryResults() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.images.map(img => (
             <div key={img.id} className="group relative bg-[#111] border border-[#222] rounded-lg overflow-hidden">
-              {/* Thumbnail loaded via proxy */}
-              <div className="aspect-square bg-[#1a1a1a] flex items-center justify-center">
-                <ImageIcon className="h-12 w-12 text-[#333]" />
+              <div className="aspect-square bg-[#1a1a1a]">
+                <img
+                  src={getThumbnailUrl(img.id)}
+                  alt={img.image_filename}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
               <div className="p-3 flex items-center justify-between">
                 <p className="text-[#999] text-xs truncate flex-1">{img.image_filename}</p>
