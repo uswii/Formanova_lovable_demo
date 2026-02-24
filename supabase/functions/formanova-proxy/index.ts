@@ -129,6 +129,8 @@ serve(async (req) => {
 
       const llmName = MODEL_MAP[model] || "gemini";
 
+      console.log(`[formanova-proxy] Starting pipeline: model=${model} -> llm=${llmName}, prompt="${prompt.substring(0, 50)}..."`);
+
       const formanovaRes = await fetch(`${FORMANOVA_BASE}/run/ring_full_pipeline`, {
         method: "POST",
         headers: {
@@ -142,11 +144,25 @@ serve(async (req) => {
         }),
       });
 
-      const data = await formanovaRes.json();
+      const rawText = await formanovaRes.text();
+      console.log(`[formanova-proxy] Formanova response status: ${formanovaRes.status}`);
+      console.log(`[formanova-proxy] Formanova response body: ${rawText.substring(0, 500)}`);
+
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: `Formanova returned non-JSON (status ${formanovaRes.status})`, raw: rawText.substring(0, 200) }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       if (!formanovaRes.ok) {
+        const detail = (data as any).message || (data as any).error || (data as any).detail || rawText.substring(0, 200);
+        console.error(`[formanova-proxy] Formanova API error: ${detail}`);
         return new Response(
-          JSON.stringify({ error: "Formanova API error", details: data }),
+          JSON.stringify({ error: `Formanova API error (${formanovaRes.status}): ${detail}`, details: data }),
           { status: formanovaRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
