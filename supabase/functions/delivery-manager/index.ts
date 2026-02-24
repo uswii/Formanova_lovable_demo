@@ -583,12 +583,12 @@ Deno.serve(async (req) => {
           }).eq('id', deliveryId);
 
           // Also update corresponding batch_jobs to 'delivered'
-          // Match by user_email + category
-          const matchFilter: any = { user_email: delivery.user_email };
-          if (delivery.category) matchFilter.jewelry_category = delivery.category;
-          const { data: matchedJobs } = await db.from('batch_jobs')
+          // Match by user_email (case-insensitive) + category
+          let jobQuery = db.from('batch_jobs')
             .select('id')
-            .match(matchFilter);
+            .ilike('user_email', delivery.user_email);
+          if (delivery.category) jobQuery = jobQuery.eq('jewelry_category', delivery.category);
+          const { data: matchedJobs } = await jobQuery;
           if (matchedJobs && matchedJobs.length > 0) {
             const jobIds = matchedJobs.map((j: any) => j.id);
             await db.from('batch_jobs').update({
