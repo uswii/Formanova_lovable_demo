@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
-import { Canvas, useThree, ThreeEvent, invalidate } from "@react-three/fiber";
+import { Canvas, useThree, useFrame, ThreeEvent, invalidate } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
@@ -55,6 +55,16 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
+
+// ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
+function LightController({ intensity }: { intensity: number }) {
+  const { gl, invalidate: inv } = useThree();
+  useEffect(() => {
+    gl.toneMappingExposure = 0.7 * intensity;
+    inv();
+  }, [intensity, gl, inv]);
+  return null;
+}
 
 // ── Post-Processing (lightweight, skipped on low tier) ──
 const JewelryPostProcessing = React.memo(function JewelryPostProcessing() {
@@ -259,6 +269,10 @@ const LoadedModel = forwardRef<
         const rot = new THREE.Euler().setFromQuaternion(worldQuat);
         const scl = worldScale.multiplyScalar(s);
         const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
+        // Ensure double-sided rendering to prevent disappearing faces at certain angles
+        if ((origMat as THREE.MeshStandardMaterial).side !== undefined) {
+          (origMat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+        }
 
         list.push({
           name,
@@ -518,6 +532,8 @@ const LoadedModel = forwardRef<
       let material = materialCache.current.get(cacheKey);
       if (!material) {
         material = assigned ? assigned.create() : md.originalMaterial.clone();
+        // Ensure double-sided rendering on all materials
+        if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
       return { ...md, material, isSelected };
@@ -670,6 +686,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           }}
         >
           <Suspense fallback={null}>
+            {/* Dynamic light intensity sync */}
+            <LightController intensity={lightIntensity} />
             {/* Lighting — scaled by lightIntensity */}
             <ambientLight intensity={0.15 * lightIntensity} />
             <directionalLight position={[3, 5, 3]} intensity={1.0 * lightIntensity} color="#f5f0e8" />
