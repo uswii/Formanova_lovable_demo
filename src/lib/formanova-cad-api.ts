@@ -22,11 +22,13 @@ export interface StatusResponse {
   steps_completed?: number;
   steps_total?: number;
   glb_url?: string | null;
+  azure_source?: string | null;
   [key: string]: unknown;
 }
 
 export interface ResultResponse {
   glb_url: string | null;
+  azure_source?: string | null;
   [key: string]: unknown;
 }
 
