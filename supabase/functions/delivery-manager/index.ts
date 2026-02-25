@@ -660,6 +660,38 @@ Deno.serve(async (req) => {
               completed_at: now,
             }).in('id', jobIds);
             console.log(`[delivery-manager] Updated ${jobIds.length} batch_jobs to delivered for ${delivery.user_email} / ${delivery.category}`);
+
+            // Auto-populate batch_images.result_url with delivery output images
+            try {
+              const { data: deliveryImgs } = await db.from('delivery_images')
+                .select('image_url, sequence')
+                .eq('delivery_batch_id', deliveryId)
+                .order('sequence');
+
+              if (deliveryImgs && deliveryImgs.length > 0) {
+                // For each matched batch_job, get its batch_images sorted by sequence_number
+                for (const jobId of jobIds) {
+                  const { data: batchImgs } = await db.from('batch_images')
+                    .select('id, sequence_number')
+                    .eq('batch_id', jobId)
+                    .order('sequence_number');
+
+                  if (batchImgs && batchImgs.length > 0) {
+                    // Match by position: delivery image i → batch image i
+                    const updateCount = Math.min(deliveryImgs.length, batchImgs.length);
+                    for (let idx = 0; idx < updateCount; idx++) {
+                      await db.from('batch_images')
+                        .update({ result_url: deliveryImgs[idx].image_url })
+                        .eq('id', batchImgs[idx].id);
+                    }
+                    console.log(`[delivery-manager] Populated ${updateCount} batch_images result_urls for job ${jobId}`);
+                  }
+                }
+              }
+            } catch (syncErr) {
+              console.error(`[delivery-manager] Failed to sync output images to batch_images:`, syncErr);
+              // Non-fatal — delivery still succeeds
+            }
           }
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
