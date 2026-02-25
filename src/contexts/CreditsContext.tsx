@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserCredits, clearInternalUserIdCache, TOOL_COSTS, type CreditBalance } from '@/lib/credits-api';
+import { getStoredToken } from '@/lib/auth-api';
 
 interface CreditsContextType {
   credits: number | null;
@@ -19,13 +20,18 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
   const refreshCredits = useCallback(async () => {
     if (!user?.id) return;
+    // Double-check a token actually exists before hitting the API
+    const token = getStoredToken();
+    if (!token) {
+      console.warn('[Credits] No auth token found, skipping balance fetch');
+      return;
+    }
     setLoading(true);
     try {
       const data = await getUserCredits();
       setCredits(data.available);
     } catch (error) {
       console.warn('[Credits] Failed to fetch balance:', error);
-      // Don't clear credits on failure - keep stale value
     } finally {
       setLoading(false);
     }
