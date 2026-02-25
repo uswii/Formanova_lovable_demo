@@ -118,7 +118,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-8 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
+          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
@@ -157,7 +157,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-6 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-14 mx-auto opacity-80" />
+          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <ShieldAlert className="h-10 w-10 text-destructive mx-auto" />
           <div className="space-y-2">
@@ -178,7 +178,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-8 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
+          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
