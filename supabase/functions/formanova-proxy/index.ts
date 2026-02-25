@@ -15,88 +15,48 @@ const MODEL_MAP: Record<string, string> = {
 
 const FORMANOVA_BASE = "https://formanova.ai/api";
 
-// ── SAS Token Generation ──
+// ── Public Artifact URL ──
+// Artifacts in agentic-artifacts are public — no SAS needed
+const AZURE_BLOB_HOST = "https://snapwear.blob.core.windows.net";
 
-async function generateSasUrl(azureUri: string): Promise<string | null> {
-  const accountName = Deno.env.get("AZURE_ACCOUNT_NAME");
-  const accountKey = Deno.env.get("AZURE_ACCOUNT_KEY");
-  if (!accountName || !accountKey) {
-    console.error("[formanova-proxy] Missing AZURE_ACCOUNT_NAME or AZURE_ACCOUNT_KEY");
-    return null;
-  }
-
+function azureUriToPublicUrl(azureUri: string): string | null {
+  if (!azureUri.startsWith("azure://")) return null;
   const path = azureUri.replace("azure://", "");
-  const slashIndex = path.indexOf("/");
-  if (slashIndex === -1) return null;
-
-  const containerName = path.substring(0, slashIndex);
-  const blobName = path.substring(slashIndex + 1);
-
-  const now = new Date();
-  const expiry = new Date(now.getTime() + 60 * 60 * 1000);
-  const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
-  const st = fmt(now);
-  const se = fmt(expiry);
-
-  // rsct = response content-type override so Azure serves as GLB
-  const rsct = "model/gltf-binary";
-
-  // 16 fields (15 newlines) required for Azure SAS v2020-10-02:
-  // sp, st, se, canonicalizedResource, si, sip, spr, sv, sr,
-  // snapshot, encryptionScope, rscc, rscd, rsce, rscl, rsct
-  const stringToSign = [
-    "r", st, se,
-    `/blob/${accountName}/${containerName}/${blobName}`,
-    "", "", "https", "2020-10-02", "b",
-    "", "", "", "", "", "", rsct,
-  ].join("\n");
-
-  const keyData = Uint8Array.from(atob(accountKey), (c) => c.charCodeAt(0));
-  const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(stringToSign));
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
-
-  const qs = new URLSearchParams({ sv: "2020-10-02", st, se, sr: "b", sp: "r", spr: "https", sig: sigB64, rsct });
-  const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${qs.toString()}`;
-  console.log(`[formanova-proxy] Resolved: ${containerName}/${blobName}`);
+  if (!path.includes("/")) return null;
+  const url = `${AZURE_BLOB_HOST}/${path}`;
+  console.log(`[formanova-proxy] Resolved public URL: ${url}`);
   return url;
 }
 
 // ── Helpers ──
 
-function findAzureUri(obj: unknown, nodeKey?: string): string | null {
-  if (!obj || typeof obj !== "object") return null;
-  const rec = obj as Record<string, unknown>;
-  if (nodeKey && nodeKey in rec) {
-    const found = findAzureUri(rec[nodeKey]);
-    if (found) return found;
-  }
-  for (const val of Object.values(rec)) {
-    if (typeof val === "string" && val.startsWith("azure://")) return val;
-    if (val && typeof val === "object") {
-      const found = findAzureUri(val);
-      if (found) return found;
+/**
+ * Extract the azure:// URI from a node's glb_path.uri structure.
+ * Expected shape: results["ring-validate"] = [{ glb_path: { uri: "azure://..." } }]
+ */
+function extractGlbUri(results: Record<string, unknown>, nodeKey: string): string | null {
+  const node = results[nodeKey];
+  if (!node) return null;
+  // node is an array — take first element
+  const arr = Array.isArray(node) ? node : [node];
+  for (const entry of arr) {
+    const rec = entry as Record<string, unknown> | null;
+    if (!rec) continue;
+    const glbPath = rec.glb_path as Record<string, unknown> | undefined;
+    if (glbPath && typeof glbPath.uri === "string" && glbPath.uri.startsWith("azure://")) {
+      return glbPath.uri;
     }
   }
   return null;
 }
 
-function findGlbUrl(obj: unknown): string | null {
-  if (typeof obj === "string") {
-    if (obj.endsWith(".glb") || obj.includes(".glb")) return obj;
-    return null;
-  }
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      const found = findGlbUrl(item);
-      if (found) return found;
-    }
-    return null;
-  }
-  if (obj && typeof obj === "object") {
-    const record = obj as Record<string, unknown>;
-    for (const val of Object.values(record)) {
-      const found = findGlbUrl(val);
+/** Legacy fallback: recursively find any azure:// URI */
+function findAzureUri(obj: unknown): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  for (const val of Object.values(obj as Record<string, unknown>)) {
+    if (typeof val === "string" && val.startsWith("azure://")) return val;
+    if (val && typeof val === "object") {
+      const found = findAzureUri(val);
       if (found) return found;
     }
   }
@@ -250,18 +210,25 @@ serve(async (req) => {
 
       // ── If completed, extract GLB URL from inline results ──
       let glbUrl: string | null = null;
+      let source: string | null = null;
       if (progressPct >= 100 && data.results) {
-        const validateUri = findAzureUri(data.results, "ring-validate");
-        const generateUri = findAzureUri(data.results, "ring-generate");
+        const results = data.results as Record<string, unknown>;
+        const validateUri = extractGlbUri(results, "ring-validate");
+        const generateUri = extractGlbUri(results, "ring-generate");
         const azureUri = validateUri || generateUri;
+        source = validateUri ? "ring-validate" : generateUri ? "ring-generate" : null;
 
         if (azureUri) {
-          glbUrl = await generateSasUrl(azureUri);
-          console.log(`[formanova-proxy] Resolved GLB from status: ${azureUri} -> ${glbUrl ? "OK" : "FAILED"}`);
+          glbUrl = azureUriToPublicUrl(azureUri);
+        }
+        // Fallback: try legacy recursive search
+        if (!glbUrl) {
+          const fallbackUri = findAzureUri(data.results);
+          if (fallbackUri) glbUrl = azureUriToPublicUrl(fallbackUri);
         }
         if (glbUrl) {
           data.glb_url = glbUrl;
-          data.azure_source = validateUri ? "ring-validate" : "ring-generate";
+          data.azure_source = source;
         }
       }
 
@@ -315,20 +282,21 @@ serve(async (req) => {
         );
       }
 
-      // Extract azure:// URIs — prefer ring-validate, fallback to ring-generate
-      const validateUri = findAzureUri(data, "ring-validate");
-      const generateUri = findAzureUri(data, "ring-generate");
+      // Extract GLB URI — prefer ring-validate, fallback to ring-generate
+      const validateUri = extractGlbUri(data, "ring-validate");
+      const generateUri = extractGlbUri(data, "ring-generate");
       const azureUri = validateUri || generateUri;
+      const source = validateUri ? "ring-validate" : generateUri ? "ring-generate" : null;
 
       let glbUrl: string | null = null;
-
       if (azureUri) {
-        glbUrl = await generateSasUrl(azureUri);
-      } else {
-        glbUrl = findGlbUrl(data);
+        glbUrl = azureUriToPublicUrl(azureUri);
       }
-
-      const source = validateUri ? "ring-validate" : generateUri ? "ring-generate" : null;
+      // Fallback: legacy recursive search
+      if (!glbUrl) {
+        const fallbackUri = findAzureUri(data);
+        if (fallbackUri) glbUrl = azureUriToPublicUrl(fallbackUri);
+      }
 
       return new Response(
         JSON.stringify({ ...data, glb_url: glbUrl, azure_source: source }),
