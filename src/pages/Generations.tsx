@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OptimizedImage } from '@/components/ui/optimized-image';
-import { ArrowLeft, ImageIcon, Calendar, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ImageIcon, Calendar, ExternalLink, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getStoredToken } from '@/lib/auth-api';
 import { format } from 'date-fns';
 
 interface DeliveryThumbnail {
@@ -27,7 +28,7 @@ interface DeliveryBatch {
 }
 
 export default function Generations() {
-  const { user, getAuthHeader } = useAuth();
+  const { user } = useAuth();
   const [deliveries, setDeliveries] = useState<DeliveryBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +38,20 @@ export default function Generations() {
 
     const fetchDeliveries = async () => {
       try {
-        const headers = getAuthHeader();
-        const token = headers['Authorization']?.replace('Bearer ', '') || '';
+        const userToken = getStoredToken();
+        if (!userToken) throw new Error('Not authenticated');
+
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const res = await fetch(
           `https://${projectId}.supabase.co/functions/v1/delivery-manager?action=my_deliveries`,
-          { headers: { 'X-User-Token': token } }
+          {
+            headers: {
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey,
+              'X-User-Token': userToken,
+            },
+          }
         );
         if (!res.ok) throw new Error('Failed to load');
         const data = await res.json();
@@ -57,6 +66,24 @@ export default function Generations() {
 
     fetchDeliveries();
   }, [user]);
+
+  const handleDownload = async (thumb: DeliveryThumbnail) => {
+    try {
+      const resp = await fetch(thumb.url);
+      if (!resp.ok) throw new Error('Download failed');
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = thumb.filename || 'image.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[Generations] download error:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background px-4 py-8">
@@ -139,18 +166,24 @@ export default function Generations() {
                     </div>
                   </div>
 
-                  {/* Thumbnail grid */}
+                  {/* Thumbnail grid with download icons */}
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {batch.thumbnails.map((thumb) => (
-                      <div key={thumb.id} className="aspect-square rounded-md overflow-hidden bg-muted">
+                      <div key={thumb.id} className="relative group aspect-square rounded-md overflow-hidden bg-muted">
                         <OptimizedImage
                           src={thumb.url}
                           alt={thumb.filename}
                           className="w-full h-full object-cover"
                         />
+                        <button
+                          onClick={() => handleDownload(thumb)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title={`Download ${thumb.filename}`}
+                        >
+                          <Download className="h-5 w-5 text-white" />
+                        </button>
                       </div>
                     ))}
-                    {/* Fill empty slots if < 3 thumbnails */}
                     {Array.from({ length: Math.max(0, 3 - batch.thumbnails.length) }).map((_, i) => (
                       <div key={`empty-${i}`} className="aspect-square rounded-md bg-muted/50" />
                     ))}
@@ -161,7 +194,7 @@ export default function Generations() {
                     <Button asChild variant="outline" className="w-full gap-2">
                       <Link to={`/results/${batch.token}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
-                        View Results
+                        View All Results
                       </Link>
                     </Button>
                   )}
