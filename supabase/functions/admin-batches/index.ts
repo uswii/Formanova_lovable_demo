@@ -175,6 +175,45 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get('action') || 'list_batches';
     const batchId = url.searchParams.get('batch_id');
 
+    // ── PROXY IMAGE (no auth needed — used by <img> tags which can't send headers) ──
+    if (action === 'proxy_image') {
+      const imageUrl = url.searchParams.get('url');
+      if (!imageUrl) {
+        return new Response(
+          JSON.stringify({ error: 'Missing url parameter' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!imageUrl.includes('.blob.core.windows.net')) {
+        return new Response(
+          JSON.stringify({ error: 'Only Azure Blob URLs are allowed' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const azureAccountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
+      const azureAccountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
+      const baseUrl = imageUrl.split('?')[0];
+      const freshUrl = await generateSasUrl(baseUrl, azureAccountName, azureAccountKey);
+      const imgResponse = await fetch(freshUrl);
+      if (!imgResponse.ok) {
+        console.error(`[proxy_image] Azure fetch failed: ${imgResponse.status} for ${baseUrl}`);
+        return new Response(
+          JSON.stringify({ error: `Azure fetch failed: ${imgResponse.status}` }),
+          { status: imgResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
+      const blob = await imgResponse.arrayBuffer();
+      return new Response(blob, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': contentType,
+          'Content-Length': blob.byteLength.toString(),
+          'Cache-Control': 'private, max-age=3600',
+        },
+      });
+    }
+
     // ── Dual Authentication ──
     const userToken = req.headers.get('X-User-Token');
     if (!userToken) {
@@ -569,49 +608,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── PROXY IMAGE (binary passthrough, re-signs Azure SAS) ──
-    if (action === 'proxy_image') {
-      const imageUrl = url.searchParams.get('url');
-      if (!imageUrl) {
-        return new Response(
-          JSON.stringify({ error: 'Missing url parameter' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Only allow Azure blob URLs
-      if (!imageUrl.includes('.blob.core.windows.net')) {
-        return new Response(
-          JSON.stringify({ error: 'Only Azure Blob URLs are allowed' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Strip any existing SAS query params and regenerate a fresh SAS
-      const baseUrl = imageUrl.split('?')[0];
-      const freshUrl = await generateSasUrl(baseUrl, azureAccountName, azureAccountKey);
-
-      const imgResponse = await fetch(freshUrl);
-      if (!imgResponse.ok) {
-        console.error(`[proxy_image] Azure fetch failed: ${imgResponse.status} for ${baseUrl}`);
-        return new Response(
-          JSON.stringify({ error: `Azure fetch failed: ${imgResponse.status}` }),
-          { status: imgResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
-      const blob = await imgResponse.arrayBuffer();
-
-      return new Response(blob, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': contentType,
-          'Content-Length': blob.byteLength.toString(),
-          'Cache-Control': 'private, max-age=3600',
-        },
-      });
-    }
+    // proxy_image is now handled before auth check (above)
 
     // ── DELETE BATCH ──
     if (action === 'delete_batch' && req.method === 'POST') {
