@@ -642,16 +642,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── SYNC DELIVERED STATUSES ──
-    // Retroactively update batch_jobs to 'delivered' for all delivery_batches that are already delivered
+    // ── SYNC DELIVERED STATUSES + OUTPUT IMAGES ──
+    // Retroactively update batch_jobs to 'delivered' and backfill batch_images.result_url from delivery_images
     if (action === 'sync_delivered' && req.method === 'POST') {
       const { data: deliveredBatches, error: dbErr } = await supabaseAdmin
         .from('delivery_batches')
-        .select('user_email, category')
+        .select('id, user_email, category')
         .eq('delivery_status', 'delivered');
       if (dbErr) throw dbErr;
 
       let updatedCount = 0;
+      let outputsSynced = 0;
       const seen = new Set<string>();
       for (const d of (deliveredBatches || [])) {
         const key = `${d.user_email}|${d.category || ''}`;
@@ -661,24 +662,62 @@ Deno.serve(async (req) => {
         let jobQuery = supabaseAdmin
           .from('batch_jobs')
           .select('id')
-          .ilike('user_email', d.user_email)
-          .neq('status', 'delivered');
+          .ilike('user_email', d.user_email);
         if (d.category) jobQuery = jobQuery.eq('jewelry_category', d.category);
 
         const { data: jobs } = await jobQuery;
 
         if (jobs && jobs.length > 0) {
           const ids = jobs.map((j: any) => j.id);
-          await supabaseAdmin.from('batch_jobs').update({
-            status: 'delivered',
-            completed_at: new Date().toISOString(),
-          }).in('id', ids);
-          updatedCount += ids.length;
+
+          // Update status to delivered if not already
+          const { data: notDelivered } = await supabaseAdmin
+            .from('batch_jobs')
+            .select('id')
+            .in('id', ids)
+            .neq('status', 'delivered');
+          if (notDelivered && notDelivered.length > 0) {
+            await supabaseAdmin.from('batch_jobs').update({
+              status: 'delivered',
+              completed_at: new Date().toISOString(),
+            }).in('id', notDelivered.map((j: any) => j.id));
+            updatedCount += notDelivered.length;
+          }
+
+          // Backfill batch_images.result_url from delivery_images
+          // Get delivery images for this delivery batch
+          const { data: deliveryImgs } = await supabaseAdmin
+            .from('delivery_images')
+            .select('image_url, sequence')
+            .eq('delivery_batch_id', d.id)
+            .order('sequence');
+
+          if (deliveryImgs && deliveryImgs.length > 0) {
+            for (const jobId of ids) {
+              // Only update batch_images that don't have result_url yet
+              const { data: batchImgs } = await supabaseAdmin
+                .from('batch_images')
+                .select('id, sequence_number')
+                .eq('batch_id', jobId)
+                .is('result_url', null)
+                .order('sequence_number');
+
+              if (batchImgs && batchImgs.length > 0) {
+                const updateCount = Math.min(deliveryImgs.length, batchImgs.length);
+                for (let idx = 0; idx < updateCount; idx++) {
+                  await supabaseAdmin.from('batch_images')
+                    .update({ result_url: deliveryImgs[idx].image_url })
+                    .eq('id', batchImgs[idx].id);
+                  outputsSynced++;
+                }
+              }
+            }
+          }
         }
       }
 
-      console.log(`[admin-batches] Synced ${updatedCount} batch_jobs to delivered by ${user.email}`);
-      return new Response(JSON.stringify({ success: true, updated_count: updatedCount }), {
+      console.log(`[admin-batches] Synced ${updatedCount} statuses, ${outputsSynced} output images by ${user.email}`);
+      return new Response(JSON.stringify({ success: true, updated_count: updatedCount, outputs_synced: outputsSynced }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

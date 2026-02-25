@@ -228,7 +228,9 @@ export default function AdminBatches() {
       });
       if (!response.ok) throw new Error('Sync failed');
       const data = await response.json();
-      toast({ title: `Synced ${data.updated_count} batches to delivered` });
+      const parts = [`${data.updated_count} statuses synced`];
+      if (data.outputs_synced > 0) parts.push(`${data.outputs_synced} output images populated`);
+      toast({ title: parts.join(', ') });
       fetchBatches();
     } catch (err: any) {
       toast({ title: err.message || 'Sync failed', variant: 'destructive' });
