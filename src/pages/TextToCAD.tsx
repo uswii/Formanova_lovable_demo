@@ -118,6 +118,7 @@ export default function TextToCAD() {
       let done = false;
       let pollErrors = 0;
       let resolvedGlbUrl: string | null = null;
+      let glbSource: string | null = null;
 
       while (!done) {
         await new Promise((r) => setTimeout(r, 3000));
@@ -129,9 +130,9 @@ export default function TextToCAD() {
 
           const s = (statusRes.status || "").toLowerCase();
           if (s === "completed" || s === "done" || pct >= 100) {
-            // GLB may already be resolved in the status response
             if (statusRes.glb_url) {
               resolvedGlbUrl = statusRes.glb_url as string;
+              glbSource = (statusRes.azure_source as string) || null;
             }
             done = true;
           } else if (s === "failed" || s === "error") {
@@ -150,6 +151,7 @@ export default function TextToCAD() {
         setProgressStep("Downloading your ring…");
         const resultRes = await fetchResult(result_url);
         resolvedGlbUrl = resultRes.glb_url;
+        glbSource = resultRes.azure_source || null;
       }
 
       if (!resolvedGlbUrl) {
@@ -164,7 +166,15 @@ export default function TextToCAD() {
       setIsGenerating(false);
       setHasModel(true);
       setShowPartRegen(true);
-      toast.success("Ring generated successfully");
+
+      // Show source toast
+      if (glbSource === "ring-validate") {
+        toast.success("✅ Validated model loaded", { position: "bottom-right" });
+      } else if (glbSource === "ring-generate") {
+        toast.info("🔧 Generated model loaded (unvalidated)", { position: "bottom-right" });
+      } else {
+        toast.success("Ring generated successfully");
+      }
 
     } catch (err) {
       console.error("Generation failed:", err);
