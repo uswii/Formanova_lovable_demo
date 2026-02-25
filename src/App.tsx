@@ -71,7 +71,7 @@ const App = () => (
                   <Route path="/admin" element={<ProtectedRoute><AdminBatches /></ProtectedRoute>} />
                   
                   {/* Public delivery results page */}
-                  <Route path="/results/:token" element={<DeliveryResults />} />
+                  <Route path="/yourresults/:token" element={<DeliveryResults />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

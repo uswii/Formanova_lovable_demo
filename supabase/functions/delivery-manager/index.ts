@@ -585,7 +585,7 @@ Deno.serve(async (req) => {
       if (!deliveryIds || deliveryIds.length === 0) return json({ error: 'delivery_ids required' }, 400);
 
       // Build branded gallery URL (avoids "dangerous link" warnings from email clients)
-      const BRANDED_BASE = 'https://formanova.lovable.app';
+      const BRANDED_BASE = 'https://formanova.ai';
 
       const results: { id: string; email: string; status: string; error?: string }[] = [];
 
@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
 
           const recipientEmail = delivery.override_email || delivery.user_email;
           const recipientName = recipientEmail.split('@')[0];
-          const resultsUrl = `${BRANDED_BASE}/results/${token}`;
+          const resultsUrl = `${BRANDED_BASE}/yourresults/${token}`;
           const category = delivery.category || 'jewelry';
 
           const html = buildDeliveryEmailHtml({ recipientName, category, resultsUrl, imageCount });
