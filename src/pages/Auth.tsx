@@ -22,6 +22,11 @@ const AUTH_SUCCESS_REDIRECT = '/studio';
 // CRITICAL: Capture hash fragment IMMEDIATELY on module load (before React clears it)
 const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
 
+const isInstagramBrowser = () => {
+  const ua = navigator.userAgent || navigator.vendor || '';
+  return /Instagram/i.test(ua);
+};
+
 const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,6 +37,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const [error, setError] = useState<string | null>(null);
   const preloadedUrlRef = useRef<string | null>(null);
   const processedRef = useRef(false);
+  const isInstagram = isInstagramBrowser();
 
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
@@ -229,6 +235,16 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             Sign in to create photoshoots
           </p>
 
+          {isInstagram && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4 text-center">
+              <p className="text-destructive text-sm font-medium leading-relaxed">
+                Google login does not work inside the Instagram browser.
+                <br />
+                Please open this page in Chrome, Safari, Brave, Edge, Firefox, or another standard browser to continue.
+              </p>
+            </div>
+          )}
+
           {error ? (
             <div className="flex flex-col items-center gap-2">
               <p className="text-destructive text-sm text-center">{error}</p>
@@ -236,10 +252,10 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             </div>
           ) : (
             <Button 
-              onClick={loading ? undefined : handleGoogleSignIn} 
+              onClick={loading || isInstagram ? undefined : handleGoogleSignIn} 
               className="w-full max-w-xs h-12 text-base" 
               variant="outline"
-              disabled={loading}
+              disabled={loading || isInstagram}
             >
               {loading ? (
                 <>
