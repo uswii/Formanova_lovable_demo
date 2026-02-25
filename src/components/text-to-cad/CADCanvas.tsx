@@ -301,19 +301,60 @@ const LoadedModel = forwardRef<
     materialCache.current.forEach((m) => m.dispose());
     materialCache.current.clear();
 
-    // ── Magic Texturing: auto-assign materials based on mesh name keywords ──
+    // ── Magic Texturing: auto-assign materials based on mesh name + material heuristics ──
     const autoMaterials: Record<string, MaterialDef> = {};
     const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
     const platinumKeywords = ["prong", "claw", "bead", "milgrain"];
-    
+    const diamondMatDef = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
+    const platinumMatDef = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
+    const goldMatDef = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+
+    // Compute median vertex count to identify small meshes (likely gems)
+    const vertCounts = list.map((md) => md.geometry?.attributes?.position?.count || 0).sort((a, b) => a - b);
+    const medianVerts = vertCounts[Math.floor(vertCounts.length / 2)] || 0;
+
+    // Helper: detect if original material looks like a gem (transparent, refractive, non-metallic)
+    const looksLikeGem = (mat: THREE.Material): boolean => {
+      if (!(mat instanceof THREE.MeshPhysicalMaterial || mat instanceof THREE.MeshStandardMaterial)) return false;
+      const phys = mat as THREE.MeshPhysicalMaterial;
+      // Check transmission (refractive/transparent material)
+      if (phys.transmission !== undefined && phys.transmission > 0.1) return true;
+      // Check opacity + transparent flag
+      if (phys.transparent && phys.opacity < 0.8) return true;
+      // Non-metallic with very low roughness = likely polished gem
+      if (phys.metalness < 0.3 && phys.roughness < 0.15) return true;
+      return false;
+    };
+
+    // Helper: detect if original material looks metallic (prong-like)
+    const looksLikeMetal = (mat: THREE.Material): boolean => {
+      if (!(mat instanceof THREE.MeshPhysicalMaterial || mat instanceof THREE.MeshStandardMaterial)) return false;
+      return mat.metalness > 0.7;
+    };
+
     list.forEach((md) => {
       const lower = md.name.toLowerCase();
+      const verts = md.geometry?.attributes?.position?.count || 0;
+
+      // 1. Name-based matching (highest priority)
       if (gemKeywords.some((kw) => lower.includes(kw))) {
-        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
+        autoMaterials[md.name] = diamondMatDef;
       } else if (platinumKeywords.some((kw) => lower.includes(kw))) {
-        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
-      } else {
-        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+        autoMaterials[md.name] = platinumMatDef;
+      }
+      // 2. Material property heuristic (for pipeline models with generic names)
+      else if (looksLikeGem(md.originalMaterial)) {
+        autoMaterials[md.name] = diamondMatDef;
+        console.log(`[MagicTex] "${md.name}" → diamond (material heuristic: transmission/transparency)`);
+      }
+      // 3. Geometry size heuristic: small non-metallic meshes are likely gems
+      else if (verts > 0 && verts < medianVerts * 0.3 && !looksLikeMetal(md.originalMaterial)) {
+        autoMaterials[md.name] = diamondMatDef;
+        console.log(`[MagicTex] "${md.name}" → diamond (size heuristic: ${verts} verts < ${Math.round(medianVerts * 0.3)} threshold)`);
+      }
+      // 4. Default to gold
+      else {
+        autoMaterials[md.name] = goldMatDef;
       }
     });
 
