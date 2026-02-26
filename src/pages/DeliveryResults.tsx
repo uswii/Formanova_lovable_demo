@@ -169,6 +169,13 @@ export default function DeliveryResults() {
               You don't have permission to view these results. Please sign in with the account that was used to submit this batch.
             </p>
           </div>
+          <Button
+            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in with a different account
+          </Button>
         </div>
       </div>
     );
