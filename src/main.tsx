@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
-import { PostHogProvider } from '@posthog/react';
+import posthog from 'posthog-js';
+import { PostHogProvider } from 'posthog-js/react';
 import App from "./App.tsx";
 import "./index.css";
 
@@ -41,14 +42,18 @@ if (
   window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
 } else {
   const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
-  const posthogOptions = {
-    api_host: 'https://us.i.posthog.com',
-    defaults: '2026-01-30',
-  } as const;
+
+  // Initialize PostHog eagerly so session recording starts immediately
+  if (posthogKey) {
+    posthog.init(posthogKey, {
+      api_host: 'https://us.i.posthog.com',
+      defaults: '2026-01-30',
+    });
+  }
 
   createRoot(document.getElementById("root")!).render(
     posthogKey ? (
-      <PostHogProvider apiKey={posthogKey} options={posthogOptions}>
+      <PostHogProvider client={posthog}>
         <App />
       </PostHogProvider>
     ) : (
