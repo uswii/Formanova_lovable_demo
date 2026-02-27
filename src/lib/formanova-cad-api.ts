@@ -1,9 +1,10 @@
 /**
  * Frontend API client for the Formanova Text-to-CAD pipeline.
- * Calls the production API directly with JWT Bearer auth (no proxy needed).
+ * Calls the production API directly with JWT Bearer auth.
+ * Uses authenticatedFetch for centralized 401 handling.
  */
 
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const FORMANOVA_API = 'https://formanova.ai/api';
 const AZURE_BLOB_HOST = 'https://snapwear.blob.core.windows.net';
@@ -43,15 +44,6 @@ export interface ResultResponse {
 }
 
 // ── Helpers ──
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getStoredToken();
-  if (!token) throw new Error('Not authenticated — please sign in first');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-  };
-}
 
 function azureUriToPublicUrl(azureUri: string): string | null {
   if (!azureUri.startsWith('azure://')) return null;
@@ -108,9 +100,9 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
   const llmName = MODEL_MAP[model] || 'gemini';
 
-  const res = await fetch(`${FORMANOVA_API}/run/ring_full_pipeline`, {
+  const res = await authenticatedFetch(`${FORMANOVA_API}/run/ring_full_pipeline`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       payload: { prompt, llm_name: llmName, max_retries: 3 },
       return_nodes: ['ring-generate', 'ring-validate'],
@@ -130,10 +122,7 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
     ? statusUrl
     : `${FORMANOVA_API}${statusUrl.startsWith('/') ? '' : '/'}${statusUrl}`;
 
-  const res = await fetch(fullUrl, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const res = await authenticatedFetch(fullUrl);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -178,10 +167,7 @@ export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
     ? resultUrl
     : `${FORMANOVA_API}${resultUrl.startsWith('/') ? '' : '/'}${resultUrl}`;
 
-  const res = await fetch(fullUrl, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const res = await authenticatedFetch(fullUrl);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
