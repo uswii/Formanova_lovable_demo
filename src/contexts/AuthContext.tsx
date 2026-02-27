@@ -57,10 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const currentUser = await authApi.getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
+          } else {
+            // 401: token expired/invalid — clear session to prevent fake UI
+            removeStoredToken();
+            removeStoredUser();
+            setUser(null);
           }
-          // If 401: getCurrentUser returns null but we keep the stored user
-          // so the session persists. User will be prompted to re-auth
-          // only when an actual admin/API action fails.
         } catch (error) {
           // Network error / timeout — keep existing session
           console.warn('[AuthContext] Background validation failed (network), keeping session:', error);
