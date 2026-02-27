@@ -8,7 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { getStoredToken } from '@/lib/auth-api';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
-const API_GATEWAY_URL = 'https://formanova.ai/api';
+const API_GATEWAY_URL = 'https://formanova.ai';
 
 const PLANS = [
   {
