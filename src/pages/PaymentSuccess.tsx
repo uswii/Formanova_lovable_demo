@@ -8,12 +8,16 @@ import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
+const POLL_INTERVAL = 2000;
+const POLL_TIMEOUT = 30000;
+
 type VerifyState =
   | { type: 'loading' }
   | { type: 'fulfilled'; creditsAdded: number }
   | { type: 'not_found' }
   | { type: 'error' }
-  | { type: 'missing_session' };
+  | { type: 'missing_session' }
+  | { type: 'timeout' };
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -25,45 +29,77 @@ export default function PaymentSuccess() {
     sessionId ? { type: 'loading' } : { type: 'missing_session' }
   );
   const calledRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const unmountedRef = useRef(false);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
   const verify = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId || unmountedRef.current) return;
     const token = getStoredToken();
     if (!token) {
+      stopPolling();
       setState({ type: 'error' });
       return;
     }
-    setState({ type: 'loading' });
     try {
       const res = await fetch(
         `${API_GATEWAY_URL}/billing/checkout/verify/${sessionId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (unmountedRef.current) return;
       if (res.status === 404) {
+        stopPolling();
         setState({ type: 'not_found' });
         return;
       }
       if (!res.ok) {
+        stopPolling();
         setState({ type: 'error' });
         return;
       }
       const data = await res.json();
       if (data.status === 'fulfilled') {
+        stopPolling();
         setState({ type: 'fulfilled', creditsAdded: data.credits_added });
       } else {
-        // pending or other — stay loading (polling will handle later)
-        setState({ type: 'loading' });
+        // pending — start polling if not already
+        if (!intervalRef.current && !unmountedRef.current) {
+          startTimeRef.current = Date.now();
+          intervalRef.current = setInterval(() => {
+            if (unmountedRef.current) { stopPolling(); return; }
+            if (Date.now() - startTimeRef.current >= POLL_TIMEOUT) {
+              stopPolling();
+              setState({ type: 'timeout' });
+              return;
+            }
+            verify();
+          }, POLL_INTERVAL);
+        }
       }
     } catch {
+      if (unmountedRef.current) return;
+      stopPolling();
       setState({ type: 'error' });
     }
-  }, [sessionId]);
+  }, [sessionId, stopPolling]);
 
   useEffect(() => {
+    unmountedRef.current = false;
     if (!sessionId || calledRef.current) return;
     calledRef.current = true;
     verify();
-  }, [sessionId, verify]);
+    return () => {
+      unmountedRef.current = true;
+      stopPolling();
+    };
+  }, [sessionId, verify, stopPolling]);
 
   // Missing session_id
   if (state.type === 'missing_session') {
@@ -131,6 +167,42 @@ export default function PaymentSuccess() {
               </Button>
               <Button asChild variant="outline" size="lg" className="flex-1">
                 <Link to="/pricing">Buy more credits</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Timeout — still pending after 30s
+  if (state.type === 'timeout') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full border-border/50 bg-card/50">
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+            <AlertCircle className="h-9 w-9 text-muted-foreground" />
+            <h1 className="text-2xl font-display tracking-wide">
+              Still processing
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Please refresh in a moment or return to Studio.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Button asChild size="lg" className="flex-1">
+                <Link to={fallback}>Back to Studio</Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1"
+                onClick={() => {
+                  calledRef.current = false;
+                  setState({ type: 'loading' });
+                  verify();
+                }}
+              >
+                Refresh
               </Button>
             </div>
           </CardContent>
