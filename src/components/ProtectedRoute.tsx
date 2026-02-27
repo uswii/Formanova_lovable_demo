@@ -10,8 +10,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (!user) {
-    // Redirect to auth page, saving the intended destination
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    // Redirect to auth page, preserving destination via ?next= (works across new tabs/email links)
+    const destination = location.pathname + location.search + location.hash;
+    return <Navigate to={`/login?next=${encodeURIComponent(destination)}`} replace />;
   }
 
   return <>{children}</>;
