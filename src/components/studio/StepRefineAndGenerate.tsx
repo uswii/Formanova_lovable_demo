@@ -29,6 +29,7 @@ import { a100Api } from '@/lib/a100-api';
 import { compressDataUrl } from '@/lib/image-compression';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
+import { useCredits } from '@/contexts/CreditsContext';
 
 interface Props {
   state: StudioState;
@@ -57,6 +58,7 @@ const SKIN_TONES: { value: SkinTone; label: string }[] = [
 export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType = 'necklace' }: Props) {
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
+  const { refreshCredits } = useCredits();
   
   // View state
   const [currentView, setCurrentView] = useState<ViewState>(
@@ -510,6 +512,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
       });
 
       setCurrentView('results');
+
+      // Refresh balance after generation (credits may have been deducted)
+      refreshCredits().catch(() => {});
 
     } catch (error) {
       console.error('[A100] Generation error:', error);
