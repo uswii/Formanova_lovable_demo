@@ -1,7 +1,7 @@
 // Credit Preflight Validation
 // Mandatory estimation + balance check before any generation workflow
 
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
@@ -17,31 +17,22 @@ export interface PreflightResult {
  * 2. Fetches current balance via GET /api/credits/balance
  * 3. Compares and returns approval status
  *
- * Throws on network/auth errors. Returns { approved: false } when balance is insufficient.
+ * AuthExpiredError is thrown automatically by authenticatedFetch on 401.
  */
 export async function performCreditPreflight(
   workflowName: string,
   numVariations: number = 1
 ): Promise<PreflightResult> {
-  const token = getStoredToken();
-  if (!token) throw new Error('Not authenticated');
-
   // 1️⃣ Estimate required credits
-  const estimateRes = await fetch(`${API_GATEWAY_URL}/credits/estimate`, {
+  const estimateRes = await authenticatedFetch(`${API_GATEWAY_URL}/credits/estimate`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       workflow_name: workflowName,
       num_variations: numVariations,
     }),
   });
 
-  if (estimateRes.status === 401) {
-    throw new Error('AUTH_EXPIRED');
-  }
   if (!estimateRes.ok) {
     throw new Error(`Credit estimation failed (${estimateRes.status})`);
   }
@@ -49,16 +40,8 @@ export async function performCreditPreflight(
   const { estimated_credits } = await estimateRes.json();
 
   // 2️⃣ Fetch current balance
-  const balanceRes = await fetch(`${API_GATEWAY_URL}/credits/balance`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  const balanceRes = await authenticatedFetch(`${API_GATEWAY_URL}/credits/balance`);
 
-  if (balanceRes.status === 401) {
-    throw new Error('AUTH_EXPIRED');
-  }
   if (!balanceRes.ok) {
     throw new Error(`Balance fetch failed (${balanceRes.status})`);
   }

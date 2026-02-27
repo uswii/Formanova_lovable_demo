@@ -2,6 +2,7 @@
 
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { getStoredToken } from '@/lib/auth-api';
 
 export const TOOL_COSTS: Record<string, number> = {
@@ -18,25 +19,11 @@ export interface CreditBalance {
 /**
  * Single source of truth for credit balance.
  * Calls GET /credits/balance with JWT auth.
- * Returns null on 401 (caller should handle redirect).
+ * Throws AuthExpiredError on 401 (handled by authenticatedFetch).
  * Throws on network / 5xx errors.
  */
 export async function fetchBalance(): Promise<CreditBalance> {
-  const token = getStoredToken();
-  if (!token) throw new Error('Not authenticated');
-
-  const response = await fetch(`${API_GATEWAY_URL}/credits/balance`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (response.status === 401) {
-    const error = new Error('Unauthorized');
-    (error as any).status = 401;
-    throw error;
-  }
+  const response = await authenticatedFetch(`${API_GATEWAY_URL}/credits/balance`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch credits');
@@ -49,18 +36,10 @@ export async function fetchBalance(): Promise<CreditBalance> {
 export const getUserCredits = fetchBalance;
 
 export async function startCheckout(tierName: string): Promise<string> {
-  const token = getStoredToken();
-  if (!token) throw new Error('Not authenticated');
-
-  const response = await fetch(`${API_GATEWAY_URL}/create-checkout-session`, {
+  const response = await authenticatedFetch(`${API_GATEWAY_URL}/create-checkout-session`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      tier: tierName,
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tier: tierName }),
   });
 
   if (!response.ok) {
