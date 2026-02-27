@@ -2,33 +2,8 @@ import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-// Use workflow-proxy to route to Temporal's upload_validation workflow
-const WORKFLOW_PROXY_URL = `${SUPABASE_URL}/functions/v1/workflow-proxy`;
-
-// Build validation URL using Temporal's /run/upload_validation workflow endpoint
-const getClassificationUrl = () => 
-  `${WORKFLOW_PROXY_URL}?endpoint=${encodeURIComponent('/run/upload_validation')}`;
-
-/**
- * Get proper auth headers for edge function calls:
- * - Authorization: Bearer <anon-key> for Supabase gateway routing
- * - apikey: <anon-key> for Supabase function access
- * - X-User-Token: <user-jwt> for custom FastAPI auth service validation
- */
-function getAuthHeaders(): Record<string, string> {
-  const userToken = getStoredToken();
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    'apikey': SUPABASE_ANON_KEY,
-  };
-  if (userToken) {
-    headers['X-User-Token'] = userToken;
-  }
-  return headers;
-}
+const TEMPORAL_API = 'https://formanova.ai/api';
+const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service
 export interface ClassificationResult {
@@ -64,6 +39,15 @@ export interface ValidationState {
   error: string | null;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 /**
  * Map backend category to simplified type for UI
  */
@@ -87,8 +71,23 @@ function buildFlags(result: ClassificationResult): string[] {
 }
 
 /**
+ * Convert a data URI to a Blob
+ */
+function dataUriToBlob(dataUri: string): Blob {
+  const commaIdx = dataUri.indexOf(',');
+  const meta = dataUri.substring(0, commaIdx);
+  const mimeMatch = meta.match(/data:([^;]+)/);
+  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const b64 = dataUri.substring(commaIdx + 1);
+  const binaryStr = atob(b64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
+}
+
+/**
  * Hook for validating uploaded jewelry images.
- * Checks if images are worn jewelry vs flatlay/packshot using the classification service.
+ * Calls the Temporal API directly with JWT auth — no edge function proxy.
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -100,11 +99,8 @@ export function useImageValidation() {
 
   /**
    * Convert File to a compressed data URI string.
-   * Large images are compressed to ~900KB before base64 encoding
-   * so the JSON payload stays under Supabase's ~6MB gateway limit.
    */
   const fileToDataUri = useCallback(async (file: File): Promise<string> => {
-    // Compress first to avoid sending huge payloads
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
     const { blob: compressed } = await compressImageBlob(blob, 900);
 
@@ -117,48 +113,106 @@ export function useImageValidation() {
   }, []);
 
   /**
-   * Classify a single image with timeout
+   * Classify a single image:
+   * 1. POST multipart to /process (image_classification workflow)
+   * 2. Poll /status/{id} until completed
+   * 3. Extract result from status.results.image_captioning[0]
    */
   const classifyImage = useCallback(async (
     dataUri: string
   ): Promise<ClassificationResult | null> => {
-    // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
-      console.log('[ImageValidation] Starting classification request...');
-      const response = await fetch(getClassificationUrl(), {
+      console.log('[ImageValidation] Starting classification via direct API...');
+      const authHeaders = getAuthHeaders();
+
+      // 1. Convert data URI to multipart form
+      const imageBlob = dataUriToBlob(dataUri);
+      const ext = imageBlob.type.split('/')[1] || 'jpg';
+      const formData = new FormData();
+      formData.append('file', imageBlob, `image.${ext}`);
+      formData.append('workflow_name', 'image_classification');
+      formData.append('num_variations', '1');
+
+      // 2. POST to /process
+      const startRes = await fetch(`${TEMPORAL_API}/process`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          data: {
-            image: {
-              uri: dataUri
-            }
-          },
-          meta: {}
-        }),
+        headers: authHeaders, // no Content-Type — browser sets multipart boundary
+        body: formData,
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn('[ImageValidation] Service returned error:', response.status);
+      if (!startRes.ok) {
+        console.warn('[ImageValidation] /process failed:', startRes.status);
+        clearTimeout(timeoutId);
         return null;
       }
 
-      const data = await response.json();
-      console.log('[ImageValidation] Classification result:', data);
-      return data as ClassificationResult;
+      const startData = await startRes.json();
+      const workflowId = startData.workflow_id;
+      console.log('[ImageValidation] Workflow started:', workflowId);
+
+      // 3. Poll /status/{id} (up to 80s, 2s intervals)
+      const pollStart = Date.now();
+      let pollCount = 0;
+      while (Date.now() - pollStart < 80000) {
+        await new Promise(r => setTimeout(r, 2000));
+        pollCount++;
+
+        const statusRes = await fetch(`${TEMPORAL_API}/status/${workflowId}`, {
+          method: 'GET',
+          headers: authHeaders,
+          signal: controller.signal,
+        });
+
+        if (!statusRes.ok) {
+          console.warn(`[ImageValidation] Poll ${pollCount}: status failed (${statusRes.status})`);
+          continue;
+        }
+
+        const statusData = await statusRes.json();
+        const state = statusData.progress?.state || statusData.state || 'unknown';
+        console.log(`[ImageValidation] Poll ${pollCount}: state=${state}`);
+
+        if (state === 'completed') {
+          const classificationResults = statusData.results?.image_captioning;
+          if (classificationResults && classificationResults.length > 0) {
+            const raw = classificationResults[0];
+            const category = raw.category || raw.label || 'unknown';
+            const reason = raw.reason || '';
+            const is_worn = raw.is_worn !== undefined
+              ? raw.is_worn
+              : reason === 'worn' ? true
+              : reason === 'not_worn' ? false
+              : WORN_CATEGORIES.includes(category);
+
+            clearTimeout(timeoutId);
+            return {
+              category,
+              is_worn,
+              confidence: raw.confidence || 0,
+              reason,
+              flagged: !is_worn,
+            };
+          }
+          console.warn('[ImageValidation] Completed but no results');
+          break;
+        }
+
+        if (state === 'failed') {
+          console.error('[ImageValidation] Workflow failed:', JSON.stringify(statusData));
+          break;
+        }
+      }
+
+      clearTimeout(timeoutId);
+      return null;
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('[ImageValidation] Request timed out after 90s');
+        console.warn('[ImageValidation] Request timed out');
       } else {
         console.error('[ImageValidation] Request failed:', error);
       }
@@ -178,18 +232,13 @@ export function useImageValidation() {
     setState(prev => ({ ...prev, isValidating: true, error: null }));
 
     try {
-      // Convert all files to data URIs
       const dataUris = await Promise.all(files.map(fileToDataUri));
-
-      // Classify all images in parallel
       const classificationResults = await Promise.all(
         dataUris.map(uri => classifyImage(uri))
       );
 
-      // Map results to validation format
       const results: ImageValidationResult[] = classificationResults.map((result, idx) => {
         if (!result) {
-          // Service unavailable - allow upload
           return {
             index: idx,
             detected_type: 'unknown' as const,
@@ -207,7 +256,7 @@ export function useImageValidation() {
         return {
           index: idx,
           detected_type: detectedType,
-          is_acceptable: result.is_worn || !result.flagged, // Acceptable if worn OR not flagged
+          is_acceptable: result.is_worn || !result.flagged,
           flags,
           confidence: result.confidence,
           message: result.reason,
@@ -236,7 +285,6 @@ export function useImageValidation() {
     } catch (error) {
       console.error('Image validation error:', error);
       
-      // Don't block uploads on validation errors
       const fallbackResults: ImageValidationResult[] = files.map((_, idx) => ({
         index: idx,
         detected_type: 'unknown' as const,
@@ -263,30 +311,16 @@ export function useImageValidation() {
     }
   }, [fileToDataUri, classifyImage]);
 
-  /**
-   * Clear validation state
-   */
   const clearValidation = useCallback(() => {
-    setState({
-      isValidating: false,
-      results: null,
-      flaggedCount: 0,
-      error: null,
-    });
+    setState({ isValidating: false, results: null, flaggedCount: 0, error: null });
   }, []);
 
-  /**
-   * Check if a specific image at index is flagged
-   */
   const isImageFlagged = useCallback((index: number): boolean => {
     if (!state.results) return false;
     const result = state.results.find(r => r.index === index);
     return result ? result.flags.length > 0 : false;
   }, [state.results]);
 
-  /**
-   * Get flags for a specific image
-   */
   const getImageFlags = useCallback((index: number): string[] => {
     if (!state.results) return [];
     const result = state.results.find(r => r.index === index);
