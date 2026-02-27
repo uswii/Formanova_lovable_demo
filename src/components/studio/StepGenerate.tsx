@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { temporalApi, base64ToBlob, pollDAGUntilComplete, getDAGStepLabel } from '@/lib/temporal-api';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
+import { useCredits } from '@/contexts/CreditsContext';
 
 interface Props {
   state: StudioState;
@@ -37,6 +38,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
+  const { refreshCredits } = useCredits();
 
   const handleGenerate = async () => {
     if (!state.originalImage || !state.maskBinary) {
@@ -163,6 +165,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       updateState({ isGenerating: false });
     } finally {
       setIsGenerating(false);
+      // Refresh balance after generation (credits may have been deducted)
+      refreshCredits().catch(() => {});
     }
   };
 

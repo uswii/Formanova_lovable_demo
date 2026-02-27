@@ -2,7 +2,7 @@
 
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
-import { getStoredToken, authApi } from '@/lib/auth-api';
+import { getStoredToken } from '@/lib/auth-api';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
@@ -15,36 +15,28 @@ export interface CreditBalance {
   available: number;
 }
 
-// Cache the internal user ID to avoid repeated /users/me calls
-let cachedInternalUserId: string | null = null;
-
-async function resolveInternalUserId(): Promise<string> {
-  if (cachedInternalUserId) return cachedInternalUserId;
-
-  const user = await authApi.getCurrentUser();
-  if (!user?.id) throw new Error('Could not resolve internal user ID');
-
-  cachedInternalUserId = user.id;
-  return cachedInternalUserId;
-}
-
-// Clear cache on logout
-export function clearInternalUserIdCache(): void {
-  cachedInternalUserId = null;
-}
-
-export async function getUserCredits(): Promise<CreditBalance> {
+/**
+ * Single source of truth for credit balance.
+ * Calls GET /credits/balance with JWT auth.
+ * Returns null on 401 (caller should handle redirect).
+ * Throws on network / 5xx errors.
+ */
+export async function fetchBalance(): Promise<CreditBalance> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
 
-  const internalId = await resolveInternalUserId();
-
-  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${internalId}`, {
+  const response = await fetch(`${API_GATEWAY_URL}/credits/balance`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
+
+  if (response.status === 401) {
+    const error = new Error('Unauthorized');
+    (error as any).status = 401;
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error('Failed to fetch credits');
@@ -53,11 +45,12 @@ export async function getUserCredits(): Promise<CreditBalance> {
   return await response.json();
 }
 
+// Keep backward-compat alias
+export const getUserCredits = fetchBalance;
+
 export async function startCheckout(tierName: string): Promise<string> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
-
-  const internalId = await resolveInternalUserId();
 
   const response = await fetch(`${API_GATEWAY_URL}/create-checkout-session`, {
     method: 'POST',
@@ -67,7 +60,6 @@ export async function startCheckout(tierName: string): Promise<string> {
     },
     body: JSON.stringify({
       tier: tierName,
-      user_id: internalId,
     }),
   });
 
