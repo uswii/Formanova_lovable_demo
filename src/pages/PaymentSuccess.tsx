@@ -6,7 +6,7 @@ import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getStoredToken } from '@/lib/auth-api';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
-const API_GATEWAY_URL = 'https://formanova.ai/api';
+const BILLING_URL = 'https://formanova.ai/billing';
 
 type VerifyState =
   | { type: 'loading' }
@@ -54,7 +54,7 @@ export default function PaymentSuccess() {
     if (!isPolling) setState({ type: 'loading' });
     try {
       const res = await fetch(
-        `${API_GATEWAY_URL}/billing/checkout/verify/${sessionId}`,
+        `${BILLING_URL}/checkout/verify/${sessionId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status === 404) {
