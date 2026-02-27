@@ -2,11 +2,11 @@
 // Wraps performCreditPreflight and manages insufficient credits modal state
 
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { performCreditPreflight, type PreflightResult } from '@/lib/credit-preflight';
+import { AuthExpiredError } from '@/lib/authenticated-fetch';
 
 export interface UseCreditPreflightReturn {
-  /** Run preflight check. Returns true if approved, false if blocked. Throws on auth errors. */
+  /** Run preflight check. Returns true if approved, false if blocked. */
   checkCredits: (workflowName: string, numVariations?: number) => Promise<boolean>;
   /** Whether the insufficient credits modal should be shown */
   showInsufficientModal: boolean;
@@ -19,7 +19,6 @@ export interface UseCreditPreflightReturn {
 }
 
 export function useCreditPreflight(): UseCreditPreflightReturn {
-  const navigate = useNavigate();
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [preflightResult, setPreflightResult] = useState<PreflightResult | null>(null);
   const [checking, setChecking] = useState(false);
@@ -37,16 +36,13 @@ export function useCreditPreflight(): UseCreditPreflightReturn {
 
       return true;
     } catch (error) {
-      if (error instanceof Error && error.message === 'AUTH_EXPIRED') {
-        const currentPath = window.location.pathname + window.location.search;
-        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
-        return false;
-      }
+      // AuthExpiredError is already handled by authenticatedFetch (redirect to /login)
+      if (error instanceof AuthExpiredError) return false;
       throw error;
     } finally {
       setChecking(false);
     }
-  }, [navigate]);
+  }, []);
 
   const dismissModal = useCallback(() => {
     setShowInsufficientModal(false);
