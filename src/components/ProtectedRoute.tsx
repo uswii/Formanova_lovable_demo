@@ -1,18 +1,30 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { getStoredToken } from '@/lib/auth-api';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
   const location = useLocation();
+  const token = getStoredToken();
 
-  if (!user) {
-    // Redirect to auth page, preserving destination via ?next= (works across new tabs/email links)
+  // Wait for session validation before rendering anything
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Strict guard: both a valid user AND a token must exist
+  if (!user || !token) {
     const destination = location.pathname + location.search + location.hash;
-    return <Navigate to={`/login?next=${encodeURIComponent(destination)}`} replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(destination)}`} replace />;
   }
 
   return <>{children}</>;
