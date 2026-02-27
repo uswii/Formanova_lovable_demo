@@ -4,19 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
-import { startCheckout } from '@/lib/credits-api';
 import { toast } from '@/hooks/use-toast';
+import { getStoredToken } from '@/lib/auth-api';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
+
+const API_GATEWAY_URL = 'https://formanova.ai/api';
 
 const PLANS = [
   {
     tier: 'basic',
+    tierId: 'tier_basic',
     name: 'Basic',
     price: 9,
     credits: 10,
   },
   {
     tier: 'pro',
+    tierId: 'tier_pro',
     name: 'Pro',
     price: 39,
     credits: 50,
@@ -24,6 +28,7 @@ const PLANS = [
   },
   {
     tier: 'power',
+    tierId: 'tier_power',
     name: 'Power',
     price: 99,
     credits: 150,
@@ -34,25 +39,41 @@ export default function Pricing() {
   const { user } = useAuth();
   const { credits } = useCredits();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [errorTier, setErrorTier] = useState<string | null>(null);
 
-  const handleCheckout = async (tier: string) => {
+  const handleCheckout = async (tierId: string) => {
     if (!user?.id) {
       toast({ title: 'Please sign in first', variant: 'destructive' });
       return;
     }
+    if (loadingTier) return; // prevent duplicate
 
-    setLoadingTier(tier);
+    setLoadingTier(tierId);
+    setErrorTier(null);
+
     try {
-      const url = await startCheckout(tier);
+      const token = getStoredToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const returnTo = window.location.pathname + window.location.search;
+
+      const response = await fetch(`${API_GATEWAY_URL}/billing/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
+      });
+
+      if (!response.ok) throw new Error('Checkout failed');
+
+      const { url } = await response.json();
+      if (!url) throw new Error('No checkout URL');
       window.location.href = url;
     } catch (error) {
       console.error('Checkout failed:', error);
-      toast({
-        title: 'Checkout unavailable',
-        description: 'Payment processing is being set up. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
+      setErrorTier(tierId);
       setLoadingTier(null);
     }
   };
@@ -108,20 +129,25 @@ export default function Pricing() {
                   <span className="text-lg font-semibold text-foreground">{plan.credits} credits</span>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <Button
                   className="w-full gap-2"
                   size="lg"
                   variant={plan.popular ? 'default' : 'outline'}
                   disabled={loadingTier !== null}
-                  onClick={() => handleCheckout(plan.tier)}
+                  onClick={() => handleCheckout(plan.tierId)}
                 >
-                  {loadingTier === plan.tier ? (
+                  {loadingTier === plan.tierId ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>Buy {plan.credits} Credits</>
                   )}
                 </Button>
+                {errorTier === plan.tierId && (
+                  <p className="text-xs text-destructive text-center">
+                    We couldn't start checkout. Please try again.
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
