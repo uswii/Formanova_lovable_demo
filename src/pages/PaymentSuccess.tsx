@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getStoredToken } from '@/lib/auth-api';
+import { useCredits } from '@/contexts/CreditsContext';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const BILLING_URL = 'https://formanova.ai/billing';
@@ -16,7 +17,7 @@ type VerifyState =
   | { type: 'missing_session' }
   | { type: 'timeout' };
 
-
+  const { refreshCredits } = useCredits();
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -75,6 +76,7 @@ export default function PaymentSuccess() {
       }
       const data = await res.json();
       if (data.status === 'fulfilled') {
+        await refreshCredits();
         setState({ type: 'fulfilled', creditsAdded: data.credits_added });
         stopPolling();
         return 'done';
@@ -86,7 +88,7 @@ export default function PaymentSuccess() {
       stopPolling();
       return 'done';
     }
-  }, [sessionId, stopPolling, navigate]);
+  }, [sessionId, stopPolling, navigate, refreshCredits]);
 
   const startPolling = useCallback(() => {
     if (intervalRef.current) return; // prevent duplicates
