@@ -17,11 +17,10 @@ type VerifyState =
   | { type: 'missing_session' }
   | { type: 'timeout' };
 
-  const { refreshCredits } = useCredits();
-
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { refreshCredits } = useCredits();
   const sessionId = searchParams.get('session_id');
   const returnTo = searchParams.get('return_to');
   const fallback = useMemo(() => returnTo || '/studio', [returnTo]);
@@ -45,7 +44,6 @@ export default function PaymentSuccess() {
     if (!sessionId) return 'done';
     const token = getStoredToken();
     if (!token) {
-      // No token — redirect to login preserving current URL
       const currentPath = window.location.pathname + window.location.search;
       navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
       stopPolling();
@@ -58,7 +56,6 @@ export default function PaymentSuccess() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status === 401) {
-        // Auth expired — redirect to login, don't show error
         const currentPath = window.location.pathname + window.location.search;
         navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
         stopPolling();
@@ -81,7 +78,6 @@ export default function PaymentSuccess() {
         stopPolling();
         return 'done';
       }
-      // pending — start polling if not already
       return 'pending';
     } catch {
       setState({ type: 'error' });
@@ -91,7 +87,7 @@ export default function PaymentSuccess() {
   }, [sessionId, stopPolling, navigate, refreshCredits]);
 
   const startPolling = useCallback(() => {
-    if (intervalRef.current) return; // prevent duplicates
+    if (intervalRef.current) return;
     startTimeRef.current = Date.now();
     intervalRef.current = setInterval(async () => {
       const elapsed = Date.now() - (startTimeRef.current ?? Date.now());
@@ -113,7 +109,6 @@ export default function PaymentSuccess() {
     })();
   }, [sessionId, verify, startPolling]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => stopPolling();
   }, [stopPolling]);
