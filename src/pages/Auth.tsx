@@ -40,9 +40,9 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const processedRef = useRef(false);
   const isInstagram = isInAppBrowser();
 
-  // Support ?next= query param (from email links / new tabs) AND location.state (from in-app redirects)
-  const nextParam = searchParams.get('next');
-  const from = nextParam || (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
+  // Support ?redirect= query param (from ProtectedRoute guard) AND location.state (from in-app redirects)
+  const redirectParam = searchParams.get('redirect') || searchParams.get('next');
+  const from = redirectParam || (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
   // Persist return URL across OAuth redirect (location.state is lost during OAuth flow)
   useEffect(() => {
