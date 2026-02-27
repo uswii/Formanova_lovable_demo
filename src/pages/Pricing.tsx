@@ -8,7 +8,8 @@ import { toast } from '@/hooks/use-toast';
 import { getStoredToken } from '@/lib/auth-api';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
-const API_GATEWAY_URL = 'https://formanova.ai';
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const CHECKOUT_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/checkout-proxy`;
 
 const PLANS = [
   {
@@ -55,15 +56,13 @@ export default function Pricing() {
       const token = getStoredToken();
       if (!token) throw new Error('Not authenticated');
 
-      const returnTo = window.location.pathname + window.location.search;
-
-      const response = await fetch(`${API_GATEWAY_URL}/billing/checkout`, {
+      const response = await fetch(CHECKOUT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
+        body: JSON.stringify({ tier_id: tierId }),
       });
 
       if (!response.ok) throw new Error('Checkout failed');
