@@ -2,8 +2,9 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
-import { performCreditPreflight } from "@/lib/credit-preflight";
+import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
+import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
@@ -58,6 +59,7 @@ export default function TextToCAD() {
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [lightIntensity, setLightIntensity] = useState(1);
+  const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const meshesRef = useRef<MeshItemData[]>(meshes);
@@ -108,20 +110,19 @@ export default function TextToCAD() {
   const simulateGeneration = useCallback(async () => {
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
-    // Credit preflight — redirect to pricing if insufficient
+    // Credit preflight — show inline block if insufficient
     try {
       const result = await performCreditPreflight('text_to_cad', 1);
       if (!result.approved) {
-        const currentPath = window.location.pathname + window.location.search;
-        navigate(`/pricing?redirect=${encodeURIComponent(currentPath)}`);
+        setCreditBlock(result);
         return;
       }
+      setCreditBlock(null);
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
-      // If preflight fails, still redirect to pricing as a safe fallback
       console.error('Credit preflight failed:', err);
-      const currentPath = window.location.pathname + window.location.search;
-      navigate(`/pricing?redirect=${encodeURIComponent(currentPath)}`);
+      // Show generic inline block on error
+      setCreditBlock({ approved: false, estimatedCredits: 0, currentBalance: 0 });
       return;
     }
 
@@ -457,6 +458,13 @@ export default function TextToCAD() {
         onGlbUpload={handleGlbUpload}
         lightIntensity={lightIntensity}
         setLightIntensity={setLightIntensity}
+        creditBlock={creditBlock ? (
+          <InsufficientCreditsInline
+            currentBalance={creditBlock.currentBalance}
+            requiredCredits={creditBlock.estimatedCredits}
+            onDismiss={() => setCreditBlock(null)}
+          />
+        ) : undefined}
       />
 
       <div className="flex-1 relative" style={{ background: "#111" }}>
