@@ -19,13 +19,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 });
 
-// Preload credit coin icon so it renders instantly in the header
-import creditCoinUrl from "@/assets/icons/credit-coin.png";
-const link = document.createElement("link");
-link.rel = "preload";
-link.as = "image";
-link.href = creditCoinUrl;
-document.head.appendChild(link);
+// Credit coin icon is imported where needed; no manual preload required.
 
 // Redirect all non-production domains to formanova.ai
 const PRODUCTION_DOMAIN = 'formanova.ai';
