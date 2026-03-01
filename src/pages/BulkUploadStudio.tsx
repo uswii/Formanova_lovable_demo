@@ -12,6 +12,7 @@ import {
   BatchSubmittedConfirmation,
   JEWELRY_CATEGORIES,
 } from '@/components/bulk';
+import HangingNotificationBanner from '@/components/HangingNotificationBanner';
 import type { JewelryCategory, UploadedImage, SkinTone, Gender } from '@/components/bulk';
 import type { InspirationRef } from '@/components/bulk/BulkUploadZone';
 import { getStoredToken } from '@/lib/auth-api';
@@ -321,6 +322,7 @@ const BulkUploadStudio = () => {
               transition={{ duration: 0.4 }}
               className="py-8"
             >
+              <HangingNotificationBanner />
               <BatchSubmittedConfirmation
                 categoryName={selectedCategory.name}
                 imageCount={images.length}
