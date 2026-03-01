@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,6 +41,38 @@ const PageLoader = () => (
   </div>
 );
 
+// Reload once on chunk load failure (stale deployment)
+class ChunkErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(error: Error) {
+    if (
+      error.message?.includes('dynamically imported module') ||
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('Loading chunk')
+    ) {
+      return { hasError: true };
+    }
+    throw error;
+  }
+
+  componentDidCatch() {
+    const key = '_chunk_reload';
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      window.location.reload();
+    }
+  }
+
+  render() {
+    if (this.state.hasError) return <PageLoader />;
+    return this.props.children;
+  }
+}
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -58,6 +90,7 @@ const App = () => (
             <div className="min-h-screen flex flex-col relative z-10">
               <Header />
               <main className="flex-1">
+              <ChunkErrorBoundary>
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
@@ -90,6 +123,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 </Suspense>
+              </ChunkErrorBoundary>
               </main>
             </div>
           </BrowserRouter>
