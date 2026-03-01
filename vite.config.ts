@@ -25,4 +25,31 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Enable source maps only in dev; production gets clean bundles
+    sourcemap: mode === "development",
+    // Target modern browsers for smaller output
+    target: "es2020",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Heavy vendor libs split into dedicated chunks (loaded on demand)
+          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing"],
+          "vendor-framer": ["framer-motion"],
+          "vendor-charts": ["recharts"],
+          "vendor-sentry": ["@sentry/react"],
+          "vendor-posthog": ["posthog-js", "posthog-js/react"],
+          "vendor-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-toast",
+          ],
+        },
+      },
+    },
+  },
 }));

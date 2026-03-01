@@ -8,11 +8,13 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
-import { ThemeDecorations } from "@/components/ThemeDecorations";
-import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
-import { FloatingElements } from '@/components/FloatingElements';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Loader2 } from "lucide-react";
+
+// Decorative / non-critical components — lazy-loaded to reduce initial JS payload
+const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
+const ScrollProgressIndicator = lazy(() => import("@/components/ScrollProgressIndicator").then(m => ({ default: m.ScrollProgressIndicator })));
+const FloatingElements = lazy(() => import("@/components/FloatingElements").then(m => ({ default: m.FloatingElements })));
 
 // Critical pages loaded eagerly (landing + auth)
 import Welcome from "./pages/Welcome";
