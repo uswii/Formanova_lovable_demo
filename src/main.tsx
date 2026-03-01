@@ -1,9 +1,11 @@
-import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
-import posthog from 'posthog-js';
-import { PostHogProvider } from 'posthog-js/react';
 import App from "./App.tsx";
 import "./index.css";
+
+// requestIdleCallback polyfill for Safari
+if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
+  (window as any).requestIdleCallback = (cb: Function) => setTimeout(cb, 1);
+}
 
 // Global chunk load error handler — reloads on stale deployments
 function isChunkLoadError(error: unknown): boolean {
@@ -31,22 +33,6 @@ window.addEventListener('error', (event) => {
   }
 });
 
-Sentry.init({
-  dsn: "https://fb062ed4887fdb94c55272c7cfc9c7d0@o4510947153870848.ingest.us.sentry.io/4510947154722816",
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration({
-      maskAllText: false,
-      blockAllMedia: false,
-    }),
-  ],
-  tracesSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-});
-
-// Credit coin icon is imported where needed; no manual preload required.
-
 // Redirect all non-production domains to formanova.ai
 const PRODUCTION_DOMAIN = 'formanova.ai';
 if (
@@ -58,26 +44,45 @@ if (
   !window.location.hostname.startsWith('10.') &&
   !window.location.hostname.startsWith('127.')
 ) {
-  // Preserve the path and query string during redirect
   window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
 } else {
+  // Render immediately — don't block on analytics/monitoring
+  const root = createRoot(document.getElementById("root")!);
+
   const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
 
-  // Initialize PostHog eagerly so session recording starts immediately
-  if (posthogKey) {
-    posthog.init(posthogKey, {
-      api_host: 'https://us.i.posthog.com',
-      defaults: '2026-01-30',
+  // Defer heavy SDKs (Sentry + PostHog) to after first paint
+  requestIdleCallback(() => {
+    // Sentry — dynamically imported so it doesn't block FCP
+    import("@sentry/react").then((Sentry) => {
+      Sentry.init({
+        dsn: "https://fb062ed4887fdb94c55272c7cfc9c7d0@o4510947153870848.ingest.us.sentry.io/4510947154722816",
+        integrations: [
+          Sentry.browserTracingIntegration(),
+          Sentry.replayIntegration({
+            maskAllText: false,
+            blockAllMedia: false,
+          }),
+        ],
+        tracesSampleRate: 1.0,
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+      });
     });
-  }
 
-  createRoot(document.getElementById("root")!).render(
-    posthogKey ? (
-      <PostHogProvider client={posthog}>
-        <App />
-      </PostHogProvider>
-    ) : (
-      <App />
-    )
-  );
+    // PostHog — dynamically imported
+    if (posthogKey) {
+      import("posthog-js").then((posthogModule) => {
+        const posthog = posthogModule.default;
+        posthog.init(posthogKey, {
+          api_host: 'https://us.i.posthog.com',
+          defaults: '2026-01-30',
+        });
+      });
+    }
+  });
+
+  // Render app without waiting for analytics SDKs
+  root.render(<App />);
 }
+
