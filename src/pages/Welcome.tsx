@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
-import { CinematicShowcase } from '@/components/CinematicShowcase';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Lazy-load heavy below-fold component (452 lines + multiple image imports)
+const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -123,9 +125,11 @@ export default function Welcome() {
             ))}
           </StaggerContainer>
 
-          {/* Cinematic Video Showcase */}
+          {/* Cinematic Video Showcase — lazy-loaded (heavy, below fold) */}
           <ScrollRevealSection animation="fade-up" delay={300} className="mt-16 md:mt-24">
-            <CinematicShowcase />
+            <Suspense fallback={<div className="h-96 bg-muted/20 rounded-lg animate-pulse" />}>
+              <CinematicShowcase />
+            </Suspense>
           </ScrollRevealSection>
         </div>
       </section>
