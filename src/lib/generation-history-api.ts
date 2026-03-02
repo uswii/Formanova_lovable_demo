@@ -19,6 +19,8 @@ export interface WorkflowSummary {
   created_at: string;
   finished_at: string | null;
   source_type: SourceType;
+  /** Optional thumbnail extracted from workflow details (populated client-side) */
+  thumbnail_url?: string;
 }
 
 export interface WorkflowStep {
