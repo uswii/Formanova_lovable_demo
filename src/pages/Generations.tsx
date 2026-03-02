@@ -10,7 +10,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
-import { CadWorkflowModal, azureUriToUrl } from '@/components/generations/CadWorkflowModal';
+import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 
 const PER_PAGE = 10;
 
@@ -33,8 +33,6 @@ const defaultSection = (): SectionState => ({
 export default function Generations() {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  const [selectedWorkflowStatus, setSelectedWorkflowStatus] = useState<string>('unknown');
 
   // All workflows fetched from API (we paginate client-side per section)
   const [allWorkflows, setAllWorkflows] = useState<WorkflowSummary[]>([]);
@@ -55,7 +53,7 @@ export default function Generations() {
         const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
 
-        // Fetch all screenshots for completed cad_text workflows in background
+        // Enrich completed cad_text workflows: screenshots + GLB url/filename
         const cadTextCompleted = workflows.filter(
           (w) => w.source_type === 'cad_text' && w.status === 'completed'
         );
@@ -64,30 +62,48 @@ export default function Generations() {
             cadTextCompleted.map(async (wf) => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
+
+                // Screenshots
                 const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
                 const raw = screenshotStep?.output?.screenshots as { angle?: string; url?: string; uri?: string }[] | undefined;
-                if (!raw?.length) return null;
-                const screenshots = raw
+                const screenshots = (raw ?? [])
                   .filter(s => s?.url || s?.uri)
                   .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url ?? s.uri) }))
                   .filter(s => s.url);
                 const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
-                return { id: wf.workflow_id, thumbnail_url: front?.url ?? '', screenshots };
+
+                // GLB
+                const validateStep = details.steps?.find((s) => s.tool === 'ring-validate');
+                const generateStep = details.steps?.find((s) => s.tool === 'ring-generate');
+                const glbStep = validateStep || generateStep;
+                let glb_url: string | null = null;
+                let glb_filename: string | null = null;
+                if (glbStep?.output?.glb_path) {
+                  const raw = glbStep.output.glb_path;
+                  const uri = typeof raw === 'string' ? raw : (raw as any)?.uri as string | undefined;
+                  if (uri) {
+                    glb_url = azureUriToUrl(uri);
+                    const parts = uri.split('/');
+                    glb_filename = parts[parts.length - 1] || 'model.glb';
+                  }
+                }
+
+                return { id: wf.workflow_id, thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename };
               } catch { /* ignore individual failures */ }
               return null;
             })
           ).then((results) => {
-            const enrichMap = new Map<string, { thumbnail_url: string; screenshots: { angle: string; url: string }[] }>();
+            const enrichMap = new Map<string, { thumbnail_url: string; screenshots: { angle: string; url: string }[]; glb_url: string | null; glb_filename: string | null }>();
             for (const r of results) {
               if (r.status === 'fulfilled' && r.value) {
-                enrichMap.set(r.value.id, { thumbnail_url: r.value.thumbnail_url, screenshots: r.value.screenshots });
+                enrichMap.set(r.value.id, r.value);
               }
             }
             if (enrichMap.size > 0) {
               setAllWorkflows((prev) =>
                 prev.map((w) => {
-                  const enrich = enrichMap.get(w.workflow_id);
-                  return enrich ? { ...w, thumbnail_url: enrich.thumbnail_url, screenshots: enrich.screenshots } : w;
+                  const e = enrichMap.get(w.workflow_id);
+                  return e ? { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename } : w;
                 })
               );
             }
@@ -125,18 +141,6 @@ export default function Generations() {
   const photoSection = getSection('photo', photoPage);
   const cadRenderSection = getSection('cad_render', cadRenderPage);
   const cadTextSection = getSection('cad_text', cadTextPage);
-
-  const handleWorkflowClick = (id: string) => {
-    // Find the workflow to check source_type and status
-    const wf = allWorkflows.find((w) => w.workflow_id === id);
-    if (!wf) return;
-
-    // Only open modal for cad_text workflows
-    if (wf.source_type === 'cad_text') {
-      setSelectedWorkflowId(id);
-      setSelectedWorkflowStatus(wf.status);
-    }
-  };
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
@@ -198,7 +202,7 @@ export default function Generations() {
               currentPage={photoSection.page}
               totalPages={photoSection.totalPages}
               onPageChange={setPhotoPage}
-              onWorkflowClick={handleWorkflowClick}
+              onWorkflowClick={() => {}}
             />
 
             {/* Section: CAD Render */}
@@ -211,7 +215,7 @@ export default function Generations() {
               currentPage={cadRenderSection.page}
               totalPages={cadRenderSection.totalPages}
               onPageChange={setCadRenderPage}
-              onWorkflowClick={handleWorkflowClick}
+              onWorkflowClick={() => {}}
             />
 
             {/* Section: Text to CAD */}
@@ -223,19 +227,14 @@ export default function Generations() {
               loading={cadTextSection.loading}
               currentPage={cadTextSection.page}
               totalPages={cadTextSection.totalPages}
+              indexOffset={(cadTextPage - 1) * PER_PAGE}
               onPageChange={setCadTextPage}
-              onWorkflowClick={handleWorkflowClick}
+              onWorkflowClick={() => {}}
             />
           </>
         )}
       </div>
 
-      {/* CAD detail modal */}
-      <CadWorkflowModal
-        workflowId={selectedWorkflowId}
-        workflowStatus={selectedWorkflowStatus}
-        onClose={() => setSelectedWorkflowId(null)}
-      />
     </div>
   );
 }

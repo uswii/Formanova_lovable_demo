@@ -23,6 +23,10 @@ export interface WorkflowSummary {
   thumbnail_url?: string;
   /** All angle screenshots for cad_text workflows (populated client-side) */
   screenshots?: { angle: string; url: string }[];
+  /** GLB download URL (populated client-side from workflow details) */
+  glb_url?: string | null;
+  /** GLB file name extracted from the azure URI */
+  glb_filename?: string | null;
 }
 
 export interface WorkflowStep {

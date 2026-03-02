@@ -14,6 +14,7 @@ interface WorkflowSectionProps {
   loading: boolean;
   currentPage: number;
   totalPages: number;
+  indexOffset?: number;
   onPageChange: (page: number) => void;
   onWorkflowClick: (id: string) => void;
 }
@@ -31,6 +32,7 @@ export function WorkflowSection({
   loading,
   currentPage,
   totalPages,
+  indexOffset = 0,
   onPageChange,
   onWorkflowClick,
 }: WorkflowSectionProps) {
@@ -88,10 +90,11 @@ export function WorkflowSection({
             animate="visible"
             className="grid gap-3 md:grid-cols-2"
           >
-            {workflows.map((w) => (
+            {workflows.map((w, i) => (
               <WorkflowCard
                 key={w.workflow_id}
                 workflow={w}
+                index={indexOffset + i + 1}
                 onClick={onWorkflowClick}
               />
             ))}
