@@ -49,7 +49,7 @@ if (
   // Render immediately — don't block on analytics/monitoring
   const root = createRoot(document.getElementById("root")!);
 
-  const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+  const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';
 
   // Defer heavy SDKs (Sentry + PostHog) to after first paint
   requestIdleCallback(() => {
