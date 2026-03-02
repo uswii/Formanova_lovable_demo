@@ -63,24 +63,40 @@ export default function Generations() {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
 
+                // Recursively find any azure:// URI inside any object, regardless of key name.
+                // normalise_payload converts binaries to { uri: "azure://...", sha256, type, bytes }
+                // so the actual URI may be nested under any field (e.g. "image", "data", "file", etc.)
+                const findAzureUri = (obj: unknown): string | null => {
+                  if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
+                  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                    for (const v of Object.values(obj as Record<string, unknown>)) {
+                      const found = findAzureUri(v);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+
                 // Screenshots
                 const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
-                const raw = screenshotStep?.output?.screenshots as { angle?: string; url?: string; uri?: string }[] | undefined;
-                const screenshots = (raw ?? [])
-                  .filter(s => s?.url || s?.uri)
-                  .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url ?? s.uri) }))
-                  .filter(s => s.url);
+                const rawShots = screenshotStep?.output?.screenshots as Record<string, unknown>[] | undefined;
+                const screenshots = (rawShots ?? [])
+                  .map((s) => {
+                    const angle = (s.angle as string) || 'unknown';
+                    const uri = findAzureUri(s);
+                    return uri ? { angle, url: azureUriToUrl(uri) } : null;
+                  })
+                  .filter(Boolean) as { angle: string; url: string }[];
                 const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
 
-                // GLB
+                // GLB — recursively find azure URI anywhere in the glb step output
                 const validateStep = details.steps?.find((s) => s.tool === 'ring-validate');
                 const generateStep = details.steps?.find((s) => s.tool === 'ring-generate');
                 const glbStep = validateStep || generateStep;
                 let glb_url: string | null = null;
                 let glb_filename: string | null = null;
-                if (glbStep?.output?.glb_path) {
-                  const raw = glbStep.output.glb_path;
-                  const uri = typeof raw === 'string' ? raw : (raw as any)?.uri as string | undefined;
+                if (glbStep?.output) {
+                  const uri = findAzureUri(glbStep.output);
                   if (uri) {
                     glb_url = azureUriToUrl(uri);
                     const parts = uri.split('/');

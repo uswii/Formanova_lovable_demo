@@ -68,14 +68,29 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
       try {
         const details = await getWorkflowDetails(workflowId);
 
+        // Recursively find any azure:// URI inside any object, regardless of key name.
+        const findAzureUri = (obj: unknown): string | null => {
+          if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
+          if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+            for (const v of Object.values(obj as Record<string, unknown>)) {
+              const found = findAzureUri(v);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
         // Find ring-screenshot step
         const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
         if (screenshotStep?.output?.screenshots) {
-          const raw = screenshotStep.output.screenshots as { angle?: string; url?: string; uri?: string }[];
+          const raw = screenshotStep.output.screenshots as Record<string, unknown>[];
           const mapped = raw
-            .filter(s => s?.url || s?.uri)
-            .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url ?? s.uri) }))
-            .filter(s => s.url);
+            .map(s => {
+              const angle = (s.angle as string) || 'unknown';
+              const uri = findAzureUri(s);
+              return uri ? { angle, url: azureUriToUrl(uri) } : null;
+            })
+            .filter(Boolean) as { angle: string; url: string }[];
           setScreenshots(sortScreenshots(mapped));
         }
 
@@ -83,14 +98,9 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
         const validateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
         const generateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-generate');
         const glbStep = validateStep || generateStep;
-
-        if (glbStep?.output?.glb_path) {
-          // glb_path may be a plain azure:// string or an object { uri: "azure://..." }
-          const glbRaw = glbStep.output.glb_path;
-          const glbUri = typeof glbRaw === 'string'
-            ? glbRaw
-            : (glbRaw as Record<string, unknown>)?.uri as string | undefined;
-          if (glbUri) setGlbUrl(azureUriToUrl(glbUri));
+        if (glbStep?.output) {
+          const uri = findAzureUri(glbStep.output);
+          if (uri) setGlbUrl(azureUriToUrl(uri));
         }
 
         if (validateStep?.output?.message) {
