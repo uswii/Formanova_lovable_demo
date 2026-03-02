@@ -48,8 +48,7 @@ export default function Generations() {
     const fetchAll = async () => {
       try {
         setGlobalLoading(true);
-        // Fetch a large batch — the backend returns paginated, so we fetch up to 200
-        const workflows = await listMyWorkflows(200, 0);
+        const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
