@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { getWorkflowDetails, type WorkflowDetail, type WorkflowStep } from '@/lib/generation-history-api';
 
-/** Convert azure://container/path → public blob URL */
-function azureUriToUrl(uri: string): string {
+/** Convert azure://container/path → public blob URL. Returns empty string for falsy input. */
+export function azureUriToUrl(uri: string | undefined | null): string {
+  if (!uri || typeof uri !== 'string') return '';
   if (uri.startsWith('azure://')) {
     const path = uri.replace('azure://', '');
     return `https://snapwear.blob.core.windows.net/${path}`;
@@ -70,8 +71,12 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
         // Find ring-screenshot step
         const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
         if (screenshotStep?.output?.screenshots) {
-          const raw = screenshotStep.output.screenshots as { angle: string; url: string }[];
-          setScreenshots(sortScreenshots(raw.map(s => ({ angle: s.angle, url: azureUriToUrl(s.url) }))));
+          const raw = screenshotStep.output.screenshots as { angle?: string; url?: string }[];
+          const mapped = raw
+            .filter(s => s?.url)
+            .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url) }))
+            .filter(s => s.url);
+          setScreenshots(sortScreenshots(mapped));
         }
 
         // Find ring-validate step (preferred) or ring-generate for GLB

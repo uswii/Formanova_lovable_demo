@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   listMyWorkflows,
+  getWorkflowDetails,
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
-import { CadWorkflowModal } from '@/components/generations/CadWorkflowModal';
+import { CadWorkflowModal, azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 
 const PER_PAGE = 10;
 
@@ -53,6 +54,43 @@ export default function Generations() {
         setGlobalLoading(true);
         const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
+
+        // Fetch thumbnails for completed cad_text workflows in background
+        const cadTextCompleted = workflows.filter(
+          (w) => w.source_type === 'cad_text' && w.status === 'completed'
+        );
+        if (cadTextCompleted.length > 0) {
+          // Fire-and-forget thumbnail enrichment
+          Promise.allSettled(
+            cadTextCompleted.map(async (wf) => {
+              try {
+                const details = await getWorkflowDetails(wf.workflow_id);
+                const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
+                const shots = screenshotStep?.output?.screenshots as { angle?: string; url?: string }[] | undefined;
+                const front = shots?.find((s) => s.angle === 'front') || shots?.[0];
+                if (front?.url) {
+                  return { id: wf.workflow_id, url: azureUriToUrl(front.url) };
+                }
+              } catch { /* ignore individual failures */ }
+              return null;
+            })
+          ).then((results) => {
+            const thumbMap = new Map<string, string>();
+            for (const r of results) {
+              if (r.status === 'fulfilled' && r.value) {
+                thumbMap.set(r.value.id, r.value.url);
+              }
+            }
+            if (thumbMap.size > 0) {
+              setAllWorkflows((prev) =>
+                prev.map((w) => thumbMap.has(w.workflow_id)
+                  ? { ...w, thumbnail_url: thumbMap.get(w.workflow_id) }
+                  : w
+                )
+              );
+            }
+          });
+        }
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
         if (err.name !== 'AuthExpiredError') {
