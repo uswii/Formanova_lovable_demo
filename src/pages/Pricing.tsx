@@ -15,8 +15,9 @@ const PLANS = [
     tierId: 'tier_5e6c6184',
     name: 'Basic',
     price: 9,
-    photos: 100,
-    perPhoto: '$0.09',
+    credits: 100,
+    photos: 10,       // 100 credits ÷ 10 = 10 photos
+    perPhoto: '$0.90',
     popular: false,
   },
   {
@@ -24,8 +25,9 @@ const PLANS = [
     tierId: 'tier_6867e598',
     name: 'Standard',
     price: 39,
-    photos: 500,
-    perPhoto: '$0.078',
+    credits: 500,
+    photos: 50,       // 500 credits ÷ 10 = 50 photos
+    perPhoto: '$0.78',
     popular: true,
   },
   {
@@ -33,8 +35,9 @@ const PLANS = [
     tierId: 'tier_a80444ac',
     name: 'Pro',
     price: 99,
-    photos: 1500,
-    perPhoto: '$0.066',
+    credits: 1500,
+    photos: 150,      // 1500 credits ÷ 10 = 150 photos
+    perPhoto: '$0.66',
     popular: false,
   },
 ];
@@ -145,14 +148,19 @@ export default function Pricing() {
                 </p>
               </div>
 
-              {/* Photo count */}
-              <div className="border-t border-border/30 pt-5">
-                <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase mb-1">
-                  You get
+              {/* What you get */}
+              <div className="border-t border-border/30 pt-5 space-y-3">
+                <div>
+                  <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase mb-1">
+                    You get
+                  </p>
+                  <span className="font-display text-3xl uppercase tracking-tight text-foreground">
+                    {plan.credits.toLocaleString()} Credits
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
+                  Generate up to {plan.photos} photos
                 </p>
-                <span className="font-display text-3xl uppercase tracking-tight text-foreground">
-                  {plan.photos.toLocaleString()} Photos
-                </span>
               </div>
 
               {/* CTA */}
@@ -167,7 +175,7 @@ export default function Pricing() {
                   {loadingTier === plan.tierId ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    `Buy ${plan.photos.toLocaleString()} Photos`
+                    `Buy ${plan.credits.toLocaleString()} Credits`
                   )}
                 </Button>
                 {errorTier === plan.tierId && (
