@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     // Build forwarded body
-    const forwardBody: Record<string, string> = { tier_id };
+    const forwardBody: Record<string, string> = { price_id: tier_id };
     if (return_to) forwardBody.return_to = return_to;
 
     // 5. Forward to Billing Gateway
