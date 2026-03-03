@@ -13,8 +13,8 @@ import {
   Download,
   Loader2,
   RefreshCw,
-  ChevronUp,
   ArrowRight,
+  ArrowLeft,
   AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -230,13 +230,11 @@ export default function UnifiedStudio() {
       return;
     }
     setCurrentStep('model');
-    setTimeout(() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
   const handleContinueAnyway = () => {
     setShowFlaggedDialog(false);
     setCurrentStep('model');
-    setTimeout(() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
   // ─── Generate ─────────────────────────────────────────────────────
@@ -519,8 +517,8 @@ export default function UnifiedStudio() {
                 <div key={s.id} className="flex items-center">
                   <button
                     onClick={() => {
-                      if (s.id === 'upload') setCurrentStep('upload');
-                      else if (s.id === 'model' && (currentStep === 'results' || currentStep === 'model')) setCurrentStep('model');
+                      if (s.id === 'upload' && currentStep !== 'generating') setCurrentStep('upload');
+                      else if (s.id === 'model' && !!jewelryImage && currentStep !== 'generating') setCurrentStep('model');
                     }}
                     className={`flex items-center gap-2 px-4 py-2 transition-all ${
                       isActive
@@ -558,12 +556,11 @@ export default function UnifiedStudio() {
         {/* ═══════════════════════════════════════════════════════════
             STEP 1 — UPLOAD YOUR JEWELRY
             ═══════════════════════════════════════════════════════════ */}
-        {(currentStep === 'upload' || currentStep === 'model') && (
+        {currentStep === 'upload' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="mb-16"
           >
             {/* Step 1 Header */}
             <div className="mb-6">
@@ -637,24 +634,6 @@ export default function UnifiedStudio() {
                       )}
                     </div>
 
-                    {currentStep === 'upload' && (
-                      <div className="flex justify-end pt-2">
-                        <Button
-                          size="lg"
-                          onClick={handleNextStep}
-                          disabled={!canProceed}
-                          className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-                        >
-                          Next
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                        {isValidating && (
-                          <p className="text-xs text-muted-foreground font-mono tracking-wider self-center ml-4">
-                            Validating image…
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -818,23 +797,6 @@ export default function UnifiedStudio() {
                   )}
                 </div>
 
-                {/* Generate Photoshoot button — diamond accent */}
-                <Button
-                  size="lg"
-                  onClick={handleGenerate}
-                  disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
-                  className="w-full font-display text-lg uppercase tracking-wide gap-2.5 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
-                >
-                  {preflightChecking ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
-                      <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                      10
-                    </span>
-                  )}
-                  Generate Photoshoot
-                </Button>
               </div>
 
               {/* Right 1/3 — Model Library Sidebar */}
@@ -862,16 +824,6 @@ export default function UnifiedStudio() {
               </div>
             </div>
 
-            {/* Back to Step 1 link */}
-            <div className="mt-6">
-              <button
-                onClick={() => setCurrentStep('upload')}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-                <span className="font-mono text-[10px] tracking-wider uppercase">Back to Step 1</span>
-              </button>
-            </div>
           </motion.div>
         )}
 
@@ -996,6 +948,63 @@ export default function UnifiedStudio() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Sticky Bottom Action Bar ── */}
+      {(currentStep === 'upload' || currentStep === 'model') && (
+        <div className="flex-shrink-0 px-4 md:px-6 py-4 border-t border-border/20 flex items-center justify-between relative z-10 bg-background/95 backdrop-blur-sm">
+          {/* Back button — only on step 2 */}
+          {currentStep === 'model' ? (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setCurrentStep('upload')}
+              className="gap-2 font-mono text-[11px] uppercase tracking-widest"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          {/* Next (step 1) or Generate (step 2) */}
+          {currentStep === 'upload' && (
+            <div className="flex items-center gap-3">
+              {isValidating && (
+                <span className="text-xs text-muted-foreground font-mono tracking-wider">Validating…</span>
+              )}
+              <Button
+                size="lg"
+                onClick={handleNextStep}
+                disabled={!canProceed}
+                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {currentStep === 'model' && (
+            <Button
+              size="lg"
+              onClick={handleGenerate}
+              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
+              className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
+            >
+              {preflightChecking ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
+                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  10
+                </span>
+              )}
+              Generate Photoshoot
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
