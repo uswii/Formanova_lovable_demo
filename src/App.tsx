@@ -110,7 +110,7 @@ const App = () => (
                   <Route path="/" element={<Welcome />} />
                   <Route path="/login" element={<Auth />} />
                   <Route path="/oauth-callback" element={<Auth />} />
-                  <Route path="/tutorial" element={<Tutorial />} />
+                  {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   
                   {/* Protected routes - require sign in */}
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Diamond,
@@ -824,7 +825,14 @@ export default function UnifiedStudio() {
                   disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
                   className="w-full font-display text-lg uppercase tracking-wide gap-2.5 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
                 >
-                  {preflightChecking && <Loader2 className="h-5 w-5 animate-spin" />}
+                  {preflightChecking ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
+                      <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                      10
+                    </span>
+                  )}
                   Generate Photoshoot
                 </Button>
               </div>
@@ -979,6 +987,10 @@ export default function UnifiedStudio() {
               >
                 <RefreshCw className="h-4 w-4" />
                 Regenerate
+                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
+                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  10
+                </span>
               </Button>
             </div>
           </motion.div>

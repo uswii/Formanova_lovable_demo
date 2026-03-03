@@ -40,7 +40,7 @@ export function Header() {
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'From Photo' },
     { path: '/studio-cad', label: 'From CAD' },
-    { path: '/tutorial', label: 'Tutorial' },
+    // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
 
   return (
