@@ -107,11 +107,6 @@ export default function Pricing() {
           )}
         </div>
 
-        {/* Subtitle */}
-        <p className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-10">
-          Credits = photos. Each generation uses 1 credit.
-        </p>
-
         {/* Plans */}
         <div className="grid md:grid-cols-3 gap-6">
           {PLANS.map((plan) => (
@@ -152,12 +147,12 @@ export default function Pricing() {
 
               {/* Photo count */}
               <div className="border-t border-border/30 pt-5">
-                <span className="font-display text-3xl uppercase tracking-tight text-foreground">
-                  {plan.photos.toLocaleString()}
-                </span>
-                <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase mt-1">
-                  Photos
+                <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase mb-1">
+                  You get
                 </p>
+                <span className="font-display text-3xl uppercase tracking-tight text-foreground">
+                  {plan.photos.toLocaleString()} Photos
+                </span>
               </div>
 
               {/* CTA */}
