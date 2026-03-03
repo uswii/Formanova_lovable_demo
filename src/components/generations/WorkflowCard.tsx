@@ -179,17 +179,17 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         )}
 
         {/* Card footer: index · date · duration */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
+        <div className="flex items-center justify-between px-2.5 py-2">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
             #{index}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {durationSec !== null && (
-              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/60">
+              <span className="font-mono text-[8px] tracking-wider text-muted-foreground/60">
                 {durationSec}s
               </span>
             )}
-            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
+            <span className="font-mono text-[9px] tracking-wider text-muted-foreground truncate max-w-[90px]">
               {dateStr}
             </span>
           </div>

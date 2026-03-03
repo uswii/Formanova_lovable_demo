@@ -53,6 +53,58 @@ export default function Generations() {
         const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
 
+        // Helper: recursively find first azure:// URI in any object
+        const findAzureUri = (obj: unknown): string | null => {
+          if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
+          if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+            for (const v of Object.values(obj as Record<string, unknown>)) {
+              const found = findAzureUri(v);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        // Enrich completed photo/cad_render workflows: extract thumbnail from last step output
+        const photoCompleted = workflows.filter(
+          (w) => (w.source_type === 'photo' || w.source_type === 'cad_render') && w.status === 'completed'
+        );
+        if (photoCompleted.length > 0) {
+          Promise.allSettled(
+            photoCompleted.map(async (wf) => {
+              try {
+                const details = await getWorkflowDetails(wf.workflow_id);
+                const steps = details.steps ?? [];
+                let thumbnail_url: string | null = null;
+                for (let i = steps.length - 1; i >= 0; i--) {
+                  const uri = findAzureUri(steps[i].output);
+                  if (uri) {
+                    thumbnail_url = azureUriToUrl(uri);
+                    break;
+                  }
+                }
+                return thumbnail_url ? { id: wf.workflow_id, thumbnail_url } : null;
+              } catch { /* ignore individual failures */ }
+              return null;
+            })
+          ).then((results) => {
+            const enrichMap = new Map<string, string>();
+            for (const r of results) {
+              if (r.status === 'fulfilled' && r.value) {
+                enrichMap.set(r.value.id, r.value.thumbnail_url);
+              }
+            }
+            if (enrichMap.size > 0) {
+              setAllWorkflows((prev) =>
+                prev.map((w) => {
+                  const url = enrichMap.get(w.workflow_id);
+                  return url ? { ...w, thumbnail_url: url } : w;
+                })
+              );
+            }
+          });
+        }
+
         // Enrich completed cad_text workflows: screenshots + GLB url/filename
         const cadTextCompleted = workflows.filter(
           (w) => w.source_type === 'cad_text' && w.status === 'completed'
@@ -62,20 +114,6 @@ export default function Generations() {
             cadTextCompleted.map(async (wf) => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
-
-                // Recursively find any azure:// URI inside any object, regardless of key name.
-                // normalise_payload converts binaries to { uri: "azure://...", sha256, type, bytes }
-                // so the actual URI may be nested under any field (e.g. "image", "data", "file", etc.)
-                const findAzureUri = (obj: unknown): string | null => {
-                  if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
-                  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-                    for (const v of Object.values(obj as Record<string, unknown>)) {
-                      const found = findAzureUri(v);
-                      if (found) return found;
-                    }
-                  }
-                  return null;
-                };
 
                 // Screenshots
                 const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
@@ -217,6 +255,7 @@ export default function Generations() {
               loading={photoSection.loading}
               currentPage={photoSection.page}
               totalPages={photoSection.totalPages}
+              columns={4}
               onPageChange={setPhotoPage}
               onWorkflowClick={() => {}}
             />
@@ -230,6 +269,7 @@ export default function Generations() {
               loading={cadRenderSection.loading}
               currentPage={cadRenderSection.page}
               totalPages={cadRenderSection.totalPages}
+              columns={4}
               onPageChange={setCadRenderPage}
               onWorkflowClick={() => {}}
             />

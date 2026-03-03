@@ -15,6 +15,7 @@ interface WorkflowSectionProps {
   currentPage: number;
   totalPages: number;
   indexOffset?: number;
+  columns?: 2 | 3 | 4;
   onPageChange: (page: number) => void;
   onWorkflowClick: (id: string) => void;
 }
@@ -33,9 +34,16 @@ export function WorkflowSection({
   currentPage,
   totalPages,
   indexOffset = 0,
+  columns = 2,
   onPageChange,
   onWorkflowClick,
 }: WorkflowSectionProps) {
+  const gridClass =
+    columns === 4
+      ? 'grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+      : columns === 3
+      ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'
+      : 'grid gap-3 md:grid-cols-2';
   return (
     <section className="mb-14">
       {/* Section Header */}
@@ -55,7 +63,7 @@ export function WorkflowSection({
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className={gridClass}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="marta-frame p-5">
               <div className="flex items-center justify-between mb-3">
@@ -88,7 +96,7 @@ export function WorkflowSection({
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid gap-3 md:grid-cols-2"
+            className={gridClass}
           >
             {workflows.map((w, i) => (
               <WorkflowCard

@@ -17,22 +17,27 @@ const PLANS = [
     tierId: 'price_1T1wGOHUJ0ghrlGbTeTsUxn0',
     name: 'Basic',
     price: 9,
-    credits: 10,
+    credits: 100,
+    costPerCredit: '$0.09',
+    popular: true,
   },
   {
     tier: 'standard',
     tierId: 'price_1T1wGOHUJ0ghrlGba6fPj2Q6',
-    name: 'Pro',
+    name: 'Standard',
     price: 39,
-    credits: 50,
-    popular: true,
+    credits: 500,
+    costPerCredit: '$0.078',
+    saving: '13% cheaper per credit than Basic',
   },
   {
     tier: 'pro',
     tierId: 'price_1T1wGOHUJ0ghrlGbDUlCIWKA',
-    name: 'Power',
+    name: 'Pro',
     price: 99,
-    credits: 150,
+    credits: 1500,
+    costPerCredit: '$0.066',
+    saving: '27% cheaper per credit than Basic · 15% cheaper than Standard',
   },
 ];
 
@@ -126,11 +131,16 @@ export default function Pricing() {
                 <CardTitle className="text-xl font-display">{plan.name}</CardTitle>
                 <CardDescription>
                   <span className="text-4xl font-bold text-foreground">${plan.price}</span>
+                  <span className="text-sm text-muted-foreground ml-1">USD</span>
                 </CardDescription>
                 <div className="flex items-center justify-center gap-1.5 pt-1">
                   <img src={creditCoinIcon} alt="" className="h-8 w-8 object-contain" />
-                  <span className="text-lg font-semibold text-foreground">{plan.credits} credits</span>
+                  <span className="text-lg font-semibold text-foreground">{plan.credits.toLocaleString()} credits</span>
                 </div>
+                <p className="text-xs text-muted-foreground pt-1">{plan.costPerCredit} per credit</p>
+                {'saving' in plan && plan.saving && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 pt-0.5 leading-snug">{plan.saving}</p>
+                )}
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button
