@@ -924,7 +924,7 @@ export default function UnifiedStudio() {
                       download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
                       target="_blank"
                       rel="noreferrer"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2"
                     >
                       <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
                         <Download className="h-3.5 w-3.5" />
