@@ -640,8 +640,11 @@ export default function UnifiedStudio() {
                     />
                   ) : (
                     <div className="text-center px-8">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center border border-border/20">
-                        <ImageIcon className="h-7 w-7 text-muted-foreground/40" />
+                      <div className="relative mx-auto w-16 h-16 mb-4">
+                        <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                        <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                          <Diamond className="h-7 w-7 text-primary" />
+                        </div>
                       </div>
                       <p className="text-foreground text-sm font-medium mb-1">Choose from our AI model library</p>
                       <p className="text-muted-foreground text-xs">or upload your own reference photo</p>
