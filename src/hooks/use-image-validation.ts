@@ -149,7 +149,12 @@ export function useImageValidation() {
       });
 
       if (!startRes.ok) {
-        console.warn('[ImageValidation] /process failed:', startRes.status);
+        // 409 = duplicate/conflict — safe to skip validation
+        if (startRes.status === 409) {
+          console.warn('[ImageValidation] 409 Conflict — skipping (duplicate request)');
+        } else {
+          console.warn('[ImageValidation] /process failed:', startRes.status);
+        }
         clearTimeout(timeoutId);
         return null;
       }
