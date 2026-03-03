@@ -12,6 +12,8 @@ export interface ClassificationResult {
   confidence: number;
   reason: string;
   flagged: boolean;
+  /** The URL the backend assigned to the uploaded image (reuse to avoid double-upload) */
+  uploaded_url?: string;
 }
 
 // Mapped result for UI consumption
