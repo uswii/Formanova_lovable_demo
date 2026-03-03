@@ -18,6 +18,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
@@ -78,6 +85,7 @@ export default function UnifiedStudio() {
   const { refreshCredits } = useCredits();
 
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
+  const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
 
   // Jewelry image
@@ -174,6 +182,16 @@ export default function UnifiedStudio() {
 
   // Auto-advance to Step 2 on valid upload
   const handleNextStep = () => {
+    if (isFlagged) {
+      setShowFlaggedDialog(true);
+      return;
+    }
+    setCurrentStep('model');
+    setTimeout(() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
+  const handleContinueAnyway = () => {
+    setShowFlaggedDialog(false);
     setCurrentStep('model');
     setTimeout(() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
@@ -341,7 +359,7 @@ export default function UnifiedStudio() {
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
   const isFlagged = validationResult && !validationResult.is_acceptable;
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed;
-  const canProceed = jewelryImage && !isFlagged && !isValidating;
+  const canProceed = jewelryImage && !isValidating;
 
   // ─── Model Grid Component ────────────────────────────────────────
 
@@ -448,9 +466,9 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* Layout — Upload LEFT (40%), Example Gallery RIGHT (60%) */}
-            <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
-              {/* Left — Upload Zone (~40%) */}
+            {/* Layout — Upload LEFT, Example Gallery RIGHT — edge to edge */}
+            <div className="grid lg:grid-cols-12 gap-4 lg:gap-5">
+              {/* Left — Upload Zone */}
               <div className="lg:col-span-5 order-1">
                 {!jewelryImage ? (
                   /* Empty state — drop zone (tall rectangular) */
@@ -458,7 +476,7 @@ export default function UnifiedStudio() {
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[520px] md:min-h-[640px] lg:sticky lg:top-8"
+                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[480px] md:min-h-[600px] aspect-[3/4] lg:sticky lg:top-8"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -483,11 +501,9 @@ export default function UnifiedStudio() {
                     />
                   </div>
                 ) : (
-                  /* Uploaded state — image preview */
+                  /* Uploaded state — image preview (no flagged overlay on canvas) */
                   <div className="space-y-4">
-                    <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[520px] md:min-h-[640px] ${
-                      isFlagged ? 'border-destructive/40' : 'border-border/30'
-                    }`}>
+                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[480px] md:min-h-[600px] aspect-[3/4] border-border/30">
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       {/* Small remove X inside top-right of image */}
@@ -497,15 +513,6 @@ export default function UnifiedStudio() {
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
-
-                      {/* Flagged overlay — red X on user's image */}
-                      {isFlagged && (
-                        <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center pointer-events-none">
-                          <div className="w-20 h-20 rounded-full bg-destructive/90 flex items-center justify-center shadow-xl">
-                            <X className="h-10 w-10 text-destructive-foreground" />
-                          </div>
-                        </div>
-                      )}
 
                       {/* Validation badges */}
                       {isValidating && (
@@ -522,44 +529,7 @@ export default function UnifiedStudio() {
                       )}
                     </div>
 
-                    {/* Flagged comparison panel — user's image vs acceptable example */}
-                    {isFlagged && (
-                      <div className="border border-destructive/20 bg-destructive/5 p-4 space-y-4">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-destructive">
-                              Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Please upload jewelry being worn on a model, mannequin, or body part.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
-                            <div className="relative border-2 border-destructive/40 overflow-hidden aspect-square bg-muted/30">
-                              <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                                <X className="h-4 w-4 text-destructive-foreground" />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable example</p>
-                            <div className="relative border-2 border-primary/40 overflow-hidden aspect-square bg-muted/30">
-                              <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                                <Check className="h-4 w-4 text-primary-foreground" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Next button — diamond style */}
+                    {/* Next button — always available once image uploaded & validation done */}
                     {currentStep === 'upload' && (
                       <div className="flex justify-end pt-2">
                         <Button
@@ -583,7 +553,7 @@ export default function UnifiedStudio() {
                 )}
               </div>
 
-              {/* Right — Example Guide Panel (full height, ~60%) */}
+              {/* Right — Example Guide Panel (full width, no extra padding) */}
               <div className="lg:col-span-7 order-2">
                 <ExampleGuidePanel
                   categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
@@ -601,6 +571,64 @@ export default function UnifiedStudio() {
             </div>
           </motion.div>
         )}
+
+        {/* ═══ Flagged Image Dialog ═══ */}
+        <Dialog open={showFlaggedDialog} onOpenChange={setShowFlaggedDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Image May Not Be Suitable
+              </DialogTitle>
+              <DialogDescription>
+                We detected this image as <strong>{LABEL_NAMES[validationResult?.category || ''] || validationResult?.category}</strong>.
+                For best results, upload jewelry <strong>worn on a person or mannequin</strong>. Results with this image may not be accurate.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-4 my-2">
+              {/* User's flagged image */}
+              <div className="space-y-2">
+                <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
+                <div className="relative border-2 border-destructive/40 overflow-hidden aspect-[3/4] bg-muted/30 rounded-sm">
+                  {jewelryImage && <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />}
+                  <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+                    <X className="h-4 w-4 text-destructive-foreground" />
+                  </div>
+                </div>
+              </div>
+              {/* Acceptable example */}
+              <div className="space-y-2">
+                <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable format</p>
+                <div className="relative border-2 border-primary/40 overflow-hidden aspect-[3/4] bg-muted/30 rounded-sm">
+                  <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                    <Check className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setShowFlaggedDialog(false); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); }}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Go Back & Re-upload
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleContinueAnyway}
+                className="text-muted-foreground"
+              >
+                Continue Anyway
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ═══════════════════════════════════════════════════════════
             STEP 2 — CHOOSE A MODEL (visible only after Next)
