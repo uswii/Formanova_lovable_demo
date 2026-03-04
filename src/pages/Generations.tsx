@@ -116,26 +116,23 @@ export default function Generations() {
                 console.log(`[Generations] photo ${wf.workflow_id} steps:`, steps.map(s => s.tool));
                 let thumbnail_url: string | null = null;
 
-                // Target generate_jewelry_image step specifically — never fall back to other steps
-                // to avoid picking up the input jewelry/model images from prepare_jewelry_request.
+                // Target generate_jewelry_image step specifically — never fall back to other steps.
+                // Priority: image_b64 (never expires) → output_url (SAS, may be expired)
                 const genStep = steps.find((s) => s.tool === 'generate_jewelry_image');
                 if (genStep?.output) {
                   const out = genStep.output as any;
-                  // output_url may be top-level or nested under result
-                  const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
-                  if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) {
-                    thumbnail_url = outputUrl;
+                  // 1. Prefer image_b64 as data URI — raw base64, never expires
+                  const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
+                  const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
+                  if (b64) {
+                    thumbnail_url = `data:${mime};base64,${b64}`;
                   }
-                  // Fallback: image_b64 as data URI (covers case where output_url is missing/expired)
+                  // 2. Fall back to output_url only if no b64
                   if (!thumbnail_url) {
-                    const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
-                    const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
-                    if (b64) thumbnail_url = `data:${mime};base64,${b64}`;
-                  }
-                  // Last resort: find any azure:// or blob URL within this step's output only
-                  if (!thumbnail_url) {
-                    const uri = findImageUrl(genStep.output);
-                    if (uri) thumbnail_url = azureUriToUrl(uri);
+                    const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
+                    if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) {
+                      thumbnail_url = outputUrl;
+                    }
                   }
                 }
 
