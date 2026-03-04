@@ -51,6 +51,7 @@ export default function Generations() {
       try {
         setGlobalLoading(true);
         const workflows = await listMyWorkflows(100, 0);
+        console.log('[Generations] workflows:', workflows.map(w => ({ name: w.name, status: w.status, source_type: w.source_type })));
         setAllWorkflows(workflows);
 
         // Helper: recursively find first azure:// URI in any object or array
@@ -88,7 +89,7 @@ export default function Generations() {
           return null;
         };
 
-        // Enrich completed photo/cad_render workflows: extract thumbnail from last step output
+        // Enrich completed photo/cad_render workflows: extract thumbnail from generate_jewelry_image step
         const photoCompleted = workflows.filter(
           (w) => (w.source_type === 'photo' || w.source_type === 'cad_render') && w.status === 'completed'
         );
@@ -99,16 +100,30 @@ export default function Generations() {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
                 const steps = details.steps ?? [];
-                console.debug(`[Generations] photo workflow ${wf.workflow_id} has ${steps.length} steps`);
+                console.log(`[Generations] photo ${wf.workflow_id} steps:`, steps.map(s => s.tool));
                 let thumbnail_url: string | null = null;
-                for (let i = steps.length - 1; i >= 0; i--) {
-                  const uri = findImageUrl(steps[i].output);
-                  if (uri) {
-                    thumbnail_url = azureUriToUrl(uri);
-                    break;
+
+                // Primary: look for generate_jewelry_image step output_url (SAS URL to final image)
+                const genStep = steps.find((s) => s.tool === 'generate_jewelry_image');
+                if (genStep?.output) {
+                  const outputUrl = (genStep.output as any)?.result?.output_url;
+                  if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) {
+                    thumbnail_url = outputUrl;
                   }
                 }
-                console.debug(`[Generations] photo ${wf.workflow_id} thumbnail:`, thumbnail_url);
+
+                // Fallback: last-to-first search across all steps
+                if (!thumbnail_url) {
+                  for (let i = steps.length - 1; i >= 0; i--) {
+                    const uri = findImageUrl(steps[i].output);
+                    if (uri) {
+                      thumbnail_url = azureUriToUrl(uri);
+                      break;
+                    }
+                  }
+                }
+
+                console.log(`[Generations] photo ${wf.workflow_id} thumbnail:`, thumbnail_url);
                 return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
               } catch (e) {
                 console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
