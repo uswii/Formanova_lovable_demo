@@ -513,7 +513,7 @@ export default function UnifiedStudio() {
               const stepOrder = { upload: 0, model: 1, generating: 2, results: 2 };
               const current = stepOrder[currentStep];
               const isDone = s.step - 1 < current;
-              const isActive = (s.id === 'results' && (currentStep === 'generating' || currentStep === 'results')) || currentStep === s.id;
+              const isActive = (s.id === 'results' && ((currentStep as string) === 'generating' || currentStep === 'results')) || currentStep === s.id;
               return (
                 <div key={s.id} className="flex items-center">
                   <button
