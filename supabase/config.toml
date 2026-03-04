@@ -45,3 +45,12 @@ verify_jwt = false
 
 [functions.checkout-proxy]
 verify_jwt = false
+
+[functions.send-announcement]
+verify_jwt = false
+
+[functions.admin-batches]
+verify_jwt = false
+
+[functions.credits-proxy]
+verify_jwt = false

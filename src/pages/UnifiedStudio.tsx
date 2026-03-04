@@ -517,8 +517,8 @@ export default function UnifiedStudio() {
                 <div key={s.id} className="flex items-center">
                   <button
                     onClick={() => {
-                      if (s.id === 'upload' && currentStep !== 'generating') setCurrentStep('upload');
-                      else if (s.id === 'model' && !!jewelryImage && currentStep !== 'generating') setCurrentStep('model');
+                      if (s.id === 'upload' && (currentStep as string) !== 'generating') setCurrentStep('upload');
+                      else if (s.id === 'model' && !!jewelryImage && (currentStep as string) !== 'generating') setCurrentStep('model');
                     }}
                     className={`flex items-center gap-2 px-4 py-2 transition-all ${
                       isActive
@@ -614,7 +614,7 @@ export default function UnifiedStudio() {
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
-                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if (currentStep === 'model') setCurrentStep('upload'); }}
+                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                       >
                         <X className="h-3.5 w-3.5" />
