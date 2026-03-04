@@ -116,7 +116,21 @@ export async function getWorkflowDetails(
     throw new Error(`API returned non-JSON response`);
   }
 
-  return res.json();
+  const raw = await res.json();
+  console.debug('[HistoryAPI] detail raw response keys:', Object.keys(raw ?? {}));
+
+  // Normalize: backend may wrap response in different shapes
+  const payload = raw?.data ?? raw?.workflow ?? raw?.result ?? raw;
+  return {
+    summary: payload?.summary ?? {
+      id: payload?.workflow_id ?? payload?.id ?? workflowId,
+      name: payload?.name ?? '',
+      status: payload?.status ?? 'unknown',
+      created_at: payload?.created_at ?? '',
+      finished_at: payload?.finished_at ?? null,
+    },
+    steps: payload?.steps ?? payload?.workflow_steps ?? [],
+  };
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────

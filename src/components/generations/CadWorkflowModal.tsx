@@ -86,9 +86,12 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           const raw = screenshotStep.output.screenshots as Record<string, unknown>[];
           const mapped = raw
             .map(s => {
-              const angle = (s.angle as string) || 'unknown';
-              const uri = findAzureUri(s);
-              return uri ? { angle, url: azureUriToUrl(uri) } : null;
+              // Actual DB field is 'name'; fall back to 'angle' for legacy data
+              const angle = (s.name as string) || (s.angle as string) || 'unknown';
+              // Actual DB field is data_uri.uri; fall back to deep search
+              const rawUri = (s as any)?.data_uri?.uri ?? (s as any)?.url ?? (s as any)?.uri;
+              const uri = rawUri || findAzureUri(s);
+              return uri ? { angle, url: azureUriToUrl(uri as string) } : null;
             })
             .filter(Boolean) as { angle: string; url: string }[];
           setScreenshots(sortScreenshots(mapped));

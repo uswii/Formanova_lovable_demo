@@ -1,11 +1,12 @@
 import React from 'react';
-import { Maximize2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
 interface PhotoPreviewModalProps {
@@ -15,6 +16,17 @@ interface PhotoPreviewModalProps {
 }
 
 export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
+  const handleDownload = () => {
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    // Derive a filename from the URL or use a fallback
+    const urlParts = imageUrl.split('/');
+    const lastPart = urlParts[urlParts.length - 1].split('?')[0];
+    a.download = lastPart || 'generation.jpg';
+    a.target = '_blank';
+    a.click();
+  };
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden">
@@ -24,18 +36,26 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 pt-4">
-          {/* Hero image with enlarge icon overlay */}
-          <div className="relative group bg-muted overflow-hidden">
+        <div className="p-6 pt-4 space-y-4">
+          {/* Hero image */}
+          <div className="relative bg-muted overflow-hidden">
             <OptimizedImage
               src={imageUrl}
               alt={alt || 'Preview'}
               className="w-full object-contain max-h-[520px]"
             />
-            {/* Enlarge icon overlay in corner */}
-            <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm p-1.5 opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <Maximize2 className="h-4 w-4 text-foreground" />
-            </div>
+          </div>
+
+          {/* Download button */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={handleDownload}
+              className="font-mono text-[10px] tracking-wider uppercase gap-2"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </Button>
           </div>
         </div>
       </DialogContent>

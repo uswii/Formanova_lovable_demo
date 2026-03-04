@@ -67,11 +67,15 @@ export default function Generations() {
           return null;
         };
 
-        // For photo workflows: also match https:// image URLs (some steps store CDN URLs directly)
+        // For photo workflows: match azure:// URIs, snapwear blob URLs, or HTTPS image URLs
         const findImageUrl = (obj: unknown): string | null => {
           if (typeof obj === 'string') {
             if (obj.startsWith('azure://')) return obj;
-            if (obj.startsWith('https://') && /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)) return obj;
+            if (obj.startsWith('https://') && (
+              obj.includes('snapwear.blob.core.windows.net') ||
+              obj.includes('blob.core.windows.net') ||
+              /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)
+            )) return obj;
           }
           if (Array.isArray(obj)) {
             for (const item of obj) { const f = findImageUrl(item); if (f) return f; }
@@ -89,11 +93,13 @@ export default function Generations() {
           (w) => (w.source_type === 'photo' || w.source_type === 'cad_render') && w.status === 'completed'
         );
         if (photoCompleted.length > 0) {
+          const photoIds = new Set(photoCompleted.map((wf) => wf.workflow_id));
           Promise.allSettled(
             photoCompleted.map(async (wf) => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
                 const steps = details.steps ?? [];
+                console.debug(`[Generations] photo workflow ${wf.workflow_id} has ${steps.length} steps`);
                 let thumbnail_url: string | null = null;
                 for (let i = steps.length - 1; i >= 0; i--) {
                   const uri = findImageUrl(steps[i].output);
@@ -102,9 +108,12 @@ export default function Generations() {
                     break;
                   }
                 }
-                return thumbnail_url ? { id: wf.workflow_id, thumbnail_url } : null;
-              } catch { /* ignore individual failures */ }
-              return null;
+                console.debug(`[Generations] photo ${wf.workflow_id} thumbnail:`, thumbnail_url);
+                return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
+              } catch (e) {
+                console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
+              }
+              return { id: wf.workflow_id, thumbnail_url: '' };
             })
           ).then((results) => {
             const enrichMap = new Map<string, string>();
@@ -113,14 +122,14 @@ export default function Generations() {
                 enrichMap.set(r.value.id, r.value.thumbnail_url);
               }
             }
-            if (enrichMap.size > 0) {
-              setAllWorkflows((prev) =>
-                prev.map((w) => {
-                  const url = enrichMap.get(w.workflow_id);
-                  return url ? { ...w, thumbnail_url: url } : w;
-                })
-              );
-            }
+            // Always update — even with empty results — so cards stop pulsing
+            setAllWorkflows((prev) =>
+              prev.map((w) => {
+                if (!photoIds.has(w.workflow_id)) return w;
+                const url = enrichMap.get(w.workflow_id);
+                return { ...w, thumbnail_url: url ?? '' };
+              })
+            );
           });
         }
 
@@ -129,30 +138,56 @@ export default function Generations() {
           (w) => w.source_type === 'cad_text' && w.status === 'completed'
         );
         if (cadTextCompleted.length > 0) {
+          const cadTextIds = new Set(cadTextCompleted.map((wf) => wf.workflow_id));
           Promise.allSettled(
             cadTextCompleted.map(async (wf) => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
+                const steps = details.steps ?? [];
+                console.debug(`[Generations] cadText workflow ${wf.workflow_id} has ${steps.length} steps:`, steps.map(s => s.tool));
 
-                // Screenshots
-                const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
-                const rawShots = screenshotStep?.output?.screenshots as Record<string, unknown>[] | undefined;
-                const screenshots = (rawShots ?? [])
-                  .map((s) => {
-                    const angle = (s.angle as string) || 'unknown';
-                    const uri = findAzureUri(s);
-                    return uri ? { angle, url: azureUriToUrl(uri) } : null;
-                  })
-                  .filter(Boolean) as { angle: string; url: string }[];
+                // Screenshots — try multiple step/field names
+                // Screenshot objects: actual DB shape is {name, data_uri: {uri: "azure://..."}}
+                // Also handle legacy shapes: {angle, url}, {angle, uri}
+                const screenshotStep = steps.find((s) =>
+                  s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
+                );
+                const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
+                let screenshots: { angle: string; url: string }[] = [];
+                if (rawShots?.length) {
+                  screenshots = rawShots
+                    .map((s: any) => {
+                      // Angle: try 'name' (actual DB) then 'angle' (legacy)
+                      const angle = (s.name as string) || (s.angle as string) || 'unknown';
+                      // URL: try data_uri.uri (actual DB) then url/uri (legacy)
+                      const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
+                      if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
+                      // Deep fallback: find any azure:// URI in the object
+                      const uri = findAzureUri(s);
+                      return uri ? { angle, url: azureUriToUrl(uri) } : null;
+                    })
+                    .filter((s): s is { angle: string; url: string } => !!s?.url);
+                }
                 const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
+                console.debug(`[Generations] cadText ${wf.workflow_id} screenshots:`, screenshots.length, 'front:', front?.url);
 
-                // GLB — recursively find azure URI anywhere in the glb step output
-                const validateStep = details.steps?.find((s) => s.tool === 'ring-validate');
-                const generateStep = details.steps?.find((s) => s.tool === 'ring-generate');
+                // GLB — primary: look for glb_path field (known working structure)
+                const validateStep = steps.find((s) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
+                const generateStep = steps.find((s) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
                 const glbStep = validateStep || generateStep;
                 let glb_url: string | null = null;
                 let glb_filename: string | null = null;
-                if (glbStep?.output) {
+                if (glbStep?.output?.glb_path) {
+                  const glbPath = glbStep.output.glb_path as any;
+                  const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
+                  if (uri) {
+                    glb_url = azureUriToUrl(uri);
+                    const parts = (uri as string).split('/');
+                    glb_filename = parts[parts.length - 1] || 'model.glb';
+                  }
+                }
+                // Fallback: recursive azure URI search in glb step output
+                if (!glb_url && glbStep?.output) {
                   const uri = findAzureUri(glbStep.output);
                   if (uri) {
                     glb_url = azureUriToUrl(uri);
@@ -160,10 +195,25 @@ export default function Generations() {
                     glb_filename = parts[parts.length - 1] || 'model.glb';
                   }
                 }
+                // Last resort: scan ALL steps for a .glb URI
+                if (!glb_url) {
+                  for (const step of steps) {
+                    const uri = findAzureUri(step.output);
+                    if (uri && uri.includes('.glb')) {
+                      glb_url = azureUriToUrl(uri);
+                      const parts = uri.split('/');
+                      glb_filename = parts[parts.length - 1] || 'model.glb';
+                      break;
+                    }
+                  }
+                }
+                console.debug(`[Generations] cadText ${wf.workflow_id} glb:`, glb_url);
 
                 return { id: wf.workflow_id, thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename };
-              } catch { /* ignore individual failures */ }
-              return null;
+              } catch (e) {
+                console.warn('[Generations] cadText detail fetch failed:', wf.workflow_id, e);
+              }
+              return { id: wf.workflow_id, thumbnail_url: '', screenshots: [] as { angle: string; url: string }[], glb_url: null, glb_filename: null };
             })
           ).then((results) => {
             const enrichMap = new Map<string, { thumbnail_url: string; screenshots: { angle: string; url: string }[]; glb_url: string | null; glb_filename: string | null }>();
@@ -172,14 +222,17 @@ export default function Generations() {
                 enrichMap.set(r.value.id, r.value);
               }
             }
-            if (enrichMap.size > 0) {
-              setAllWorkflows((prev) =>
-                prev.map((w) => {
-                  const e = enrichMap.get(w.workflow_id);
-                  return e ? { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename } : w;
-                })
-              );
-            }
+            // Always update — even with empty results — so cards stop pulsing
+            setAllWorkflows((prev) =>
+              prev.map((w) => {
+                if (!cadTextIds.has(w.workflow_id)) return w;
+                const e = enrichMap.get(w.workflow_id);
+                if (e) {
+                  return { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename };
+                }
+                return { ...w, screenshots: [], glb_url: null, glb_filename: null };
+              })
+            );
           });
         }
       } catch (err: any) {

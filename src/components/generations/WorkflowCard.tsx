@@ -30,7 +30,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
-  const isEnriching = !workflow.glb_url && !workflow.screenshots;
+  // undefined = enrichment not started yet; [] = enriched but no shots found
+  const isEnriching = workflow.screenshots === undefined;
 
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,7 +78,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                 </button>
               ))}
             </div>
-          ) : (
+          ) : isEnriching ? (
             /* Pulse placeholders while enrichment loads */
             <div className="flex gap-1">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -86,6 +87,13 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   className="flex-shrink-0 w-14 h-14 bg-muted/50 rounded-sm animate-pulse"
                 />
               ))}
+            </div>
+          ) : (
+            /* Enriched but no renders found */
+            <div className="flex items-center justify-center h-14 w-full">
+              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
+                No renders available
+              </span>
             </div>
           )}
         </div>
@@ -110,7 +118,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </Button>
           ) : (
             <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
-              {isEnriching ? 'Loading…' : 'Unavailable'}
+              {workflow.glb_url === undefined && isEnriching ? 'Loading…' : 'Unavailable'}
             </span>
           )}
         </div>
@@ -149,6 +157,8 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         )
       : null;
 
+  // undefined = enrichment not started; '' = enriched but no thumbnail found
+  const isEnriching = workflow.thumbnail_url === undefined;
   const hasThumbnail = !!workflow.thumbnail_url;
 
   return (
@@ -173,9 +183,16 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               </div>
             </div>
           </button>
-        ) : (
-          /* Placeholder when no image yet */
+        ) : isEnriching ? (
+          /* Pulsing placeholder while enrichment is in progress */
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
+        ) : (
+          /* Enriched but no image found */
+          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
+            <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
+              No preview
+            </span>
+          </div>
         )}
 
         {/* Card footer: index · date · duration */}
@@ -210,7 +227,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 
 // ─── Exported card dispatcher ───────────────────────────────────────────────
 
-export function WorkflowCard({ workflow, index = 0, onClick }: WorkflowCardProps) {
+export function WorkflowCard({ workflow, index = 0, onClick: _onClick }: WorkflowCardProps) {
   if (workflow.source_type === 'cad_text') {
     return <CadTextCard workflow={workflow} index={index} />;
   }
