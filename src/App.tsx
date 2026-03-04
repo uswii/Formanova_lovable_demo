@@ -39,6 +39,12 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 const AdminBatches = lazy(() => import("./pages/AdminBatches"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminUserDetail = lazy(() => import("./pages/AdminUserDetail"));
+const AdminWorkflows = lazy(() => import("./pages/AdminWorkflows"));
+const AdminWorkflowDetail = lazy(() => import("./pages/AdminWorkflowDetail"));
+const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const AdminTenants = lazy(() => import("./pages/AdminTenants"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
 
@@ -130,8 +136,14 @@ const App = () => (
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADToCatalog /></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><TextToCAD /></ProtectedRoute>} />
                   
-                  {/* Admin route - login protected */}
+                  {/* Admin routes - login protected */}
                   <Route path="/admin" element={<ProtectedRoute><AdminBatches /></ProtectedRoute>} />
+                  <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+                  <Route path="/admin/users/:externalId" element={<ProtectedRoute><AdminUserDetail /></ProtectedRoute>} />
+                  <Route path="/admin/workflows" element={<ProtectedRoute><AdminWorkflows /></ProtectedRoute>} />
+                  <Route path="/admin/workflows/:workflowId" element={<ProtectedRoute><AdminWorkflowDetail /></ProtectedRoute>} />
+                  <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+                  <Route path="/admin/tenants" element={<ProtectedRoute><AdminTenants /></ProtectedRoute>} />
                   
                   {/* Results page - handles auth internally (login button + ownership check) */}
                   <Route path="/yourresults/:token" element={<DeliveryResults />} />

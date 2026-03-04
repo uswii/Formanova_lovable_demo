@@ -1,73 +1,76 @@
-# Welcome to your Lovable project
+# Formanova Admin Dashboard
 
-## Project info
+Internal admin panel for managing the Formanova platform — users, workflows, analytics, and tenants.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+Connects to the temporal-agentic-pipeline backend and provides a unified interface for:
 
-There are several ways of editing your application.
+- **Users** — view all users, search by email, manage credit balances
+- **Workflows** — monitor pipeline executions, filter by status/tenant, inspect margins
+- **Analytics** — P&L cards, daily workflow volume, top users by balance
+- **Tenants** — aggregate stats per tenant (users, workflows, revenue)
+- **Batch Management** — existing batch job management
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- React + TypeScript
+- Vite
+- Tailwind CSS + shadcn/ui
+- TanStack Query
+- Recharts
+- React Router
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 18+
+- Access to the temporal-agentic-pipeline backend
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Install
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file in the root:
 
-**Use GitHub Codespaces**
+```env
+VITE_PIPELINE_API_URL=https://formanova.ai/api
+VITE_PIPELINE_API_KEY=<your_tenant_api_key>
+VITE_PIPELINE_ADMIN_SECRET=<your_admin_secret>
+VITE_SUPABASE_URL=<your_supabase_url>
+VITE_SUPABASE_PUBLISHABLE_KEY=<your_supabase_anon_key>
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Run
 
-## What technologies are used for this project?
+```bash
+npm run dev       # development at localhost:5173
+npm run build     # production build
+npm run preview   # preview production build locally
+```
 
-This project is built with:
+## Routes
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Route | Description |
+|---|---|
+| `/admin` | Batch Management |
+| `/admin/users` | User list with search |
+| `/admin/users/:externalId` | User detail — balance + workflow history |
+| `/admin/workflows` | Workflow list with filters |
+| `/admin/workflows/:workflowId` | Workflow audit — per-tool line items |
+| `/admin/analytics` | P&L overview + charts |
+| `/admin/tenants` | Tenant cards with aggregate stats |
 
-## How can I deploy this project?
+All routes are protected and require authentication.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## API Client
 
-## Can I connect a custom domain to my Lovable project?
+`src/lib/pipeline-api.ts` handles all backend communication:
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Admin endpoints** (`X-Admin-Secret`) — `/admin/users`, `/admin/tenants`, `/admin/workflows`
+- **Tenant endpoints** (`X-API-Key`) — balance, top-up, audit, workflow history
