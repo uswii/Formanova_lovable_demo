@@ -53,12 +53,31 @@ export default function Generations() {
         const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
 
-        // Helper: recursively find first azure:// URI in any object
+        // Helper: recursively find first azure:// URI in any object or array
         const findAzureUri = (obj: unknown): string | null => {
           if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
-          if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          if (Array.isArray(obj)) {
+            for (const item of obj) { const f = findAzureUri(item); if (f) return f; }
+          } else if (obj && typeof obj === 'object') {
             for (const v of Object.values(obj as Record<string, unknown>)) {
               const found = findAzureUri(v);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        // For photo workflows: also match https:// image URLs (some steps store CDN URLs directly)
+        const findImageUrl = (obj: unknown): string | null => {
+          if (typeof obj === 'string') {
+            if (obj.startsWith('azure://')) return obj;
+            if (obj.startsWith('https://') && /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)) return obj;
+          }
+          if (Array.isArray(obj)) {
+            for (const item of obj) { const f = findImageUrl(item); if (f) return f; }
+          } else if (obj && typeof obj === 'object') {
+            for (const v of Object.values(obj as Record<string, unknown>)) {
+              const found = findImageUrl(v);
               if (found) return found;
             }
           }
@@ -77,7 +96,7 @@ export default function Generations() {
                 const steps = details.steps ?? [];
                 let thumbnail_url: string | null = null;
                 for (let i = steps.length - 1; i >= 0; i--) {
-                  const uri = findAzureUri(steps[i].output);
+                  const uri = findImageUrl(steps[i].output);
                   if (uri) {
                     thumbnail_url = azureUriToUrl(uri);
                     break;

@@ -636,6 +636,24 @@ export default function UnifiedStudio() {
 
                   </div>
                 )}
+
+                {/* Next button — inline below upload canvas */}
+                {jewelryImage && (
+                  <div className="flex items-center justify-end gap-3 pt-4">
+                    {isValidating && (
+                      <span className="text-xs text-muted-foreground font-mono tracking-wider">Validating…</span>
+                    )}
+                    <Button
+                      size="lg"
+                      onClick={handleNextStep}
+                      disabled={!canProceed}
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* ── Sidebar: Upload Guide (1/3) — mirrors old Examples sidebar ── */}
@@ -799,6 +817,36 @@ export default function UnifiedStudio() {
 
               </div>
 
+                {/* Actions row — Back left, Generate right */}
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep('upload')}
+                    className="gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back
+                  </Button>
+                  <Button
+                    size="lg"
+                    onClick={handleGenerate}
+                    disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
+                    className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
+                  >
+                    {preflightChecking ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
+                        <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                        10
+                      </span>
+                    )}
+                    Generate Photoshoot
+                  </Button>
+                </div>
+              </div>
+
               {/* Right 1/3 — Model Library Sidebar */}
               <div className="space-y-4">
                 <div>
@@ -939,82 +987,29 @@ export default function UnifiedStudio() {
               </div>
             )}
 
-            <div className="flex justify-center gap-4">
-              <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
-                <Diamond className="h-4 w-4" />
-                New Photoshoot
-              </Button>
-              <Button
-                size="lg"
-                onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
-                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Regenerate
-                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                  10
-                </span>
-              </Button>
-            </div>
           </motion.div>
         )}
       </div>
 
-      {/* ── Sticky Bottom Action Bar ── */}
-      {(currentStep === 'upload' || currentStep === 'model') && (
-        <div className="flex-shrink-0 px-4 md:px-6 py-4 border-t border-border/20 flex items-center justify-between relative z-10 bg-background/95 backdrop-blur-sm">
-          {/* Back button — only on step 2 */}
-          {currentStep === 'model' ? (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setCurrentStep('upload')}
-              className="gap-2 font-mono text-[11px] uppercase tracking-widest"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          ) : (
-            <div />
-          )}
-
-          {/* Next (step 1) or Generate (step 2) */}
-          {currentStep === 'upload' && (
-            <div className="flex items-center gap-3">
-              {isValidating && (
-                <span className="text-xs text-muted-foreground font-mono tracking-wider">Validating…</span>
-              )}
-              <Button
-                size="lg"
-                onClick={handleNextStep}
-                disabled={!canProceed}
-                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-              >
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {currentStep === 'model' && (
-            <Button
-              size="lg"
-              onClick={handleGenerate}
-              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
-              className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
-            >
-              {preflightChecking ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                  10
-                </span>
-              )}
-              Generate Photoshoot
-            </Button>
-          )}
+      {/* ── Sticky Bottom Bar — Results only ── */}
+      {currentStep === 'results' && (
+        <div className="flex-shrink-0 px-4 md:px-6 py-4 border-t border-border/20 flex items-center justify-center gap-4 relative z-10 bg-background/95 backdrop-blur-sm">
+          <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
+            <Diamond className="h-4 w-4" />
+            New Photoshoot
+          </Button>
+          <Button
+            size="lg"
+            onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
+            className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Regenerate
+            <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
+              <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+              10
+            </span>
+          </Button>
         </div>
       )}
     </div>
