@@ -42,8 +42,6 @@ Create a `.env` file in the root:
 VITE_PIPELINE_API_URL=https://formanova.ai/api
 VITE_PIPELINE_API_KEY=<your_tenant_api_key>
 VITE_PIPELINE_ADMIN_SECRET=<your_admin_secret>
-VITE_SUPABASE_URL=<your_supabase_url>
-VITE_SUPABASE_PUBLISHABLE_KEY=<your_supabase_anon_key>
 ```
 
 ### Run
