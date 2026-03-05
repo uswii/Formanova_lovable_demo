@@ -29,13 +29,13 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-6 md:px-12 lg:px-16">
+    <div className="min-h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-4 md:px-8 lg:px-12">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-center pt-8 md:pt-12 text-foreground"
+        className="font-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl uppercase tracking-wide text-center pt-8 md:pt-12 text-foreground"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
@@ -45,7 +45,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.15 }}
-        className="w-full max-w-md h-[220px] md:h-[280px] lg:h-[320px] -mt-2"
+        className="w-full max-w-xl h-[260px] md:h-[340px] lg:h-[400px] -mt-2"
       >
         <InteractiveRing />
       </motion.div>
@@ -55,7 +55,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pb-12 -mt-2"
+        className="w-full max-w-[90vw] xl:max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 pb-12 -mt-2"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
