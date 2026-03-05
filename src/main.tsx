@@ -1,10 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
-import { initCssResilience } from "./lib/css-resilience";
 import "./index.css";
-
-// Start CSS load failure monitoring
-initCssResilience();
 
 // requestIdleCallback polyfill for Safari
 if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
