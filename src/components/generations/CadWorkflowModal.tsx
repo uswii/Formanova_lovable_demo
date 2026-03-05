@@ -11,16 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { getWorkflowDetails, type WorkflowDetail, type WorkflowStep } from '@/lib/generation-history-api';
-
-/** Convert azure://container/path → public blob URL. Returns empty string for falsy input. */
-export function azureUriToUrl(uri: string | undefined | null): string {
-  if (!uri || typeof uri !== 'string') return '';
-  if (uri.startsWith('azure://')) {
-    const path = uri.replace('azure://', '');
-    return `https://snapwear.blob.core.windows.net/${path}`;
-  }
-  return uri;
-}
+import { azureUriToUrl } from '@/lib/azure-utils';
 
 // Preferred angle ordering — front first
 const ANGLE_ORDER = ['front', 'front_left', 'front_right', 'left', 'right', 'back_left', 'back_right', 'back'];

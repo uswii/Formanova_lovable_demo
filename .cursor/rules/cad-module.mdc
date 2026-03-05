@@ -1,0 +1,57 @@
+---
+description: CAD module boundary rules — enforced to prevent accidental regression of the 3D visual layer
+globs: src/components/text-to-cad/**, src/components/cad/**, src/components/cad-studio/**, src/pages/CADStudio.tsx, src/pages/TextToCAD.tsx, src/pages/CADToCatalog.tsx
+---
+
+# CAD Module — Boundary Rules
+
+## Module Structure
+
+The CAD studio is made up of three component folders and three pages:
+
+- `src/components/text-to-cad/` — Full Text-to-CAD authoring studio
+- `src/components/cad/` — CAD Studio landing (ring preview, viewer, toolbars)
+- `src/components/cad-studio/` — Shared materials, viewport, and inspector (used by both Text-to-CAD and CAD-to-Catalog)
+- `src/pages/CADStudio.tsx` — Hub/landing page at `/studio-cad`
+- `src/pages/TextToCAD.tsx` — Full studio page at `/text-to-cad`
+- `src/pages/CADToCatalog.tsx` — CAD-to-Catalog page at `/cad-to-catalog`
+
+## Visual Layer — DO NOT TOUCH
+
+These files control what is rendered in 3D. **Do not modify them** in any way that could alter geometry, materials, lighting, camera, or render output. Treat them as sealed, protected dependencies.
+
+- `src/components/text-to-cad/CADCanvas.tsx` — main 3D canvas, GLB loader, TransformControls, mesh selection, materials rendering
+- `src/components/cad-studio/materials.ts` — material definitions that drive the visual appearance of all 3D surfaces; do not change constant values or type shapes
+
+If you need to wire new behaviour into the canvas, do it via its existing **props interface** and **ref handle** only. Do not add rendering logic inside the file.
+
+## Control Layer — Safe to Restyle
+
+These files handle user interaction with the 3D scene. They can be restyled, restructured, or refactored as needed, as long as the **props/API contract with CADCanvas is preserved**.
+
+- `src/components/text-to-cad/LeftPanel.tsx` — left sidebar: prompt input, model selector, quick edits, generate/edit actions
+- `src/components/text-to-cad/EditToolbar.tsx` — toolbar with transform/mesh/materials/display flyouts
+- `src/components/text-to-cad/MeshPanel.tsx` — right sidebar mesh list
+- `src/components/text-to-cad/ViewportOverlays.tsx` — overlays: progress, action buttons, stats bar
+
+## Shared Types — Partially Safe
+
+- `src/components/text-to-cad/types.ts` — structure and locations can be changed; **do not change constant values** (e.g. `QUICK_EDITS`, `AI_MODELS`, `TRANSFORM_MODES`) that feed the renderer or drive the CAD pipeline.
+
+## Deprecated Files — Do Not Use
+
+These files exist for potential future use but are **not imported anywhere** in the current codebase. Do not add imports from them:
+
+- `src/components/cad/CADViewport.tsx`
+- `src/components/cad/ViewportToolbar.tsx`
+- `src/components/cad/ViewportTopBar.tsx`
+- `src/components/cad/MeshLibrary.tsx`
+- `src/components/cad-studio/DiamondMaterial.tsx`
+
+## Boundary Rules
+
+- Non-CAD features **must not** import from inside the CAD component folders.
+  - Good: import from `@/lib/azure-utils`, `@/lib/formanova-cad-api`, `@/lib/generation-history-api`
+  - Bad: import from `@/components/text-to-cad/...`, `@/components/cad/...`, `@/components/cad-studio/...`
+- The only connection between the app shell and the CAD module is via the three lazy-loaded page routes in `src/App.tsx`.
+- Shared utilities (e.g. `azureUriToUrl`) belong in `src/lib/`, not inside CAD component files.

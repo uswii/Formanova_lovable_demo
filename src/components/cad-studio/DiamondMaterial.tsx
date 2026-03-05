@@ -1,3 +1,4 @@
+// @deprecated — Not currently imported anywhere. Kept for potential future use.
 /**
  * DiamondMaterial — Physically-based refractive gem material
  * Uses @react-three/drei MeshRefractionMaterial with:

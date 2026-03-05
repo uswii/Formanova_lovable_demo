@@ -1,3 +1,4 @@
+// @deprecated — Not currently imported anywhere. Kept for potential future use.
 import { useRef, useState, useCallback, Suspense, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, ContactShadows, OrbitControls } from "@react-three/drei";
