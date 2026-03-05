@@ -30,6 +30,7 @@ dist-ssr
 
 # Local config files
 .env.backup
+.env
 .formanova-config
 .formanova.pid
 ecosystem.config.js
