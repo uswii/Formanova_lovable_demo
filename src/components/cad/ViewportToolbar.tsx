@@ -1,3 +1,4 @@
+// @deprecated — Not currently imported anywhere. Kept for potential future use.
 import { useState } from "react";
 import {
   Move, Box, Settings, Paintbrush, Eye, PenTool, Magnet,

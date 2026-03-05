@@ -10,7 +10,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
-import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
+import { azureUriToUrl } from '@/lib/azure-utils';
 
 const PER_PAGE = 10;
 

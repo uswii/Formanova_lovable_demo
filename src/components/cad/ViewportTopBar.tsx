@@ -1,3 +1,4 @@
+// @deprecated — Not currently imported anywhere. Kept for potential future use.
 import { useState } from "react";
 import { RotateCcw, Download, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";

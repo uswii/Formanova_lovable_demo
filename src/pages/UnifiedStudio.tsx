@@ -43,7 +43,7 @@ import {
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
-import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
+import { azureUriToUrl } from '@/lib/azure-utils';
 import ExampleGuidePanel from '@/components/bulk/ExampleGuidePanel';
 
 // Example images for inline Upload Guide
