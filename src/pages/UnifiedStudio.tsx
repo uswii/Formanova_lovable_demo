@@ -800,11 +800,20 @@ export default function UnifiedStudio() {
               <div className="lg:col-span-2 space-y-5">
                 <div className="border border-border/30 bg-muted/10 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
                   {activeModelUrl ? (
-                    <img
-                      src={activeModelUrl}
-                      alt="Selected model"
-                      className="max-w-full max-h-[520px] object-contain"
-                    />
+                    <>
+                      <img
+                        src={activeModelUrl}
+                        alt="Selected model"
+                        className="max-w-full max-h-[520px] object-contain"
+                      />
+                      <button
+                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
+                        aria-label="Remove selected model"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
                   ) : (
                     <div
                       className="text-center px-8 cursor-pointer w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center hover:bg-foreground/5 transition-colors"
