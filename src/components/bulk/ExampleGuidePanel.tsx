@@ -103,6 +103,8 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-green-500 flex items-center justify-center shadow-lg">
@@ -130,6 +132,8 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-destructive flex items-center justify-center shadow-lg">
