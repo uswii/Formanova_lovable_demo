@@ -988,23 +988,36 @@ export default function UnifiedStudio() {
                       className="w-full aspect-[3/4] object-contain bg-muted/30"
                     />
                     <div className="absolute top-2 right-2 flex gap-1.5">
-                      <a
-                        href={url}
-                        download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const resp = await fetch(url);
+                            const blob = await resp.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = `photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(blobUrl);
+                          } catch { alert('Download failed. Please try again.'); }
+                        }}
                       >
-                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
+                        onClick={(e) => { e.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); }}
                       >
-                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 ))}
