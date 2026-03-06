@@ -111,19 +111,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
           </>
         )}
 
-        {/* ── View Tools ── */}
-        <SidebarLabel>View</SidebarLabel>
-        {viewTools.map((tool) => (
-          <button
-            key={tool.id}
-            onClick={() => toggleFlyout(tool.flyout)}
-            className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
-          >
-            <span className="text-[20px]">{tool.icon}</span>
-            <SidebarTooltip text={tool.tip} />
-          </button>
-        ))}
-
         <div className="pb-2" />
       </div>
 
