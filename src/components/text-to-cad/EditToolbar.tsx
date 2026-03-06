@@ -128,35 +128,62 @@ function FoSep() {
 // ── FLYOUT CONTENTS ──
 
 function TransformFlyout({ onAction, transformMode }: { onAction: (a: string) => void; transformMode: string }) {
-  const modeLabel = transformMode === "translate" ? "Position" : transformMode === "rotate" ? "Rotation" : transformMode === "scale" ? "Scale" : null;
+  const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string }> = {
+    translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00" },
+    rotate:   { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0" },
+    scale:    { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00" },
+  };
+
+  const config = MODE_CONFIG[transformMode] ?? null;
   const axes = ["X", "Y", "Z"];
   const axisColors = ["text-red-400", "text-green-400", "text-blue-400"];
 
   return (
     <>
-      <FlyoutTitle>Transform Inspector</FlyoutTitle>
+      {/* Dynamic title reflecting active tool */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <h3 className="font-display text-base text-foreground uppercase tracking-[0.15em]">Transform</h3>
+        {config && (
+          <>
+            <span className="text-muted-foreground font-mono text-[10px]">—</span>
+            <span className={`font-mono text-[11px] font-bold uppercase tracking-wider ${config.color}`}>
+              {config.icon} {config.label}
+            </span>
+          </>
+        )}
+      </div>
 
-      {/* Numeric inspector for current mode */}
-      {modeLabel ? (
-        <div className="mb-4">
-          <FlyoutSubtitle>{modeLabel}</FlyoutSubtitle>
+      {/* Context-aware numeric controls */}
+      {config ? (
+        <div className="mb-4 p-3 bg-muted/10 border border-border/50">
+          <h4 className="font-mono text-[10px] text-muted-foreground mb-3 uppercase tracking-[0.15em]">
+            {config.title}
+          </h4>
           <div className="flex flex-col gap-1.5">
             {axes.map((axis, i) => (
               <div key={axis} className="flex items-center gap-2">
                 <span className={`font-mono text-[11px] font-bold w-4 ${axisColors[i]}`}>{axis}</span>
                 <input
                   type="number"
-                  step={transformMode === "rotate" ? "1" : "0.01"}
-                  defaultValue={transformMode === "scale" ? "1.00" : "0.00"}
-                  className="flex-1 px-3 py-2 text-[12px] font-mono text-foreground bg-muted/30 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                  step={config.step}
+                  defaultValue={config.defaultVal}
+                  className="flex-1 px-3 py-2 text-[12px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
                 />
+                {config.unit && (
+                  <span className="font-mono text-[10px] text-muted-foreground w-3">{config.unit}</span>
+                )}
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="mb-4 px-3 py-2.5 font-mono text-[11px] text-muted-foreground bg-muted/10 border border-border/30">
-          Select Move <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">G</kbd>, Rotate <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">R</kbd>, or Scale <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">S</kbd> in the toolbar
+        <div className="mb-4 px-3 py-3 font-mono text-[11px] text-muted-foreground bg-muted/10 border border-border/30 leading-relaxed">
+          Select a tool in the viewport toolbar:
+          <div className="flex gap-3 mt-2">
+            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">G</kbd> Move</span>
+            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">R</kbd> Rotate</span>
+            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">S</kbd> Scale</span>
+          </div>
         </div>
       )}
 
