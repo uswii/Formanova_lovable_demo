@@ -90,7 +90,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[420px] max-h-[80vh] overflow-y-auto bg-card border border-border rounded-lg shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[420px] max-w-[95vw] max-h-[85vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -109,7 +109,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             </div>
 
             {/* Sections */}
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0">
               {SHORTCUT_SECTIONS.map((section) => (
                 <div key={section.title}>
                   <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2.5">
