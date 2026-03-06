@@ -57,8 +57,7 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
     });
   };
 
-  const metals = MATERIAL_LIBRARY.filter((m) => m.category === "metal");
-  const gems = MATERIAL_LIBRARY.filter((m) => m.category === "gemstone");
+  const editToolsFiltered = EDIT_TOOLS.filter(t => t.flyout !== "materials");
 
   const isTransformActive = transformMode !== "orbit";
 
