@@ -28,6 +28,7 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
   const [filterAlloy, setFilterAlloy] = useState<MaterialAlloy | null>(null);
   const [filterFinish, setFilterFinish] = useState<MaterialFinish | null>(null);
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
+  const [meshTab, setMeshTab] = useState<"list" | "actions">("list");
   const lastClickedIdx = useRef<number>(-1);
 
   const selectedMeshes = useMemo(() => meshes.filter(m => m.selected), [meshes]);
@@ -183,7 +184,7 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
                   )}
                 </AnimatePresence>
 
-                {/* Material swatch grid — primary focus */}
+                {/* Material swatch grid */}
                 <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto scrollbar-thin">
                   {filteredMaterials.map((m) => (
                     <button
@@ -210,97 +211,123 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
         </AnimatePresence>
       </div>
 
-      {/* ═══ SECTION 2: Meshes header + scrollable list ═══ */}
-      <div className="px-4 pt-3 pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
+      {/* ═══ SECTION 2: Meshes — tabbed (List | Actions) ═══ */}
+      <div className="flex-shrink-0 border-b border-border">
+        <div className="flex items-center justify-between px-4 pt-3 pb-0">
           <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">Meshes</span>
           <span className="font-mono text-[10px] text-muted-foreground">
             {meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—"}
           </span>
         </div>
-        <input
-          type="text"
-          placeholder="Search meshes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
-        {filtered.length === 0 && (
-          <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
-            {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
-          </div>
-        )}
-        {filtered.map((mesh) => (
-          <button
-            key={mesh.name}
-            onClick={(e) => handleMeshClick(mesh, e)}
-            className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
-              mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
-            } ${!mesh.visible ? "opacity-35" : ""}`}
-          >
-            <div className="text-[11px] mb-0.5 truncate font-medium">
-              {!mesh.visible && "[H] "}{mesh.name}
-            </div>
-            <div className="font-mono text-[9px] text-muted-foreground">
-              {mesh.verts} verts / {mesh.faces} faces
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* ═══ SECTION 3: Mesh actions (fixed footer) ═══ */}
-      <div className="px-3 py-3 border-t border-border flex-shrink-0 bg-card space-y-2">
-        {/* Visibility controls */}
-        <div>
-          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Visibility</span>
-          <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-            <button onClick={() => onAction("hide")} className={ACTION_BTN}>
-              <EyeOff className="w-3.5 h-3.5" /> Hide
+        <div className="flex gap-0 mx-4 mt-2 border border-border">
+          {(["list", "actions"] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMeshTab(tab)}
+              className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 cursor-pointer ${
+                meshTab === tab ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab === "list" ? "List" : "Actions"}
             </button>
-            <button onClick={() => onAction("show")} className={ACTION_BTN}>
-              <Eye className="w-3.5 h-3.5" /> Show
-            </button>
-            <button onClick={() => onAction("show-all")} className={ACTION_BTN}>
-              <Layers className="w-3.5 h-3.5" /> All
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button onClick={() => onAction("isolate")} className={ACTION_BTN}>
-              <Focus className="w-3.5 h-3.5" /> Isolate
-            </button>
-            <button onClick={() => onAction("select-invert")} className={ACTION_BTN}>
-              <Shuffle className="w-3.5 h-3.5" /> Invert
-            </button>
-          </div>
-        </div>
-
-        {/* Mesh editing controls */}
-        <div>
-          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Edit</span>
-          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-            <button onClick={() => onSceneAction("duplicate")} className={ACTION_BTN}>
-              <Copy className="w-3.5 h-3.5" /> Duplicate
-            </button>
-            <button onClick={() => onSceneAction("delete")} className={`${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40`}>
-              <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button onClick={() => onSceneAction("center-origin")} className={ACTION_BTN}>
-              <Crosshair className="w-3.5 h-3.5" /> Origin
-            </button>
-            <button onClick={() => onSceneAction("flip-normals")} className={ACTION_BTN}>
-              <FlipVertical className="w-3.5 h-3.5" /> Flip N
-            </button>
-            <button onClick={() => onSceneAction("recalc-normals")} className={ACTION_BTN}>
-              <RefreshCw className="w-3.5 h-3.5" /> Recalc
-            </button>
-          </div>
+          ))}
         </div>
       </div>
+
+      {/* Tab content */}
+      {meshTab === "list" ? (
+        <>
+          <div className="px-4 pt-3 pb-2 flex-shrink-0">
+            <input
+              type="text"
+              placeholder="Search meshes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
+            {filtered.length === 0 && (
+              <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
+                {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
+              </div>
+            )}
+            {filtered.map((mesh) => (
+              <button
+                key={mesh.name}
+                onClick={(e) => handleMeshClick(mesh, e)}
+                className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
+                  mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
+                } ${!mesh.visible ? "opacity-35" : ""}`}
+              >
+                <div className="text-[11px] mb-0.5 truncate font-medium">
+                  {!mesh.visible && "[H] "}{mesh.name}
+                </div>
+                <div className="font-mono text-[9px] text-muted-foreground">
+                  {mesh.verts} verts / {mesh.faces} faces
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3 space-y-4">
+          {/* Selection info */}
+          <div className="px-3 py-2 font-mono text-[10px] border border-border bg-muted/20 text-muted-foreground">
+            {hasSelection
+              ? `${selectedMeshes.length} mesh${selectedMeshes.length > 1 ? "es" : ""} selected`
+              : "No mesh selected — select from the List tab"}
+          </div>
+
+          {/* Visibility controls */}
+          <div>
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Visibility</span>
+            <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+              <button onClick={() => onAction("hide")} className={ACTION_BTN}>
+                <EyeOff className="w-3.5 h-3.5" /> Hide
+              </button>
+              <button onClick={() => onAction("show")} className={ACTION_BTN}>
+                <Eye className="w-3.5 h-3.5" /> Show
+              </button>
+              <button onClick={() => onAction("show-all")} className={ACTION_BTN}>
+                <Layers className="w-3.5 h-3.5" /> All
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button onClick={() => onAction("isolate")} className={ACTION_BTN}>
+                <Focus className="w-3.5 h-3.5" /> Isolate
+              </button>
+              <button onClick={() => onAction("select-invert")} className={ACTION_BTN}>
+                <Shuffle className="w-3.5 h-3.5" /> Invert
+              </button>
+            </div>
+          </div>
+
+          {/* Mesh editing controls */}
+          <div>
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Edit</span>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={() => onSceneAction("duplicate")} className={ACTION_BTN}>
+                <Copy className="w-3.5 h-3.5" /> Duplicate
+              </button>
+              <button onClick={() => onSceneAction("delete")} className={`${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40`}>
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button onClick={() => onSceneAction("center-origin")} className={ACTION_BTN}>
+                <Crosshair className="w-3.5 h-3.5" /> Origin
+              </button>
+              <button onClick={() => onSceneAction("flip-normals")} className={ACTION_BTN}>
+                <FlipVertical className="w-3.5 h-3.5" /> Flip N
+              </button>
+              <button onClick={() => onSceneAction("recalc-normals")} className={ACTION_BTN}>
+                <RefreshCw className="w-3.5 h-3.5" /> Recalc
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
