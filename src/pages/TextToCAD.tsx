@@ -579,6 +579,7 @@ export default function TextToCAD() {
               meshes={meshes}
               onSelectMesh={handleSelectMesh}
               onAction={handleMeshAction}
+              onApplyMaterial={handleApplyMaterial}
             />
           </motion.div>
         )}
