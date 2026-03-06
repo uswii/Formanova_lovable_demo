@@ -543,7 +543,6 @@ export default function TextToCAD() {
         {/* Advanced controls — only when model exists */}
         {hasModel && (
           <EditToolbar
-            onApplyMaterial={handleApplyMaterial}
             onSceneAction={handleSceneAction}
             hasSelection={selectedNames.length > 0}
             transformMode={transformMode}
