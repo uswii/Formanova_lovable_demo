@@ -181,22 +181,6 @@ function FoSep() {
   return <div className="h-px bg-border my-3" />;
 }
 
-// ── FLYOUT CONTENTS ──
-
-function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
-  return (
-    <>
-      <FlyoutTitle>Mesh</FlyoutTitle>
-      <FoBtn shortcut="X" onClick={() => onAction("delete")}>Delete Selected</FoBtn>
-      <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
-      <FoSep />
-      <FoBtn onClick={() => onAction("flip-normals")}>Flip Normals</FoBtn>
-      <FoBtn onClick={() => onAction("center-origin")}>Center Origin</FoBtn>
-      <FoBtn onClick={() => onAction("recalc-normals")}>Recalculate Normals</FoBtn>
-    </>
-  );
-}
-
 
 const DISPLAY_OPTIONS = [
   { label: "Wireframe", available: true },
