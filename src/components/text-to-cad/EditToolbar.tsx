@@ -57,7 +57,8 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
     });
   };
 
-  const editToolsFiltered = EDIT_TOOLS.filter(t => t.flyout !== "materials");
+  const objectTools = EDIT_TOOLS.filter(t => t.flyout !== "display");
+  const viewTools = EDIT_TOOLS.filter(t => t.flyout === "display");
 
   const isTransformActive = transformMode !== "orbit";
 
