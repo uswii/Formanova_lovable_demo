@@ -576,6 +576,7 @@ export default function TextToCAD() {
             )}
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
+            <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
             
             
