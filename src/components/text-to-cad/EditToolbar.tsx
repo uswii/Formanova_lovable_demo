@@ -114,25 +114,7 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
         <div className="pb-2" />
       </div>
 
-      {/* Flyout panels */}
-      <AnimatePresence>
-        {activeFlyout && (
-          <motion.div
-            key={activeFlyout}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card border border-border shadow-lg"
-            style={{
-              left: "56px",
-              top: `${getFlyoutTop()}px`,
-            }}
-          >
-            {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    
     </>
   );
 }
