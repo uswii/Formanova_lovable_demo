@@ -20,6 +20,7 @@ import {
   ViewportToolbar,
   StatsBar,
   ActionButtons,
+  ZoomControls,
 } from "@/components/text-to-cad/ViewportOverlays";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
