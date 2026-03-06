@@ -20,7 +20,7 @@ const CHIP = "px-2.5 py-1.5 text-[9px] font-mono font-semibold uppercase trackin
 const CHIP_DEFAULT = `${CHIP} text-muted-foreground border-border/50 hover:text-foreground hover:bg-accent/30`;
 const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
 
-export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial }: MeshPanelProps) {
+export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const [materialOpen, setMaterialOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
