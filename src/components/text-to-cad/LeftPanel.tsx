@@ -62,7 +62,7 @@ export default function LeftPanel({
                 disabled={m.comingSoon}
                 className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
                   m.comingSoon
-                    ? "text-muted-foreground/40 cursor-not-allowed bg-muted/20"
+                    ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
                     : model === m.id
                       ? "text-primary-foreground bg-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
