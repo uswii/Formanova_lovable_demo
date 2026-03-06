@@ -299,6 +299,7 @@ export default function TextToCAD() {
     setMeshes([]);
     setModules([]);
     setUndoStack([]);
+    setRedoStack([]);
     setWorkspaceActive(false);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
