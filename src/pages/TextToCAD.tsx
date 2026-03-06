@@ -2,6 +2,8 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
+import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight } from "lucide-react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
 import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
 import { TOOL_COSTS } from "@/lib/credits-api";
@@ -49,6 +51,8 @@ export default function TextToCAD() {
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
@@ -79,7 +83,6 @@ export default function TextToCAD() {
     setUndoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
       const last = prev[prev.length - 1];
-      // Push current state to redo
       const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
       const snap = canvasRef.current?.getSnapshot() ?? null;
       setRedoStack((r) => [...r, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
@@ -96,7 +99,6 @@ export default function TextToCAD() {
     setRedoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to redo"); return prev; }
       const last = prev[prev.length - 1];
-      // Push current state to undo
       const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
       const snap = canvasRef.current?.getSnapshot() ?? null;
       setUndoStack((u) => [...u, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
@@ -139,7 +141,6 @@ export default function TextToCAD() {
       setCreditBlock(null);
     }
 
-    // Transition to workspace phase
     setWorkspaceActive(true);
     setIsGenerating(true);
     setProgress(0);
@@ -180,7 +181,6 @@ export default function TextToCAD() {
         } catch (err) {
           pollErrors++;
           if (pollErrors >= 5) throw err;
-          // Don't fail on transient errors
         }
       }
 
@@ -258,7 +258,6 @@ export default function TextToCAD() {
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
     if (!hasModel && !workspaceActive) {
-      // First upload — transition to workspace
       setWorkspaceActive(true);
       setGlbUrl(url);
       setHasModel(true);
@@ -455,7 +454,7 @@ export default function TextToCAD() {
     }
   }, [handleUndo, handleRedo, handleSceneAction]);
 
-  // ── Phase 1: Initial prompt screen (no model, no generation started) ──
+  // ── Phase 1: Initial prompt screen ──
   if (!workspaceActive) {
     return (
       <div className="h-[calc(100vh-5rem)] flex bg-background" tabIndex={0}>
@@ -479,111 +478,133 @@ export default function TextToCAD() {
     );
   }
 
-  // ── Phase 2: Full workspace ──
+  // ── Phase 2: Full workspace with resizable panels ──
   return (
     <div
       className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background"
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      {/* Left panel — always visible in workspace phase */}
-      <LeftPanel
-        model={model} setModel={setModel}
-        prompt={prompt} setPrompt={setPrompt}
-        editPrompt={editPrompt} setEditPrompt={setEditPrompt}
-        selectedModules={selectedModules} toggleModule={toggleModule}
-        isGenerating={isGenerating} isEditing={isEditing}
-        hasModel={hasModel} modules={modules}
-        onGenerate={simulateGeneration}
-        onEdit={simulateEdit}
-        onQuickEdit={handleQuickEdit}
-        onMagicTexture={() => {
-          canvasRef.current?.removeAllTextures();
-          toast.success("All magic textures removed — showing original materials");
-        }}
-        onGlbUpload={handleGlbUpload}
-        creditBlock={creditBlock ? (
-          <InsufficientCreditsInline
-            currentBalance={creditBlock.currentBalance}
-            requiredCredits={creditBlock.estimatedCredits}
-            onDismiss={() => setCreditBlock(null)}
-          />
-        ) : undefined}
-      />
-
-      {/* Viewport */}
-      <div className="flex-1 relative border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
-        <CADCanvas
-          ref={canvasRef}
-          hasModel={hasModel}
-          glbUrl={glbUrl}
-          additionalGlbUrls={additionalParts}
-          selectedMeshNames={selectedMeshNames}
-          onMeshClick={handleSelectMesh}
-          transformMode={transformMode}
-          onMeshesDetected={handleMeshesDetected}
-          onTransformEnd={handleTransformEnd}
-          lightIntensity={1}
-        />
-
-        {/* Empty state in viewport while generating */}
-        {!hasModel && !isGenerating && (
-          <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
-            <div className="text-center">
-              <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
-                Workspace Ready
-              </div>
-              <div className="font-mono text-[11px] text-muted-foreground/30 tracking-wide">
-                Your ring will appear here
-              </div>
-            </div>
-          </div>
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        {/* Left panel */}
+        {!leftCollapsed && (
+          <>
+            <ResizablePanel defaultSize={22} minSize={15} maxSize={35} className="relative">
+              <LeftPanel
+                model={model} setModel={setModel}
+                prompt={prompt} setPrompt={setPrompt}
+                editPrompt={editPrompt} setEditPrompt={setEditPrompt}
+                selectedModules={selectedModules} toggleModule={toggleModule}
+                isGenerating={isGenerating} isEditing={isEditing}
+                hasModel={hasModel} modules={modules}
+                onGenerate={simulateGeneration}
+                onEdit={simulateEdit}
+                onQuickEdit={handleQuickEdit}
+                onMagicTexture={() => {
+                  canvasRef.current?.removeAllTextures();
+                  toast.success("All magic textures removed — showing original materials");
+                }}
+                onGlbUpload={handleGlbUpload}
+                creditBlock={creditBlock ? (
+                  <InsufficientCreditsInline
+                    currentBalance={creditBlock.currentBalance}
+                    requiredCredits={creditBlock.estimatedCredits}
+                    onDismiss={() => setCreditBlock(null)}
+                  />
+                ) : undefined}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+          </>
         )}
 
-        {/* Advanced controls — only when model exists */}
-        {hasModel && (
-          <EditToolbar
-            onSceneAction={handleSceneAction}
-            hasSelection={selectedNames.length > 0}
-            transformMode={transformMode}
-          />
-        )}
-        {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
-        
-        {/* New staged progress overlay */}
-        <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
-        
-        <StatsBar visible={hasModel && !isGenerating} stats={stats} />
-        <ActionButtons
-          visible={hasModel && !isGenerating}
-          onReset={handleReset}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          undoCount={undoStack.length}
-          redoCount={redoStack.length}
-          onDownload={handleDownloadGlb}
-        />
-      </div>
+        {/* Viewport */}
+        <ResizablePanel defaultSize={hasModel ? 56 : 78} minSize={30}>
+          <div className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
+            {/* Panel collapse toggles */}
+            <button
+              onClick={() => setLeftCollapsed(!leftCollapsed)}
+              className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+              title={leftCollapsed ? "Show left panel" : "Hide left panel"}
+            >
+              {leftCollapsed ? <PanelLeft className="w-4 h-4 text-foreground/70" /> : <PanelLeftClose className="w-4 h-4 text-foreground/70" />}
+            </button>
+            {hasModel && (
+              <button
+                onClick={() => setRightCollapsed(!rightCollapsed)}
+                className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+                title={rightCollapsed ? "Show right panel" : "Hide right panel"}
+              >
+                {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
+              </button>
+            )}
 
-      {/* Right panel — mesh panel only when model exists */}
-      <AnimatePresence>
-        {hasModel && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 290, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <MeshPanel
-              meshes={meshes}
-              onSelectMesh={handleSelectMesh}
-              onAction={handleMeshAction}
-              onApplyMaterial={handleApplyMaterial}
+            <CADCanvas
+              ref={canvasRef}
+              hasModel={hasModel}
+              glbUrl={glbUrl}
+              additionalGlbUrls={additionalParts}
+              selectedMeshNames={selectedMeshNames}
+              onMeshClick={handleSelectMesh}
+              transformMode={transformMode}
+              onMeshesDetected={handleMeshesDetected}
+              onTransformEnd={handleTransformEnd}
+              lightIntensity={1}
             />
-          </motion.div>
+
+            {/* Empty state */}
+            {!hasModel && !isGenerating && (
+              <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
+                    Workspace Ready
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground/30 tracking-wide">
+                    Your ring will appear here
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hasModel && (
+              <EditToolbar
+                onSceneAction={handleSceneAction}
+                hasSelection={selectedNames.length > 0}
+                transformMode={transformMode}
+              />
+            )}
+            {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
+            
+            <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
+            
+            <StatsBar visible={hasModel && !isGenerating} stats={stats} />
+            <ActionButtons
+              visible={hasModel && !isGenerating}
+              onReset={handleReset}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              undoCount={undoStack.length}
+              redoCount={redoStack.length}
+              onDownload={handleDownloadGlb}
+            />
+          </div>
+        </ResizablePanel>
+
+        {/* Right panel */}
+        {hasModel && !rightCollapsed && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={22} minSize={15} maxSize={35}>
+              <MeshPanel
+                meshes={meshes}
+                onSelectMesh={handleSelectMesh}
+                onAction={handleMeshAction}
+                onApplyMaterial={handleApplyMaterial}
+              />
+            </ResizablePanel>
+          </>
         )}
-      </AnimatePresence>
+      </ResizablePanelGroup>
     </div>
   );
 }

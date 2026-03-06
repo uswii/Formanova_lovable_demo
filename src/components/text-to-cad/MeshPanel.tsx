@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, EyeOff, Focus, Shuffle, Layers } from "lucide-react";
+import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import type { MeshItemData } from "./types";
 import { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
 import type { MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
@@ -13,7 +13,7 @@ interface MeshPanelProps {
   onApplyMaterial: (matId: string) => void;
 }
 
-const ACTION_BTN = "flex items-center justify-center gap-1.5 py-2.5 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/30 border border-border/60 text-foreground/70";
+const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
 
 const CHIP = "px-2.5 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-[0.1em] cursor-pointer transition-all duration-150 border";
 const CHIP_DEFAULT = `${CHIP} text-muted-foreground border-border/50 hover:text-foreground hover:bg-accent/30`;
@@ -22,6 +22,7 @@ const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const [materialOpen, setMaterialOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterType, setFilterType] = useState<MaterialType | null>(null);
   const [filterAlloy, setFilterAlloy] = useState<MaterialAlloy | null>(null);
   const [filterFinish, setFilterFinish] = useState<MaterialFinish | null>(null);
@@ -37,6 +38,8 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
     [meshes, search]
   );
 
+  const hasActiveFilters = filterType !== null || filterAlloy !== null || filterFinish !== null;
+
   const filteredMaterials = useMemo(() => {
     return MATERIAL_LIBRARY.filter(m => {
       if (m.category !== matTab) return false;
@@ -47,6 +50,12 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
       return true;
     });
   }, [matTab, filterType, filterAlloy, filterFinish]);
+
+  const clearFilters = () => {
+    setFilterType(null);
+    setFilterAlloy(null);
+    setFilterFinish(null);
+  };
 
   const handleMeshClick = (mesh: MeshItemData, e: React.MouseEvent) => {
     const currentIdx = meshes.findIndex((m) => m.name === mesh.name);
@@ -63,7 +72,7 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
   };
 
   return (
-    <div className="w-[290px] flex-shrink-0 flex flex-col bg-card border-l border-border h-full">
+    <div className="flex flex-col bg-card border-l border-border h-full">
       {/* ═══ SECTION 1: Materials (fixed top) ═══ */}
       <div className="flex-shrink-0 border-b border-border">
         <button
@@ -92,70 +101,105 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
                   </div>
                 )}
 
-                {/* Category tabs */}
-                <div className="flex gap-0 border border-border">
-                  {(["metal", "gemstone"] as const).map(cat => (
+                {/* Category tabs + filter toggle row */}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0 border border-border flex-1">
+                    {(["metal", "gemstone"] as const).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => { setMatTab(cat); clearFilters(); }}
+                        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
+                          matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {cat === "metal" ? "Metals" : "Gems"}
+                      </button>
+                    ))}
+                  </div>
+                  {matTab === "metal" && (
                     <button
-                      key={cat}
-                      onClick={() => { setMatTab(cat); setFilterType(null); setFilterAlloy(null); setFilterFinish(null); }}
-                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
-                        matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
+                      onClick={() => setFiltersOpen(!filtersOpen)}
+                      className={`flex items-center gap-1 px-2.5 py-2 text-[9px] font-bold uppercase tracking-wide border transition-colors duration-150 cursor-pointer ${
+                        filtersOpen || hasActiveFilters
+                          ? "text-foreground bg-accent border-border"
+                          : "text-muted-foreground hover:text-foreground border-border/50"
                       }`}
                     >
-                      {cat === "metal" ? "Metals" : "Gems"}
+                      <Filter className="w-3 h-3" />
+                      {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                     </button>
-                  ))}
+                  )}
                 </div>
 
-                {/* Structured filters — metals only */}
-                {matTab === "metal" && (
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Type</span>
-                      <div className="flex flex-wrap gap-1">
-                        <button onClick={() => setFilterType(null)} className={filterType === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                        {MATERIAL_TYPES.map(t => (
-                          <button key={t.id} onClick={() => setFilterType(t.id)} className={filterType === t.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{t.label}</button>
-                        ))}
+                {/* Collapsible filters */}
+                <AnimatePresence>
+                  {filtersOpen && matTab === "metal" && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-2 pb-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60">Filters</span>
+                          {hasActiveFilters && (
+                            <button onClick={clearFilters} className="font-mono text-[8px] text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wide">
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Type</span>
+                          <div className="flex flex-wrap gap-1">
+                            <button onClick={() => setFilterType(null)} className={filterType === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
+                            {MATERIAL_TYPES.map(t => (
+                              <button key={t.id} onClick={() => setFilterType(t.id)} className={filterType === t.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{t.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Color</span>
+                          <div className="flex flex-wrap gap-1">
+                            <button onClick={() => setFilterAlloy(null)} className={filterAlloy === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
+                            {MATERIAL_ALLOYS.map(a => (
+                              <button key={a.id} onClick={() => setFilterAlloy(a.id)} className={filterAlloy === a.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{a.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Finish</span>
+                          <div className="flex flex-wrap gap-1">
+                            <button onClick={() => setFilterFinish(null)} className={filterFinish === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
+                            {MATERIAL_FINISHES.map(f => (
+                              <button key={f.id} onClick={() => setFilterFinish(f.id)} className={filterFinish === f.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{f.label}</button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Color</span>
-                      <div className="flex flex-wrap gap-1">
-                        <button onClick={() => setFilterAlloy(null)} className={filterAlloy === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                        {MATERIAL_ALLOYS.map(a => (
-                          <button key={a.id} onClick={() => setFilterAlloy(a.id)} className={filterAlloy === a.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{a.label}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Finish</span>
-                      <div className="flex flex-wrap gap-1">
-                        <button onClick={() => setFilterFinish(null)} className={filterFinish === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                        {MATERIAL_FINISHES.map(f => (
-                          <button key={f.id} onClick={() => setFilterFinish(f.id)} className={filterFinish === f.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{f.label}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {/* Material grid */}
-                <div className="grid grid-cols-2 gap-1.5 max-h-[180px] overflow-y-auto scrollbar-thin">
+                {/* Material swatch grid — primary focus */}
+                <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto scrollbar-thin">
                   {filteredMaterials.map((m) => (
                     <button
                       key={m.id}
                       onClick={() => onApplyMaterial(m.id)}
                       disabled={!hasSelection}
-                      className="py-2.5 px-2 text-[9px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="py-2 px-1.5 text-center cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 disabled:opacity-30 disabled:cursor-not-allowed group"
                     >
-                      <MaterialSphere category={m.category} preview={m.preview} size={20} />
-                      <div className="mt-1 truncate font-mono font-semibold">{m.name}</div>
+                      <div className="flex justify-center mb-1">
+                        <MaterialSphere category={m.category} preview={m.preview} size={24} />
+                      </div>
+                      <div className="text-[8px] truncate font-mono font-semibold text-muted-foreground group-hover:text-foreground leading-tight">{m.name}</div>
                     </button>
                   ))}
                   {filteredMaterials.length === 0 && (
-                    <div className="col-span-2 text-center font-mono text-[10px] text-muted-foreground/50 py-4">
-                      No materials match filters
+                    <div className="col-span-3 text-center font-mono text-[10px] text-muted-foreground/50 py-4">
+                      No materials match
                     </div>
                   )}
                 </div>
