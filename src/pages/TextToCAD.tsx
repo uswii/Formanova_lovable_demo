@@ -19,8 +19,7 @@ import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import {
   ViewportToolbar,
   StatsBar,
-  ActionButtons,
-  ZoomControls,
+  ViewportSideTools,
 } from "@/components/text-to-cad/ViewportOverlays";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
