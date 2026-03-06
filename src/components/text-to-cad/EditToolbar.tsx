@@ -214,43 +214,6 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
   );
 }
 
-function MaterialsFlyout({ metals, gems, onApply }: {
-  metals: typeof MATERIAL_LIBRARY;
-  gems: typeof MATERIAL_LIBRARY;
-  onApply: (matId: string) => void;
-}) {
-  return (
-    <>
-      <FlyoutTitle>Materials</FlyoutTitle>
-      <FlyoutSubtitle>Metals ({metals.length})</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1.5 mb-3">
-        {metals.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => onApply(m.id)}
-            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
-          >
-            <MaterialSphere category="metal" preview={m.preview} size={16} />
-            {m.name}
-          </button>
-        ))}
-      </div>
-      <FlyoutSubtitle>Gems ({gems.length})</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1.5 mb-3">
-        {gems.map((g) => (
-          <button
-            key={g.id}
-            onClick={() => onApply(g.id)}
-            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
-          >
-            <MaterialSphere category="gemstone" preview={g.preview} size={16} />
-            {g.name}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
 
 function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: (id: string) => void }) {
   return (
