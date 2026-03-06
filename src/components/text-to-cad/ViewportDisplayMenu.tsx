@@ -48,7 +48,7 @@ export default function ViewportDisplayMenu({ visible, onSceneAction }: Viewport
   };
 
   return (
-    <div ref={menuRef} className="absolute bottom-4 left-4 z-50">
+    <div ref={menuRef} className="relative">
       {/* Trigger */}
       <button
         onClick={() => setOpen((p) => !p)}
