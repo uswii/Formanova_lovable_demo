@@ -34,7 +34,6 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
             className={mode === tm.id ? VT_BTN_ACTIVE : VT_BTN_DEFAULT}
           >
             {tm.label}
-            {tm.shortcut && <kbd className="font-mono text-[9px] opacity-60">{tm.shortcut}</kbd>}
           </button>
         ))}
       </div>

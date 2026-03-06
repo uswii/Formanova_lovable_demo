@@ -16,6 +16,7 @@ import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
+import KeyboardShortcutsPanel, { KeyboardShortcutsButton } from "@/components/text-to-cad/KeyboardShortcutsPanel";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import {
   ViewportToolbar,
@@ -54,11 +55,13 @@ export default function TextToCAD() {
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
+  const wireframeRef = useRef(false);
   const meshesRef = useRef<MeshItemData[]>(meshes);
   meshesRef.current = meshes;
 
@@ -442,9 +445,35 @@ export default function TextToCAD() {
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    // ? — toggle shortcuts panel
+    if (e.key === "?") { setShortcutsOpen((p) => !p); return; }
+    // Ctrl+Shift+Z — Redo
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); handleRedo(); return; }
+    // Ctrl+Z — Undo
     if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); return; }
+    // Ctrl+Shift+A — Deselect all
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
+      return;
+    }
+    // Ctrl+A — Select all
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setMeshes((prev) => prev.map((m) => ({ ...m, selected: true })));
+      return;
+    }
+    // Shift+D — Duplicate
+    if (e.shiftKey && e.key.toLowerCase() === "d") { e.preventDefault(); handleSceneAction("duplicate"); return; }
+    // U — Undo alt
     if (e.key === "u" || e.key === "U") { handleUndo(); return; }
+    // W — Toggle wireframe
+    if (e.key === "w" || e.key === "W") {
+      wireframeRef.current = !wireframeRef.current;
+      canvasRef.current?.setWireframe(wireframeRef.current);
+      toast.success(`Wireframe ${wireframeRef.current ? "ON" : "OFF"}`);
+      return;
+    }
     switch (e.key.toLowerCase()) {
       case "g": setTransformMode("translate"); break;
       case "r": setTransformMode("rotate"); break;
@@ -453,7 +482,7 @@ export default function TextToCAD() {
       case "x":
       case "delete": handleSceneAction("delete"); break;
     }
-  }, [handleUndo, handleRedo, handleSceneAction]);
+  }, [handleUndo, handleRedo, handleSceneAction, meshes]);
 
   // ── Phase 1: Initial prompt screen ──
   if (!workspaceActive) {
@@ -576,10 +605,14 @@ export default function TextToCAD() {
             )}
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
-            <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
+            <div className="absolute bottom-4 left-4 z-50 flex gap-2">
+              <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
+              {hasModel && !isGenerating && (
+                <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
+              )}
+            </div>
+            <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
-            
-            
             <ViewportSideTools
               visible={hasModel && !isGenerating}
               onZoomIn={() => canvasRef.current?.zoomIn()}
