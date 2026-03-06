@@ -751,6 +751,9 @@ export interface CADCanvasHandle {
   removeAllTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetCamera: () => void;
 }
 
 interface CADCanvasProps {
