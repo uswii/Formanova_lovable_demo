@@ -468,7 +468,9 @@ export default function TextToCAD() {
     if (e.key === "u" || e.key === "U") { handleUndo(); return; }
     // W — Toggle wireframe
     if (e.key === "w" || e.key === "W") {
-      handleSceneAction(canvasRef.current ? "wireframe-toggle" : "wireframe-on");
+      wireframeRef.current = !wireframeRef.current;
+      canvasRef.current?.setWireframe(wireframeRef.current);
+      toast.success(`Wireframe ${wireframeRef.current ? "ON" : "OFF"}`);
       return;
     }
     switch (e.key.toLowerCase()) {
