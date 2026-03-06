@@ -555,7 +555,9 @@ export default function TextToCAD() {
           visible={hasModel && !isGenerating}
           onReset={handleReset}
           onUndo={handleUndo}
+          onRedo={handleRedo}
           undoCount={undoStack.length}
+          redoCount={redoStack.length}
           onDownload={handleDownloadGlb}
         />
       </div>
