@@ -61,6 +61,7 @@ export default function TextToCAD() {
   const [workspaceActive, setWorkspaceActive] = useState(false);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
+  const wireframeRef = useRef(false);
   const meshesRef = useRef<MeshItemData[]>(meshes);
   meshesRef.current = meshes;
 
