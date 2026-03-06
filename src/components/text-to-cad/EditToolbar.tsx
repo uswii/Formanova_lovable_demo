@@ -163,7 +163,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
               </div>
             )}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
-            {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
           </motion.div>
         )}
