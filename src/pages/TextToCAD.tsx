@@ -47,6 +47,7 @@ export default function TextToCAD() {
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
@@ -71,17 +72,39 @@ export default function TextToCAD() {
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
     setUndoStack((prev) => [...prev, { label, meshes: currentMeshes, canvasSnapshot: snap }]);
+    setRedoStack([]); // Clear redo on new action
   }, []);
 
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
       const last = prev[prev.length - 1];
+      // Push current state to redo
+      const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+      const snap = canvasRef.current?.getSnapshot() ?? null;
+      setRedoStack((r) => [...r, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
       setMeshes(last.meshes);
       if (last.canvasSnapshot) {
         canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
       }
       toast.success(`Undo: ${last.label}`);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) { toast.info("Nothing to redo"); return prev; }
+      const last = prev[prev.length - 1];
+      // Push current state to undo
+      const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+      const snap = canvasRef.current?.getSnapshot() ?? null;
+      setUndoStack((u) => [...u, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
+      setMeshes(last.meshes);
+      if (last.canvasSnapshot) {
+        canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
+      }
+      toast.success(`Redo: ${last.label}`);
       return prev.slice(0, -1);
     });
   }, []);
@@ -244,6 +267,7 @@ export default function TextToCAD() {
       setModules([]);
       setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
       setUndoStack([]);
+      setRedoStack([]);
     } else if (!hasModel) {
       setGlbUrl(url);
       setHasModel(true);
@@ -252,6 +276,7 @@ export default function TextToCAD() {
       setModules([]);
       setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
       setUndoStack([]);
+      setRedoStack([]);
     } else {
       setAdditionalParts((prev) => [...prev, url]);
     }
@@ -274,6 +299,7 @@ export default function TextToCAD() {
     setMeshes([]);
     setModules([]);
     setUndoStack([]);
+    setRedoStack([]);
     setWorkspaceActive(false);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
@@ -416,6 +442,7 @@ export default function TextToCAD() {
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); handleRedo(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); return; }
     if (e.key === "u" || e.key === "U") { handleUndo(); return; }
     switch (e.key.toLowerCase()) {
@@ -426,7 +453,7 @@ export default function TextToCAD() {
       case "x":
       case "delete": handleSceneAction("delete"); break;
     }
-  }, [handleUndo, handleSceneAction]);
+  }, [handleUndo, handleRedo, handleSceneAction]);
 
   // ── Phase 1: Initial prompt screen (no model, no generation started) ──
   if (!workspaceActive) {
@@ -532,7 +559,9 @@ export default function TextToCAD() {
           visible={hasModel && !isGenerating}
           onReset={handleReset}
           onUndo={handleUndo}
+          onRedo={handleRedo}
           undoCount={undoStack.length}
+          redoCount={redoStack.length}
           onDownload={handleDownloadGlb}
         />
       </div>
