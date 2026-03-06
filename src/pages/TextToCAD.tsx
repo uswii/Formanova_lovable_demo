@@ -55,6 +55,7 @@ export default function TextToCAD() {
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
