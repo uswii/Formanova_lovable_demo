@@ -501,7 +501,7 @@ const LoadedModel = forwardRef<
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
     applyMaterial: (matId: string, meshNames: string[]) => {
-      const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
+      const matDef = findMaterial(matId);
       if (!matDef) return;
       meshNames.forEach((n) => {
         flatGeoCache.current.delete(n);
