@@ -77,6 +77,7 @@ export default function LeftPanel({
               >
                 {m.label}
                 {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
+                {!m.comingSoon && <span className={`block font-mono text-[8px] mt-0.5 normal-case tracking-wide ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
               </button>
             ))}
           </div>
