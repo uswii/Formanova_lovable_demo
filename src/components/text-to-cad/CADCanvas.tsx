@@ -271,9 +271,9 @@ const LoadedModel = forwardRef<
     const autoMaterials: Record<string, MaterialDef> = {};
     const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave", "brilliant", "round_cut", "cushion", "oval", "marquise", "princess", "facet"];
     const platinumKeywords = ["prong", "claw", "bead", "milgrain", "setting", "basket", "collet"];
-    const diamondMatDef = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
-    const platinumMatDef = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
-    const goldMatDef = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+    const diamondMatDef = findMaterial("diamond")!;
+    const platinumMatDef = findMaterial("platinum")!;
+    const goldMatDef = findMaterial("yellow-gold")!;
 
     // Compute median vertex count to identify small meshes (likely gems)
     const vertCounts = list.map((md) => md.geometry?.attributes?.position?.count || 0).sort((a, b) => a - b);
