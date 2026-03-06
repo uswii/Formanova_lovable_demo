@@ -216,12 +216,29 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
 }
 
 
+const DISPLAY_OPTIONS = [
+  { label: "Wireframe", available: true },
+  { label: "Flat Shading", available: false },
+  { label: "Bounding Box", available: false },
+  { label: "Show Normals", available: false },
+];
+
 function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: (id: string) => void }) {
   return (
     <>
       <FlyoutTitle>Display</FlyoutTitle>
-      {["Wireframe", "Flat Shading", "Bounding Box", "Show Normals"].map((label) => (
-        <FoBtn key={label} active={toggles.has(label)} onClick={() => onToggle(label)}>{label}</FoBtn>
+      {DISPLAY_OPTIONS.map(({ label, available }) => (
+        <div key={label} className="relative">
+          <FoBtn
+            active={toggles.has(label)}
+            onClick={available ? () => onToggle(label) : undefined}
+          >
+            <span className={available ? "" : "opacity-40"}>{label}</span>
+            {!available && (
+              <span className="float-right font-mono text-[9px] text-muted-foreground/60 italic">soon</span>
+            )}
+          </FoBtn>
+        </div>
       ))}
     </>
   );
