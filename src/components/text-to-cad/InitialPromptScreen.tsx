@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload, X, Diamond } from "lucide-react";
+import { Upload, Diamond } from "lucide-react";
 import { AI_MODELS } from "./types";
 
 const EXAMPLE_PROMPTS = [
