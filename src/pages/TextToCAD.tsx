@@ -454,7 +454,6 @@ export default function TextToCAD() {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
-      canvasRef.current?.selectMeshes([]);
       return;
     }
     // Ctrl+A — Select all
