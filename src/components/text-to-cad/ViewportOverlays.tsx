@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { RotateCcw, Undo2, Redo2, Download } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -24,7 +25,7 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-4 pointer-events-none">
-      {/* Row 1: Centered viewer tools */}
+      {/* Centered viewer tools */}
       <div className="pointer-events-auto flex gap-0 bg-card border border-border shadow-lg">
         {TRANSFORM_MODES.map((tm) => (
           <button
@@ -78,75 +79,6 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Part Regen Bar ──
-export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [selectedPart, setSelectedPart] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
-  const [desc, setDesc] = useState("");
-  const [newPartDesc, setNewPartDesc] = useState("");
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className={`absolute top-0 left-1/2 -translate-x-1/2 z-[200] min-w-[700px] max-w-[92%] bg-card/95 backdrop-blur-sm border border-border border-t-0 ${collapsed ? "py-2 px-7" : "px-7 pt-4 pb-5"}`}
-    >
-      <div
-        className={`text-center uppercase font-display cursor-pointer text-foreground ${collapsed ? "text-sm tracking-[0.15em] mb-0" : "text-base tracking-[0.15em] mb-4"}`}
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        ⚙ Rebuild or Add Parts
-      </div>
-
-      {!collapsed && (
-        <>
-          <p className="text-center font-mono text-[10px] text-muted-foreground -mt-2 mb-4 tracking-wide">
-            Click any part below to rebuild it, or add something new
-          </p>
-          <div className="flex gap-1.5 flex-wrap justify-center mb-4" />
-          <div className="flex gap-2.5 items-center">
-            <input
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              placeholder="Tell us how you want it to look..."
-              className="flex-1 px-4 py-3 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-            />
-            <button
-              disabled={!selectedPart}
-              className="px-8 py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
-            >
-              ⚙ Rebuild This Part
-            </button>
-          </div>
-          <div className="h-px bg-border my-5" />
-          <div className="text-center font-display text-sm text-foreground tracking-[0.15em] uppercase mb-3">
-            ✚ Generate Something New
-          </div>
-          <div className="flex gap-2.5 items-center">
-            <input
-              value={newPartDesc}
-              onChange={(e) => setNewPartDesc(e.target.value)}
-              placeholder="Describe a new part to add..."
-              className="flex-1 px-4 py-3 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-            />
-            <button
-              className="px-8 py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-green-600 text-white hover:opacity-90 active:scale-[0.98]"
-            >
-              ✚ Add to Ring
-            </button>
-          </div>
-        </>
-      )}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center text-[14px] text-muted-foreground cursor-pointer transition-all duration-200 hover:text-foreground bg-card border border-border"
-      >
-        {collapsed ? "▼" : "▲"}
-      </button>
     </div>
   );
 }
@@ -220,10 +152,10 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   );
 }
 
-// Action button style
-const ACT_BTN = "h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 border border-transparent";
+// ── Action Buttons ──
+// Separated into: left=undo/redo, center=viewer tools (handled above), right=start over + download
+const HIST_BTN = "h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.1em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed";
 
-// ── Action Bar (Row 2 — below viewer tools) ──
 export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, redoCount, onDownload }: {
   visible: boolean;
   onReset: () => void;
@@ -237,14 +169,14 @@ export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, red
 
   return (
     <div className="absolute top-[68px] left-0 right-0 z-50 flex items-center justify-between px-4 pointer-events-none">
-      {/* Left: Undo / Redo */}
+      {/* Left: History controls */}
       <div className="pointer-events-auto flex items-center gap-0 bg-card border border-border shadow-md">
         <button
           onClick={onUndo}
           disabled={undoCount === 0}
-          className={`${ACT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed border-r border-border`}
+          className={`${HIST_BTN} border-r border-border`}
         >
-          <span className="text-[14px]">↶</span>
+          <Undo2 className="w-3.5 h-3.5" />
           Undo
           {undoCount > 0 && (
             <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{undoCount}</span>
@@ -253,9 +185,9 @@ export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, red
         <button
           onClick={onRedo}
           disabled={redoCount === 0}
-          className={`${ACT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed`}
+          className={HIST_BTN}
         >
-          <span className="text-[14px]">↷</span>
+          <Redo2 className="w-3.5 h-3.5" />
           Redo
           {redoCount > 0 && (
             <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{redoCount}</span>
@@ -263,18 +195,20 @@ export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, red
         </button>
       </div>
 
-      {/* Right: Start Over + Download */}
+      {/* Right: Project actions */}
       <div className="pointer-events-auto flex items-center gap-2">
         <button
           onClick={onReset}
-          className={`${ACT_BTN} text-foreground/70 hover:text-foreground active:scale-[0.97] bg-card border-border shadow-md`}
+          className="h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 text-foreground/70 hover:text-foreground active:scale-[0.97] bg-card border border-border shadow-md"
         >
+          <RotateCcw className="w-3.5 h-3.5" />
           Start Over
         </button>
         <button
           onClick={onDownload}
           className="h-[36px] px-6 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.97] border border-primary shadow-md"
         >
+          <Download className="w-3.5 h-3.5" />
           Download
         </button>
       </div>
