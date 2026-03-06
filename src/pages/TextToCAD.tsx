@@ -604,7 +604,13 @@ export default function TextToCAD() {
             )}
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
-            <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
+            <div className="absolute bottom-4 left-4 z-50 flex gap-2">
+              <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
+              {hasModel && !isGenerating && (
+                <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
+              )}
+            </div>
+            <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
             
             
