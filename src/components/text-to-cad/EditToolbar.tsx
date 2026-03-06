@@ -176,13 +176,17 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
 function FoBtn({ children, shortcut, active, onClick }: {
   children: React.ReactNode; shortcut?: string; active?: boolean; onClick?: () => void;
 }) {
+  const disabled = !onClick;
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-3 mb-1.5 text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold border ${
-        active
-          ? "text-foreground bg-accent border-border"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent/50 bg-muted/20 border-border/50"
+      disabled={disabled}
+      className={`block w-full px-3.5 py-3 mb-1.5 text-[13px] text-left transition-all duration-200 font-bold border ${
+        disabled
+          ? "cursor-default border-border/30 bg-muted/10"
+          : active
+            ? "text-foreground bg-accent border-border cursor-pointer"
+            : "text-foreground/80 hover:text-foreground hover:bg-accent/50 bg-muted/20 border-border/50 cursor-pointer"
       }`}
     >
       {children}
