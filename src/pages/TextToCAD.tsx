@@ -460,7 +460,6 @@ export default function TextToCAD() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
       e.preventDefault();
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: true })));
-      canvasRef.current?.selectMeshes(meshes.map((m) => m.name));
       return;
     }
     // Shift+D — Duplicate
