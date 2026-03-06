@@ -20,7 +20,7 @@ function SidebarDivider() {
 function SidebarLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-2 pt-3 pb-1.5">
-      <span className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-foreground/40">{children}</span>
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/70">{children}</span>
     </div>
   );
 }
@@ -176,13 +176,17 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
 function FoBtn({ children, shortcut, active, onClick }: {
   children: React.ReactNode; shortcut?: string; active?: boolean; onClick?: () => void;
 }) {
+  const disabled = !onClick;
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-3 mb-1.5 text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold border ${
-        active
-          ? "text-foreground bg-accent border-border"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent/50 bg-muted/20 border-border/50"
+      disabled={disabled}
+      className={`block w-full px-3.5 py-3 mb-1.5 text-[13px] text-left transition-all duration-200 font-bold border ${
+        disabled
+          ? "cursor-default border-border/30 bg-muted/10"
+          : active
+            ? "text-foreground bg-accent border-border cursor-pointer"
+            : "text-foreground/80 hover:text-foreground hover:bg-accent/50 bg-muted/20 border-border/50 cursor-pointer"
       }`}
     >
       {children}
@@ -216,12 +220,29 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
 }
 
 
+const DISPLAY_OPTIONS = [
+  { label: "Wireframe", available: true },
+  { label: "Flat Shading", available: false },
+  { label: "Bounding Box", available: false },
+  { label: "Show Normals", available: false },
+];
+
 function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: (id: string) => void }) {
   return (
     <>
       <FlyoutTitle>Display</FlyoutTitle>
-      {["Wireframe", "Flat Shading", "Bounding Box", "Show Normals"].map((label) => (
-        <FoBtn key={label} active={toggles.has(label)} onClick={() => onToggle(label)}>{label}</FoBtn>
+      {DISPLAY_OPTIONS.map(({ label, available }) => (
+        <div key={label} className="relative">
+          <FoBtn
+            active={toggles.has(label)}
+            onClick={available ? () => onToggle(label) : undefined}
+          >
+            <span className={available ? "" : "opacity-40"}>{label}</span>
+            {!available && (
+              <span className="float-right font-mono text-[9px] text-muted-foreground/60 italic">soon</span>
+            )}
+          </FoBtn>
+        </div>
       ))}
     </>
   );
