@@ -68,6 +68,13 @@ function findAzureUri(obj: unknown): string | null {
   return null;
 }
 
+/** Preload an image into browser cache */
+function preloadImage(url: string) {
+  if (!url || url.startsWith('data:')) return; // data URIs are already inline
+  const img = new Image();
+  img.src = url;
+}
+
 async function batchSettled<T>(
   tasks: Array<() => Promise<T>>,
   concurrency = 3,
@@ -178,6 +185,10 @@ export default function Generations() {
       });
       setAllWorkflows(hydrated);
       enrichedRef.current = cached.enriched;
+      // Preload all cached thumbnail images into browser cache
+      Object.values(cached.enriched).forEach(e => {
+        if (e.thumbnail_url) preloadImage(e.thumbnail_url);
+      });
       setGlobalLoading(false);
       console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
     }
@@ -258,6 +269,8 @@ export default function Generations() {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
+            // Preload into browser cache immediately
+            if (thumbnail_url) preloadImage(thumbnail_url);
             return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
           } catch (e) {
             console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
