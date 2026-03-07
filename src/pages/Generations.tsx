@@ -68,6 +68,13 @@ function findAzureUri(obj: unknown): string | null {
   return null;
 }
 
+/** Preload an image into browser cache */
+function preloadImage(url: string) {
+  if (!url || url.startsWith('data:')) return; // data URIs are already inline
+  const img = new Image();
+  img.src = url;
+}
+
 async function batchSettled<T>(
   tasks: Array<() => Promise<T>>,
   concurrency = 3,
