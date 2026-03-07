@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
@@ -30,6 +30,130 @@ const defaultSection = (): SectionState => ({
   loading: true,
 });
 
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/** Recursively find first azure:// URI in any object or array */
+function findAzureUri(obj: unknown): string | null {
+  if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
+  if (Array.isArray(obj)) {
+    for (const item of obj) { const f = findAzureUri(item); if (f) return f; }
+  } else if (obj && typeof obj === 'object') {
+    for (const v of Object.values(obj as Record<string, unknown>)) {
+      const found = findAzureUri(v);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Match azure:// URIs, snapwear blob URLs, or HTTPS image URLs */
+function findImageUrl(obj: unknown): string | null {
+  if (typeof obj === 'string') {
+    if (obj.startsWith('azure://')) return obj;
+    if (obj.startsWith('https://') && (
+      obj.includes('snapwear.blob.core.windows.net') ||
+      obj.includes('blob.core.windows.net') ||
+      /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)
+    )) return obj;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) { const f = findImageUrl(item); if (f) return f; }
+  } else if (obj && typeof obj === 'object') {
+    for (const v of Object.values(obj as Record<string, unknown>)) {
+      const found = findImageUrl(v);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Run at most CONCURRENCY tasks at a time */
+async function batchSettled<T>(
+  tasks: Array<() => Promise<T>>,
+  concurrency = 3,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = [];
+  for (let i = 0; i < tasks.length; i += concurrency) {
+    const batch = tasks.slice(i, i + concurrency).map((t) => t());
+    results.push(...(await Promise.allSettled(batch)));
+  }
+  return results;
+}
+
+/** Extract photo thumbnail from workflow detail */
+function extractPhotoThumbnail(steps: any[]): string | null {
+  const genStep = steps.find((s: any) => s.tool === 'generate_jewelry_image');
+  if (!genStep?.output) return null;
+  const out = genStep.output as any;
+  const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
+  const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
+  if (b64) return `data:${mime};base64,${b64}`;
+  const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
+  if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) return outputUrl;
+  return null;
+}
+
+/** Extract cadText screenshots + GLB from workflow detail */
+function extractCadTextData(steps: any[]) {
+  // Screenshots
+  const screenshotStep = steps.find((s: any) =>
+    s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
+  );
+  const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
+  let screenshots: { angle: string; url: string }[] = [];
+  if (rawShots?.length) {
+    screenshots = rawShots
+      .map((s: any) => {
+        const angle = (s.name as string) || (s.angle as string) || 'unknown';
+        const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
+        if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
+        const uri = findAzureUri(s);
+        return uri ? { angle, url: azureUriToUrl(uri) } : null;
+      })
+      .filter((s): s is { angle: string; url: string } => !!s?.url);
+  }
+  const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
+
+  // GLB
+  const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
+  const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
+  const glbStep = validateStep || generateStep;
+  let glb_url: string | null = null;
+  let glb_filename: string | null = null;
+  if (glbStep?.output?.glb_path) {
+    const glbPath = glbStep.output.glb_path as any;
+    const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
+    if (uri) {
+      glb_url = azureUriToUrl(uri);
+      const parts = (uri as string).split('/');
+      glb_filename = parts[parts.length - 1] || 'model.glb';
+    }
+  }
+  if (!glb_url && glbStep?.output) {
+    const uri = findAzureUri(glbStep.output);
+    if (uri) {
+      glb_url = azureUriToUrl(uri);
+      const parts = uri.split('/');
+      glb_filename = parts[parts.length - 1] || 'model.glb';
+    }
+  }
+  if (!glb_url) {
+    for (const step of steps) {
+      const uri = findAzureUri(step.output);
+      if (uri && uri.includes('.glb')) {
+        glb_url = azureUriToUrl(uri);
+        const parts = uri.split('/');
+        glb_filename = parts[parts.length - 1] || 'model.glb';
+        break;
+      }
+    }
+  }
+
+  return { thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename };
+}
+
+// ── Component ────────────────────────────────────────────────────────
+
 export default function Generations() {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -43,227 +167,19 @@ export default function Generations() {
   const [cadRenderPage, setCadRenderPage] = useState(1);
   const [cadTextPage, setCadTextPage] = useState(1);
 
-  // Fetch all workflows once
+  // Track which workflow IDs have already been enriched to avoid re-fetching
+  const enrichedIdsRef = useRef<Set<string>>(new Set());
+
+  // ── Step 1: Fetch workflow list (lightweight, no details) ─────────
   useEffect(() => {
     if (!user) return;
 
-    // Run at most CONCURRENCY detail-fetches at a time to avoid nginx rate-limit 503s
-    async function batchSettled<T>(
-      tasks: Array<() => Promise<T>>,
-      concurrency = 5,
-    ): Promise<PromiseSettledResult<T>[]> {
-      const results: PromiseSettledResult<T>[] = [];
-      for (let i = 0; i < tasks.length; i += concurrency) {
-        const batch = tasks.slice(i, i + concurrency).map((t) => t());
-        results.push(...(await Promise.allSettled(batch)));
-      }
-      return results;
-    }
-
-    const fetchAll = async () => {
+    (async () => {
       try {
         setGlobalLoading(true);
         const workflows = await listMyWorkflows(100, 0);
         console.log('[Generations] workflows:', workflows.map(w => ({ name: w.name, status: w.status, source_type: w.source_type })));
         setAllWorkflows(workflows);
-
-        // Helper: recursively find first azure:// URI in any object or array
-        const findAzureUri = (obj: unknown): string | null => {
-          if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
-          if (Array.isArray(obj)) {
-            for (const item of obj) { const f = findAzureUri(item); if (f) return f; }
-          } else if (obj && typeof obj === 'object') {
-            for (const v of Object.values(obj as Record<string, unknown>)) {
-              const found = findAzureUri(v);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
-        // For photo workflows: match azure:// URIs, snapwear blob URLs, or HTTPS image URLs
-        const findImageUrl = (obj: unknown): string | null => {
-          if (typeof obj === 'string') {
-            if (obj.startsWith('azure://')) return obj;
-            if (obj.startsWith('https://') && (
-              obj.includes('snapwear.blob.core.windows.net') ||
-              obj.includes('blob.core.windows.net') ||
-              /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)
-            )) return obj;
-          }
-          if (Array.isArray(obj)) {
-            for (const item of obj) { const f = findImageUrl(item); if (f) return f; }
-          } else if (obj && typeof obj === 'object') {
-            for (const v of Object.values(obj as Record<string, unknown>)) {
-              const found = findImageUrl(v);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
-        // Enrich completed photo/cad_render workflows: extract thumbnail from generate_jewelry_image step
-        const photoCompleted = workflows.filter(
-          (w) => (w.source_type === 'photo' || w.source_type === 'cad_render') && w.status === 'completed'
-        );
-        if (photoCompleted.length > 0) {
-          const photoIds = new Set(photoCompleted.map((wf) => wf.workflow_id));
-          batchSettled(
-            photoCompleted.map((wf) => async () => {
-              try {
-                const details = await getWorkflowDetails(wf.workflow_id);
-                const steps = details.steps ?? [];
-                console.log(`[Generations] photo ${wf.workflow_id} steps:`, steps.map(s => s.tool));
-                let thumbnail_url: string | null = null;
-
-                // Target generate_jewelry_image step specifically — never fall back to other steps.
-                // Priority: image_b64 (never expires) → output_url (SAS, may be expired)
-                const genStep = steps.find((s) => s.tool === 'generate_jewelry_image');
-                if (genStep?.output) {
-                  const out = genStep.output as any;
-                  // 1. Prefer image_b64 as data URI — raw base64, never expires
-                  const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
-                  const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
-                  if (b64) {
-                    thumbnail_url = `data:${mime};base64,${b64}`;
-                  }
-                  // 2. Fall back to output_url only if no b64
-                  if (!thumbnail_url) {
-                    const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
-                    if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) {
-                      thumbnail_url = outputUrl;
-                    }
-                  }
-                }
-
-                console.log(`[Generations] photo ${wf.workflow_id} thumbnail:`, thumbnail_url);
-                return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
-              } catch (e) {
-                console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
-              }
-              return { id: wf.workflow_id, thumbnail_url: '' };
-            })
-          ).then((results) => {
-            const enrichMap = new Map<string, string>();
-            for (const r of results) {
-              if (r.status === 'fulfilled' && r.value) {
-                enrichMap.set(r.value.id, r.value.thumbnail_url);
-              }
-            }
-            // Always update — even with empty results — so cards stop pulsing
-            setAllWorkflows((prev) =>
-              prev.map((w) => {
-                if (!photoIds.has(w.workflow_id)) return w;
-                const url = enrichMap.get(w.workflow_id);
-                return { ...w, thumbnail_url: url ?? '' };
-              })
-            );
-          });
-        }
-
-        // Enrich completed cad_text workflows: screenshots + GLB url/filename
-        // Include failed cad_text workflows too — they may still have GLB/screenshots from earlier steps
-        const cadTextCompleted = workflows.filter(
-          (w) => w.source_type === 'cad_text' && (w.status === 'completed' || w.status === 'failed')
-        );
-        if (cadTextCompleted.length > 0) {
-          const cadTextIds = new Set(cadTextCompleted.map((wf) => wf.workflow_id));
-          batchSettled(
-            cadTextCompleted.map((wf) => async () => {
-              try {
-                const details = await getWorkflowDetails(wf.workflow_id);
-                const steps = details.steps ?? [];
-                console.debug(`[Generations] cadText workflow ${wf.workflow_id} has ${steps.length} steps:`, steps.map(s => s.tool));
-
-                // Screenshots — try multiple step/field names
-                // Screenshot objects: actual DB shape is {name, data_uri: {uri: "azure://..."}}
-                // Also handle legacy shapes: {angle, url}, {angle, uri}
-                const screenshotStep = steps.find((s) =>
-                  s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
-                );
-                const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
-                let screenshots: { angle: string; url: string }[] = [];
-                if (rawShots?.length) {
-                  screenshots = rawShots
-                    .map((s: any) => {
-                      // Angle: try 'name' (actual DB) then 'angle' (legacy)
-                      const angle = (s.name as string) || (s.angle as string) || 'unknown';
-                      // URL: try data_uri.uri (actual DB) then url/uri (legacy)
-                      const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
-                      if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
-                      // Deep fallback: find any azure:// URI in the object
-                      const uri = findAzureUri(s);
-                      return uri ? { angle, url: azureUriToUrl(uri) } : null;
-                    })
-                    .filter((s): s is { angle: string; url: string } => !!s?.url);
-                }
-                const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
-                console.debug(`[Generations] cadText ${wf.workflow_id} screenshots:`, screenshots.length, 'front:', front?.url);
-
-                // GLB — primary: look for glb_path field (known working structure)
-                const validateStep = steps.find((s) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
-                const generateStep = steps.find((s) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
-                const glbStep = validateStep || generateStep;
-                let glb_url: string | null = null;
-                let glb_filename: string | null = null;
-                if (glbStep?.output?.glb_path) {
-                  const glbPath = glbStep.output.glb_path as any;
-                  const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
-                  if (uri) {
-                    glb_url = azureUriToUrl(uri);
-                    const parts = (uri as string).split('/');
-                    glb_filename = parts[parts.length - 1] || 'model.glb';
-                  }
-                }
-                // Fallback: recursive azure URI search in glb step output
-                if (!glb_url && glbStep?.output) {
-                  const uri = findAzureUri(glbStep.output);
-                  if (uri) {
-                    glb_url = azureUriToUrl(uri);
-                    const parts = uri.split('/');
-                    glb_filename = parts[parts.length - 1] || 'model.glb';
-                  }
-                }
-                // Last resort: scan ALL steps for a .glb URI
-                if (!glb_url) {
-                  for (const step of steps) {
-                    const uri = findAzureUri(step.output);
-                    if (uri && uri.includes('.glb')) {
-                      glb_url = azureUriToUrl(uri);
-                      const parts = uri.split('/');
-                      glb_filename = parts[parts.length - 1] || 'model.glb';
-                      break;
-                    }
-                  }
-                }
-                console.debug(`[Generations] cadText ${wf.workflow_id} glb:`, glb_url);
-
-                return { id: wf.workflow_id, thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename };
-              } catch (e) {
-                console.warn('[Generations] cadText detail fetch failed:', wf.workflow_id, e);
-              }
-              return { id: wf.workflow_id, thumbnail_url: '', screenshots: [] as { angle: string; url: string }[], glb_url: null, glb_filename: null };
-            })
-          ).then((results) => {
-            const enrichMap = new Map<string, { thumbnail_url: string; screenshots: { angle: string; url: string }[]; glb_url: string | null; glb_filename: string | null }>();
-            for (const r of results) {
-              if (r.status === 'fulfilled' && r.value) {
-                enrichMap.set(r.value.id, r.value);
-              }
-            }
-            // Always update — even with empty results — so cards stop pulsing
-            setAllWorkflows((prev) =>
-              prev.map((w) => {
-                if (!cadTextIds.has(w.workflow_id)) return w;
-                const e = enrichMap.get(w.workflow_id);
-                if (e) {
-                  return { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename };
-                }
-                return { ...w, screenshots: [], glb_url: null, glb_filename: null };
-              })
-            );
-          });
-        }
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
         if (err.name !== 'AuthExpiredError') {
@@ -272,13 +188,10 @@ export default function Generations() {
       } finally {
         setGlobalLoading(false);
       }
-    };
-
-    fetchAll();
+    })();
   }, [user]);
 
-  // Filter & paginate per section
-  // requireImage: hide workflows where enrichment finished but no image was found (thumbnail_url === '')
+  // ── Pagination helper ─────────────────────────────────────────────
   const getSection = useCallback(
     (source: SourceType, page: number, requireImage = false): SectionState => {
       const statusOk = source === 'cad_text'
@@ -301,6 +214,88 @@ export default function Generations() {
     },
     [allWorkflows, globalLoading],
   );
+
+  // ── Step 2: Enrich ONLY the visible page of each section ──────────
+  // This runs whenever allWorkflows or page numbers change.
+  useEffect(() => {
+    if (globalLoading || allWorkflows.length === 0) return;
+
+    // Get visible workflows for each section that need enrichment
+    const photoVisible = getSection('photo', photoPage).workflows
+      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+    const cadRenderVisible = getSection('cad_render', cadRenderPage).workflows
+      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+    const cadTextVisible = getSection('cad_text', cadTextPage).workflows
+      .filter(w => (w.status === 'completed' || w.status === 'failed') && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+
+    const photoAndCadRender = [...photoVisible, ...cadRenderVisible];
+
+    // Mark as enriching immediately to prevent duplicate fetches
+    [...photoAndCadRender, ...cadTextVisible].forEach(w => enrichedIdsRef.current.add(w.workflow_id));
+
+    // Enrich photo & cad_render workflows
+    if (photoAndCadRender.length > 0) {
+      const ids = new Set(photoAndCadRender.map(w => w.workflow_id));
+      batchSettled(
+        photoAndCadRender.map(wf => async () => {
+          try {
+            const details = await getWorkflowDetails(wf.workflow_id);
+            const steps = details.steps ?? [];
+            const thumbnail_url = extractPhotoThumbnail(steps);
+            return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
+          } catch (e) {
+            console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
+            return { id: wf.workflow_id, thumbnail_url: '' };
+          }
+        })
+      ).then(results => {
+        const enrichMap = new Map<string, string>();
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            enrichMap.set(r.value.id, r.value.thumbnail_url);
+          }
+        }
+        setAllWorkflows(prev =>
+          prev.map(w => {
+            if (!ids.has(w.workflow_id)) return w;
+            return { ...w, thumbnail_url: enrichMap.get(w.workflow_id) ?? '' };
+          })
+        );
+      });
+    }
+
+    // Enrich cad_text workflows
+    if (cadTextVisible.length > 0) {
+      const ids = new Set(cadTextVisible.map(w => w.workflow_id));
+      batchSettled(
+        cadTextVisible.map(wf => async () => {
+          try {
+            const details = await getWorkflowDetails(wf.workflow_id);
+            const steps = details.steps ?? [];
+            return { id: wf.workflow_id, ...extractCadTextData(steps) };
+          } catch (e) {
+            console.warn('[Generations] cadText detail fetch failed:', wf.workflow_id, e);
+            return { id: wf.workflow_id, thumbnail_url: '', screenshots: [] as { angle: string; url: string }[], glb_url: null, glb_filename: null };
+          }
+        })
+      ).then(results => {
+        const enrichMap = new Map<string, any>();
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            enrichMap.set(r.value.id, r.value);
+          }
+        }
+        setAllWorkflows(prev =>
+          prev.map(w => {
+            if (!ids.has(w.workflow_id)) return w;
+            const e = enrichMap.get(w.workflow_id);
+            if (e) return { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename };
+            return { ...w, screenshots: [], glb_url: null, glb_filename: null };
+          })
+        );
+      });
+    }
+  }, [allWorkflows.length, globalLoading, photoPage, cadRenderPage, cadTextPage, getSection]);
 
   const photoSection = getSection('photo', photoPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
@@ -400,7 +395,6 @@ export default function Generations() {
           </>
         )}
       </div>
-
     </div>
   );
 }
