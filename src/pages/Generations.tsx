@@ -185,6 +185,10 @@ export default function Generations() {
       });
       setAllWorkflows(hydrated);
       enrichedRef.current = cached.enriched;
+      // Preload all cached thumbnail images into browser cache
+      Object.values(cached.enriched).forEach(e => {
+        if (e.thumbnail_url) preloadImage(e.thumbnail_url);
+      });
       setGlobalLoading(false);
       console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
     }
