@@ -145,7 +145,7 @@ const LoadedModel = forwardRef<
     removeAllTextures: () => void;
   },
   {
-    url: string;
+  url: string;
     additionalGlbUrls?: string[];
     selectedMeshNames: Set<string>;
     hiddenMeshNames: Set<string>;
@@ -155,8 +155,9 @@ const LoadedModel = forwardRef<
     onTransformEnd?: () => void;
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
+    onModelReady?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -351,7 +352,14 @@ const LoadedModel = forwardRef<
         faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
       })));
     }
-  }, [scene, onMeshesDetected, inv]);
+
+    // Signal model is fully processed and ready to render after next frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        onModelReady?.();
+      });
+    });
+  }, [scene, onMeshesDetected, inv, onModelReady]);
 
   // ── Merge additional GLB parts into the existing scene ──
   const mergedUrlsRef = useRef<Set<string>>(new Set());
@@ -979,10 +987,11 @@ interface CADCanvasProps {
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
   onTransformEnd?: () => void;
   lightIntensity?: number;
+  onModelReady?: () => void;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1, onModelReady }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
 
@@ -1096,6 +1105,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onTransformEnd={onTransformEnd}
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
+                onModelReady={onModelReady}
               />
             )}
 

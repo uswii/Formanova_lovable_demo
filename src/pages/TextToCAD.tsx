@@ -40,6 +40,7 @@ export default function TextToCAD() {
   const [editPrompt, setEditPrompt] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -123,6 +124,14 @@ export default function TextToCAD() {
   const handleTransformEnd = useCallback(() => {
     pushUndo(`Transform (${transformMode})`);
   }, [pushUndo, transformMode]);
+
+  // Called when CADCanvas has fully parsed, textured, and rendered the model
+  const handleModelReady = useCallback(() => {
+    setIsModelLoading(false);
+    setProgress(100);
+    setProgressStep("Completed");
+    toast.success("Ring generated successfully");
+  }, []);
 
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
@@ -246,14 +255,14 @@ export default function TextToCAD() {
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
-      // Load into viewer
+      // Load into viewer — keep progress overlay visible until model is rendered
       setGlbUrl(glb_url);
-      setProgress(100);
-      setProgressStep("Completed");
+      setProgress(98);
+      setProgressStep("Loading model…");
+      setIsModelLoading(true);
       setIsGenerating(false);
       setHasModel(true);
       setShowPartRegen(true);
-      toast.success("Ring generated successfully");
 
     } catch (err) {
       console.error("Generation failed:", err);
@@ -630,10 +639,11 @@ export default function TextToCAD() {
               onMeshesDetected={handleMeshesDetected}
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
+              onModelReady={handleModelReady}
             />
 
             {/* Empty state */}
-            {!hasModel && !isGenerating && (
+            {!hasModel && !isGenerating && !isModelLoading && (
               <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
@@ -656,17 +666,17 @@ export default function TextToCAD() {
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2">
-              <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
-              {hasModel && !isGenerating && (
+              <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
+              {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
                   <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
                 </div>
               )}
             </div>
-            <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
+            <GenerationProgress visible={isGenerating || isModelLoading} progress={progress} currentStep={progressStep} />
             <ViewportSideTools
-              visible={hasModel && !isGenerating}
+              visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
               onZoomOut={() => canvasRef.current?.zoomOut()}
               onResetView={() => canvasRef.current?.resetCamera()}
