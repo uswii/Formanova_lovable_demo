@@ -1105,6 +1105,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onTransformEnd={onTransformEnd}
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
+                onModelReady={onModelReady}
               />
             )}
 
