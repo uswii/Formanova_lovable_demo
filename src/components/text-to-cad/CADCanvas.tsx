@@ -1031,10 +1031,10 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 url={modelUrl}
                 additionalGlbUrls={additionalGlbUrls}
                 selectedMeshNames={selectedMeshNames}
+                hiddenMeshNames={hiddenMeshNames}
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
-                
                 onTransformEnd={onTransformEnd}
               />
             )}
