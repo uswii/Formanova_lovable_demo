@@ -222,48 +222,59 @@ export default function TextToCAD() {
 
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
-      // Step 2: Poll status every 3s — no timeout, workflows can take 15-20 min
-      // Use synthetic progress to avoid 0% → 100% jumps
+      // Step 2: Poll status every 3s with continuous synthetic micro-increments
+      // The bar never sits still — it inches forward ~1-2% every second between polls
       const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted"]);
+      const SYNTHETIC_CAP = 92; // Never exceed this until backend confirms completion
+      const TICK_INTERVAL_MS = 1000; // Micro-increment every second
+      const TICK_INCREMENT = 1.2; // % per tick
       let pollErrors = 0;
-      let pollCount = 0;
+      let currentPct = 3; // Start just above zero so user sees immediate movement
+      setProgress(currentPct);
 
-      while (true) {
-        await new Promise((r) => setTimeout(r, 3000));
-        pollCount++;
-        try {
-          const statusRes = await authenticatedFetch(
-            `${SUPABASE_URL}/functions/v1/ring-status?workflow_id=${encodeURIComponent(workflow_id)}`
-          );
+      // Micro-increment ticker — runs every second to keep the bar alive
+      const tickHandle = setInterval(() => {
+        currentPct = Math.min(SYNTHETIC_CAP, currentPct + TICK_INCREMENT);
+        setProgress(Math.round(currentPct));
+        setProgressStep(getProgressLabel(Math.round(currentPct)));
+      }, TICK_INTERVAL_MS);
 
-          if (!statusRes.ok) {
+      try {
+        while (true) {
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            const statusRes = await authenticatedFetch(
+              `${SUPABASE_URL}/functions/v1/ring-status?workflow_id=${encodeURIComponent(workflow_id)}`
+            );
+
+            if (!statusRes.ok) {
+              pollErrors++;
+              if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
+              continue;
+            }
+
+            const statusData = await statusRes.json();
+            pollErrors = 0;
+
+            // If backend reports real progress ahead of our synthetic value, jump to it
+            const backendPct = statusData.progress ?? 0;
+            if (backendPct > currentPct && backendPct <= SYNTHETIC_CAP) {
+              currentPct = backendPct;
+              setProgress(Math.round(currentPct));
+            }
+
+            if (statusData.state === "completed") break;
+            if (TERMINAL_STATES.has(statusData.state)) {
+              throw new Error(`Generation ${statusData.state}`);
+            }
+          } catch (err) {
+            if (err instanceof AuthExpiredError) { clearInterval(tickHandle); return; }
             pollErrors++;
-            if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
-            continue;
+            if (pollErrors >= 10) throw err;
           }
-
-          const statusData = await statusRes.json();
-          pollErrors = 0;
-
-          // Use backend progress if meaningful, otherwise synthesize from poll count
-          const backendPct = statusData.progress ?? 0;
-          // Synthetic progress: ramp up slowly over polls (max ~90% before completion)
-          const syntheticPct = Math.min(90, Math.round(5 + (pollCount * 3)));
-          const pct = backendPct > 5 ? backendPct : syntheticPct;
-          
-          setProgress(pct);
-          setProgressStep(statusData.state === "completed" ? "Completed" : getProgressLabel(pct));
-
-          if (statusData.state === "completed") break;
-          if (TERMINAL_STATES.has(statusData.state)) {
-            throw new Error(`Generation ${statusData.state}`);
-          }
-          // Still running — continue polling
-        } catch (err) {
-          if (err instanceof AuthExpiredError) return;
-          pollErrors++;
-          if (pollErrors >= 10) throw err;
         }
+      } finally {
+        clearInterval(tickHandle);
       }
 
       // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
