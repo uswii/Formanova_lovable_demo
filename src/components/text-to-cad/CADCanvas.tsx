@@ -148,12 +148,13 @@ const LoadedModel = forwardRef<
     url: string;
     additionalGlbUrls?: string[];
     selectedMeshNames: Set<string>;
+    hiddenMeshNames: Set<string>;
     onMeshClick: (name: string, multi: boolean) => void;
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
     onTransformEnd?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -543,22 +544,53 @@ const LoadedModel = forwardRef<
     },
     duplicateMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
+      const newItems: MeshData[] = [];
       setMeshDataList((prev) => {
-        const newItems: MeshData[] = [];
         prev.forEach((md) => {
           if (names.has(md.name)) {
             const newPos = md.position.clone();
             newPos.x += 0.5;
-            newItems.push({
+            const dupName = `${md.name}_copy`;
+            // Avoid duplicate names
+            let finalName = dupName;
+            let suffix = 2;
+            const existingNames = new Set(prev.map(m => m.name));
+            while (existingNames.has(finalName)) {
+              finalName = `${md.name}_copy_${suffix++}`;
+            }
+            const newMd: MeshData = {
               ...md,
-              name: `${md.name}_copy`,
+              name: finalName,
               geometry: md.geometry.clone(),
               position: newPos,
               origPos: newPos.clone(),
-            });
+            };
+            newItems.push(newMd);
           }
         });
         return [...prev, ...newItems];
+      });
+      // Sync duplicated meshes back to parent mesh list
+      if (onMeshesDetected && newItems.length > 0) {
+        setTimeout(() => {
+          setMeshDataList((current) => {
+            onMeshesDetected(current.map((m) => ({
+              name: m.name,
+              verts: m.geometry?.attributes?.position?.count || 0,
+              faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
+            })));
+            return current;
+          });
+        }, 0);
+      }
+      // Copy materials for duplicated meshes
+      setAssignedMaterials((prev) => {
+        const next = { ...prev };
+        newItems.forEach((item) => {
+          const origName = item.name.replace(/_copy(_\d+)?$/, '');
+          if (prev[origName]) next[item.name] = prev[origName];
+        });
+        return next;
       });
       inv();
     },
@@ -685,6 +717,9 @@ const LoadedModel = forwardRef<
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
     meshDataList.forEach((md) => {
+      // Skip hidden meshes entirely
+      if (hiddenMeshNames.has(md.name)) return;
+
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
 
@@ -714,7 +749,7 @@ const LoadedModel = forwardRef<
     });
 
     return { standardElements: standard, gemElements: gems };
-  }, [meshDataList, assignedMaterials, selectedMeshNames]);
+  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
@@ -930,6 +965,7 @@ interface CADCanvasProps {
   glbUrl?: string;
   additionalGlbUrls?: string[];
   selectedMeshNames: Set<string>;
+  hiddenMeshNames?: Set<string>;
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
@@ -938,7 +974,7 @@ interface CADCanvasProps {
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
 
@@ -1029,10 +1065,10 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 url={modelUrl}
                 additionalGlbUrls={additionalGlbUrls}
                 selectedMeshNames={selectedMeshNames}
+                hiddenMeshNames={hiddenMeshNames}
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
-                
                 onTransformEnd={onTransformEnd}
               />
             )}

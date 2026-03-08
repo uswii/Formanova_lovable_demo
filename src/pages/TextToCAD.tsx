@@ -70,6 +70,11 @@ export default function TextToCAD() {
     [meshes]
   );
 
+  const hiddenMeshNames = useMemo(
+    () => new Set(meshes.filter((m) => !m.visible).map((m) => m.name)),
+    [meshes]
+  );
+
   const selectedNames = useMemo(
     () => meshes.filter((m) => m.selected).map((m) => m.name),
     [meshes]
@@ -313,7 +318,18 @@ export default function TextToCAD() {
   }, [hasModel, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
-    setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
+    setMeshes((prev) => {
+      // Preserve existing visibility/selection state for known meshes
+      const prevMap = new Map(prev.map(m => [m.name, m]));
+      return detected.map((d) => {
+        const existing = prevMap.get(d.name);
+        return {
+          ...d,
+          visible: existing?.visible ?? true,
+          selected: existing?.selected ?? false,
+        };
+      });
+    });
     setStats((prev) => ({ ...prev, meshes: detected.length }));
   }, []);
 
@@ -601,6 +617,7 @@ export default function TextToCAD() {
               glbUrl={glbUrl}
               additionalGlbUrls={additionalParts}
               selectedMeshNames={selectedMeshNames}
+              hiddenMeshNames={hiddenMeshNames}
               onMeshClick={handleSelectMesh}
               transformMode={transformMode}
               onMeshesDetected={handleMeshesDetected}
