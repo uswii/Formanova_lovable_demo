@@ -1,17 +1,18 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
-import { Canvas, useThree, useFrame, ThreeEvent, invalidate } from "@react-three/fiber";
+import { Canvas, useThree, useFrame, ThreeEvent, invalidate, useLoader } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
   TransformControls,
   GizmoHelper,
   GizmoViewport,
+  MeshRefractionMaterial,
 } from "@react-three/drei";
+import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { MATERIAL_LIBRARY, findMaterial } from "@/components/cad-studio/materials";
-import type { MaterialDef } from "@/components/cad-studio/materials";
-import { getQualitySettings } from "@/lib/gpu-detect";
+import { MATERIAL_LIBRARY, findMaterial, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
+import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
