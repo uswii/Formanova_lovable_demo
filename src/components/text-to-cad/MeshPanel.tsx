@@ -1,5 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
-import { toast } from "sonner";
+import { useState, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -127,7 +126,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
             handleMeshClick={handleMeshClick}
             onAction={onAction}
             onSceneAction={onSceneAction}
-            onApplyMaterial={onApplyMaterial}
           />
         </div>
       </div>
@@ -229,7 +227,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
               handleMeshClick={handleMeshClick}
               onAction={onAction}
               onSceneAction={onSceneAction}
-              onApplyMaterial={onApplyMaterial}
             />
           </div>
         </ResizablePanel>
@@ -289,23 +286,10 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
   filteredMaterials: typeof MATERIAL_LIBRARY;
   onApplyMaterial: (matId: string) => void;
 }) {
-  const handleApply = useCallback((matId: string) => {
-    if (!hasSelection) {
-      toast.error("Please select a mesh first");
-      return;
-    }
-    onApplyMaterial(matId);
-  }, [hasSelection, onApplyMaterial]);
-
-  const handleDragStart = useCallback((e: React.DragEvent, matId: string) => {
-    e.dataTransfer.setData("application/material-id", matId);
-    e.dataTransfer.effectAllowed = "copy";
-  }, []);
-
   return (
     <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3 pt-3 space-y-3 scrollbar-thin">
       {!hasSelection && (
-        <div className="px-3 py-2 font-mono text-[10px] text-muted-foreground bg-muted/30 border border-border/50">
+        <div className="px-3 py-2 font-mono text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
           Select a mesh to assign material
         </div>
       )}
@@ -391,14 +375,14 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
         )}
       </AnimatePresence>
 
+      {/* Material swatch grid */}
       <div className="grid grid-cols-3 gap-1.5">
         {filteredMaterials.map((m) => (
           <button
             key={m.id}
-            onClick={() => handleApply(m.id)}
-            draggable
-            onDragStart={(e) => handleDragStart(e, m.id)}
-            className="py-2 px-1.5 text-center cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 group"
+            onClick={() => onApplyMaterial(m.id)}
+            disabled={!hasSelection}
+            className="py-2 px-1.5 text-center cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 disabled:opacity-30 disabled:cursor-not-allowed group"
           >
             <div className="flex justify-center mb-1">
               <MaterialSphere category={m.category} preview={m.preview} size={24} />
@@ -451,7 +435,7 @@ function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setM
 }
 
 // ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onApplyMaterial }: {
+function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction }: {
   meshTab: "list" | "actions";
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
@@ -461,7 +445,6 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
   onAction: (action: string) => void;
   onSceneAction: (action: string) => void;
-  onApplyMaterial: (matId: string) => void;
 }) {
   if (meshTab === "list") {
     return (
@@ -485,17 +468,6 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             <button
               key={mesh.name}
               onClick={(e) => handleMeshClick(mesh, e)}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const matId = e.dataTransfer.getData("application/material-id");
-                if (matId) {
-                  // Select this mesh then apply material
-                  handleMeshClick(mesh, { ctrlKey: false, metaKey: false, shiftKey: false } as React.MouseEvent);
-                  onApplyMaterial(matId);
-                }
-              }}
               className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
                 mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
               } ${!mesh.visible ? "opacity-35" : ""}`}

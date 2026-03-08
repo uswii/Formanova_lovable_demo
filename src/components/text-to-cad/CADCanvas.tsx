@@ -143,8 +143,6 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => void;
     applyTransform: (meshNames: string[]) => void;
     removeAllTextures: () => void;
-    setMeshTransform: (meshNames: string[], mode: "translate" | "rotate" | "scale", axis: "x" | "y" | "z", value: number) => void;
-    getMeshTransform: (meshName: string) => { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] } | null;
   },
   {
     url: string;
@@ -710,41 +708,6 @@ const LoadedModel = forwardRef<
       materialCache.current.clear();
       inv();
     },
-    setMeshTransform: (meshNames: string[], mode: "translate" | "rotate" | "scale", axis: "x" | "y" | "z", value: number) => {
-      const names = new Set(meshNames);
-      const axisIdx = axis === "x" ? 0 : axis === "y" ? 1 : 2;
-      setMeshDataList((prev) => prev.map((md) => {
-        if (!names.has(md.name)) return md;
-        if (mode === "translate") {
-          const pos = md.position.clone();
-          pos.setComponent(axisIdx, value);
-          return { ...md, position: pos };
-        } else if (mode === "rotate") {
-          const rot = md.rotation.clone();
-          const arr = [rot.x, rot.y, rot.z];
-          arr[axisIdx] = (value * Math.PI) / 180; // degrees to radians
-          return { ...md, rotation: new THREE.Euler(arr[0], arr[1], arr[2]) };
-        } else {
-          const scl = md.scale.clone();
-          scl.setComponent(axisIdx, value);
-          return { ...md, scale: scl };
-        }
-      }));
-      inv();
-    },
-    getMeshTransform: (meshName: string) => {
-      const md = meshDataList.find((m) => m.name === meshName);
-      if (!md) return null;
-      return {
-        position: [md.position.x, md.position.y, md.position.z] as [number, number, number],
-        rotation: [
-          (md.rotation.x * 180) / Math.PI,
-          (md.rotation.y * 180) / Math.PI,
-          (md.rotation.z * 180) / Math.PI,
-        ] as [number, number, number],
-        scale: [md.scale.x, md.scale.y, md.scale.z] as [number, number, number],
-      };
-    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
 
   // ── Separate gemstone meshes from standard meshes ──
@@ -995,10 +958,6 @@ export interface CADCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
   resetCamera: () => void;
-  /** Set absolute transform for named meshes */
-  setMeshTransform: (meshNames: string[], mode: "translate" | "rotate" | "scale", axis: "x" | "y" | "z", value: number) => void;
-  /** Get current transform of first selected mesh */
-  getMeshTransform: (meshName: string) => { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] } | null;
 }
 
 interface CADCanvasProps {
@@ -1040,8 +999,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
-      setMeshTransform: (meshNames, mode, axis, value) => modelRef.current?.setMeshTransform(meshNames, mode, axis, value),
-      getMeshTransform: (meshName) => modelRef.current?.getMeshTransform(meshName) ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
