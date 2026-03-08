@@ -29,6 +29,8 @@ export interface WorkflowSummary {
   glb_filename?: string | null;
   /** AI model tier used (e.g. 'gemini', 'claude-sonnet', 'claude-opus') — populated client-side */
   ai_model?: string | null;
+  /** Mode from workflow input (e.g. 'lite', 'standard', 'premium') — available in list response */
+  mode?: string | null;
 }
 
 export interface WorkflowStep {
