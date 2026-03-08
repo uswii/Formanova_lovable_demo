@@ -526,15 +526,12 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           <button onClick={() => onSceneAction("center-origin")} className={ACTION_BTN}>
             <Crosshair className="w-3.5 h-3.5" /> Origin
           </button>
           <button onClick={() => onSceneAction("flip-normals")} className={ACTION_BTN}>
             <FlipVertical className="w-3.5 h-3.5" /> Flip N
-          </button>
-          <button onClick={() => onSceneAction("recalc-normals")} className={ACTION_BTN}>
-            <RefreshCw className="w-3.5 h-3.5" /> Recalc
           </button>
         </div>
       </div>
