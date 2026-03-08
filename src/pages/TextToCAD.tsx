@@ -129,6 +129,8 @@ export default function TextToCAD() {
     if (isGenerating) return;
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
     const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
     try {
       const result = await performCreditPreflight('ring_full_pipeline', 1);
@@ -149,73 +151,80 @@ export default function TextToCAD() {
     setIsGenerating(true);
     setProgress(0);
     setHasModel(false);
-    setProgressStep("Queued");
+    setProgressStep("Generating…");
 
     try {
-      const runRes = await startRingPipeline(prompt, model);
-      const { status_url, result_url, projected_cost } = runRes;
-      if (projected_cost) toast.info(`Estimated cost: $${projected_cost.toFixed(2)}`);
+      // Step 1: Start generation
+      const startRes = await authenticatedFetch(`${SUPABASE_URL}/functions/v1/generate-ring`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt.trim(), model }),
+      });
 
-      setProgressStep("Generating geometry");
-      let done = false;
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to start generation (${startRes.status})`);
+      }
+
+      const { workflow_id } = await startRes.json();
+      if (!workflow_id) throw new Error("No workflow_id returned");
+
+      console.log("[TextToCAD] Workflow started:", workflow_id);
+
+      // Step 2: Poll status every 3s — no timeout, workflows can take 15-20 min
+      const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted"]);
       let pollErrors = 0;
-      let resolvedGlbUrl: string | null = null;
-      let glbSource: string | null = null;
 
-      while (!done) {
+      while (true) {
         await new Promise((r) => setTimeout(r, 3000));
         try {
-          const statusRes = await pollStatus(status_url);
-          const pct = calcProgress(statusRes);
-          setProgress(pct);
-          setProgressStep(statusRes.current_step || getProgressLabel(pct));
+          const statusRes = await authenticatedFetch(
+            `${SUPABASE_URL}/functions/v1/ring-status?workflow_id=${encodeURIComponent(workflow_id)}`
+          );
 
-          const s = (statusRes.status || "").toLowerCase();
-          if (s === "completed" || s === "done" || pct >= 100) {
-            if (statusRes.glb_url) {
-              resolvedGlbUrl = statusRes.glb_url as string;
-              glbSource = (statusRes.azure_source as string) || null;
-            }
-            done = true;
-          } else if (s === "failed" || s === "error") {
-            const reason = statusRes.error || statusRes.message || statusRes.detail || "Pipeline failed";
-            throw new Error(typeof reason === 'string' ? reason : JSON.stringify(reason));
+          if (!statusRes.ok) {
+            pollErrors++;
+            if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
+            continue;
           }
+
+          const { state } = await statusRes.json();
           pollErrors = 0;
+
+          if (state === "completed") break;
+          if (TERMINAL_STATES.has(state)) {
+            throw new Error(`Generation ${state}`);
+          }
+          // Still running — continue polling
         } catch (err) {
+          if (err instanceof AuthExpiredError) return;
           pollErrors++;
-          if (pollErrors >= 5) throw err;
+          if (pollErrors >= 10) throw err;
         }
       }
 
-      if (!resolvedGlbUrl) {
-        setProgress(95);
-        setProgressStep("Preparing preview");
-        const resultRes = await fetchResult(result_url);
-        resolvedGlbUrl = resultRes.glb_url;
-        glbSource = resultRes.azure_source || null;
+      // Step 3: Fetch result GLB URL
+      setProgressStep("Loading model…");
+      const resultRes = await authenticatedFetch(
+        `${SUPABASE_URL}/functions/v1/ring-result?workflow_id=${encodeURIComponent(workflow_id)}`
+      );
+
+      if (!resultRes.ok) {
+        const err = await resultRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to fetch result");
       }
 
-      if (!resolvedGlbUrl) {
-        toast.error("No 3D model found in the result");
-        setIsGenerating(false);
-        return;
-      }
+      const { glb_url } = await resultRes.json();
+      if (!glb_url) throw new Error("No GLB model found in results");
 
-      setGlbUrl(resolvedGlbUrl);
+      // Load into viewer
+      setGlbUrl(glb_url);
       setProgress(100);
       setProgressStep("Completed");
       setIsGenerating(false);
       setHasModel(true);
       setShowPartRegen(true);
-
-      if (glbSource === "ring-validate") {
-        toast.success("✅ Validated model loaded", { position: "bottom-right" });
-      } else if (glbSource === "ring-generate") {
-        toast.info("🔧 Generated model loaded (unvalidated)", { position: "bottom-right" });
-      } else {
-        toast.success("Ring generated successfully");
-      }
+      toast.success("Ring generated successfully");
 
     } catch (err) {
       console.error("Generation failed:", err);
@@ -224,7 +233,7 @@ export default function TextToCAD() {
       setProgress(0);
       setProgressStep("");
     }
-  }, [prompt, model, navigate]);
+  }, [prompt, model, isGenerating]);
 
   function getProgressLabel(pct: number): string {
     if (pct < 15) return "Queued";
