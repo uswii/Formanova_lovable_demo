@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Diamond } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import { getWorkflowCost } from "@/lib/credits-api";
+import { getWorkflowCostwCost } from "@/lib/credits-api";
 import { AI_MODELS } from "./types";
 
 const EXAMPLE_PROMPTS = [
@@ -142,7 +142,7 @@ export default function InitialPromptScreen({
                   Generate Ring
                   <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[13px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                    <span className="text-[13px] font-mono font-semibogetWorkflowCost('ring_generate_v1', model)'—'}</span>
                   </span>
                 </>
               )}
