@@ -177,11 +177,14 @@ export default function TextToCAD() {
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
       // Step 2: Poll status every 3s — no timeout, workflows can take 15-20 min
+      // Use synthetic progress to avoid 0% → 100% jumps
       const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted"]);
       let pollErrors = 0;
+      let pollCount = 0;
 
       while (true) {
         await new Promise((r) => setTimeout(r, 3000));
+        pollCount++;
         try {
           const statusRes = await authenticatedFetch(
             `${SUPABASE_URL}/functions/v1/ring-status?workflow_id=${encodeURIComponent(workflow_id)}`
@@ -196,10 +199,14 @@ export default function TextToCAD() {
           const statusData = await statusRes.json();
           pollErrors = 0;
 
-          // Update progress from backend
-          const pct = statusData.progress ?? 0;
+          // Use backend progress if meaningful, otherwise synthesize from poll count
+          const backendPct = statusData.progress ?? 0;
+          // Synthetic progress: ramp up slowly over polls (max ~90% before completion)
+          const syntheticPct = Math.min(90, Math.round(5 + (pollCount * 3)));
+          const pct = backendPct > 5 ? backendPct : syntheticPct;
+          
           setProgress(pct);
-          setProgressStep(getProgressLabel(pct));
+          setProgressStep(statusData.state === "completed" ? "Completed" : getProgressLabel(pct));
 
           if (statusData.state === "completed") break;
           if (TERMINAL_STATES.has(statusData.state)) {
