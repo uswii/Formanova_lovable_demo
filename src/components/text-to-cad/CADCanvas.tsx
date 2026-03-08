@@ -153,8 +153,10 @@ const LoadedModel = forwardRef<
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
     onTransformEnd?: () => void;
+    onLoadStart?: () => void;
+    onLoadEnd?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -163,6 +165,7 @@ const LoadedModel = forwardRef<
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
     let cancelled = false;
+    onLoadStart?.();
 
     (async () => {
       try {
@@ -195,18 +198,23 @@ const LoadedModel = forwardRef<
           if (cancelled) return;
           console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
           setScene(gltf.scene);
+          onLoadEnd?.();
         }, (error) => {
           console.error("[CADCanvas] Failed to parse GLB:", error);
           loadedUrlRef.current = "";
+          onLoadEnd?.();
         });
       } catch (error) {
         console.error("[CADCanvas] Failed to fetch GLB:", error);
-        if (!cancelled) loadedUrlRef.current = "";
+        if (!cancelled) {
+          loadedUrlRef.current = "";
+          onLoadEnd?.();
+        }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [url]);
+  }, [url, onLoadStart, onLoadEnd]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
@@ -1022,8 +1030,24 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       },
     }));
 
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Track loading state from LoadedModel
+    const handleLoadStart = useCallback(() => setIsLoading(true), []);
+    const handleLoadEnd = useCallback(() => setIsLoading(false), []);
+
     return (
-      <div className="w-full h-full" style={{ background: "#111" }}>
+      <div className="w-full h-full relative" style={{ background: "#111" }}>
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+              <div className="font-display text-lg text-foreground/80 uppercase tracking-[0.15em] mb-1">Loading Model</div>
+              <div className="font-mono text-[11px] text-muted-foreground tracking-wide">Parsing geometry…</div>
+            </div>
+          </div>
+        )}
         <Canvas
           gl={{
             antialias: Q.antialias,
@@ -1070,6 +1094,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
                 onTransformEnd={onTransformEnd}
+                onLoadStart={handleLoadStart}
+                onLoadEnd={handleLoadEnd}
               />
             )}
 

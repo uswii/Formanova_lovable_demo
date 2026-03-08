@@ -47,23 +47,27 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     setDisplayStage(prev => Math.max(prev, backendStage));
   }, [visible, currentStep, progress]);
 
-  // Auto-advance stages to keep the UI feeling active
+  // Auto-advance stages to keep the UI feeling active even when backend progress is slow
   useEffect(() => {
     if (!visible) return;
 
+    // Start auto-advancing after a short initial delay
     const advanceIfNeeded = () => {
       setDisplayStage(prev => {
-        // Don't advance past what backend reports, with 1 stage buffer
+        // Allow advancing up to 1 stage ahead of backend, but never past "Preparing preview" (index 4)
         const maxAllowed = Math.min(lastBackendStage.current + 1, GENERATION_STAGES.length - 2);
         if (prev < maxAllowed) return prev + 1;
         return prev;
       });
     };
 
-    // Advance every 5 seconds to keep things moving
-    stageTimerRef.current = setInterval(advanceIfNeeded, 5000);
+    // Advance every 8 seconds to keep things moving smoothly
+    stageTimerRef.current = setInterval(advanceIfNeeded, 8000);
+    // Also advance once after 3s to avoid looking stuck at start
+    const initialTimer = setTimeout(advanceIfNeeded, 3000);
     return () => {
       if (stageTimerRef.current) clearInterval(stageTimerRef.current);
+      clearTimeout(initialTimer);
     };
   }, [visible]);
 
@@ -78,15 +82,15 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] text-center"
       >
-        {/* Percentage display */}
+        {/* Percentage display — use smoothed display percentage */}
         <div className="font-display text-[72px] text-foreground leading-none mb-2">
-          {Math.min(progress, 100)}%
+          {displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%
         </div>
         <div className="w-full h-[2px] overflow-hidden mt-4 mb-6 bg-border">
           <motion.div
             className="h-full bg-primary"
-            animate={{ width: `${Math.min(progress, 100)}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            animate={{ width: `${displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%` }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
           />
         </div>
 
