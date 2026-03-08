@@ -145,9 +145,10 @@ export default function TextToCAD() {
 
     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-    const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
+    const modelKey = `ring_generate_v1:${model}`;
+    const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
     try {
-      const result = await performCreditPreflight('ring_generate_v1', 1);
+      const result = await performCreditPreflight('ring_generate_v1', 1, { model });
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {

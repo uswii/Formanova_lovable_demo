@@ -8,6 +8,10 @@ export const TOOL_COSTS: Record<string, number> = {
   qa_with_gpu: 3,
   ring_full_pipeline: 85,
   ring_generate_v1: 85,
+  // Model-specific costs for ring_generate_v1
+  'ring_generate_v1:gemini': 85,
+  'ring_generate_v1:claude-sonnet': 120,
+  'ring_generate_v1:claude-opus': 150,
 };
 
 export interface CreditBalance {
