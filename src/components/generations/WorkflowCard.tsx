@@ -96,7 +96,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   <OptimizedImage
                     src={shot.url}
                     alt={shot.angle}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover/thumb:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110"
                   />
                 </button>
               ))}
@@ -191,14 +191,14 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         {hasThumbnail ? (
           <button
             onClick={() => setPreviewOpen(true)}
-            className="group relative w-full bg-black overflow-hidden block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+            className="group relative w-full bg-muted overflow-hidden block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
             aria-label="Enlarge preview"
           >
             <OptimizedImage
               src={workflow.thumbnail_url!}
               alt={workflow.name || 'Generation preview'}
               priority
-              className="w-full aspect-square object-contain transition-transform duration-300 group-hover:scale-105"
+              className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* View / enlarge icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
