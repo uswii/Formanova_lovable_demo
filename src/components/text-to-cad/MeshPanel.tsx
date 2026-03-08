@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
