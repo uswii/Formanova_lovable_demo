@@ -260,7 +260,7 @@ export default function TextToCAD() {
 
             // If backend reports real progress ahead of our synthetic value, jump to it
             const backendPct = statusData.progress ?? 0;
-            if (backendPct > currentPct && backendPct <= SYNTHETIC_CAP) {
+            if (backendPct > currentPct && backendPct < 99) {
               currentPct = backendPct;
               setProgress(Math.round(currentPct));
             }
