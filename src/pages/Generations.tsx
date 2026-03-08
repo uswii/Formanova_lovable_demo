@@ -100,59 +100,94 @@ function extractPhotoThumbnail(steps: any[]): string | null {
 }
 
 function extractCadTextData(steps: any[]) {
-  const screenshotStep = steps.find((s: any) =>
-    s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
-  );
-  const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
   let screenshots: { angle: string; url: string }[] = [];
-  if (rawShots?.length) {
-    screenshots = rawShots
-      .map((s: any) => {
-        const angle = (s.name as string) || (s.angle as string) || 'unknown';
-        const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
-        if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
-        const uri = findAzureUri(s);
-        return uri ? { angle, url: azureUriToUrl(uri) } : null;
-      })
-      .filter((s): s is { angle: string; url: string } => !!s?.url);
-  }
-  const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
-
-  const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
-  const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
-  const glbStep = validateStep || generateStep;
   let glb_url: string | null = null;
   let glb_filename: string | null = null;
-  if (glbStep?.output?.glb_path) {
-    const glbPath = glbStep.output.glb_path as any;
-    const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
-    if (uri) {
-      glb_url = azureUriToUrl(uri);
-      const parts = (uri as string).split('/');
+
+  // ── PRIMARY: Find the last successful run_blender step (new API format) ──
+  const blenderSteps = steps.filter(
+    (s: any) => s.tool === 'run_blender' && s.output?.success === true
+  );
+  const blenderStep = blenderSteps.length > 0 ? blenderSteps[blenderSteps.length - 1] : null;
+
+  if (blenderStep?.output) {
+    // GLB artifact
+    const glbUri = blenderStep.output.glb_artifact?.uri;
+    if (typeof glbUri === 'string' && glbUri.startsWith('https://')) {
+      glb_url = glbUri;
+      const parts = glbUri.split('/');
       glb_filename = parts[parts.length - 1] || 'model.glb';
     }
-  }
-  if (!glb_url && glbStep?.output) {
-    const uri = findAzureUri(glbStep.output);
-    if (uri) {
-      glb_url = azureUriToUrl(uri);
-      const parts = uri.split('/');
-      glb_filename = parts[parts.length - 1] || 'model.glb';
+
+    // Screenshots
+    const rawShots = blenderStep.output.screenshots as any[] | undefined;
+    if (rawShots?.length) {
+      screenshots = rawShots
+        .map((s: any, i: number) => {
+          const uri = s?.uri;
+          if (typeof uri === 'string' && uri.startsWith('https://')) {
+            return { angle: `angle_${i + 1}`, url: uri };
+          }
+          return null;
+        })
+        .filter((s): s is { angle: string; url: string } => !!s);
     }
   }
+
+  // ── FALLBACK: Legacy format (ring-screenshot, ring-validate, etc.) ──
+  if (screenshots.length === 0) {
+    const screenshotStep = steps.find((s: any) =>
+      s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
+    );
+    const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
+    if (rawShots?.length) {
+      screenshots = rawShots
+        .map((s: any) => {
+          const angle = (s.name as string) || (s.angle as string) || 'unknown';
+          const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
+          if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
+          const uri = findAzureUri(s);
+          return uri ? { angle, url: azureUriToUrl(uri) } : null;
+        })
+        .filter((s): s is { angle: string; url: string } => !!s?.url);
+    }
+  }
+
   if (!glb_url) {
-    for (const step of steps) {
-      const uri = findAzureUri(step.output);
-      if (uri && uri.includes('.glb')) {
+    const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
+    const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
+    const glbStep = validateStep || generateStep;
+    if (glbStep?.output?.glb_path) {
+      const glbPath = glbStep.output.glb_path as any;
+      const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
+      if (uri) {
+        glb_url = azureUriToUrl(uri);
+        const parts = (uri as string).split('/');
+        glb_filename = parts[parts.length - 1] || 'model.glb';
+      }
+    }
+    if (!glb_url && glbStep?.output) {
+      const uri = findAzureUri(glbStep.output);
+      if (uri) {
         glb_url = azureUriToUrl(uri);
         const parts = uri.split('/');
         glb_filename = parts[parts.length - 1] || 'model.glb';
-        break;
+      }
+    }
+    if (!glb_url) {
+      for (const step of steps) {
+        const uri = findAzureUri(step.output);
+        if (uri && uri.includes('.glb')) {
+          glb_url = azureUriToUrl(uri);
+          const parts = uri.split('/');
+          glb_filename = parts[parts.length - 1] || 'model.glb';
+          break;
+        }
       }
     }
   }
 
-  // Extract AI model from the first step's input (prompt step or generate step)
+  // Extract AI model from step inputs
   let ai_model: string | null = null;
   for (const step of steps) {
     const model = step.input?.model ?? step.input?.ai_model;
@@ -162,6 +197,7 @@ function extractCadTextData(steps: any[]) {
     }
   }
 
+  const front = screenshots[0];
   return { thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename, ai_model };
 }
 
