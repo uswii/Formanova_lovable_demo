@@ -686,6 +686,9 @@ const LoadedModel = forwardRef<
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
     meshDataList.forEach((md) => {
+      // Skip hidden meshes entirely
+      if (hiddenMeshNames.has(md.name)) return;
+
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
 
@@ -715,7 +718,7 @@ const LoadedModel = forwardRef<
     });
 
     return { standardElements: standard, gemElements: gems };
-  }, [meshDataList, assignedMaterials, selectedMeshNames]);
+  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
