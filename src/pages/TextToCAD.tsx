@@ -70,6 +70,11 @@ export default function TextToCAD() {
     [meshes]
   );
 
+  const hiddenMeshNames = useMemo(
+    () => new Set(meshes.filter((m) => !m.visible).map((m) => m.name)),
+    [meshes]
+  );
+
   const selectedNames = useMemo(
     () => meshes.filter((m) => m.selected).map((m) => m.name),
     [meshes]
