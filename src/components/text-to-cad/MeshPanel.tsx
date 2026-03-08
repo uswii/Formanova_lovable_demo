@@ -127,6 +127,7 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
             handleMeshClick={handleMeshClick}
             onAction={onAction}
             onSceneAction={onSceneAction}
+            onApplyMaterial={onApplyMaterial}
           />
         </div>
       </div>
