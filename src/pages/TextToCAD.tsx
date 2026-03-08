@@ -646,7 +646,33 @@ export default function TextToCAD() {
                 transformMode={transformMode}
               />
             )}
-            {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
+            {hasModel && (
+              <ViewportToolbar
+                mode={transformMode}
+                setMode={setTransformMode}
+                transformValues={(() => {
+                  const first = meshes.find(m => m.selected);
+                  if (!first) return undefined;
+                  const t = canvasRef.current?.getMeshTransform(first.name);
+                  if (!t) return undefined;
+                  if (transformMode === "translate") return t.position;
+                  if (transformMode === "rotate") return t.rotation;
+                  if (transformMode === "scale") return t.scale;
+                  return undefined;
+                })()}
+                onTransformChange={(axis, value) => {
+                  const names = selectedNames;
+                  if (!names.length) return;
+                  pushUndo(`Set ${transformMode} ${axis}`);
+                  canvasRef.current?.setMeshTransform(
+                    names,
+                    transformMode as "translate" | "rotate" | "scale",
+                    axis,
+                    value
+                  );
+                }}
+              />
+            )}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2">
               <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
