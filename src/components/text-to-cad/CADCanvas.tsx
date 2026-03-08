@@ -1022,8 +1022,24 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       },
     }));
 
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Track loading state from LoadedModel
+    const handleLoadStart = useCallback(() => setIsLoading(true), []);
+    const handleLoadEnd = useCallback(() => setIsLoading(false), []);
+
     return (
-      <div className="w-full h-full" style={{ background: "#111" }}>
+      <div className="w-full h-full relative" style={{ background: "#111" }}>
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+              <div className="font-display text-lg text-foreground/80 uppercase tracking-[0.15em] mb-1">Loading Model</div>
+              <div className="font-mono text-[11px] text-muted-foreground tracking-wide">Parsing geometry…</div>
+            </div>
+          </div>
+        )}
         <Canvas
           gl={{
             antialias: Q.antialias,
