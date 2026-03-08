@@ -544,22 +544,53 @@ const LoadedModel = forwardRef<
     },
     duplicateMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
+      const newItems: MeshData[] = [];
       setMeshDataList((prev) => {
-        const newItems: MeshData[] = [];
         prev.forEach((md) => {
           if (names.has(md.name)) {
             const newPos = md.position.clone();
             newPos.x += 0.5;
-            newItems.push({
+            const dupName = `${md.name}_copy`;
+            // Avoid duplicate names
+            let finalName = dupName;
+            let suffix = 2;
+            const existingNames = new Set(prev.map(m => m.name));
+            while (existingNames.has(finalName)) {
+              finalName = `${md.name}_copy_${suffix++}`;
+            }
+            const newMd: MeshData = {
               ...md,
-              name: `${md.name}_copy`,
+              name: finalName,
               geometry: md.geometry.clone(),
               position: newPos,
               origPos: newPos.clone(),
-            });
+            };
+            newItems.push(newMd);
           }
         });
         return [...prev, ...newItems];
+      });
+      // Sync duplicated meshes back to parent mesh list
+      if (onMeshesDetected && newItems.length > 0) {
+        setTimeout(() => {
+          setMeshDataList((current) => {
+            onMeshesDetected(current.map((m) => ({
+              name: m.name,
+              verts: m.geometry?.attributes?.position?.count || 0,
+              faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
+            })));
+            return current;
+          });
+        }, 0);
+      }
+      // Copy materials for duplicated meshes
+      setAssignedMaterials((prev) => {
+        const next = { ...prev };
+        newItems.forEach((item) => {
+          const origName = item.name.replace(/_copy(_\d+)?$/, '');
+          if (prev[origName]) next[item.name] = prev[origName];
+        });
+        return next;
       });
       inv();
     },

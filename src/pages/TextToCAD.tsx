@@ -601,6 +601,7 @@ export default function TextToCAD() {
               glbUrl={glbUrl}
               additionalGlbUrls={additionalParts}
               selectedMeshNames={selectedMeshNames}
+              hiddenMeshNames={hiddenMeshNames}
               onMeshClick={handleSelectMesh}
               transformMode={transformMode}
               onMeshesDetected={handleMeshesDetected}
