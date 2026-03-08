@@ -142,6 +142,7 @@ export function inferSourceType(name: string): SourceType {
   // Text-to-CAD workflows (ring_full_pipeline, text_to_cad, etc.)
   if (
     lower.includes('ring_full_pipeline') ||
+    lower.includes('ring_generate_v1') ||
     lower.includes('text_to_cad') ||
     lower.includes('text-to-cad') ||
     (lower.includes('ring') && lower.includes('pipeline'))
