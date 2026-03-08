@@ -21,6 +21,13 @@ const itemVariants = {
 
 // ─── Text-to-CAD card ──────────────────────────────────────────────────────
 
+// Model ID → display label mapping
+const MODEL_LABELS: Record<string, string> = {
+  gemini: 'Lite',
+  'claude-sonnet': 'Standard',
+  'claude-opus': 'Premium',
+};
+
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -32,6 +39,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const hasShots = shots.length > 0;
   // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
+
+  const modelLabel = workflow.ai_model ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model : null;
 
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -49,11 +58,18 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         variants={itemVariants}
         className="marta-frame overflow-hidden"
       >
-        {/* Card header: number + date */}
+        {/* Card header: number + model tier + date */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
-            #{index}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
+              #{index}
+            </span>
+            {modelLabel && (
+              <span className="font-mono text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-border bg-muted/40 text-muted-foreground">
+                {modelLabel}
+              </span>
+            )}
+          </div>
           <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
             {dateStr}
           </span>
