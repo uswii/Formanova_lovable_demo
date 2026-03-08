@@ -14,6 +14,15 @@ export const TOOL_COSTS: Record<string, number> = {
   'ring_generate_v1:claude-opus': 150,
 };
 
+/** Get cost for a workflow, optionally model-specific */
+export function getWorkflowCost(workflow: string, model?: string): number {
+  if (model) {
+    const key = `${workflow}:${model}`;
+    if (TOOL_COSTS[key] !== undefined) return TOOL_COSTS[key];
+  }
+  return TOOL_COSTS[workflow] ?? 0;
+}
+
 export interface CreditBalance {
   balance: number;
   reserved_balance?: number;
