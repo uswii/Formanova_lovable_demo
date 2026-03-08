@@ -7,6 +7,7 @@ export const TOOL_COSTS: Record<string, number> = {
   cad_generation: 5,
   qa_with_gpu: 3,
   ring_full_pipeline: 5,
+  ring_generate_v1: 5,
 };
 
 export interface CreditBalance {
