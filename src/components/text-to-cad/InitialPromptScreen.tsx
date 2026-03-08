@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Diamond } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import { TOOL_COSTS } from "@/lib/credits-api";
+import { getWorkflowCost } from "@/lib/credits-api";
 import { AI_MODELS } from "./types";
 
 const EXAMPLE_PROMPTS = [
