@@ -34,6 +34,7 @@ export default function LeftPanel({
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
   const [rebuildOpen, setRebuildOpen] = useState(false);
   const [addPartOpen, setAddPartOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
