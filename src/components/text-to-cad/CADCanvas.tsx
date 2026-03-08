@@ -958,6 +958,10 @@ export interface CADCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
   resetCamera: () => void;
+  /** Set absolute transform for named meshes */
+  setMeshTransform: (meshNames: string[], mode: "translate" | "rotate" | "scale", axis: "x" | "y" | "z", value: number) => void;
+  /** Get current transform of first selected mesh */
+  getMeshTransform: (meshName: string) => { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] } | null;
 }
 
 interface CADCanvasProps {
