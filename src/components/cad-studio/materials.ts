@@ -1,5 +1,35 @@
 import * as THREE from "three";
 
+// ── Refraction config for gemstones (used by MeshRefractionMaterial overlay) ──
+export interface GemRefractionConfig {
+  color: string;
+  ior: number;
+  sparkle: number;       // aberrationStrength
+  brightness: number;    // envMapIntensity
+  bounces: number;
+  fresnel: number;
+}
+
+export const DIAMOND_DEFAULTS: GemRefractionConfig = {
+  color: "#ffffff",
+  ior: 2.42,
+  sparkle: 0.015,
+  brightness: 3.0,
+  bounces: 5,
+  fresnel: 0.9,
+};
+
+export const GEM_REFRACTION_CONFIGS: Record<string, GemRefractionConfig> = {
+  diamond:        { color: "#ffffff", ior: 2.42, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  ruby:           { color: "#e31b23", ior: 1.77, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  sapphire:       { color: "#0f52ba", ior: 1.77, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  emerald:        { color: "#50c878", ior: 1.58, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  "black-diamond": { color: "#1a1a2e", ior: 2.42, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  amethyst:       { color: "#9966cc", ior: 1.54, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  topaz:          { color: "#ffc87c", ior: 1.64, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+  aquamarine:     { color: "#7fffd4", ior: 1.57, sparkle: 0.015, brightness: 3.0, bounces: 5, fresnel: 0.9 },
+};
+
 // ── Structured Material System ──
 
 export type MaterialType = "gold" | "silver" | "platinum" | "titanium" | "copper" | "brass" | "rhodium";
@@ -14,6 +44,8 @@ export interface MaterialDef {
   alloy?: MaterialAlloy;
   finish?: MaterialFinish;
   preview: string;
+  /** For gemstones, refraction config used by MeshRefractionMaterial overlay */
+  refractionConfig?: GemRefractionConfig;
   create: () => THREE.MeshPhysicalMaterial;
 }
 
