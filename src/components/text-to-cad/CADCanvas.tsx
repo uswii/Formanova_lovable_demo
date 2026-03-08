@@ -1111,6 +1111,20 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           </Suspense>
         </Canvas>
 
+        {/* Loading overlay while model is being fetched/parsed */}
+        {modelLoading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#111]/95 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 border-2 border-border/20 rounded-full" />
+                <div className="absolute inset-0 border-2 border-t-primary rounded-full animate-spin" />
+              </div>
+              <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-[3px]">
+                Loading model…
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
