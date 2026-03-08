@@ -287,10 +287,23 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
   filteredMaterials: typeof MATERIAL_LIBRARY;
   onApplyMaterial: (matId: string) => void;
 }) {
+  const handleApply = useCallback((matId: string) => {
+    if (!hasSelection) {
+      toast.error("Please select a mesh first");
+      return;
+    }
+    onApplyMaterial(matId);
+  }, [hasSelection, onApplyMaterial]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, matId: string) => {
+    e.dataTransfer.setData("application/material-id", matId);
+    e.dataTransfer.effectAllowed = "copy";
+  }, []);
+
   return (
     <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3 pt-3 space-y-3 scrollbar-thin">
       {!hasSelection && (
-        <div className="px-3 py-2 font-mono text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
+        <div className="px-3 py-2 font-mono text-[10px] text-muted-foreground bg-muted/30 border border-border/50">
           Select a mesh to assign material
         </div>
       )}
