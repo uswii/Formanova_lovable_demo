@@ -54,3 +54,12 @@ verify_jwt = false
 
 [functions.credits-proxy]
 verify_jwt = false
+
+[functions.generate-ring]
+verify_jwt = false
+
+[functions.ring-status]
+verify_jwt = false
+
+[functions.ring-result]
+verify_jwt = false
