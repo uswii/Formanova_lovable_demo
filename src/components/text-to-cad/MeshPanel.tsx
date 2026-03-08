@@ -389,14 +389,14 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
         )}
       </AnimatePresence>
 
-      {/* Material swatch grid */}
       <div className="grid grid-cols-3 gap-1.5">
         {filteredMaterials.map((m) => (
           <button
             key={m.id}
-            onClick={() => onApplyMaterial(m.id)}
-            disabled={!hasSelection}
-            className="py-2 px-1.5 text-center cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 disabled:opacity-30 disabled:cursor-not-allowed group"
+            onClick={() => handleApply(m.id)}
+            draggable
+            onDragStart={(e) => handleDragStart(e, m.id)}
+            className="py-2 px-1.5 text-center cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50 group"
           >
             <div className="flex justify-center mb-1">
               <MaterialSphere category={m.category} preview={m.preview} size={24} />
