@@ -485,6 +485,17 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             <button
               key={mesh.name}
               onClick={(e) => handleMeshClick(mesh, e)}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const matId = e.dataTransfer.getData("application/material-id");
+                if (matId) {
+                  // Select this mesh then apply material
+                  handleMeshClick(mesh, { ctrlKey: false, metaKey: false, shiftKey: false } as React.MouseEvent);
+                  onApplyMaterial(matId);
+                }
+              }}
               className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
                 mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
               } ${!mesh.visible ? "opacity-35" : ""}`}
