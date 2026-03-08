@@ -984,8 +984,16 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
+    const [modelLoading, setModelLoading] = useState(false);
+    const prevGlbRef = useRef<string | undefined>(undefined);
 
-
+    // Track when glbUrl changes to show loading state
+    useEffect(() => {
+      if (glbUrl && glbUrl !== prevGlbRef.current) {
+        setModelLoading(true);
+        prevGlbRef.current = glbUrl;
+      }
+    }, [glbUrl]);
 
     const getOrbitControls = useCallback(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('canvas');
