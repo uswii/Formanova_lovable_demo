@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,26 +6,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AUTH_SERVICE_URL = "https://formanova.ai/auth";
+
+async function authenticateUser(req: Request): Promise<{ userId: string } | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.replace("Bearer ", "");
+  try {
+    const res = await fetch(`${AUTH_SERVICE_URL}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) { await res.text(); return null; }
+    const user = await res.json();
+    return { userId: user.id || user.email };
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const auth = await authenticateUser(req);
+    if (!auth) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const userId = data.claims.sub as string;
 
-    // Parse body
     const { prompt, model } = await req.json();
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -42,11 +48,13 @@ serve(async (req) => {
 
     const llm = model === "claude-sonnet" ? "claude-sonnet" : model === "claude-opus" ? "claude-opus" : "gemini";
 
+    console.log(`[generate-ring] User ${auth.userId} starting ring generation with llm=${llm}`);
+
     const res = await fetch(`${baseUrl}/run/ring_generate_v1`, {
       method: "POST",
       headers: {
         "X-API-Key": apiKey,
-        "X-On-Behalf-Of": userId,
+        "X-On-Behalf-Of": auth.userId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -65,6 +73,7 @@ serve(async (req) => {
     }
 
     const result = await res.json();
+    console.log(`[generate-ring] Workflow started: ${result.workflow_id}`);
     return new Response(JSON.stringify({ workflow_id: result.workflow_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
