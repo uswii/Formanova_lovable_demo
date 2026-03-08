@@ -78,23 +78,22 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     setDisplayStage(prev => Math.max(prev, backendStage));
   }, [visible, currentStep, progress]);
 
+  // Rotating sub-message index
+  const [messageIndex, setMessageIndex] = useState(0);
+
   // Auto-advance stages to keep the UI feeling active even when backend progress is slow
   useEffect(() => {
     if (!visible) return;
 
-    // Start auto-advancing after a short initial delay
     const advanceIfNeeded = () => {
       setDisplayStage(prev => {
-        // Allow advancing up to 1 stage ahead of backend, but never past "Preparing preview" (index 4)
         const maxAllowed = Math.min(lastBackendStage.current + 1, GENERATION_STAGES.length - 2);
         if (prev < maxAllowed) return prev + 1;
         return prev;
       });
     };
 
-    // Advance every 8 seconds to keep things moving smoothly
     stageTimerRef.current = setInterval(advanceIfNeeded, 8000);
-    // Also advance once after 3s to avoid looking stuck at start
     const initialTimer = setTimeout(advanceIfNeeded, 3000);
     return () => {
       if (stageTimerRef.current) clearInterval(stageTimerRef.current);
@@ -102,9 +101,25 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     };
   }, [visible]);
 
+  // Rotate sub-messages every 3.5s, reset index when stage changes
+  useEffect(() => {
+    if (!visible) return;
+    setMessageIndex(0);
+    const stageId = GENERATION_STAGES[displayStage]?.id;
+    const msgs = ROTATING_MESSAGES[stageId] || [];
+    if (msgs.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % msgs.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [visible, displayStage]);
+
   if (!visible) return null;
 
   const currentStageData = GENERATION_STAGES[displayStage];
+  const stageMessages = ROTATING_MESSAGES[currentStageData.id] || [];
+  const currentMessage = stageMessages[messageIndex % stageMessages.length] || "";
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
