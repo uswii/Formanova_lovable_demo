@@ -107,8 +107,8 @@ export default function LeftPanel({
                 <>
                   Generate Ring
                   <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                    <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                    <span className="text-[11px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                    <img src={creditCoinIcon} alt="" className="w-5 h-5" />
+                    <span className="text-[13px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
                   </span>
                 </>
               )}
@@ -196,8 +196,8 @@ export default function LeftPanel({
               >
                 Apply Edit
                 <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                  <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                  <span className="text-[11px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                  <img src={creditCoinIcon} alt="" className="w-5 h-5" />
+                  <span className="text-[13px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
                 </span>
               </button>
 
@@ -259,8 +259,8 @@ export default function LeftPanel({
                           >
                             ⚙ Rebuild This Part
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                              <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
-                              <span className="text-[10px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                              <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
+                              <span className="text-[12px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
                             </span>
                           </button>
                         </div>
@@ -305,8 +305,8 @@ export default function LeftPanel({
                           >
                             ✚ Add to Ring
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                              <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
-                              <span className="text-[10px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                              <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
+                              <span className="text-[12px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
                             </span>
                           </button>
                         </div>
