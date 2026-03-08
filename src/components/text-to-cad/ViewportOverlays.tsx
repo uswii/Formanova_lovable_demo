@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
@@ -19,9 +19,45 @@ const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover
 const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
 // ── Unified Transform Toolbar + Inspector ──
-export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: string) => void }) {
+export function ViewportToolbar({ mode, setMode, transformValues, onTransformChange }: {
+  mode: string;
+  setMode: (m: string) => void;
+  transformValues?: [number, number, number];
+  onTransformChange?: (axis: "x" | "y" | "z", value: number) => void;
+}) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
+
+  // Local input state to allow typing without fighting controlled updates
+  const [localValues, setLocalValues] = useState<[string, string, string]>(["0", "0", "0"]);
+  const focusedAxis = useRef<number | null>(null);
+
+  // Sync from parent when not focused
+  useEffect(() => {
+    if (!transformValues) return;
+    setLocalValues(prev => prev.map((v, i) =>
+      focusedAxis.current === i ? v : formatValue(transformValues[i], mode)
+    ) as [string, string, string]);
+  }, [transformValues, mode]);
+
+  function formatValue(v: number, m: string): string {
+    if (m === "rotate") return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  const handleInputChange = (axisIdx: number, raw: string) => {
+    const newLocal = [...localValues] as [string, string, string];
+    newLocal[axisIdx] = raw;
+    setLocalValues(newLocal);
+  };
+
+  const handleInputCommit = (axisIdx: number) => {
+    focusedAxis.current = null;
+    const val = parseFloat(localValues[axisIdx]);
+    if (isNaN(val)) return;
+    const axis = (["x", "y", "z"] as const)[axisIdx];
+    onTransformChange?.(axis, val);
+  };
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-4 pointer-events-none">
@@ -65,7 +101,11 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
                     <input
                       type="number"
                       step={config.step}
-                      defaultValue={config.defaultVal}
+                      value={localValues[i]}
+                      onChange={(e) => handleInputChange(i, e.target.value)}
+                      onFocus={() => { focusedAxis.current = i; }}
+                      onBlur={() => handleInputCommit(i)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleInputCommit(i); }}
                       className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     {config.unit && (
