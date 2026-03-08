@@ -21,6 +21,13 @@ const itemVariants = {
 
 // ─── Text-to-CAD card ──────────────────────────────────────────────────────
 
+// Model ID → display label mapping
+const MODEL_LABELS: Record<string, string> = {
+  gemini: 'Lite',
+  'claude-sonnet': 'Standard',
+  'claude-opus': 'Premium',
+};
+
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -32,6 +39,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const hasShots = shots.length > 0;
   // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
+
+  const modelLabel = workflow.ai_model ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model : null;
 
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
