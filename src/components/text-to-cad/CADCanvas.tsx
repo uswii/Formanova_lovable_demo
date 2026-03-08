@@ -930,6 +930,7 @@ interface CADCanvasProps {
   glbUrl?: string;
   additionalGlbUrls?: string[];
   selectedMeshNames: Set<string>;
+  hiddenMeshNames?: Set<string>;
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
