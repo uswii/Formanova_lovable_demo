@@ -68,7 +68,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "workflow_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const apiKey = Deno.env.get("FORMANOVA_API_KEY");
+    const apiKey = Deno.env.get("Formanova_auth_key");
     const baseUrl = Deno.env.get("FORMANOVA_BASE_URL") || "https://formanova.ai/api";
 
     const res = await fetch(`${baseUrl}/result/${workflowId}`, {

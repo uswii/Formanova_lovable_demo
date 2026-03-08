@@ -38,11 +38,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const apiKey = Deno.env.get("FORMANOVA_API_KEY");
+    const apiKey = Deno.env.get("Formanova_auth_key");
     const baseUrl = Deno.env.get("FORMANOVA_BASE_URL") || "https://formanova.ai/api";
 
     if (!apiKey) {
-      console.error("[generate-ring] FORMANOVA_API_KEY not configured");
+      console.error("[generate-ring] Formanova_auth_key not configured");
       return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
