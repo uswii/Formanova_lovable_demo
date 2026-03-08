@@ -405,19 +405,6 @@ export default function Generations() {
             />
 
             <WorkflowSection
-              title="From CAD"
-              subtitle="3D CAD to photorealistic catalog"
-              icon={SectionIcons.cadRender}
-              workflows={cadRenderSection.workflows}
-              loading={cadRenderSection.loading}
-              currentPage={cadRenderSection.page}
-              totalPages={cadRenderSection.totalPages}
-              columns={4}
-              onPageChange={setCadRenderPage}
-              onWorkflowClick={() => {}}
-            />
-
-            <WorkflowSection
               title="Text to CAD"
               subtitle="AI-generated 3D models from text"
               icon={SectionIcons.cadText}
@@ -427,6 +414,19 @@ export default function Generations() {
               totalPages={cadTextSection.totalPages}
               indexOffset={(cadTextPage - 1) * PER_PAGE}
               onPageChange={setCadTextPage}
+              onWorkflowClick={() => {}}
+            />
+
+            <WorkflowSection
+              title="From CAD"
+              subtitle="3D CAD to photorealistic catalog"
+              icon={SectionIcons.cadRender}
+              workflows={cadRenderSection.workflows}
+              loading={cadRenderSection.loading}
+              currentPage={cadRenderSection.page}
+              totalPages={cadRenderSection.totalPages}
+              columns={4}
+              onPageChange={setCadRenderPage}
               onWorkflowClick={() => {}}
             />
           </>

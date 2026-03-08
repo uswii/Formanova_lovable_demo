@@ -188,12 +188,17 @@ export default function TextToCAD() {
             continue;
           }
 
-          const { state } = await statusRes.json();
+          const statusData = await statusRes.json();
           pollErrors = 0;
 
-          if (state === "completed") break;
-          if (TERMINAL_STATES.has(state)) {
-            throw new Error(`Generation ${state}`);
+          // Update progress from backend
+          const pct = statusData.progress ?? 0;
+          setProgress(pct);
+          setProgressStep(getProgressLabel(pct));
+
+          if (statusData.state === "completed") break;
+          if (TERMINAL_STATES.has(statusData.state)) {
+            throw new Error(`Generation ${statusData.state}`);
           }
           // Still running — continue polling
         } catch (err) {

@@ -56,9 +56,24 @@ serve(async (req) => {
     }
 
     const result = await res.json();
-    const state = (result.runtime?.state || "unknown").toLowerCase();
+    const state = (result.runtime?.state || result.progress?.state || "unknown").toLowerCase();
 
-    return new Response(JSON.stringify({ state }), {
+    // Extract progress info from the backend response
+    const progress = result.progress || result.runtime || {};
+    const completedNodes = progress.completed_nodes ?? 0;
+    const totalNodes = progress.total_nodes ?? 0;
+    const visited = progress.visited ?? [];
+    const progressPct = state === "completed" || state === "done"
+      ? 100
+      : totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
+
+    return new Response(JSON.stringify({
+      state,
+      progress: progressPct,
+      completed_nodes: completedNodes,
+      total_nodes: totalNodes,
+      visited,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
