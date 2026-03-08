@@ -8,7 +8,20 @@ export const TOOL_COSTS: Record<string, number> = {
   qa_with_gpu: 3,
   ring_full_pipeline: 85,
   ring_generate_v1: 85,
+  // Model-specific costs for ring_generate_v1
+  'ring_generate_v1:gemini': 85,
+  'ring_generate_v1:claude-sonnet': 120,
+  'ring_generate_v1:claude-opus': 150,
 };
+
+/** Get cost for a workflow, optionally model-specific */
+export function getWorkflowCost(workflow: string, model?: string): number {
+  if (model) {
+    const key = `${workflow}:${model}`;
+    if (TOOL_COSTS[key] !== undefined) return TOOL_COSTS[key];
+  }
+  return TOOL_COSTS[workflow] ?? 0;
+}
 
 export interface CreditBalance {
   balance: number;

@@ -18,10 +18,14 @@ export interface PreflightResult {
  */
 export async function performCreditPreflight(
   workflowName: string,
-  numVariations: number = 1
+  numVariations: number = 1,
+  metadata?: { model?: string }
 ): Promise<PreflightResult> {
-  // 1️⃣ Estimate required credits
-  let estimatedCredits = TOOL_COSTS[workflowName] ?? 5;
+  // 1️⃣ Estimate required credits — use model-specific fallback if available
+  const fallbackKey = metadata?.model
+    ? `${workflowName}:${metadata.model}`
+    : workflowName;
+  let estimatedCredits = TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? 5;
 
   try {
     const estimateRes = await authenticatedFetch('/api/credits/estimate', {
@@ -30,6 +34,7 @@ export async function performCreditPreflight(
       body: JSON.stringify({
         workflow_name: workflowName,
         num_variations: numVariations,
+        ...(metadata?.model ? { llm: metadata.model } : {}),
       }),
     });
 
