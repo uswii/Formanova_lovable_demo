@@ -1040,6 +1040,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
+      setMeshTransform: (meshNames, mode, axis, value) => modelRef.current?.setMeshTransform(meshNames, mode, axis, value),
+      getMeshTransform: (meshName) => modelRef.current?.getMeshTransform(meshName) ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
