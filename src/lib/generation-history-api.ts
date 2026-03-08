@@ -29,6 +29,8 @@ export interface WorkflowSummary {
   glb_filename?: string | null;
   /** AI model tier used (e.g. 'gemini', 'claude-sonnet', 'claude-opus') — populated client-side */
   ai_model?: string | null;
+  /** Mode from workflow input (e.g. 'lite', 'standard', 'premium') — available in list response */
+  mode?: string | null;
 }
 
 export interface WorkflowStep {
@@ -97,6 +99,7 @@ export async function listMyWorkflows(
       created_at: w.created_at ?? w.started_at ?? '',
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
+      mode: w.input?.mode ?? null,
     };
   });
   console.log('[HistoryAPI] source_type breakdown:', {
