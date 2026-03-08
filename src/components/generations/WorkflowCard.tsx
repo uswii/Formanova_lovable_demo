@@ -26,6 +26,9 @@ const MODEL_LABELS: Record<string, string> = {
   gemini: 'Lite',
   'claude-sonnet': 'Standard',
   'claude-opus': 'Premium',
+  lite: 'Lite',
+  standard: 'Standard',
+  premium: 'Premium',
 };
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
