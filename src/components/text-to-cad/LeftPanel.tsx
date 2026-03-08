@@ -2,7 +2,7 @@ import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import { TOOL_COSTS } from "@/lib/credits-api";
+import { getWorkflowCost } from "@/lib/credits-api";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 
 interface LeftPanelProps {
