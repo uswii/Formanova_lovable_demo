@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
 import { SHORTCUT_SECTIONS } from "@/hooks/use-cad-keyboard-shortcuts";
@@ -70,14 +70,11 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
                   <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
                     {section.title}
                   </h3>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 items-center">
                     {section.shortcuts.map((sc) => (
-                      <div
-                        key={sc.desc}
-                        className="flex items-center justify-between py-0.5 px-1"
-                      >
-                        <span className="text-[11px] text-foreground/80">{sc.desc}</span>
-                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                      <React.Fragment key={sc.desc}>
+                        <span className="text-[11px] text-foreground/80 leading-tight">{sc.desc}</span>
+                        <div className="flex items-center gap-1 justify-end whitespace-nowrap">
                           {sc.keys.map((k, i) => (
                             k === "/" ? (
                               <span key={i} className="text-[9px] text-muted-foreground/50 mx-0.5">/</span>
@@ -86,7 +83,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
                             )
                           ))}
                         </div>
-                      </div>
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>
