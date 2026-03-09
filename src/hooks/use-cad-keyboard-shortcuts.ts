@@ -34,24 +34,23 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
   {
     title: "Mesh Editing",
     shortcuts: [
-      { keys: ["Del / ⌫"], desc: "Delete selected" },
-      { keys: ["Shift", "D"], desc: "Duplicate selected" },
+      { keys: ["Del", "/", "⌫", "/", `${modKey}+⌫`], desc: "Delete selected" },
+      { keys: ["Shift+D"], desc: "Duplicate selected" },
       { keys: ["W"], desc: "Toggle wireframe" },
     ],
   },
   {
     title: "Selection",
     shortcuts: [
-      { keys: [modKey, "A"], desc: "Select all" },
-      { keys: [modKey, "Shift", "A"], desc: "Deselect all" },
+      { keys: ["Ctrl+A", "/", "⌘+A"], desc: "Select all" },
+      { keys: ["Ctrl+Shift+A", "/", "⌘+Shift+A"], desc: "Deselect all" },
     ],
   },
   {
     title: "History",
     shortcuts: [
-      { keys: [modKey, "Z"], desc: "Undo" },
-      { keys: [modKey, "Shift", "Z"], desc: "Redo" },
-      { keys: [modKey, "Y"], desc: "Redo (alt)" },
+      { keys: ["Ctrl+Z", "/", "⌘+Z"], desc: "Undo" },
+      { keys: ["Ctrl+Shift+Z", "/", "⌘+Shift+Z", "/", "Ctrl+Y"], desc: "Redo" },
     ],
   },
   {
