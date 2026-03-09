@@ -18,6 +18,9 @@ import { getQualitySettings } from "@/lib/gpu-detect";
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
+// Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
+let _isTransformDragging = false;
+
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   color: new THREE.Color(0x3399ff),
