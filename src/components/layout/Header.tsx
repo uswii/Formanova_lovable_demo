@@ -79,7 +79,7 @@ export function Header() {
               <Link 
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-medium transition-colors whitespace-nowrap ${
                   location.pathname === link.path 
                     ? 'text-foreground' 
                     : 'text-muted-foreground hover:text-foreground'

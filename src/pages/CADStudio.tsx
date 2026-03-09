@@ -44,7 +44,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="w-full max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 pb-6 md:pb-10 -mt-2"
+        className="w-full max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 lg:gap-6 pb-6 md:pb-10"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
