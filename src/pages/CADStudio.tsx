@@ -28,7 +28,7 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 overflow-x-hidden">
+    <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 overflow-x-hidden pt-4 md:pt-8 lg:pt-0">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
