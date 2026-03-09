@@ -184,12 +184,3 @@ export default function GenerationProgress({
     </div>
   );
 }
-
-        {/* Rotating message */}
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={`${currentStep}-${messageIndex}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 0.6, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35 }}
