@@ -18,6 +18,9 @@ import { getQualitySettings } from "@/lib/gpu-detect";
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
+// Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
+let _isTransformDragging = false;
+
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   color: new THREE.Color(0x3399ff),
@@ -75,6 +78,8 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
+      // Set module-level flag so React doesn't overwrite transforms during drag
+      _isTransformDragging = e.value;
       if (e.value) {
         inv();
       }
@@ -87,6 +92,7 @@ function TransformControlsWrapper({
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
+      _isTransformDragging = false;
     };
   }, [gl, onDragEnd, inv, object]);
 
@@ -115,10 +121,35 @@ interface MeshData {
   originalMaterial: THREE.Material;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
+  rotationDeg: [number, number, number]; // cumulative degrees, can exceed ±360
   scale: THREE.Vector3;
   origPos: THREE.Vector3;
   origQuat: THREE.Quaternion;
+  origRotationDeg: [number, number, number];
   origScale: THREE.Vector3;
+}
+
+/** Convert quaternion to Euler degrees (XYZ order) */
+function quatToDeg(q: THREE.Quaternion): [number, number, number] {
+  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+  const D = 180 / Math.PI;
+  return [e.x * D, e.y * D, e.z * D];
+}
+
+/** Unwrap raw Euler degrees against a previous value so deltas < 180° stay continuous */
+function unwrapDeg(raw: [number, number, number], prev: [number, number, number]): [number, number, number] {
+  const out: [number, number, number] = [...raw];
+  for (let i = 0; i < 3; i++) {
+    while (out[i] - prev[i] > 180) out[i] -= 360;
+    while (out[i] - prev[i] < -180) out[i] += 360;
+  }
+  return out;
+}
+
+/** Convert degrees to quaternion */
+function degToQuat(deg: [number, number, number]): THREE.Quaternion {
+  const R = Math.PI / 180;
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(deg[0] * R, deg[1] * R, deg[2] * R, 'XYZ'));
 }
 
 // ── Snapshot for undo ──
@@ -260,15 +291,18 @@ const LoadedModel = forwardRef<
           (origMat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         }
 
+        const initDeg = quatToDeg(quat);
         list.push({
           name,
           geometry: mesh.geometry,
           originalMaterial: origMat,
           position: pos.clone(),
           quaternion: quat.clone(),
+          rotationDeg: [...initDeg],
           scale: scl.clone(),
           origPos: pos.clone(),
           origQuat: quat.clone(),
+          origRotationDeg: [...initDeg],
           origScale: scl.clone(),
         });
         idx++;
@@ -427,15 +461,18 @@ const LoadedModel = forwardRef<
                 const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
                 if ((origMat as any).side !== undefined) (origMat as any).side = THREE.DoubleSide;
 
+                const partDeg = quatToDeg(quat);
                 newParts.push({
                   name,
                   geometry: mesh.geometry,
                   originalMaterial: origMat,
                   position: pos.clone(),
                   quaternion: quat.clone(),
+                  rotationDeg: [...partDeg],
                   scale: scl.clone(),
                   origPos: pos.clone(),
                   origQuat: quat.clone(),
+                  origRotationDeg: [...partDeg],
                   origScale: scl.clone(),
                 });
                 idx++;
@@ -491,16 +528,19 @@ const LoadedModel = forwardRef<
   }, [additionalGlbUrls, meshDataList, inv, onMeshesDetected]);
 
   // ── Sync transform from Three.js object back to React state ──
-  // This is the CRITICAL fix: after TransformControls modifies the object,
-  // we read back position/rotation/scale and store them in state.
-  // This prevents React re-renders from reverting transforms.
+  // After TransformControls modifies the object, read back transforms.
+  // Unwrap rotation degrees against previous value to support unlimited rotation.
   const syncTransformFromObject = useCallback((meshName: string, obj: THREE.Object3D) => {
     setMeshDataList((prev) => prev.map((md) => {
       if (md.name !== meshName) return md;
+      const newQuat = obj.quaternion.clone();
+      const rawDeg = quatToDeg(newQuat);
+      const unwrapped = unwrapDeg(rawDeg, md.rotationDeg);
       return {
         ...md,
         position: obj.position.clone(),
-        quaternion: obj.quaternion.clone(),
+        quaternion: newQuat,
+        rotationDeg: unwrapped,
         scale: obj.scale.clone(),
       };
     }));
@@ -542,7 +582,7 @@ const LoadedModel = forwardRef<
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.map((md) => {
         if (!names.has(md.name)) return md;
-        return { ...md, position: md.origPos.clone(), quaternion: md.origQuat.clone(), scale: md.origScale.clone() };
+        return { ...md, position: md.origPos.clone(), quaternion: md.origQuat.clone(), rotationDeg: [...md.origRotationDeg], scale: md.origScale.clone() };
       }));
       inv();
     },
@@ -686,14 +726,17 @@ const LoadedModel = forwardRef<
         const identityPos = new THREE.Vector3(0, 0, 0);
         const identityQuat = new THREE.Quaternion();
         const identityScale = new THREE.Vector3(1, 1, 1);
+        const zeroDeg: [number, number, number] = [0, 0, 0];
         return {
           ...md,
           geometry: newGeo,
           position: identityPos,
           quaternion: identityQuat,
+          rotationDeg: [...zeroDeg],
           scale: identityScale,
           origPos: identityPos.clone(),
           origQuat: identityQuat.clone(),
+          origRotationDeg: [...zeroDeg],
           origScale: identityScale.clone(),
         };
       }));
@@ -709,9 +752,11 @@ const LoadedModel = forwardRef<
         ...md,
         position: md.position.clone(),
         quaternion: md.quaternion.clone(),
+        rotationDeg: [...md.rotationDeg],
         scale: md.scale.clone(),
         origPos: md.origPos.clone(),
         origQuat: md.origQuat.clone(),
+        origRotationDeg: [...md.origRotationDeg],
         origScale: md.origScale.clone(),
       })),
       assignedMaterials: { ...assignedMaterials },
@@ -728,11 +773,9 @@ const LoadedModel = forwardRef<
     getSelectedTransform: (): MeshTransformData | null => {
       const selected = meshDataList.find((m) => selectedMeshNames.has(m.name));
       if (!selected) return null;
-      const DEG = 180 / Math.PI;
-      const euler = new THREE.Euler().setFromQuaternion(selected.quaternion, 'YXZ');
       return {
         position: [selected.position.x, selected.position.y, selected.position.z],
-        rotation: [euler.x * DEG, euler.y * DEG, euler.z * DEG],
+        rotation: [...selected.rotationDeg],
         scale: [selected.scale.x, selected.scale.y, selected.scale.z],
       };
     },
@@ -740,7 +783,6 @@ const LoadedModel = forwardRef<
       const selectedName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
       if (!selectedName) return;
       const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-      const RAD = Math.PI / 180;
 
       setMeshDataList((prev) => prev.map((md) => {
         if (md.name !== selectedName) return md;
@@ -751,14 +793,11 @@ const LoadedModel = forwardRef<
           else newPos.z = value;
           return { ...md, position: newPos };
         } else if (property === 'rotation') {
-          // Convert current quaternion to euler, modify axis, convert back
-          const euler = new THREE.Euler().setFromQuaternion(md.quaternion, 'YXZ');
-          const radVal = value * RAD;
-          if (axisIdx === 0) euler.x = radVal;
-          else if (axisIdx === 1) euler.y = radVal;
-          else euler.z = radVal;
-          const newQuat = new THREE.Quaternion().setFromEuler(euler);
-          return { ...md, quaternion: newQuat };
+          // Update the cumulative degree value and derive quaternion from ALL three axes
+          const newDeg: [number, number, number] = [...md.rotationDeg];
+          newDeg[axisIdx] = value;
+          const newQuat = degToQuat(newDeg);
+          return { ...md, rotationDeg: newDeg, quaternion: newQuat };
         } else {
           const newScale = md.scale.clone();
           if (axisIdx === 0) newScale.x = value;
@@ -776,12 +815,13 @@ const LoadedModel = forwardRef<
           else if (axisIdx === 1) meshObj.position.y = value;
           else meshObj.position.z = value;
         } else if (property === 'rotation') {
-          const euler = new THREE.Euler().setFromQuaternion(meshObj.quaternion, 'YXZ');
-          const radVal = value * RAD;
-          if (axisIdx === 0) euler.x = radVal;
-          else if (axisIdx === 1) euler.y = radVal;
-          else euler.z = radVal;
-          meshObj.quaternion.setFromEuler(euler);
+          // Read current rotationDeg, apply the change, compute quaternion
+          const md = meshDataList.find(m => m.name === selectedName);
+          if (md) {
+            const newDeg: [number, number, number] = [...md.rotationDeg];
+            newDeg[axisIdx] = value;
+            meshObj.quaternion.copy(degToQuat(newDeg));
+          }
         } else {
           if (axisIdx === 0) meshObj.scale.x = value;
           else if (axisIdx === 1) meshObj.scale.y = value;
@@ -833,6 +873,20 @@ const LoadedModel = forwardRef<
     return { standardElements: standard, gemElements: gems };
   }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
 
+  // ── Imperative transform sync: prevents React props from fighting TransformControls ──
+  useEffect(() => {
+    if (_isTransformDragging) return;
+    meshDataList.forEach((md) => {
+      const mesh = meshRefs.current.get(md.name);
+      if (mesh) {
+        mesh.position.copy(md.position);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(md.scale);
+      }
+    });
+    inv();
+  }, [meshDataList, inv]);
+
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
   const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
@@ -845,9 +899,6 @@ const LoadedModel = forwardRef<
           ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
           geometry={md.geometry}
           material={md.material}
-          position={md.position}
-          quaternion={md.quaternion}
-          scale={md.scale}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
