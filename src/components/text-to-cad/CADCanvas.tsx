@@ -291,15 +291,18 @@ const LoadedModel = forwardRef<
           (origMat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         }
 
+        const initDeg = quatToDeg(quat);
         list.push({
           name,
           geometry: mesh.geometry,
           originalMaterial: origMat,
           position: pos.clone(),
           quaternion: quat.clone(),
+          rotationDeg: [...initDeg],
           scale: scl.clone(),
           origPos: pos.clone(),
           origQuat: quat.clone(),
+          origRotationDeg: [...initDeg],
           origScale: scl.clone(),
         });
         idx++;
