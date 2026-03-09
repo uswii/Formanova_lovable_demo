@@ -252,7 +252,7 @@ export default function TextToCAD() {
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
       // Step 2: Poll status every 3s — use active_nodes[0] for real progress
-      const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted", "error", "node_failed"]);
+      const TERMINAL_STATES = new Set(["failed", "budget_exhausted"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
