@@ -315,8 +315,8 @@
     --secondary-foreground: 195 100% 85%;
     --muted: 220 35% 12%;
     --muted-foreground: 195 50% 55%;
-    --accent: 280 100% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 195 90% 60%;
+    --accent-foreground: 220 60% 4%;
     --destructive: 0 100% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 195 50% 30%;
@@ -327,7 +327,7 @@
     --formanova-glow: 195 100% 55%;
     --formanova-hero-accent: 195 100% 55%;
     --formanova-gradient-from: 220 50% 8%;
-    --formanova-gradient-to: 280 40% 10%;
+    --formanova-gradient-to: 195 40% 10%;
     --font-display: 'Bebas Neue', sans-serif;
     --font-body: 'Inter', sans-serif;
     --neon-glow-intense: 195 100% 60%;
