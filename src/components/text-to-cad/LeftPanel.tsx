@@ -150,12 +150,12 @@ export default function LeftPanel({
               exit={{ opacity: 0, height: 0 }}
             >
               <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Components</h3>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 min-w-0">
                 {modules.map((mod) => (
                   <button
                     key={mod}
                     onClick={() => toggleModule(mod)}
-                    className={`px-4 py-2.5 text-[11px] font-semibold cursor-pointer transition-all duration-200 tracking-wide border ${
+                    className={`px-3 lg:px-4 py-2 lg:py-2.5 text-[10px] lg:text-[11px] font-semibold cursor-pointer transition-all duration-200 tracking-wide border truncate max-w-full ${
                       selectedModules.includes(mod)
                         ? "text-foreground bg-accent border-border"
                         : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
