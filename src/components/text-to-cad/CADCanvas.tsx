@@ -114,10 +114,10 @@ interface MeshData {
   geometry: THREE.BufferGeometry;
   originalMaterial: THREE.Material;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   origPos: THREE.Vector3;
-  origRot: THREE.Euler;
+  origQuat: THREE.Quaternion;
   origScale: THREE.Vector3;
 }
 
