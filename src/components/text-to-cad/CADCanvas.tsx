@@ -528,16 +528,19 @@ const LoadedModel = forwardRef<
   }, [additionalGlbUrls, meshDataList, inv, onMeshesDetected]);
 
   // ── Sync transform from Three.js object back to React state ──
-  // This is the CRITICAL fix: after TransformControls modifies the object,
-  // we read back position/rotation/scale and store them in state.
-  // This prevents React re-renders from reverting transforms.
+  // After TransformControls modifies the object, read back transforms.
+  // Unwrap rotation degrees against previous value to support unlimited rotation.
   const syncTransformFromObject = useCallback((meshName: string, obj: THREE.Object3D) => {
     setMeshDataList((prev) => prev.map((md) => {
       if (md.name !== meshName) return md;
+      const newQuat = obj.quaternion.clone();
+      const rawDeg = quatToDeg(newQuat);
+      const unwrapped = unwrapDeg(rawDeg, md.rotationDeg);
       return {
         ...md,
         position: obj.position.clone(),
-        quaternion: obj.quaternion.clone(),
+        quaternion: newQuat,
+        rotationDeg: unwrapped,
         scale: obj.scale.clone(),
       };
     }));
