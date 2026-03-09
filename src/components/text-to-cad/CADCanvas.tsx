@@ -846,7 +846,7 @@ const LoadedModel = forwardRef<
           geometry={md.geometry}
           material={md.material}
           position={md.position}
-          rotation={md.rotation}
+          quaternion={md.quaternion}
           scale={md.scale}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
@@ -862,7 +862,7 @@ const LoadedModel = forwardRef<
           meshName={gem.meshData.name}
           geometry={gem.meshData.geometry}
           position={gem.meshData.position}
-          rotation={gem.meshData.rotation}
+          quaternion={gem.meshData.quaternion}
           scale={gem.meshData.scale}
           refractionConfig={gem.refractionConfig}
           isSelected={gem.isSelected}
