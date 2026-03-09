@@ -726,14 +726,17 @@ const LoadedModel = forwardRef<
         const identityPos = new THREE.Vector3(0, 0, 0);
         const identityQuat = new THREE.Quaternion();
         const identityScale = new THREE.Vector3(1, 1, 1);
+        const zeroDeg: [number, number, number] = [0, 0, 0];
         return {
           ...md,
           geometry: newGeo,
           position: identityPos,
           quaternion: identityQuat,
+          rotationDeg: [...zeroDeg],
           scale: identityScale,
           origPos: identityPos.clone(),
           origQuat: identityQuat.clone(),
+          origRotationDeg: [...zeroDeg],
           origScale: identityScale.clone(),
         };
       }));
