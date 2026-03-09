@@ -81,12 +81,10 @@ function buildFlags(result: ClassificationResult): string[] {
 /**
  * Hook for validating uploaded jewelry images.
  *
- * New flow:
+ * Flow:
  * 1. Upload image via azure-upload edge function → get URL
- * 2. POST /api/run/state/image_classification with { payload: { original_path: { uri } } }
- * 3. Poll /api/status/{id} checking runtime.state
- * 4. Fetch result from /api/result/{id}
- * 5. Read result.image_captioning[0] with label, confidence, reason
+ * 2. POST /tools/image_classification/run with { data: { image: { uri } } }
+ * 3. Response returns classification directly (category, is_worn, confidence, reason, flagged)
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
