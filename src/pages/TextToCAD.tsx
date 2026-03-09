@@ -440,7 +440,7 @@ export default function TextToCAD() {
     setEditPrompt("");
     setSelectedModules([]);
     setHasModel(false);
-    setProgress(0);
+    setRetryAttempt(0);
     setProgressStep("");
     setShowPartRegen(false);
     setMeshes([]);
