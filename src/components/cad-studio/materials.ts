@@ -75,24 +75,6 @@ export const MATERIAL_FINISHES: { id: MaterialFinish; label: string }[] = [
   { id: "satin", label: "Satin" },
 ];
 
-// Helper to build roughness from finish
-function finishRoughness(finish: MaterialFinish): number {
-  switch (finish) {
-    case "polished": return 0.08;
-    case "satin": return 0.2;
-    case "brushed": return 0.4;
-    case "matte": return 0.55;
-  }
-}
-
-function finishClearcoat(finish: MaterialFinish): number {
-  switch (finish) {
-    case "polished": return 0.4;
-    case "satin": return 0.15;
-    case "brushed": return 0.05;
-    case "matte": return 0.0;
-  }
-}
 
 // Base metal colors per type + alloy
 // Roughness, clearcoat, clearcoatRoughness are per-metal reference values (polished baseline)
