@@ -44,8 +44,8 @@ export default function TextToCAD() {
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState("");
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
   const [showPartRegen, setShowPartRegen] = useState(false);
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
@@ -152,8 +152,7 @@ export default function TextToCAD() {
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
-    setProgress(100);
-    setProgressStep("Completed");
+    setProgressStep("success_final");
     toast.success("Ring generated successfully");
   }, []);
 
@@ -174,22 +173,19 @@ export default function TextToCAD() {
     if (isDemo) {
       setWorkspaceActive(true);
       setIsGenerating(true);
-      setProgress(0);
       setHasModel(false);
-      setProgressStep("Demo mode — loading placeholder…");
+      setProgressStep("build_initial");
 
       // Simulate progress over ~3 seconds
       const steps = [
-        { pct: 15, label: "Queued (demo)", ms: 400 },
-        { pct: 35, label: "Generating geometry (demo)", ms: 600 },
-        { pct: 55, label: "Adding details (demo)", ms: 600 },
-        { pct: 75, label: "Optimizing structure (demo)", ms: 500 },
-        { pct: 90, label: "Preparing preview (demo)", ms: 400 },
-        { pct: 98, label: "Loading model…", ms: 300 },
+        { label: "generate_initial", ms: 400 },
+        { label: "build_initial", ms: 600 },
+        { label: "validate_output", ms: 600 },
+        { label: "build_corrected", ms: 500 },
+        { label: "_loading", ms: 400 },
       ];
       for (const step of steps) {
         await new Promise((r) => setTimeout(r, step.ms));
-        setProgress(step.pct);
         setProgressStep(step.label);
       }
 
@@ -226,7 +222,7 @@ export default function TextToCAD() {
 
     setWorkspaceActive(true);
     setIsGenerating(true);
-    setProgress(0);
+    setRetryAttempt(0);
     setHasModel(false);
     setProgressStep("generate_initial");
 
@@ -257,25 +253,18 @@ export default function TextToCAD() {
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
       let pollErrors = 0;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000;
+      let consecutive404s = 0;
+      const MAX_404_RETRIES = 3;
+      const POLL_TIMEOUT_MS = 12 * 60 * 1000; // 12 min for Sonnet
       const pollStart = Date.now();
 
-      const NODE_PCT: Record<string, number> = {
-        generate_initial: 10,
-        build_initial: 30,
-        validate_output: 55,
-        generate_fix: 65,
-        build_retry: 75,
-        build_corrected: 85,
-        success_final: 100,
-        success_original_glb: 100,
-      };
+      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
 
       while (true) {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-          throw new Error("Generation timed out after 1 hour");
+          throw new Error("Generation timed out");
         }
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
         try {
           const statusRes = await authenticatedFetch(
             `/api/status/${encodeURIComponent(workflow_id)}`,
@@ -283,8 +272,14 @@ export default function TextToCAD() {
           );
 
           if (statusRes.status === 404) {
-            throw new Error("Workflow not found — generation was terminated");
+            consecutive404s++;
+            if (consecutive404s >= MAX_404_RETRIES) {
+              throw new Error("Workflow not found — generation was terminated");
+            }
+            continue;
           }
+          consecutive404s = 0;
+
           if (!statusRes.ok) {
             pollErrors++;
             if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
@@ -296,24 +291,29 @@ export default function TextToCAD() {
 
           const state = (statusData.runtime?.state || "unknown").toLowerCase();
           const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
           const retryCount = statusData.node_visit_seq?.generate_fix || 0;
 
+          // Update progress from active node — only when it changes
           if (activeNode) {
-            const nodePct = NODE_PCT[activeNode] ?? 5;
-            setProgress(nodePct);
             setProgressStep(activeNode);
             if (retryCount > 0) {
-              console.log(`[TextToCAD] Retry attempt: ${retryCount}`);
+              setRetryAttempt(retryCount);
             }
           }
 
+          // Terminal checks: state OR node
           if (state === "completed") break;
-          if (TERMINAL_STATES.has(state)) {
-            const lastNode = statusData.runtime?.last_exit_node_id || "";
-            if (lastNode === "failed_final" || activeNode === "failed_final") {
-              setProgressStep("failed_final");
-            }
+          if (state === "failed" || state === "budget_exhausted") {
+            setProgressStep("failed_final");
             throw new Error(`Generation ${state}`);
+          }
+          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") {
+              setProgressStep("failed_final");
+              throw new Error("Generation failed");
+            }
+            break; // success node reached
           }
         } catch (err) {
           if (err instanceof AuthExpiredError) return;
@@ -325,7 +325,7 @@ export default function TextToCAD() {
 
       // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
       setProgressStep("_loading");
-      setProgress(98);
+      setProgressStep("_loading");
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
@@ -346,7 +346,7 @@ export default function TextToCAD() {
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           console.warn(`[TextToCAD] result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
 
@@ -356,7 +356,7 @@ export default function TextToCAD() {
       if (!glb_url) throw new Error("No GLB model found in results");
 
       setGlbUrl(glb_url);
-      setProgress(98);
+      setProgressStep("success_final");
       setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);
@@ -367,7 +367,7 @@ export default function TextToCAD() {
       console.error("Generation failed:", err);
       toast.error(err instanceof Error ? err.message : "Generation failed");
       setIsGenerating(false);
-      setProgress(0);
+      setProgressStep("failed_final");
       setProgressStep("");
     }
   }, [prompt, model, isGenerating]);
@@ -377,13 +377,9 @@ export default function TextToCAD() {
     pushUndo("AI edit");
     setIsEditing(true);
     setIsGenerating(true);
-    setProgress(0);
-    setProgressStep("Applying edits…");
-    for (let p = 0; p <= 100; p += 3) {
-      setProgress(p);
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    setProgress(100);
+    setProgressStep("build_initial");
+    await new Promise((r) => setTimeout(r, 1500));
+    setProgressStep("success_final");
     setIsGenerating(false);
     setIsEditing(false);
     setEditPrompt("");
@@ -444,7 +440,7 @@ export default function TextToCAD() {
     setEditPrompt("");
     setSelectedModules([]);
     setHasModel(false);
-    setProgress(0);
+    setRetryAttempt(0);
     setProgressStep("");
     setShowPartRegen(false);
     setMeshes([]);
@@ -748,7 +744,7 @@ export default function TextToCAD() {
                 </div>
               )}
             </div>
-            <GenerationProgress visible={isGenerating || isModelLoading} progress={progress} currentStep={progressStep} />
+            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
