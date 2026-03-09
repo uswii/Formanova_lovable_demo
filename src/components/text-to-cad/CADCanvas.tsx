@@ -969,7 +969,7 @@ function DiamondEnvMapConsumer({
   meshRef,
   geometry,
   position,
-  rotation,
+  quaternion,
   scale,
   refractionConfig,
   isSelected,
@@ -979,7 +979,7 @@ function DiamondEnvMapConsumer({
   meshRef: React.RefObject<THREE.Mesh>;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
@@ -1001,7 +1001,7 @@ function DiamondEnvMapConsumer({
       ref={meshRef}
       geometry={geometry}
       position={position}
-      rotation={rotation}
+      quaternion={quaternion}
       scale={scale}
       castShadow
       onClick={(e: ThreeEvent<MouseEvent>) => {
