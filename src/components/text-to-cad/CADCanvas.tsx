@@ -1188,6 +1188,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               dampingFactor={0.03}
               minDistance={0.5}
               maxDistance={50}
+              minPolarAngle={0}
+              maxPolarAngle={Math.PI}
               makeDefault
             />
             <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
