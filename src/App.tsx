@@ -48,6 +48,8 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminTenants = lazy(() => import("./pages/AdminTenants"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
+const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
+const AIJewelryCAD = lazy(() => import("./pages/AIJewelryCAD"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
