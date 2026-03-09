@@ -11,7 +11,7 @@ const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service
 export interface ClassificationResult {
-  category: 'mannequin' | 'model' | 'body_part' | 'flatlay' | '3d_render' | 'product_surface' | 'floating' | 'packshot';
+  category: 'mannequin' | 'model' | 'body_part' | 'flatlay' | '3d_render' | 'product_surface' | 'floating' | 'packshot' | 'unknown';
   is_worn: boolean;
   confidence: number;
   reason: string;
