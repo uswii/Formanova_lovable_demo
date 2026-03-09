@@ -213,8 +213,8 @@ export default function LeftPanel({
                     className="w-full flex items-center justify-between cursor-pointer"
                   >
                     <div className="text-left">
-                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild Parts</span>
-                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component with a new description</span>
+                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild</span>
+                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component</span>
                     </div>
                     {rebuildOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
