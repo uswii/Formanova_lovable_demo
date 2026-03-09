@@ -143,6 +143,8 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => void;
     applyTransform: (meshNames: string[]) => void;
     removeAllTextures: () => void;
+    getSelectedTransform: () => MeshTransformData | null;
+    setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
   },
   {
   url: string;
@@ -724,7 +726,67 @@ const LoadedModel = forwardRef<
       materialCache.current.clear();
       inv();
     },
-  }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
+    getSelectedTransform: (): MeshTransformData | null => {
+      const selected = meshDataList.find((m) => selectedMeshNames.has(m.name));
+      if (!selected) return null;
+      const DEG = 180 / Math.PI;
+      return {
+        position: [selected.position.x, selected.position.y, selected.position.z],
+        rotation: [selected.rotation.x * DEG, selected.rotation.y * DEG, selected.rotation.z * DEG],
+        scale: [selected.scale.x, selected.scale.y, selected.scale.z],
+      };
+    },
+    setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
+      const selectedName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
+      if (!selectedName) return;
+      const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+      const RAD = Math.PI / 180;
+
+      setMeshDataList((prev) => prev.map((md) => {
+        if (md.name !== selectedName) return md;
+        if (property === 'position') {
+          const newPos = md.position.clone();
+          if (axisIdx === 0) newPos.x = value;
+          else if (axisIdx === 1) newPos.y = value;
+          else newPos.z = value;
+          return { ...md, position: newPos };
+        } else if (property === 'rotation') {
+          const newRot = md.rotation.clone();
+          const radVal = value * RAD;
+          if (axisIdx === 0) newRot.x = radVal;
+          else if (axisIdx === 1) newRot.y = radVal;
+          else newRot.z = radVal;
+          return { ...md, rotation: newRot };
+        } else {
+          const newScale = md.scale.clone();
+          if (axisIdx === 0) newScale.x = value;
+          else if (axisIdx === 1) newScale.y = value;
+          else newScale.z = value;
+          return { ...md, scale: newScale };
+        }
+      }));
+
+      // Also update the Three.js mesh object directly for immediate visual feedback
+      const meshObj = meshRefs.current.get(selectedName);
+      if (meshObj) {
+        if (property === 'position') {
+          if (axisIdx === 0) meshObj.position.x = value;
+          else if (axisIdx === 1) meshObj.position.y = value;
+          else meshObj.position.z = value;
+        } else if (property === 'rotation') {
+          const radVal = value * RAD;
+          if (axisIdx === 0) meshObj.rotation.x = radVal;
+          else if (axisIdx === 1) meshObj.rotation.y = radVal;
+          else meshObj.rotation.z = radVal;
+        } else {
+          if (axisIdx === 0) meshObj.scale.x = value;
+          else if (axisIdx === 1) meshObj.scale.y = value;
+          else meshObj.scale.z = value;
+        }
+      }
+      inv();
+    },
+  }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // ── Separate gemstone meshes from standard meshes ──
   // Gemstones get hidden and rendered via MeshRefractionMaterial overlay
@@ -957,6 +1019,12 @@ function DiamondEnvMapConsumer({
 }
 
 
+export interface MeshTransformData {
+  position: [number, number, number];
+  rotation: [number, number, number]; // degrees
+  scale: [number, number, number];
+}
+
 export interface CADCanvasHandle {
   applyMaterial: (matId: string, meshNames: string[]) => void;
   resetTransform: (meshNames: string[]) => void;
@@ -971,6 +1039,8 @@ export interface CADCanvasHandle {
   removeAllTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
+  getSelectedTransform: () => MeshTransformData | null;
+  setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   resetCamera: () => void;
@@ -1016,6 +1086,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
+      getSelectedTransform: () => modelRef.current?.getSelectedTransform() ?? null,
+      setMeshTransform: (axis, property, value) => modelRef.current?.setMeshTransform(axis, property, value),
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;

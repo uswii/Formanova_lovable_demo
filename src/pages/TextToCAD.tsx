@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -14,7 +14,7 @@ import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
-import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
+import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
 import KeyboardShortcutsPanel, { KeyboardShortcutsButton } from "@/components/text-to-cad/KeyboardShortcutsPanel";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
@@ -57,6 +57,7 @@ export default function TextToCAD() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
@@ -123,7 +124,22 @@ export default function TextToCAD() {
 
   const handleTransformEnd = useCallback(() => {
     pushUndo(`Transform (${transformMode})`);
+    // Sync numeric fields after gizmo drag
+    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
   }, [pushUndo, transformMode]);
+
+  // Refresh transform data whenever selection changes
+  useEffect(() => {
+    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
+  }, [selectedMeshNames]);
+
+  const handleNumericTransformChange = useCallback((axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
+    canvasRef.current?.setMeshTransform(axis, property, value);
+    // Read back the updated transform for UI sync
+    requestAnimationFrame(() => {
+      setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
+    });
+  }, []);
 
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
@@ -724,7 +740,14 @@ export default function TextToCAD() {
                 transformMode={transformMode}
               />
             )}
-            {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
+            {hasModel && (
+              <ViewportToolbar
+                mode={transformMode}
+                setMode={setTransformMode}
+                transformData={selectedTransform}
+                onTransformChange={handleNumericTransformChange}
+              />
+            )}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2">
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
