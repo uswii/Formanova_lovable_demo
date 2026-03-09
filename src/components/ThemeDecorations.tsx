@@ -278,7 +278,7 @@ function RetroDecorations() {
       {[...Array(8)].map((_, i) => (
         <div 
           key={i}
-          className={`absolute w-4 h-4 animate-pulse ${i % 3 === 0 ? 'bg-green-400/80' : i % 3 === 1 ? 'bg-yellow-400/80' : 'bg-red-400/80'}`}
+          className="absolute w-4 h-4 animate-pulse bg-green-400/80"
           style={{
             top: `${20 + i * 10}%`,
             left: i % 2 === 0 ? `${15 + i * 5}%` : 'auto',
