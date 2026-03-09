@@ -253,25 +253,18 @@ export default function TextToCAD() {
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
       let pollErrors = 0;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000;
+      let consecutive404s = 0;
+      const MAX_404_RETRIES = 3;
+      const POLL_TIMEOUT_MS = 12 * 60 * 1000; // 12 min for Sonnet
       const pollStart = Date.now();
 
-      const NODE_PCT: Record<string, number> = {
-        generate_initial: 10,
-        build_initial: 30,
-        validate_output: 55,
-        generate_fix: 65,
-        build_retry: 75,
-        build_corrected: 85,
-        success_final: 100,
-        success_original_glb: 100,
-      };
+      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
 
       while (true) {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-          throw new Error("Generation timed out after 1 hour");
+          throw new Error("Generation timed out");
         }
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
         try {
           const statusRes = await authenticatedFetch(
             `/api/status/${encodeURIComponent(workflow_id)}`,
@@ -279,8 +272,14 @@ export default function TextToCAD() {
           );
 
           if (statusRes.status === 404) {
-            throw new Error("Workflow not found — generation was terminated");
+            consecutive404s++;
+            if (consecutive404s >= MAX_404_RETRIES) {
+              throw new Error("Workflow not found — generation was terminated");
+            }
+            continue;
           }
+          consecutive404s = 0;
+
           if (!statusRes.ok) {
             pollErrors++;
             if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
@@ -292,24 +291,29 @@ export default function TextToCAD() {
 
           const state = (statusData.runtime?.state || "unknown").toLowerCase();
           const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
           const retryCount = statusData.node_visit_seq?.generate_fix || 0;
 
+          // Update progress from active node — only when it changes
           if (activeNode) {
-            const nodePct = NODE_PCT[activeNode] ?? 5;
-            setProgress(nodePct);
             setProgressStep(activeNode);
             if (retryCount > 0) {
-              console.log(`[TextToCAD] Retry attempt: ${retryCount}`);
+              setRetryAttempt(retryCount);
             }
           }
 
+          // Terminal checks: state OR node
           if (state === "completed") break;
-          if (TERMINAL_STATES.has(state)) {
-            const lastNode = statusData.runtime?.last_exit_node_id || "";
-            if (lastNode === "failed_final" || activeNode === "failed_final") {
-              setProgressStep("failed_final");
-            }
+          if (state === "failed" || state === "budget_exhausted") {
+            setProgressStep("failed_final");
             throw new Error(`Generation ${state}`);
+          }
+          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") {
+              setProgressStep("failed_final");
+              throw new Error("Generation failed");
+            }
+            break; // success node reached
           }
         } catch (err) {
           if (err instanceof AuthExpiredError) return;
