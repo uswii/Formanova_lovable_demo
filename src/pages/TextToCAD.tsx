@@ -222,7 +222,7 @@ export default function TextToCAD() {
 
     setWorkspaceActive(true);
     setIsGenerating(true);
-    setProgress(0);
+    setRetryAttempt(0);
     setHasModel(false);
     setProgressStep("generate_initial");
 
