@@ -143,6 +143,13 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
         return;
       }
 
+      // Cmd + Backspace → Delete (macOS convention)
+      if (mod && key === "backspace") {
+        e.preventDefault();
+        a.onDelete();
+        return;
+      }
+
       // Don't intercept other Ctrl/Cmd combos (browser shortcuts)
       if (mod) return;
 
