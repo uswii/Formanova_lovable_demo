@@ -179,8 +179,8 @@ export function useImageValidation() {
           if (statusState === 'failed' || statusState === 'error') {
             console.warn('[ImageValidation] Workflow failed. Error:', statusData.error || statusData.message || JSON.stringify(statusData));
             clearTimeout(timeoutId);
-            // On failure, still return uploaded_url but don't block — mark as unknown
-            return { category: 'unknown', is_worn: true, confidence: 0, reason: 'classification_failed', flagged: false, uploaded_url: uploadedUrl };
+            // On failure, return uploaded_url but flag as not-worn so user reviews
+            return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl };
           }
         }
       }
