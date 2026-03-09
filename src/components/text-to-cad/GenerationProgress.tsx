@@ -1,119 +1,90 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Node-based stages matching the backend's active_nodes[0]
-const NODE_STAGES = [
-  { node: "generate_initial", label: "Writing Blender code", pct: 10 },
-  { node: "build_initial", label: "Building 3D model", pct: 30 },
-  { node: "validate_output", label: "Validating render", pct: 55 },
-  { node: "generate_fix", label: "Fixing errors", pct: 65 },
-  { node: "build_retry", label: "Rebuilding model", pct: 75 },
-  { node: "build_corrected", label: "Applying corrections", pct: 85 },
-  { node: "success_final", label: "Done", pct: 100 },
-  { node: "success_original_glb", label: "Done", pct: 100 },
-  { node: "failed_final", label: "Failed", pct: 0 },
-] as const;
-
-const ROTATING_MESSAGES: Record<string, string[]> = {
-  generate_initial: [
-    "Analyzing your design prompt",
-    "Writing Blender Python code",
-    "Translating description to geometry",
-    "Mapping ring proportions",
-    "Preparing build script",
-  ],
-  build_initial: [
-    "Executing Blender build",
-    "Constructing mesh topology",
-    "Extruding band cross-section",
-    "Generating shank geometry",
-    "Placing stone settings",
-    "Building base ring profile",
-  ],
-  validate_output: [
-    "Rendering validation screenshot",
-    "Checking structural integrity",
-    "Verifying mesh is watertight",
-    "Validating ring dimensions",
-    "Inspecting gem placements",
-  ],
-  generate_fix: [
-    "Analyzing validation feedback",
-    "Rewriting problem sections",
-    "Adjusting geometry parameters",
-    "Correcting proportions",
-  ],
-  build_retry: [
-    "Rebuilding with corrections",
-    "Re-executing Blender script",
-    "Reconstructing mesh topology",
-    "Applying structural fixes",
-  ],
-  build_corrected: [
-    "Applying final corrections",
-    "Polishing surface normals",
-    "Smoothing edge transitions",
-    "Finalizing geometry",
-  ],
-  success_final: ["Done"],
-  success_original_glb: ["Done"],
-  failed_final: ["Generation failed"],
-  _loading: ["Loading model into viewport"],
+const NODE_LABELS: Record<string, string> = {
+  generate_initial: "Designing your ring",
+  build_initial: "Building 3D model",
+  validate_output: "Polishing details",
+  generate_fix: "Enhancing design",
+  build_retry: "Rebuilding model",
+  build_corrected: "Applying final touches",
+  success_final: "Your ring is ready ✓",
+  success_original_glb: "Your ring is ready ✓",
+  failed_final: "We couldn't complete this one — please try again",
+  _loading: "Loading model into viewport",
 };
 
-function getNodeStage(activeNode: string): { label: string; pct: number } {
-  const stage = NODE_STAGES.find((s) => s.node === activeNode);
-  if (stage) return { label: stage.label, pct: stage.pct };
-  return { label: "Processing", pct: 5 };
+const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 interface GenerationProgressProps {
   visible: boolean;
-  progress: number;
   currentStep: string;
   retryAttempt?: number;
+  maxAttempts?: number;
+  onRetry?: () => void;
 }
 
-export default function GenerationProgress({ visible, progress, currentStep, retryAttempt }: GenerationProgressProps) {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const prevNodeRef = useRef(currentStep);
+export default function GenerationProgress({
+  visible,
+  currentStep,
+  retryAttempt,
+  maxAttempts = 3,
+  onRetry,
+}: GenerationProgressProps) {
+  const [elapsed, setElapsed] = useState(0);
+  const stageStartRef = useRef(Date.now());
+  const prevStepRef = useRef(currentStep);
 
-  // Reset message index when node changes
+  // Reset stage timer when node changes
   useEffect(() => {
-    if (currentStep !== prevNodeRef.current) {
-      setMessageIndex(0);
-      prevNodeRef.current = currentStep;
+    if (currentStep !== prevStepRef.current) {
+      stageStartRef.current = Date.now();
+      setElapsed(0);
+      prevStepRef.current = currentStep;
     }
   }, [currentStep]);
 
-  // Rotate messages within current node
+  // Tick elapsed every second
   useEffect(() => {
-    if (!visible) return;
-    const msgs = ROTATING_MESSAGES[currentStep] || ROTATING_MESSAGES["_loading"] || [];
-    if (msgs.length <= 1) return;
+    if (!visible || TERMINAL_NODES.has(currentStep)) return;
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % msgs.length);
-    }, 3500);
+      setElapsed(Math.floor((Date.now() - stageStartRef.current) / 1000));
+    }, 1000);
     return () => clearInterval(interval);
   }, [visible, currentStep]);
 
+  // Reset on hide
+  useEffect(() => {
+    if (!visible) {
+      setElapsed(0);
+      stageStartRef.current = Date.now();
+    }
+  }, [visible]);
+
   if (!visible) return null;
 
-  const { label, pct } = getNodeStage(currentStep);
-  const displayPct = progress >= 100 ? 100 : Math.max(pct, Math.min(progress, 99));
-  const displayLabel = retryAttempt && retryAttempt > 0 && currentStep === "generate_fix"
-    ? `${label} (attempt ${retryAttempt})`
-    : label;
-
-  const msgs = ROTATING_MESSAGES[currentStep] || ROTATING_MESSAGES["_loading"] || [];
-  const currentMessage = msgs[messageIndex % msgs.length] || "";
-
-  const isCompleted = displayPct >= 100;
   const isFailed = currentStep === "failed_final";
+  const isDone = currentStep === "success_final" || currentStep === "success_original_glb";
+  const isTerminal = isFailed || isDone;
+  const showSlowWarning = !isTerminal && elapsed > 60;
 
-  // Count completed stages for dots
-  const mainStages = NODE_STAGES.filter((s) => s.node !== "failed_final" && s.node !== "success_original_glb");
-  const currentIdx = mainStages.findIndex((s) => s.node === currentStep);
+  let label = NODE_LABELS[currentStep] || "";
+  if (currentStep === "generate_fix" && retryAttempt) {
+    label = `Enhancing design (attempt ${retryAttempt} of ${maxAttempts})`;
+  }
+
+  // Stage ordering for dots
+  const STAGE_ORDER = [
+    "generate_initial", "build_initial", "validate_output",
+    "generate_fix", "build_retry", "build_corrected", "success_final",
+  ];
+  const currentIdx = STAGE_ORDER.indexOf(currentStep);
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
@@ -122,11 +93,6 @@ export default function GenerationProgress({ visible, progress, currentStep, ret
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] flex flex-col items-center text-center"
       >
-        {/* Percentage */}
-        <div className="font-display text-[80px] tracking-[0.08em] text-foreground leading-none">
-          {isFailed ? "✕" : `${Math.round(displayPct)}%`}
-        </div>
-
         {/* Stage label */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -135,20 +101,89 @@ export default function GenerationProgress({ visible, progress, currentStep, ret
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.3 }}
-            className="font-display text-lg tracking-[0.2em] text-muted-foreground uppercase mt-2"
+            className={`font-display text-xl tracking-[0.15em] uppercase ${
+              isFailed ? "text-destructive" : isDone ? "text-foreground" : "text-muted-foreground"
+            }`}
           >
-            {displayLabel}
+            {label}
           </motion.div>
         </AnimatePresence>
 
-        {/* Progress bar */}
-        <div className="w-full h-[1px] overflow-hidden mt-6 mb-6 bg-border">
-          <motion.div
-            className="h-full bg-foreground"
-            animate={{ width: `${displayPct}%` }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-          />
-        </div>
+        {/* Elapsed timer — not shown for terminal states */}
+        {!isTerminal && currentStep && (
+          <p className="font-mono text-[11px] text-muted-foreground/60 mt-2 tracking-wide">
+            ({formatElapsed(elapsed)})
+          </p>
+        )}
+
+        {/* Slow stage warning */}
+        <AnimatePresence>
+          {showSlowWarning && (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="font-mono text-[10px] text-muted-foreground/50 mt-3 tracking-wide"
+            >
+              This step can take a couple of minutes — still working
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* Pulsing line indicator — only during active stages */}
+        {!isTerminal && currentStep && (
+          <div className="w-full h-[1px] overflow-hidden mt-6 mb-6 bg-border">
+            <motion.div
+              className="h-full bg-foreground/60 w-1/3"
+              animate={{ x: ["-100%", "420px"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
+        )}
+
+        {/* Stage dots */}
+        {!isFailed && (
+          <div className="flex items-center gap-1.5 mt-4">
+            {STAGE_ORDER.map((node, i) => {
+              const isDoneStage = currentIdx >= 0 && i < currentIdx;
+              const isActive = node === currentStep || (isDone && i === STAGE_ORDER.length - 1);
+              return (
+                <div
+                  key={node}
+                  className={`transition-all duration-500 ${
+                    isDoneStage
+                      ? "w-6 h-[2px] bg-foreground"
+                      : isActive
+                        ? "w-8 h-[2px] bg-foreground"
+                        : "w-4 h-[1px] bg-muted-foreground/20"
+                  }`}
+                >
+                  {isActive && !isDone && (
+                    <motion.div
+                      className="w-full h-full bg-foreground"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.8, repeat: Infinity }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Retry button on failure */}
+        {isFailed && onRetry && (
+          <button
+            onClick={onRetry}
+            className="mt-8 px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            Try Again
+          </button>
+        )}
+      </motion.div>
+    </div>
+  );
+}
 
         {/* Rotating message */}
         <AnimatePresence mode="wait">
