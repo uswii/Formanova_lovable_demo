@@ -207,14 +207,14 @@ export default function LeftPanel({
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}
-                <div className="border-2 border-border bg-card p-4">
+                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
                   <button
                     onClick={() => setRebuildOpen(!rebuildOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer"
+                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
                   >
-                    <div className="text-left">
-                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild</span>
-                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component</span>
+                    <div className="text-left min-w-0 overflow-hidden mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">⚙ Rebuild</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Select and regenerate any component</span>
                     </div>
                     {rebuildOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
