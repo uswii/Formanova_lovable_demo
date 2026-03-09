@@ -37,10 +37,12 @@ export function Header() {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  const cadEnabled = isCADEnabled(user?.email);
+
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'From Photo' },
-    { path: '/studio-cad', label: 'From CAD' },
+    ...(cadEnabled ? [{ path: '/studio-cad', label: 'From CAD' }] : []),
     // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
 
