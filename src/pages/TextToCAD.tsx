@@ -18,6 +18,7 @@ import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/compo
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
 import KeyboardShortcutsPanel, { KeyboardShortcutsButton } from "@/components/text-to-cad/KeyboardShortcutsPanel";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
+import { useCADKeyboardShortcuts } from "@/hooks/use-cad-keyboard-shortcuts";
 import {
   ViewportToolbar,
   StatsBar,
