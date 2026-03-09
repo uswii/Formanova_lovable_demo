@@ -377,13 +377,9 @@ export default function TextToCAD() {
     pushUndo("AI edit");
     setIsEditing(true);
     setIsGenerating(true);
-    setProgress(0);
-    setProgressStep("Applying edits…");
-    for (let p = 0; p <= 100; p += 3) {
-      setProgress(p);
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    setProgress(100);
+    setProgressStep("build_initial");
+    await new Promise((r) => setTimeout(r, 1500));
+    setProgressStep("success_final");
     setIsGenerating(false);
     setIsEditing(false);
     setEditPrompt("");
