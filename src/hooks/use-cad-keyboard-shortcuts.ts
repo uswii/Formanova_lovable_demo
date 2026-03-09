@@ -178,8 +178,12 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
           a.onToggleWireframe();
           break;
         case "delete":
+          e.preventDefault();
+          a.onDelete();
+          break;
         case "backspace":
-          e.preventDefault(); // Prevent browser back on Backspace
+          // Plain Backspace or Cmd+Backspace (macOS)
+          e.preventDefault();
           a.onDelete();
           break;
         default:
