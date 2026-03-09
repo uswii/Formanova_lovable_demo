@@ -143,11 +143,11 @@ export function useImageValidation() {
         console.warn('[ImageValidation] Classification request failed:', runRes.status);
         clearTimeout(timeoutId);
         return {
-          category: 'flatlay',
-          is_worn: true,
+          category: 'unknown',
+          is_worn: false,
           confidence: 0,
-          reason: 'skipped',
-          flagged: false,
+          reason: 'classification_unavailable',
+          flagged: true,
           uploaded_url: uploadedUrl,
         };
       }
