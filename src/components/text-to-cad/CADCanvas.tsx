@@ -500,7 +500,7 @@ const LoadedModel = forwardRef<
       return {
         ...md,
         position: obj.position.clone(),
-        rotation: obj.rotation.clone(),
+        quaternion: obj.quaternion.clone(),
         scale: obj.scale.clone(),
       };
     }));
