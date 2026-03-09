@@ -34,7 +34,7 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
   {
     title: "Mesh Editing",
     shortcuts: [
-      { keys: ["Del", "/", "⌫", "/", `${modKey}+⌫`], desc: "Delete selected" },
+      { keys: ["Delete", "/", "Backspace", "/", `${modKey}+Backspace`], desc: "Delete selected" },
       { keys: ["Shift+D"], desc: "Duplicate selected" },
       { keys: ["W"], desc: "Toggle wireframe" },
     ],
