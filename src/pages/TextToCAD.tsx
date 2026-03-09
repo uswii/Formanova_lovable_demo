@@ -740,7 +740,14 @@ export default function TextToCAD() {
                 transformMode={transformMode}
               />
             )}
-            {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
+            {hasModel && (
+              <ViewportToolbar
+                mode={transformMode}
+                setMode={setTransformMode}
+                transformData={selectedTransform}
+                onTransformChange={handleNumericTransformChange}
+              />
+            )}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2">
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
