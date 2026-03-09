@@ -252,7 +252,7 @@ const LoadedModel = forwardRef<
           (worldPos.y - center.y) * s,
           (worldPos.z - center.z) * s
         );
-        const rot = new THREE.Euler().setFromQuaternion(worldQuat);
+        const quat = worldQuat.clone();
         const scl = worldScale.multiplyScalar(s);
         const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
         // Ensure double-sided rendering to prevent disappearing faces at certain angles
@@ -265,10 +265,10 @@ const LoadedModel = forwardRef<
           geometry: mesh.geometry,
           originalMaterial: origMat,
           position: pos.clone(),
-          rotation: rot.clone(),
+          quaternion: quat.clone(),
           scale: scl.clone(),
           origPos: pos.clone(),
-          origRot: rot.clone(),
+          origQuat: quat.clone(),
           origScale: scl.clone(),
         });
         idx++;
