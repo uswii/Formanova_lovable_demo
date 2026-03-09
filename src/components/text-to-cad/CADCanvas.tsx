@@ -67,14 +67,17 @@ function TransformControlsWrapper({
   object,
   mode,
   onDragEnd,
+  onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
   onDragEnd?: (obj: THREE.Object3D) => void;
+  onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
 }) {
   const { gl } = useThree();
   const inv = useInvalidate();
   const controlsRef = useRef<any>(null);
+  const prevQuatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -82,23 +85,51 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
-      // Set module-level flag so React doesn't overwrite transforms during drag
       _isTransformDragging = e.value;
       if (e.value) {
+        // Drag started — snapshot the current quaternion for delta tracking
+        prevQuatRef.current.copy(object.quaternion);
         inv();
       }
       // When drag ends, pass the object back so we can sync state
       if (!e.value && onDragEnd) onDragEnd(object);
     };
     controls.addEventListener("dragging-changed", handler);
-    const onChange = () => inv();
+    const onChange = () => {
+      // During rotate drag, compute incremental delta and report it
+      if (_isTransformDragging && mode === "rotate" && onRotationDelta) {
+        const prevInv = prevQuatRef.current.clone().invert();
+        const deltaQuat = object.quaternion.clone().multiply(prevInv);
+        // Convert delta quaternion to axis-angle, then to per-axis degrees
+        const axis = new THREE.Vector3();
+        let angle = 0;
+        deltaQuat.normalize();
+        // Decompose delta into axis-angle
+        const sinHalf = Math.sqrt(deltaQuat.x ** 2 + deltaQuat.y ** 2 + deltaQuat.z ** 2);
+        if (sinHalf > 1e-6) {
+          axis.set(deltaQuat.x / sinHalf, deltaQuat.y / sinHalf, deltaQuat.z / sinHalf);
+          angle = 2 * Math.atan2(sinHalf, deltaQuat.w);
+          // Normalize angle to [-PI, PI]
+          if (angle > Math.PI) angle -= 2 * Math.PI;
+          const D = 180 / Math.PI;
+          const deltaDeg: [number, number, number] = [
+            axis.x * angle * D,
+            axis.y * angle * D,
+            axis.z * angle * D,
+          ];
+          onRotationDelta(object, deltaDeg);
+        }
+        prevQuatRef.current.copy(object.quaternion);
+      }
+      inv();
+    };
     controls.addEventListener("objectChange", onChange);
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
       _isTransformDragging = false;
     };
-  }, [gl, onDragEnd, inv, object]);
+  }, [gl, onDragEnd, onRotationDelta, inv, object, mode]);
 
   return (
     <TransformControls
