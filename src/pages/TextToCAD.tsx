@@ -70,7 +70,7 @@ export default function TextToCAD() {
   const [editPrompt, setEditPrompt] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(savedSession.hasModel && !!savedSession.glbUrl);
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(savedSession.hasModel || false);
   const [progressStep, setProgressStep] = useState("");
