@@ -26,16 +26,14 @@ let _isTransformDragging = false;
 let _dragStartQuat: THREE.Quaternion | null = null;
 let _dragStartRotDeg: [number, number, number] | null = null;
 
-// ── Shared selection material (reused, never re-created) ──
-const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
+// ── Shared wireframe overlay material for selection feedback ──
+const SELECTION_WIREFRAME_MATERIAL = new THREE.MeshBasicMaterial({
   color: new THREE.Color(0x3399ff),
+  wireframe: true,
   transparent: true,
-  opacity: 0.35,
+  opacity: 0.5,
+  depthTest: true,
   depthWrite: false,
-  roughness: 0.4,
-  metalness: 0.1,
-  emissive: new THREE.Color(0x2277dd),
-  emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
 
