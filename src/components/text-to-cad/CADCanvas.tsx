@@ -911,9 +911,12 @@ const LoadedModel = forwardRef<
     exportSceneBlob: async (): Promise<Blob> => {
       // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms & materials)
       const exportScene = new THREE.Scene();
-      console.log('[GLB Export] Starting export. meshDataList:', meshDataList.length, 'assignedMaterials:', Object.keys(assignedMaterials), 'meshRefs:', meshRefs.current.size);
-      meshDataList.forEach((md) => {
-        const assigned = assignedMaterials[md.name];
+      // Read from refs to guarantee latest state (avoids stale R3F reconciler closures)
+      const currentMeshData = meshDataListRef.current;
+      const currentMaterials = assignedMaterialsRef.current;
+      console.log('[GLB Export] Starting export. meshDataList:', currentMeshData.length, 'assignedMaterials:', Object.keys(currentMaterials), 'meshRefs:', meshRefs.current.size);
+      currentMeshData.forEach((md) => {
+        const assigned = currentMaterials[md.name];
         // Create export-safe material (MeshStandardMaterial for max GLB compatibility)
         let material: THREE.Material;
         if (assigned) {
