@@ -920,8 +920,14 @@ const LoadedModel = forwardRef<
       const currentMeshData = meshDataListRef.current;
       const currentAssigned = assignedMaterialsRef.current;
 
-      console.log('[GLB Export] Starting from React state. meshDataList:', currentMeshData.length,
-        'assignedMaterials:', Object.keys(currentAssigned).length);
+      const meshNames = currentMeshData.map(m => m.name);
+      const assignedNames = Object.keys(currentAssigned);
+      const unmatched = assignedNames.filter(n => !meshNames.includes(n));
+      console.log('[GLB Export] meshDataList names:', meshNames);
+      console.log('[GLB Export] assignedMaterials keys:', assignedNames);
+      console.log('[GLB Export] assignedMaterials entries:', Object.entries(currentAssigned).map(([k, v]) => `${k} → ${v.id} (${v.category})`));
+      if (unmatched.length > 0) console.warn('[GLB Export] ⚠ Assigned material keys NOT in meshDataList:', unmatched);
+      console.log('[GLB Export] Starting. meshDataList:', currentMeshData.length, 'assignedMaterials:', assignedNames.length);
 
       currentMeshData.forEach((md) => {
         const assigned = currentAssigned[md.name];
