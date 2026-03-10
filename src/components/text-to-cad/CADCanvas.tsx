@@ -291,6 +291,11 @@ const LoadedModel = forwardRef<
   }, [url, onLoadStart, onLoadEnd]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
+  // Keep refs that always point to the latest state — avoids stale closures in R3F reconciler
+  const meshDataListRef = useRef<MeshData[]>([]);
+  meshDataListRef.current = meshDataList;
+  const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
+  assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
@@ -906,9 +911,12 @@ const LoadedModel = forwardRef<
     exportSceneBlob: async (): Promise<Blob> => {
       // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms & materials)
       const exportScene = new THREE.Scene();
-      console.log('[GLB Export] Starting export. meshDataList:', meshDataList.length, 'assignedMaterials:', Object.keys(assignedMaterials), 'meshRefs:', meshRefs.current.size);
-      meshDataList.forEach((md) => {
-        const assigned = assignedMaterials[md.name];
+      // Read from refs to guarantee latest state (avoids stale R3F reconciler closures)
+      const currentMeshData = meshDataListRef.current;
+      const currentMaterials = assignedMaterialsRef.current;
+      console.log('[GLB Export] Starting export. meshDataList:', currentMeshData.length, 'assignedMaterials:', Object.keys(currentMaterials), 'meshRefs:', meshRefs.current.size);
+      currentMeshData.forEach((md) => {
+        const assigned = currentMaterials[md.name];
         // Create export-safe material (MeshStandardMaterial for max GLB compatibility)
         let material: THREE.Material;
         if (assigned) {
