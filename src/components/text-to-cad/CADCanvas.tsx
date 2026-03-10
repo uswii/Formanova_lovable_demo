@@ -937,16 +937,10 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      // Selected meshes: show actual material (not selection override) so material changes are visible immediately
-      const cacheKeySelected = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
-      let matSelected = materialCache.current.get(cacheKeySelected);
-      if (!matSelected) {
-        matSelected = assigned ? assigned.create() : md.originalMaterial.clone();
-        if ('side' in matSelected) (matSelected as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
-        materialCache.current.set(cacheKeySelected, matSelected);
+      if (isSelected) {
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        return;
       }
-      standard.push({ ...md, material: matSelected, isSelected });
-      return;
 
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
@@ -982,29 +976,16 @@ const LoadedModel = forwardRef<
   return (
     <group>
       {standardElements.map((md) => (
-        <group key={md.name}>
-          <mesh
-            ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
-            geometry={md.geometry}
-            material={md.material}
-            onClick={(e: ThreeEvent<MouseEvent>) => {
-              e.stopPropagation();
-              onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
-            }}
-          />
-          {/* Selection wireframe outline overlay */}
-          {md.isSelected && (
-            <mesh geometry={md.geometry}>
-              <meshBasicMaterial
-                color={0x3399ff}
-                wireframe
-                transparent
-                opacity={0.4}
-                depthTest={false}
-              />
-            </mesh>
-          )}
-        </group>
+        <mesh
+          key={md.name}
+          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+          geometry={md.geometry}
+          material={md.material}
+          onClick={(e: ThreeEvent<MouseEvent>) => {
+            e.stopPropagation();
+            onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+          }}
+        />
       ))}
 
       {/* Diamond overlay: refraction material rendered separately */}
