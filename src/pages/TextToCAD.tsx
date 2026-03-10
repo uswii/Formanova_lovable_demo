@@ -802,11 +802,9 @@ export default function TextToCAD() {
         break;
       case "wireframe-on":
         canvasRef.current?.setWireframe(true);
-        toast.success("Wireframe ON");
         break;
       case "wireframe-off":
         canvasRef.current?.setWireframe(false);
-        toast.success("Wireframe OFF");
         break;
       case "mirror-x":
       case "mirror-y":
