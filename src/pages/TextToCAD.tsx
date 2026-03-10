@@ -778,7 +778,7 @@ export default function TextToCAD() {
         toast.success(`Deleted ${names.length} mesh(es)`);
         break;
       case "duplicate":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Duplicate meshes");
         canvasRef.current?.duplicateMeshes(names);
         toast.success(`Duplicated ${names.length} mesh(es)`);
