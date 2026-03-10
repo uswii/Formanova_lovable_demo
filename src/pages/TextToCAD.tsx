@@ -790,7 +790,7 @@ export default function TextToCAD() {
         toast.success("Normals flipped");
         break;
       case "center-origin":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Center origin");
         canvasRef.current?.centerOrigin(names);
         toast.success("Origin centered");
