@@ -919,6 +919,7 @@ export default function TextToCAD() {
               onMeshClick={handleSelectMesh}
               transformMode={transformMode}
               onMeshesDetected={handleMeshesDetected}
+              onTransformStart={handleTransformStart}
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
               onModelReady={handleModelReady}
