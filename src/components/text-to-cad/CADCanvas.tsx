@@ -221,12 +221,13 @@ const LoadedModel = forwardRef<
     onMeshClick: (name: string, multi: boolean) => void;
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+    onTransformStart?: () => void;
     onTransformEnd?: () => void;
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
     onModelReady?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
