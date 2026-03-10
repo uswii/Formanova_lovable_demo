@@ -885,6 +885,24 @@ const LoadedModel = forwardRef<
       }
       inv();
     },
+    exportSceneBlob: async (): Promise<Blob> => {
+      // Reconstruct a Three.js scene from current meshDataList with materials
+      const exportScene = new THREE.Scene();
+      meshDataList.forEach((md) => {
+        const assigned = assignedMaterials[md.name];
+        const material = assigned ? assigned.create() : md.originalMaterial.clone();
+        if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+        const mesh = new THREE.Mesh(md.geometry.clone(), material);
+        mesh.name = md.name;
+        mesh.position.copy(md.position);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(md.scale);
+        exportScene.add(mesh);
+      });
+      const exporter = new GLTFExporter();
+      const result = await exporter.parseAsync(exportScene, { binary: true });
+      return new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // ── Separate gemstone meshes from standard meshes ──
