@@ -909,46 +909,50 @@ const LoadedModel = forwardRef<
       inv();
     },
     exportSceneBlob: async (): Promise<Blob> => {
-      // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms & materials)
+      // Read materials directly from the live rendered meshes — the single source of truth
       const exportScene = new THREE.Scene();
       const currentMeshData = meshDataListRef.current;
-      const currentMaterials = assignedMaterialsRef.current;
-      console.log('[GLB Export] Starting export. meshDataList:', currentMeshData.length, 'assignedMaterials keys:', Object.keys(currentMaterials), 'meshRefs size:', meshRefs.current.size);
+      console.log('[GLB Export] Starting. meshRefs size:', meshRefs.current.size, 'meshDataList:', currentMeshData.length);
 
       currentMeshData.forEach((md) => {
-        const assigned = currentMaterials[md.name];
+        const liveRef = meshRefs.current.get(md.name);
         let material: THREE.Material;
 
-        if (assigned) {
-          // Try to grab the cached material that's actually rendering in the viewport
-          const cacheKey = `assigned_${md.name}_${assigned.id}`;
-          const cachedMat = materialCache.current.get(cacheKey);
-
-          if (cachedMat) {
-            // Clone the live viewport material — this is exactly what the user sees
-            material = cachedMat.clone();
-            material.name = assigned.name;
-            console.log(`[GLB Export] ${md.name}: cloned CACHED material "${assigned.name}" (type: ${cachedMat.type}, color: ${(cachedMat as any).color?.getHexString?.()})`);
+        if (liveRef && liveRef.material) {
+          // Clone the ACTUAL material from the rendered mesh — exactly what user sees
+          const liveMat = Array.isArray(liveRef.material) ? liveRef.material[0] : liveRef.material;
+          // Skip selection overlay material
+          if (liveMat === SELECTION_MATERIAL) {
+            material = md.originalMaterial.clone();
+            console.log(`[GLB Export] ${md.name}: selection material detected, using original`);
           } else {
-            // Fallback: create fresh from definition
-            material = assigned.create();
-            material.name = assigned.name;
-            console.log(`[GLB Export] ${md.name}: created FRESH material "${assigned.name}" (type: ${material.type}, color: ${(material as any).color?.getHexString?.()})`);
+            // Convert MeshPhysicalMaterial to MeshStandardMaterial for max GLB compatibility
+            const std = new THREE.MeshStandardMaterial();
+            const src = liveMat as THREE.MeshPhysicalMaterial;
+            if (src.color) std.color.copy(src.color);
+            std.metalness = src.metalness ?? 0;
+            std.roughness = src.roughness ?? 1;
+            if (src.map) std.map = src.map;
+            if (src.normalMap) std.normalMap = src.normalMap;
+            if (src.emissive) std.emissive.copy(src.emissive);
+            std.emissiveIntensity = src.emissiveIntensity ?? 0;
+            std.opacity = src.opacity ?? 1;
+            std.transparent = src.transparent ?? false;
+            std.side = THREE.DoubleSide;
+            std.name = liveMat.name || md.name;
+            material = std;
+            console.log(`[GLB Export] ${md.name}: converted live material → MeshStandardMaterial (color: #${std.color.getHexString()}, metalness: ${std.metalness}, roughness: ${std.roughness})`);
           }
         } else {
           material = md.originalMaterial.clone();
-          console.log(`[GLB Export] ${md.name}: using ORIGINAL material (type: ${material.type})`);
+          console.log(`[GLB Export] ${md.name}: no live ref, using original material`);
         }
-
-        // Ensure double-sided for maximum compatibility
-        if ('side' in material) (material as any).side = THREE.DoubleSide;
 
         const geo = md.geometry.clone();
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = md.name;
 
-        // Read transforms from live Three.js mesh refs to capture all imperative changes
-        const liveRef = meshRefs.current.get(md.name);
+        // Copy transforms from live mesh refs
         if (liveRef) {
           mesh.position.copy(liveRef.position);
           mesh.quaternion.copy(liveRef.quaternion);
