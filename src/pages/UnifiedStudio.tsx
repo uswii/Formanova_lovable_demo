@@ -386,10 +386,8 @@ export default function UnifiedStudio() {
         clearInterval(ticker);
       }
     } catch (error) {
-      console.error('[UnifiedStudio] Generation error:', error);
-      setGenerationError(error instanceof Error ? error.message : 'Unknown error');
+      setGenerationError('unavailable');
       setIsGenerating(false);
-      toast({ variant: 'destructive', title: 'Generation failed', description: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 
