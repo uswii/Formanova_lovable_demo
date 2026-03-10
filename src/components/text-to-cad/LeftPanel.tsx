@@ -66,13 +66,13 @@ export default function LeftPanel({
         {/* AI Model */}
         <section>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
-          <div className="flex gap-0 border border-border min-w-0 overflow-hidden">
+          <div className="flex gap-0 border border-border min-w-0">
             {AI_MODELS.filter((m) => !m.hidden).map((m) => (
               <button
                 key={m.id}
                 onClick={() => !m.comingSoon && setModel(m.id)}
                 disabled={m.comingSoon}
-                className={`flex-1 min-w-0 py-3 px-1.5 text-[11px] lg:text-[12px] font-semibold uppercase tracking-[0.05em] lg:tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 overflow-hidden ${
+                className={`flex-1 min-w-0 py-3 px-2 text-[11px] lg:text-[12px] font-semibold uppercase tracking-[0.05em] lg:tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
                   m.comingSoon
                     ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
                     : model === m.id
@@ -80,9 +80,9 @@ export default function LeftPanel({
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
                 }`}
               >
-                <span className="block truncate">{m.label}</span>
-                {m.comingSoon && <span className="block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide truncate">Soon</span>}
-                {!m.comingSoon && <span className={`block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide truncate ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
+                <span className="block text-center">{m.label}</span>
+                {m.comingSoon && <span className="block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide text-center">Soon</span>}
+                {!m.comingSoon && m.tier && <span className={`block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide text-center ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
               </button>
             ))}
           </div>
