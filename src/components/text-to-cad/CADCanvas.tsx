@@ -152,6 +152,31 @@ function OrbitControlsWithRef(props: any) {
 }
 
 // ── Mesh data extracted from GLB ──
+/** Wireframe overlay that syncs transform from a source mesh ref every frame */
+function SelectionWireframeOverlay({
+  sourceMeshName,
+  geometry,
+  meshRefs,
+}: {
+  sourceMeshName: string;
+  geometry: THREE.BufferGeometry;
+  meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
+}) {
+  const overlayRef = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    const src = meshRefs.current.get(sourceMeshName);
+    const dst = overlayRef.current;
+    if (src && dst) {
+      dst.position.copy(src.position);
+      dst.quaternion.copy(src.quaternion);
+      dst.scale.copy(src.scale);
+    }
+  });
+  return (
+    <mesh ref={overlayRef} geometry={geometry} material={SELECTION_WIREFRAME_MATERIAL} renderOrder={999} />
+  );
+}
+
 interface MeshData {
   name: string;
   geometry: THREE.BufferGeometry;
