@@ -61,7 +61,7 @@ export default function TextToCAD() {
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
 
