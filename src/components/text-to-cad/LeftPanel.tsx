@@ -184,8 +184,8 @@ export default function LeftPanel({
               exit={{ opacity: 0, y: -10 }}
               className="relative p-4 lg:p-5 bg-muted/30 border border-border min-w-0 overflow-hidden"
             >
-              <h3 className="font-display text-base lg:text-lg tracking-[0.12em] lg:tracking-[0.15em] text-foreground uppercase mb-1 truncate">Edit Your Ring</h3>
-              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide truncate">Describe changes, rebuild parts, or add new elements</p>
+              <h3 className="font-display text-base lg:text-lg tracking-[0.12em] lg:tracking-[0.15em] text-foreground uppercase mb-1">Edit Your Ring</h3>
+              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide">Describe changes, rebuild parts, or add new elements</p>
 
               {/* Text edit prompt */}
               <textarea
@@ -198,12 +198,12 @@ export default function LeftPanel({
               <button
                 onClick={onEdit}
                 disabled={isGenerating || !editPrompt.trim()}
-                className="w-full py-4 mt-3 text-[12px] lg:text-[13px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
+                className="w-full py-4 mt-3 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
               >
-                <span className="truncate">Apply Edit</span>
-                <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
+                <span>Apply Edit</span>
+                <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                   <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[12px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                 </span>
               </button>
 
