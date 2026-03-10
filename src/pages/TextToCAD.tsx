@@ -765,7 +765,7 @@ export default function TextToCAD() {
         toast.success("Transform reset");
         break;
       case "apply-transform":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Apply transform");
         canvasRef.current?.applyTransform(names);
         toast.success("Transform applied to geometry");
