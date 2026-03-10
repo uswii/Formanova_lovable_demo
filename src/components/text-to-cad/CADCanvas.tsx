@@ -981,6 +981,22 @@ const LoadedModel = forwardRef<
         />
       ))}
 
+      {/* Wireframe selection overlay for selected standard meshes */}
+      {standardElements.filter(md => md.isSelected).map((md) => {
+        const srcMesh = meshRefs.current.get(md.name);
+        return (
+          <mesh
+            key={`sel_wire_${md.name}`}
+            geometry={md.geometry}
+            material={SELECTION_WIREFRAME_MATERIAL}
+            position={srcMesh?.position}
+            quaternion={srcMesh?.quaternion}
+            scale={srcMesh?.scale}
+            renderOrder={999}
+          />
+        );
+      })}
+
       {/* Diamond overlay: refraction material rendered separately */}
       {gemElements.map((gem) => (
         <SyncedGemOverlay
