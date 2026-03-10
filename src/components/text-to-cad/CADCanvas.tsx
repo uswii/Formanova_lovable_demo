@@ -639,6 +639,8 @@ const LoadedModel = forwardRef<
         const old = materialCache.current.get(key);
         if (old) old.dispose();
         materialCache.current.delete(key);
+        // Mark: user explicitly applied material after selecting this mesh
+        materialAppliedAfterSelect.current.add(n);
       });
       setAssignedMaterials((prev) => {
         const next = { ...prev };
