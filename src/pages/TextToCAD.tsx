@@ -80,6 +80,16 @@ export default function TextToCAD() {
       pollAbortRef.current?.abort();
     };
   }, []);
+
+  // Expand right panel when model is loaded, collapse when no model
+  useEffect(() => {
+    if (hasModel) {
+      rightPanelRef.current?.expand();
+    } else {
+      rightPanelRef.current?.collapse();
+    }
+  }, [hasModel]);
+
   meshesRef.current = meshes;
 
   const selectedMeshNames = useMemo(
