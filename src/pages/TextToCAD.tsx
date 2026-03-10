@@ -366,6 +366,7 @@ export default function TextToCAD() {
       setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);
+      refreshCredits().catch(() => {});
       setHasModel(true);
       setShowPartRegen(true);
 
