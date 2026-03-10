@@ -127,16 +127,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
             hasSelection={hasSelection}
             matTab={matTab}
             setMatTab={setMatTab}
-            filtersOpen={filtersOpen}
-            setFiltersOpen={setFiltersOpen}
-            hasActiveFilters={hasActiveFilters}
-            filterType={filterType}
-            setFilterType={setFilterType}
-            filterAlloy={filterAlloy}
-            setFilterAlloy={setFilterAlloy}
-            filterFinish={filterFinish}
-            setFilterFinish={setFilterFinish}
-            clearFilters={clearFilters}
             filteredMaterials={filteredMaterials}
             onApplyMaterial={onApplyMaterial}
           />
