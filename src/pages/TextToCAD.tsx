@@ -388,6 +388,7 @@ export default function TextToCAD() {
     await new Promise((r) => setTimeout(r, 1500));
     setProgressStep("success_final");
     setIsGenerating(false);
+    refreshCredits().catch(() => {});
     setIsEditing(false);
     setEditPrompt("");
     toast.success("Edit applied");
