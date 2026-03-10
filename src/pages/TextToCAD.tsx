@@ -784,7 +784,7 @@ export default function TextToCAD() {
         toast.success(`Duplicated ${names.length} mesh(es)`);
         break;
       case "flip-normals":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Flip normals");
         canvasRef.current?.flipNormals(names);
         toast.success("Normals flipped");
