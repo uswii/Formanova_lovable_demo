@@ -212,14 +212,14 @@ export default function LeftPanel({
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}
-                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
+                <div className="border-2 border-border bg-card p-3 lg:p-4">
                   <button
                     onClick={() => setRebuildOpen(!rebuildOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
+                    className="w-full flex items-center justify-between cursor-pointer"
                   >
-                    <div className="text-left min-w-0 overflow-hidden mr-2">
-                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">⚙ Rebuild</span>
-                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Select and regenerate any component</span>
+                    <div className="text-left mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component</span>
                     </div>
                     {rebuildOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -241,7 +241,7 @@ export default function LeftPanel({
                               <button
                                 key={part.id}
                                 onClick={() => setSelectedPart(part.id)}
-                                className={`py-2.5 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border text-center ${
+                                className={`py-2.5 px-1 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border text-center ${
                                   PART_REGEN_PARTS.length % 2 !== 0 && idx === PART_REGEN_PARTS.length - 1 ? "col-span-2" : ""
                                 } ${
                                   selectedPart === part.id
@@ -262,10 +262,10 @@ export default function LeftPanel({
                           <button
                             disabled={!selectedPart || isGenerating}
                             onClick={() => selectedPart && onRebuildPart?.(selectedPart, rebuildDesc)}
-                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
+                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
-                            <span className="truncate">Rebuild Part</span>
-                            <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
+                            <span>Rebuild Part</span>
+                            <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                               <img src={creditCoinIcon} alt="" className="w-4 h-4" />
                               <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
@@ -277,14 +277,14 @@ export default function LeftPanel({
                 </div>
 
                 {/* Add Parts — primary card */}
-                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
+                <div className="border-2 border-border bg-card p-3 lg:p-4">
                   <button
                     onClick={() => setAddPartOpen(!addPartOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
+                    className="w-full flex items-center justify-between cursor-pointer"
                   >
-                    <div className="text-left min-w-0 overflow-hidden mr-2">
-                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">✚ Add On</span>
-                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Generate and add a new element</span>
+                    <div className="text-left mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block">✚ Add On</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block">Generate and add a new element</span>
                     </div>
                     {addPartOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -310,10 +310,10 @@ export default function LeftPanel({
                           <button
                             disabled={isGenerating || !newPartDesc.trim()}
                             onClick={() => onAddPart?.(newPartDesc)}
-                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
+                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
-                            <span className="truncate">Add to Ring</span>
-                            <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
+                            <span>Add to Ring</span>
+                            <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                               <img src={creditCoinIcon} alt="" className="w-4 h-4" />
                               <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
