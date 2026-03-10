@@ -291,6 +291,11 @@ const LoadedModel = forwardRef<
   }, [url, onLoadStart, onLoadEnd]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
+  // Keep refs that always point to the latest state — avoids stale closures in R3F reconciler
+  const meshDataListRef = useRef<MeshData[]>([]);
+  meshDataListRef.current = meshDataList;
+  const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
+  assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
