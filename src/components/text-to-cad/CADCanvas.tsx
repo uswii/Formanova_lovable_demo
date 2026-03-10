@@ -931,12 +931,14 @@ const LoadedModel = forwardRef<
 
   const { standardElements, gemElements } = useMemo(() => {
     // ── Clear "material applied after select" when selection changes (synchronous) ──
-    const prev = prevSelectedRef.current;
-    const selectionChanged = selectedMeshNames.size !== prev.size ||
-      [...selectedMeshNames].some(n => !prev.has(n));
+    const prevSel = prevSelectedRef.current;
+    const selectionChanged = selectedMeshNames.size !== prevSel.size ||
+      [...selectedMeshNames].some(n => !prevSel.has(n));
     if (selectionChanged) {
       materialAppliedAfterSelect.current.clear();
       prevSelectedRef.current = new Set(selectedMeshNames);
+      // Ensure canvas re-renders with demand frameloop
+      requestAnimationFrame(() => inv());
     }
 
     // Clear cache entries for meshes whose assigned material changed since last render
@@ -975,18 +977,18 @@ const LoadedModel = forwardRef<
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
 
+      // Selection highlight — show blue overlay when selected, UNLESS the user
+      // explicitly applied a material after selecting (materialAppliedAfterSelect).
+      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        return;
+      }
+
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
         gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
         const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
         standard.push({ ...md, material: hiddenMat, isSelected });
-        return;
-      }
-
-      // Selection highlight — show blue overlay when selected, UNLESS the user
-      // explicitly applied a material after selecting (materialAppliedAfterSelect).
-      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
 
