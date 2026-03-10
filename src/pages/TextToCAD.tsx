@@ -671,9 +671,6 @@ export default function TextToCAD() {
 
   const handleDownloadGlb = useCallback(async () => {
     try {
-      const filename = await promptRename("ring", "glb");
-      if (!filename) return; // user cancelled
-
       // Export the current scene with all modifications (textures, transforms, etc.)
       let blob: Blob;
       if (canvasRef.current) {
@@ -693,9 +690,12 @@ export default function TextToCAD() {
       } else {
         return;
       }
+      // Use browser's native download with a generated default name
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+      const defaultName = `model-${timestamp}.glb`;
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = filename;
+      a.download = defaultName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -703,7 +703,7 @@ export default function TextToCAD() {
     } catch {
       toast.error("Failed to download model");
     }
-  }, [glbUrl, promptRename]);
+  }, [glbUrl]);
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
