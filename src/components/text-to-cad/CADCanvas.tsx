@@ -294,6 +294,11 @@ const LoadedModel = forwardRef<
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  // Tracks meshes where the user explicitly applied a material AFTER selecting them.
+  // When this set contains a mesh name, the applied material is shown instead of the blue overlay.
+  // Cleared when selection changes; populated by applyMaterial.
+  const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
+  const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
 
   // ── Decompose scene into individual mesh data ──
@@ -634,6 +639,8 @@ const LoadedModel = forwardRef<
         const old = materialCache.current.get(key);
         if (old) old.dispose();
         materialCache.current.delete(key);
+        // Mark: user explicitly applied material after selecting this mesh
+        materialAppliedAfterSelect.current.add(n);
       });
       setAssignedMaterials((prev) => {
         const next = { ...prev };
@@ -828,6 +835,8 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => {
       setMeshDataList(snap.meshDataList);
       setAssignedMaterials(snap.assignedMaterials);
+      // Clear the "material applied after select" tracking so overlay reappears on undo
+      materialAppliedAfterSelect.current.clear();
       flatGeoCache.current.forEach((g) => g.dispose());
       flatGeoCache.current.clear();
       materialCache.current.forEach((m) => m.dispose());
@@ -914,6 +923,19 @@ const LoadedModel = forwardRef<
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
+  // ── Clear "material applied after select" when selection changes ──
+  // This ensures the blue overlay always appears on fresh selection.
+  useEffect(() => {
+    // Detect if selection actually changed (not just a re-render)
+    const prev = prevSelectedRef.current;
+    const changed = selectedMeshNames.size !== prev.size ||
+      [...selectedMeshNames].some(n => !prev.has(n));
+    if (changed) {
+      materialAppliedAfterSelect.current.clear();
+      prevSelectedRef.current = new Set(selectedMeshNames);
+    }
+  }, [selectedMeshNames]);
+
   // ── Separate gemstone meshes from standard meshes ──
   // Track previous assignedMaterials to detect changes and clear stale cache entries synchronously
   const prevAssignedRef = useRef<Record<string, MaterialDef>>({});
@@ -963,8 +985,9 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      // Selection highlight — only show blue overlay if no material has been assigned
-      if (isSelected && !assigned) {
+      // Selection highlight — show blue overlay when selected, UNLESS the user
+      // explicitly applied a material after selecting (materialAppliedAfterSelect).
+      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
         standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
