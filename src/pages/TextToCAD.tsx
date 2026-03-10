@@ -657,7 +657,7 @@ export default function TextToCAD() {
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
     setAdditionalParts([]);
     setGlbUrl(undefined);
-    sessionStorage.removeItem(CAD_SESSION_KEY);
+    
   };
 
   const handleDownloadGlb = useCallback(async () => {
