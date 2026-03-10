@@ -33,6 +33,7 @@ export default function LeftPanel({
   selectedModules, toggleModule,
   isGenerating, isEditing, hasModel, modules,
   onGenerate, onEdit, onQuickEdit, onMagicTexture, onGlbUpload,
+  onRebuildPart, onAddPart,
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
