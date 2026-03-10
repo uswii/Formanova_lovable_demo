@@ -771,7 +771,7 @@ export default function TextToCAD() {
         toast.success("Transform applied to geometry");
         break;
       case "delete":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Delete meshes");
         canvasRef.current?.deleteMeshes(names);
         setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
