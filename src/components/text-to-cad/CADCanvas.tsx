@@ -982,16 +982,29 @@ const LoadedModel = forwardRef<
   return (
     <group>
       {standardElements.map((md) => (
-        <mesh
-          key={md.name}
-          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
-          geometry={md.geometry}
-          material={md.material}
-          onClick={(e: ThreeEvent<MouseEvent>) => {
-            e.stopPropagation();
-            onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
-          }}
-        />
+        <group key={md.name}>
+          <mesh
+            ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+            geometry={md.geometry}
+            material={md.material}
+            onClick={(e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation();
+              onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+            }}
+          />
+          {/* Selection wireframe outline overlay */}
+          {md.isSelected && (
+            <mesh geometry={md.geometry}>
+              <meshBasicMaterial
+                color={0x3399ff}
+                wireframe
+                transparent
+                opacity={0.4}
+                depthTest={false}
+              />
+            </mesh>
+          )}
+        </group>
       ))}
 
       {/* Diamond overlay: refraction material rendered separately */}
