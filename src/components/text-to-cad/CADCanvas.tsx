@@ -923,24 +923,22 @@ const LoadedModel = forwardRef<
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
-  // ── Clear "material applied after select" when selection changes ──
-  // This ensures the blue overlay always appears on fresh selection.
-  useEffect(() => {
-    // Detect if selection actually changed (not just a re-render)
-    const prev = prevSelectedRef.current;
-    const changed = selectedMeshNames.size !== prev.size ||
-      [...selectedMeshNames].some(n => !prev.has(n));
-    if (changed) {
-      materialAppliedAfterSelect.current.clear();
-      prevSelectedRef.current = new Set(selectedMeshNames);
-    }
-  }, [selectedMeshNames]);
+  // Selection-change detection moved into useMemo below (synchronous)
 
   // ── Separate gemstone meshes from standard meshes ──
   // Track previous assignedMaterials to detect changes and clear stale cache entries synchronously
   const prevAssignedRef = useRef<Record<string, MaterialDef>>({});
 
   const { standardElements, gemElements } = useMemo(() => {
+    // ── Clear "material applied after select" when selection changes (synchronous) ──
+    const prev = prevSelectedRef.current;
+    const selectionChanged = selectedMeshNames.size !== prev.size ||
+      [...selectedMeshNames].some(n => !prev.has(n));
+    if (selectionChanged) {
+      materialAppliedAfterSelect.current.clear();
+      prevSelectedRef.current = new Set(selectedMeshNames);
+    }
+
     // Clear cache entries for meshes whose assigned material changed since last render
     const prevAssigned = prevAssignedRef.current;
     for (const name of Object.keys(assignedMaterials)) {
