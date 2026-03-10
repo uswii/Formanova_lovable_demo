@@ -147,7 +147,7 @@ export default function TextToCAD() {
       if (last.canvasSnapshot) {
         canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
       }
-      toast.success(`Redo: ${last.label}`);
+      // silent redo
       return prev.slice(0, -1);
     });
   }, []);
