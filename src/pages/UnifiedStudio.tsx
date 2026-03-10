@@ -286,7 +286,12 @@ export default function UnifiedStudio() {
       let modelUrl: string;
 
       if (selectedModel) {
-        modelUrl = selectedModel.url;
+        // Preset models have HTTPS URLs — convert to azure:// URI expected by backend
+        // e.g. https://snapwear.blob.core.windows.net/agentic-artifacts/Models/Ecom/A.jpg
+        //    → azure://agentic-artifacts/Models/Ecom/A.jpg
+        const presetUrl = selectedModel.url;
+        const azMatch = presetUrl.match(/blob\.core\.windows\.net\/([^?]+)/);
+        modelUrl = azMatch ? `azure://${azMatch[1]}` : presetUrl;
       } else if (customModelImage && customModelFile) {
         setGenerationStep('Uploading model image...');
         const modelBlob = await imageSourceToBlob(customModelImage);
@@ -298,7 +303,7 @@ export default function UnifiedStudio() {
           reader.readAsDataURL(compressedModel);
         });
         const azResult = await uploadToAzure(base64);
-        modelUrl = azResult.https_url || azResult.sas_url;
+        modelUrl = azResult.uri || azResult.https_url || azResult.sas_url;
       } else {
         throw new Error('No model selected');
       }
