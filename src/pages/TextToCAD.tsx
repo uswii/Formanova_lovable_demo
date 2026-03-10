@@ -94,13 +94,18 @@ export default function TextToCAD() {
     [meshes]
   );
 
-  // Push full state (UI + 3D) onto undo stack
+  // Push a pre-captured state onto undo stack (state BEFORE the action)
+  const pushUndoEntry = useCallback((label: string, entry: UndoEntry) => {
+    setUndoStack((prev) => [...prev, entry]);
+    setRedoStack([]); // Clear redo on new action
+  }, []);
+
+  // Convenience: capture current state and push it (for actions where we call BEFORE the mutation)
   const pushUndo = useCallback((label: string) => {
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
-    setUndoStack((prev) => [...prev, { label, meshes: currentMeshes, canvasSnapshot: snap }]);
-    setRedoStack([]); // Clear redo on new action
-  }, []);
+    pushUndoEntry(label, { label, meshes: currentMeshes, canvasSnapshot: snap });
+  }, [pushUndoEntry]);
 
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
@@ -134,24 +139,67 @@ export default function TextToCAD() {
     });
   }, []);
 
+  // ── Gizmo transform: capture BEFORE drag starts, push on drag end ──
+  const preTransformSnapshotRef = useRef<UndoEntry | null>(null);
+
+  const handleTransformStart = useCallback(() => {
+    // Capture the state BEFORE the gizmo drag modifies anything
+    const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+    const snap = canvasRef.current?.getSnapshot() ?? null;
+    preTransformSnapshotRef.current = { label: `Transform (${transformMode})`, meshes: currentMeshes, canvasSnapshot: snap };
+  }, [transformMode]);
+
   const handleTransformEnd = useCallback(() => {
-    pushUndo(`Transform (${transformMode})`);
+    // Push the PRE-transform snapshot so undo restores to before the drag
+    if (preTransformSnapshotRef.current) {
+      pushUndoEntry(preTransformSnapshotRef.current.label, preTransformSnapshotRef.current);
+      preTransformSnapshotRef.current = null;
+    }
     // Sync numeric fields after gizmo drag
     setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
-  }, [pushUndo, transformMode]);
+  }, [pushUndoEntry]);
 
   // Refresh transform data whenever selection changes
   useEffect(() => {
     setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
   }, [selectedMeshNames]);
 
+  // ── Numeric transform: capture on first change, debounce commit ──
+  const numericUndoRef = useRef<{ snapshot: UndoEntry; timer: ReturnType<typeof setTimeout> } | null>(null);
+
   const handleNumericTransformChange = useCallback((axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
+    // Capture snapshot on first numeric change in a sequence
+    if (!numericUndoRef.current) {
+      const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+      const snap = canvasRef.current?.getSnapshot() ?? null;
+      const label = `Numeric ${property}`;
+      numericUndoRef.current = {
+        snapshot: { label, meshes: currentMeshes, canvasSnapshot: snap },
+        timer: setTimeout(() => {
+          // Commit after 800ms idle
+          if (numericUndoRef.current) {
+            pushUndoEntry(numericUndoRef.current.snapshot.label, numericUndoRef.current.snapshot);
+            numericUndoRef.current = null;
+          }
+        }, 800),
+      };
+    } else {
+      // Reset the debounce timer on continued input
+      clearTimeout(numericUndoRef.current.timer);
+      numericUndoRef.current.timer = setTimeout(() => {
+        if (numericUndoRef.current) {
+          pushUndoEntry(numericUndoRef.current.snapshot.label, numericUndoRef.current.snapshot);
+          numericUndoRef.current = null;
+        }
+      }, 800);
+    }
+
     canvasRef.current?.setMeshTransform(axis, property, value);
     // Read back the updated transform for UI sync
     requestAnimationFrame(() => {
       setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
     });
-  }, []);
+  }, [pushUndoEntry]);
 
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
@@ -659,6 +707,10 @@ export default function TextToCAD() {
   };
 
   const handleMeshAction = (action: string) => {
+    // Track visibility changes for undo (skip selection-only changes)
+    const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
+    if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
+
     setMeshes((prev) => {
       switch (action) {
         case "hide": return prev.map((m) => m.selected ? { ...m, visible: false } : m);
@@ -867,6 +919,7 @@ export default function TextToCAD() {
               onMeshClick={handleSelectMesh}
               transformMode={transformMode}
               onMeshesDetected={handleMeshesDetected}
+              onTransformStart={handleTransformStart}
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
               onModelReady={handleModelReady}

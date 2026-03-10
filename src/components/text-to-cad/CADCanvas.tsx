@@ -67,11 +67,13 @@ function useInvalidate() {
 function TransformControlsWrapper({
   object,
   mode,
+  onDragStart,
   onDragEnd,
   onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
+  onDragStart?: () => void;
   onDragEnd?: (obj: THREE.Object3D) => void;
   onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
 }) {
@@ -90,6 +92,7 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        onDragStart?.();
         inv();
       }
       // When drag ends, pass the object back so we can sync state
@@ -221,12 +224,13 @@ const LoadedModel = forwardRef<
     onMeshClick: (name: string, multi: boolean) => void;
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+    onTransformStart?: () => void;
     onTransformEnd?: () => void;
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
     onModelReady?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -600,6 +604,11 @@ const LoadedModel = forwardRef<
       }
     }
   }, []);
+
+  // Called when TransformControls drag starts
+  const handleDragStart = useCallback(() => {
+    onTransformStart?.();
+  }, [onTransformStart]);
 
   // Called when TransformControls drag ends
   const handleDragEnd = useCallback((obj: THREE.Object3D) => {
@@ -999,6 +1008,7 @@ const LoadedModel = forwardRef<
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onRotationDelta={handleRotationDelta}
         />
@@ -1185,13 +1195,14 @@ interface CADCanvasProps {
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+  onTransformStart?: () => void;
   onTransformEnd?: () => void;
   lightIntensity?: number;
   onModelReady?: () => void;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1, onModelReady }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
 
@@ -1305,6 +1316,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
+                onTransformStart={onTransformStart}
                 onTransformEnd={onTransformEnd}
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
