@@ -997,6 +997,35 @@ export default function TextToCAD() {
                 </div>
               )}
             </div>
+
+            {/* Selection warning — centered overlay instead of toast */}
+            <AnimatePresence>
+              {selectionWarning && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
+                >
+                  <div className="pointer-events-auto bg-card border border-border shadow-2xl px-8 py-5 max-w-xs text-center">
+                    <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
+                      No Selection
+                    </div>
+                    <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                      {selectionWarning}
+                    </p>
+                    <button
+                      onClick={() => setSelectionWarning(null)}
+                      className="mt-4 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                    >
+                      OK
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
