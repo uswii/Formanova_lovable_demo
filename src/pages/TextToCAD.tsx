@@ -84,7 +84,7 @@ export default function TextToCAD() {
   // Expand right panel when model is loaded, collapse when no model
   useEffect(() => {
     if (hasModel) {
-      rightPanelRef.current?.expand();
+      rightPanelRef.current?.expand(22);
     } else {
       rightPanelRef.current?.collapse();
     }
