@@ -295,7 +295,12 @@ const LoadedModel = forwardRef<
   const meshDataListRef = useRef<MeshData[]>([]);
   meshDataListRef.current = meshDataList;
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
-  assignedMaterialsRef.current = assignedMaterials;
+  // Sync via useEffect to guarantee the ref updates AFTER React commits the state change.
+  // Inline assignment (assignedMaterialsRef.current = assignedMaterials) can be read mid-render
+  // before React finishes batching, causing stale reads in async callbacks like exportSceneBlob.
+  useEffect(() => {
+    assignedMaterialsRef.current = assignedMaterials;
+  }, [assignedMaterials]);
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());

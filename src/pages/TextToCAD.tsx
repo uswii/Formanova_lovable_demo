@@ -672,6 +672,9 @@ export default function TextToCAD() {
   const handleDownloadGlb = useCallback(async () => {
     try {
       // Export the current scene with all modifications (textures, transforms, etc.)
+      // Defer by one frame so React flushes any pending state updates (e.g. assignedMaterials)
+      // before the exporter reads from refs. Without this, the export can read stale material state.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       let blob: Blob;
       if (canvasRef.current) {
         blob = await canvasRef.current.exportSceneBlob();
