@@ -40,7 +40,7 @@ interface UndoEntry {
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
-  const { promptRename, DownloadDialog } = useDownloadRename();
+  
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
