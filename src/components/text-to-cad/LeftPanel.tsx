@@ -258,7 +258,8 @@ export default function LeftPanel({
                             className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
                           />
                           <button
-                            disabled={!selectedPart}
+                            disabled={!selectedPart || isGenerating}
+                            onClick={() => selectedPart && onRebuildPart?.(selectedPart, rebuildDesc)}
                             className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
                           >
                             <span className="truncate">Rebuild Part</span>
