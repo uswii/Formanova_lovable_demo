@@ -707,6 +707,10 @@ export default function TextToCAD() {
   };
 
   const handleMeshAction = (action: string) => {
+    // Track visibility changes for undo (skip selection-only changes)
+    const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
+    if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
+
     setMeshes((prev) => {
       switch (action) {
         case "hide": return prev.map((m) => m.selected ? { ...m, visible: false } : m);
