@@ -670,6 +670,8 @@ export default function TextToCAD() {
                 hasModel={hasModel} modules={modules}
                 onGenerate={simulateGeneration}
                 onEdit={simulateEdit}
+                onRebuildPart={handleRebuildPart}
+                onAddPart={handleAddPart}
                 onQuickEdit={handleQuickEdit}
                 onMagicTexture={() => {
                   canvasRef.current?.removeAllTextures();
