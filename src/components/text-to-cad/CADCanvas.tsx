@@ -294,6 +294,11 @@ const LoadedModel = forwardRef<
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  // Tracks meshes where the user explicitly applied a material AFTER selecting them.
+  // When this set contains a mesh name, the applied material is shown instead of the blue overlay.
+  // Cleared when selection changes; populated by applyMaterial.
+  const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
+  const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
 
   // ── Decompose scene into individual mesh data ──
