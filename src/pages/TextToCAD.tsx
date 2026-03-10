@@ -807,7 +807,7 @@ export default function TextToCAD() {
       default:
         break;
     }
-  }, [selectedNames, meshes, pushUndo]);
+  }, [selectedNames, meshes, pushUndo, showSelectionWarning]);
 
   // Centralized keyboard shortcuts (window-level listener)
   const toggleWireframe = useCallback(() => {
