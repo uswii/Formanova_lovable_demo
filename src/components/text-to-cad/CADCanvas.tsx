@@ -935,11 +935,6 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      if (isSelected) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
-        return;
-      }
-
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
       if (!material) {
