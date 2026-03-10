@@ -324,7 +324,6 @@ export default function UnifiedStudio() {
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
       };
-      console.log('[UnifiedStudio] startPhotoshoot payload:', JSON.stringify(photoshootPayload));
       const startResponse = await startPhotoshoot(photoshootPayload);
 
       setWorkflowId(startResponse.workflow_id);
