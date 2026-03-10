@@ -264,7 +264,10 @@ export default function UnifiedStudio() {
       setGenerationProgress(5);
       let jewelryUrl: string;
       if (jewelryUploadedUrl) {
-        jewelryUrl = jewelryUploadedUrl;
+        // jewelryUploadedUrl is azure:// from validation — convert to HTTPS
+        jewelryUrl = jewelryUploadedUrl.startsWith('azure://')
+          ? `https://snapwear.blob.core.windows.net/${jewelryUploadedUrl.replace('azure://', '')}`
+          : jewelryUploadedUrl;
         setGenerationProgress(20);
       } else {
         setGenerationStep('Uploading jewelry image...');
@@ -286,12 +289,8 @@ export default function UnifiedStudio() {
       let modelUrl: string;
 
       if (selectedModel) {
-        // Preset models have HTTPS URLs — convert to azure:// URI expected by backend
-        // e.g. https://snapwear.blob.core.windows.net/agentic-artifacts/Models/Ecom/A.jpg
-        //    → azure://agentic-artifacts/Models/Ecom/A.jpg
-        const presetUrl = selectedModel.url;
-        const azMatch = presetUrl.match(/blob\.core\.windows\.net\/([^?]+)/);
-        modelUrl = azMatch ? `azure://${azMatch[1]}` : presetUrl;
+        // Preset models already have HTTPS URLs — use directly
+        modelUrl = selectedModel.url;
       } else if (customModelImage && customModelFile) {
         setGenerationStep('Uploading model image...');
         const modelBlob = await imageSourceToBlob(customModelImage);
@@ -303,7 +302,7 @@ export default function UnifiedStudio() {
           reader.readAsDataURL(compressedModel);
         });
         const azResult = await uploadToAzure(base64);
-        modelUrl = azResult.uri || azResult.https_url || azResult.sas_url;
+        modelUrl = azResult.https_url || azResult.sas_url;
       } else {
         throw new Error('No model selected');
       }
@@ -311,15 +310,7 @@ export default function UnifiedStudio() {
       setGenerationProgress(35);
       setGenerationStep('Starting AI photoshoot...');
 
-      // Unwrap potential { uri: '...' } objects to plain strings
-      const resolvedJewelryUrl = typeof jewelryUrl === 'object' && jewelryUrl !== null && 'uri' in (jewelryUrl as any)
-        ? (jewelryUrl as any).uri as string
-        : jewelryUrl;
-      const resolvedModelUrl = typeof modelUrl === 'object' && modelUrl !== null && 'uri' in (modelUrl as any)
-        ? (modelUrl as any).uri as string
-        : modelUrl;
-
-      if (!resolvedJewelryUrl || !resolvedModelUrl) {
+      if (!jewelryUrl || !modelUrl) {
         toast({ variant: 'destructive', title: 'Missing images', description: 'Please select both a jewelry image and a model before generating.' });
         setIsGenerating(false);
         setCurrentStep('model');
@@ -328,8 +319,8 @@ export default function UnifiedStudio() {
 
       const idempotencyKey = `${Date.now()}-${jewelryType}-${selectedModel?.id || 'custom'}`;
       const photoshootPayload = {
-        jewelry_image_url: resolvedJewelryUrl,
-        model_image_url: resolvedModelUrl,
+        jewelry_image_url: jewelryUrl,
+        model_image_url: modelUrl,
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
       };
