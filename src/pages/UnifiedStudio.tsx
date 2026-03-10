@@ -322,12 +322,14 @@ export default function UnifiedStudio() {
       }
 
       const idempotencyKey = `${Date.now()}-${jewelryType}-${selectedModel?.id || 'custom'}`;
-      const startResponse = await startPhotoshoot({
+      const photoshootPayload = {
         jewelry_image_url: resolvedJewelryUrl,
         model_image_url: resolvedModelUrl,
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
-      });
+      };
+      console.log('[UnifiedStudio] startPhotoshoot payload:', JSON.stringify(photoshootPayload));
+      const startResponse = await startPhotoshoot(photoshootPayload);
 
       setWorkflowId(startResponse.workflow_id);
 
@@ -380,6 +382,7 @@ export default function UnifiedStudio() {
           }
 
           if (state === 'failed') {
+            console.error('[UnifiedStudio] Workflow failed. Full status:', JSON.stringify(status));
             throw new Error(status.error || 'Photoshoot generation failed');
           }
         }
