@@ -1,4 +1,4 @@
-import { useRef, useCallback, Suspense, useEffect, useMemo } from "react";
+import { useRef, useCallback, Suspense, useEffect, useMemo, useState } from "react";
 import { Canvas, useThree, useFrame, ThreeEvent, useLoader } from "@react-three/fiber";
 import {
   Environment,
