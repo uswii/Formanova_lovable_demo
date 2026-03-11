@@ -1331,6 +1331,7 @@ export interface CADCanvasHandle {
   smoothMesh: (meshNames: string[], iterations: number) => void;
   applyTransform: (meshNames: string[]) => void;
   removeAllTextures: () => void;
+  applyMagicTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
   getSelectedTransform: () => MeshTransformData | null;
