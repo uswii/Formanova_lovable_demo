@@ -22,7 +22,7 @@ export interface QualitySettings {
 const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
   low: {
     tier: "low",
-    dpr: [1, 1],
+    dpr: [0.75, 0.75],
     gemBounces: 2,
     aberrationScale: 0,
     postProcessing: false,
