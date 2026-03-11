@@ -371,6 +371,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       controls,
       loaded: false,
       loading: false,
+      error: false,
     };
 
     cardsRef.current.set(id, entry);
