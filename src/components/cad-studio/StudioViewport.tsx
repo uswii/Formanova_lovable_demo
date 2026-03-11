@@ -158,6 +158,17 @@ function LoadedModel({
   );
 }
 
+// ── Preload diamond HDRI at Canvas mount time ──
+function DiamondHDRIPreloader() {
+  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+  useEffect(() => {
+    if (envMap) {
+      envMap.mapping = THREE.EquirectangularReflectionMapping;
+    }
+  }, [envMap]);
+  return null;
+}
+
 /**
  * StudioGemOverlay — renders a gem with MeshRefractionMaterial
  * using dedicated diamond HDRI for realistic refraction.
@@ -285,6 +296,8 @@ export default function StudioViewport({
         }}
       >
         <Suspense fallback={null}>
+          {/* Preload diamond HDRI eagerly to prevent black flash on first gem application */}
+          <DiamondHDRIPreloader />
           <ambientLight intensity={0.1} />
           <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
           {Q.maxLights >= 4 && (
