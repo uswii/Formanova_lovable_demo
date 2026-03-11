@@ -65,6 +65,7 @@ export default function TextToCAD() {
   const [rightCollapsed, setRightCollapsed] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
+  const [magicTexturing, setMagicTexturing] = useState(false);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
@@ -927,8 +928,14 @@ export default function TextToCAD() {
               onRebuildPart={handleRebuildPart}
               onAddPart={handleAddPart}
               onQuickEdit={handleQuickEdit}
-              onMagicTexture={() => {
-                canvasRef.current?.removeAllTextures();
+              magicTexturing={magicTexturing}
+              onMagicTexturingChange={(on) => {
+                setMagicTexturing(on);
+                if (on) {
+                  canvasRef.current?.applyMagicTextures();
+                } else {
+                  canvasRef.current?.removeAllTextures();
+                }
               }}
               onGlbUpload={handleGlbUpload}
               creditBlock={creditBlock ? (
@@ -984,6 +991,7 @@ export default function TextToCAD() {
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
               onModelReady={handleModelReady}
+              magicTexturing={magicTexturing}
             />
 
             {/* Empty state */}

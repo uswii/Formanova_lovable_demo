@@ -213,6 +213,7 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => void;
     applyTransform: (meshNames: string[]) => void;
     removeAllTextures: () => void;
+    applyMagicTextures: () => void;
     getSelectedTransform: () => MeshTransformData | null;
     setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
   },
@@ -229,8 +230,9 @@ const LoadedModel = forwardRef<
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
     onModelReady?: () => void;
+    magicTexturing?: boolean;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -366,10 +368,13 @@ const LoadedModel = forwardRef<
     materialCache.current.clear();
 
     // ── Magic Texturing: auto-assign materials based on mesh name + material heuristics ──
+    // Only run if magicTexturing is enabled
+    const autoMaterials: Record<string, MaterialDef> = {};
+
+    if (magicTexturing) {
     // PRIORITY 0: If the GLB's embedded material name matches a library material
     //             (i.e. previously exported from Formanova), honour that assignment
     //             and skip heuristics entirely.
-    const autoMaterials: Record<string, MaterialDef> = {};
     let recognisedCount = 0;
 
     list.forEach((md) => {
@@ -448,6 +453,7 @@ const LoadedModel = forwardRef<
         }
       });
     }
+    } // end if (magicTexturing)
 
     setMeshDataList(list);
     setAssignedMaterials(autoMaterials);
@@ -817,6 +823,82 @@ const LoadedModel = forwardRef<
       materialCache.current.clear();
       inv();
       console.log("[CADCanvas] All magic textures removed");
+    },
+    // Apply magic texturing on demand
+    applyMagicTextures: () => {
+      const list = meshDataListRef.current;
+      if (!list.length) return;
+      
+      const newMaterials: Record<string, MaterialDef> = {};
+      let recognisedCount = 0;
+
+      // Priority 0: recognised from GLB material name
+      list.forEach((md) => {
+        const matName = md.originalMaterial?.name;
+        if (matName) {
+          const libMatch = findMaterialByName(matName);
+          if (libMatch) {
+            newMaterials[md.name] = libMatch;
+            recognisedCount++;
+          }
+        }
+      });
+
+      const useRecognised = recognisedCount > 0 && recognisedCount >= list.length * 0.5;
+
+      if (useRecognised) {
+        const fallbackGold = findMaterial("yellow-gold")!;
+        list.forEach((md) => {
+          if (!newMaterials[md.name]) newMaterials[md.name] = fallbackGold;
+        });
+      } else {
+        const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave", "brilliant", "round_cut", "cushion", "oval", "marquise", "princess", "facet"];
+        const platinumKeywords = ["prong", "claw", "bead", "milgrain", "setting", "basket", "collet"];
+        const diamondMatDef = findMaterial("diamond")!;
+        const platinumMatDef = findMaterial("platinum")!;
+        const goldMatDef = findMaterial("yellow-gold")!;
+        const vertCounts = list.map((md) => md.geometry?.attributes?.position?.count || 0).sort((a, b) => a - b);
+        const medianVerts = vertCounts[Math.floor(vertCounts.length / 2)] || 0;
+
+        const looksLikeGem = (mat: THREE.Material): boolean => {
+          if (!(mat instanceof THREE.MeshPhysicalMaterial || mat instanceof THREE.MeshStandardMaterial)) return false;
+          const phys = mat as THREE.MeshPhysicalMaterial;
+          if (phys.transmission !== undefined && phys.transmission > 0.1) return true;
+          if (phys.transparent && phys.opacity < 0.8) return true;
+          if (phys.metalness < 0.3 && phys.roughness < 0.15) return true;
+          return false;
+        };
+
+        const looksLikeMetal = (mat: THREE.Material): boolean => {
+          if (!(mat instanceof THREE.MeshPhysicalMaterial || mat instanceof THREE.MeshStandardMaterial)) return false;
+          return mat.metalness > 0.7;
+        };
+
+        list.forEach((md) => {
+          if (newMaterials[md.name]) return;
+          const lower = md.name.toLowerCase();
+          const verts = md.geometry?.attributes?.position?.count || 0;
+          if (gemKeywords.some((kw) => lower.includes(kw))) {
+            newMaterials[md.name] = diamondMatDef;
+          } else if (platinumKeywords.some((kw) => lower.includes(kw))) {
+            newMaterials[md.name] = platinumMatDef;
+          } else if (looksLikeGem(md.originalMaterial)) {
+            newMaterials[md.name] = diamondMatDef;
+          } else if (verts > 0 && verts < medianVerts * 0.3 && !looksLikeMetal(md.originalMaterial)) {
+            newMaterials[md.name] = diamondMatDef;
+          } else {
+            newMaterials[md.name] = goldMatDef;
+          }
+        });
+      }
+
+      flatGeoCache.current.forEach((g) => g.dispose());
+      flatGeoCache.current.clear();
+      materialCache.current.forEach((m) => m.dispose());
+      materialCache.current.clear();
+      setAssignedMaterials(newMaterials);
+      inv();
+      console.log("[CADCanvas] Magic textures applied on demand");
     },
     // Apply Transform: bake current transform into geometry, reset transform to identity
     applyTransform: (meshNames: string[]) => {
@@ -1325,6 +1407,7 @@ export interface CADCanvasHandle {
   smoothMesh: (meshNames: string[], iterations: number) => void;
   applyTransform: (meshNames: string[]) => void;
   removeAllTextures: () => void;
+  applyMagicTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
   getSelectedTransform: () => MeshTransformData | null;
@@ -1348,10 +1431,11 @@ interface CADCanvasProps {
   onTransformEnd?: () => void;
   lightIntensity?: number;
   onModelReady?: () => void;
+  magicTexturing?: boolean;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
 
@@ -1374,6 +1458,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       smoothMesh: (meshNames, iters) => modelRef.current?.smoothMesh(meshNames, iters),
       applyTransform: (meshNames) => modelRef.current?.applyTransform(meshNames),
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
+      applyMagicTextures: () => modelRef.current?.applyMagicTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
       getSelectedTransform: () => modelRef.current?.getSelectedTransform() ?? null,
@@ -1471,6 +1556,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
                 onModelReady={onModelReady}
+                magicTexturing={magicTexturing}
               />
             )}
 
