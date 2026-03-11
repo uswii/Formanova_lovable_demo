@@ -147,10 +147,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const dateStr = workflow.created_at
-    ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
-    : '—';
-
+  const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const durationSec =
     workflow.finished_at && workflow.created_at
       ? Math.round(
