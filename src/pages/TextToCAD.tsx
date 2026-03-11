@@ -671,7 +671,7 @@ export default function TextToCAD() {
   }, []);
 
   const handleReset = () => {
-    setPrompt("");
+    // Keep prompt populated for quick iteration; clear everything else
     setEditPrompt("");
     setSelectedModules([]);
     setHasModel(false);
@@ -682,7 +682,7 @@ export default function TextToCAD() {
     setModules([]);
     setUndoStack([]);
     setRedoStack([]);
-    setWorkspaceActive(false);
+    // Stay in workspace — do NOT reset workspaceActive
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
     setAdditionalParts([]);
@@ -942,6 +942,7 @@ export default function TextToCAD() {
                 }
               }}
               onGlbUpload={handleGlbUpload}
+              onReset={hasModel ? handleReset : undefined}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
@@ -1076,7 +1077,6 @@ export default function TextToCAD() {
               onRedo={handleRedo}
               undoCount={undoStack.length}
               redoCount={redoStack.length}
-              onReset={handleReset}
               onDownload={handleDownloadGlb}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;

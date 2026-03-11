@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
+import { Diamond, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
@@ -27,6 +27,7 @@ interface LeftPanelProps {
   onGlbUpload: (file: File) => void;
   onRebuildPart?: (partId: string, description: string) => void;
   onAddPart?: (description: string) => void;
+  onReset?: () => void;
   creditBlock?: React.ReactNode;
 }
 
@@ -36,6 +37,7 @@ export default function LeftPanel({
   isGenerating, isEditing, hasModel, modules,
   onGenerate, onEdit, onQuickEdit, magicTexturing, onMagicTexturingChange, onGlbUpload,
   onRebuildPart, onAddPart,
+  onReset,
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +136,18 @@ export default function LeftPanel({
                 <Diamond className="w-3 h-3" />
               </span>
               <span>Upload Ring Part</span>
+            </button>
+          )}
+
+          {/* Start Over — secondary action, clears model but keeps prompt */}
+          {onReset && (
+            <button
+              onClick={onReset}
+              disabled={isGenerating}
+              className="w-full py-2 mt-2 text-[10px] font-mono uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 text-muted-foreground/60 hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Start Over
             </button>
           )}
 
