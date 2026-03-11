@@ -1206,6 +1206,21 @@ const LoadedModel = forwardRef<
 
     const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
+    let refractionGemCount = 0;
+
+    // Cheap fallback material for gems beyond the quality-tier cap
+    const gemFallbackMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0xffffff),
+      metalness: 0.0,
+      roughness: 0.0,
+      transmission: 0.8,
+      ior: 2.0,
+      thickness: 1.5,
+      envMapIntensity: 2.0,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
+      side: THREE.DoubleSide,
+    });
 
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
@@ -1223,9 +1238,19 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-        const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-        standard.push({ ...md, material: hiddenMat, isSelected });
+        // If we're within the refraction budget, use full refraction
+        if (refractionGemCount < Q.maxGemRefraction) {
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+          standard.push({ ...md, material: hiddenMat, isSelected });
+          refractionGemCount++;
+        } else {
+          // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
+          const color = assigned.refractionConfig.color;
+          const fallback = gemFallbackMat.clone();
+          fallback.color = new THREE.Color(color);
+          standard.push({ ...md, material: fallback, isSelected });
+        }
         return;
       }
 
