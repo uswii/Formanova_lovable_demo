@@ -22,7 +22,8 @@ interface LeftPanelProps {
   onGenerate: () => void;
   onEdit: () => void;
   onQuickEdit: (preset: string) => void;
-  onMagicTexture: () => void;
+  magicTexturing: boolean;
+  onMagicTexturingChange: (on: boolean) => void;
   onGlbUpload: (file: File) => void;
   onRebuildPart?: (partId: string, description: string) => void;
   onAddPart?: (description: string) => void;
