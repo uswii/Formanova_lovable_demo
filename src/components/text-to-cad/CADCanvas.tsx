@@ -1348,6 +1348,7 @@ interface CADCanvasProps {
   onTransformEnd?: () => void;
   lightIntensity?: number;
   onModelReady?: () => void;
+  magicTexturing?: boolean;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
