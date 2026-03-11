@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
-import { GlbPreviewCard } from './GlbPreviewCard';
 import { format } from 'date-fns';
 
 interface WorkflowCardProps {
@@ -253,9 +252,9 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 
 export function WorkflowCard({ workflow, index = 0, onClick: _onClick }: WorkflowCardProps) {
   if (workflow.source_type === 'cad_text') {
-    return <GlbPreviewCard workflow={workflow} index={index} />;
+    return <CadTextCard workflow={workflow} index={index} />;
   }
 
-  // photo and cad_render both use the image-first card
+  // photo and cad_render both use the new image-first card
   return <PhotoCard workflow={workflow} index={index} />;
 }
