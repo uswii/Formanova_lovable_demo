@@ -440,7 +440,7 @@ interface GLBPreviewSlotProps {
 
 export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotProps) {
   const divRef = useRef<HTMLDivElement>(null);
-  const { registerCard, unregisterCard, isLoaded } = useScissorGrid();
+  const { registerCard, unregisterCard, isLoaded, hasError } = useScissorGrid();
   const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
@@ -457,6 +457,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
   }, [id, glbUrl, registerCard, unregisterCard]);
 
   const loaded = registered && isLoaded(id);
+  const errored = registered && hasError(id);
 
   return (
     <div
@@ -465,12 +466,23 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
       style={{ touchAction: 'none' }}
     >
       {/* Loading state */}
-      {!loaded && (
+      {!loaded && !errored && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
           <div className="flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase">
               Loading 3D
+            </span>
+          </div>
+        </div>
+      )}
+      {/* Error fallback */}
+      {errored && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+          <div className="flex flex-col items-center gap-1.5">
+            <Box className="h-5 w-5 text-muted-foreground/40" />
+            <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/60 uppercase">
+              Preview unavailable
             </span>
           </div>
         </div>
