@@ -162,22 +162,24 @@ export default function Generations() {
     [allWorkflows, globalLoading],
   );
 
-  // ── Step 2: Enrich visible page — cards show immediately, thumbnails load async
+  // ── Step 2: Enrich ALL workflows eagerly — not just the visible page
   useEffect(() => {
     if (globalLoading || allWorkflows.length === 0) return;
 
-    const photoVisible = getSection('photo', photoPage).workflows
-      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
-    const cadRenderVisible = getSection('cad_render', cadRenderPage).workflows
-      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
-    const cadTextVisible = getSection('cad_text', cadTextPage).workflows
-      .filter(w => (w.status === 'completed' || w.status === 'failed') && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
+    // Gather all un-enriched workflows across all sections
+    const allUnenriched = allWorkflows.filter(
+      w => w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id] &&
+           (w.status === 'completed' || (w.source_type === 'cad_text' && w.status === 'failed'))
+    );
 
-    const photoAndCadRender = [...photoVisible, ...cadRenderVisible];
+    if (allUnenriched.length === 0) return;
+
+    const photoAndCadRender = allUnenriched.filter(w => w.source_type === 'photo' || w.source_type === 'cad_render');
+    const cadTextItems = allUnenriched.filter(w => w.source_type === 'cad_text');
 
     // Mark immediately to prevent duplicate fetches
-    [...photoAndCadRender, ...cadTextVisible].forEach(w => {
-      enrichedRef.current[w.workflow_id] = {}; // placeholder
+    allUnenriched.forEach(w => {
+      enrichedRef.current[w.workflow_id] = {};
     });
 
     // Enrich photo & cad_render
@@ -188,7 +190,6 @@ export default function Generations() {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
-            // Preload into browser cache immediately
             if (thumbnail_url) preloadImage(thumbnail_url);
             return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
           } catch (e) {
@@ -210,16 +211,15 @@ export default function Generations() {
             : w
           )
         );
-        // Persist enrichment to cache
         saveCache(allWorkflows, enrichedRef.current);
       });
     }
 
     // Enrich cad_text
-    if (cadTextVisible.length > 0) {
-      const ids = new Set(cadTextVisible.map(w => w.workflow_id));
+    if (cadTextItems.length > 0) {
+      const ids = new Set(cadTextItems.map(w => w.workflow_id));
       batchSettled(
-        cadTextVisible.map(wf => async () => {
+        cadTextItems.map(wf => async () => {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
             return { id: wf.workflow_id, ...extractCadTextData(details.steps ?? []) };
@@ -246,7 +246,7 @@ export default function Generations() {
         saveCache(allWorkflows, enrichedRef.current);
       });
     }
-  }, [allWorkflows.length, globalLoading, photoPage, cadRenderPage, cadTextPage, getSection]);
+  }, [allWorkflows.length, globalLoading]);
 
   const photoSection = getSection('photo', photoPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
