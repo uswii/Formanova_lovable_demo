@@ -134,15 +134,20 @@ export default function LeftPanel({
             <span>{hasModel ? "Upload Ring Part" : "Upload GLB Model"}</span>
           </button>
 
-          {/* Remove Magic Textures */}
+          {/* Magic Texturing checkbox */}
           {hasModel && (
-            <button
-              onClick={onMagicTexture}
-              disabled={isGenerating}
-              className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground bg-muted/30 border border-border"
-            >
-              ✕ Remove Magic Textures
-            </button>
+            <label className="w-full mt-3 flex items-center gap-2.5 py-3 px-1 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={magicTexturing}
+                onChange={(e) => onMagicTexturingChange(e.target.checked)}
+                disabled={isGenerating}
+                className="w-4 h-4 rounded border-border accent-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              />
+              <span className="text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.15em] text-muted-foreground group-hover:text-foreground transition-colors">
+                Magic Texturing
+              </span>
+            </label>
           )}
         </section>
 

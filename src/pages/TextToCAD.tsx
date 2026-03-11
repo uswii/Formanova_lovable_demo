@@ -991,6 +991,7 @@ export default function TextToCAD() {
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
               onModelReady={handleModelReady}
+              magicTexturing={magicTexturing}
             />
 
             {/* Empty state */}
