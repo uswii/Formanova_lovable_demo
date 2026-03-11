@@ -7,6 +7,7 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const BASE_URL = 'https://formanova.ai';
+const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export async function listMyWorkflows(
   const mapped = raw.map((w: any) => {
     const name = w.name ?? '';
     const sourceType = inferSourceType(name);
-    if (sourceType === 'unknown') {
+    if (sourceType === 'unknown' && __DEV__) {
       console.warn('[HistoryAPI] unknown source_type for workflow:', { id: w.workflow_id ?? w.id, name, status: w.status });
     }
     return {
@@ -102,12 +103,14 @@ export async function listMyWorkflows(
       mode: w.input?.mode ?? null,
     };
   });
-  console.log('[HistoryAPI] source_type breakdown:', {
-    photo: mapped.filter(w => w.source_type === 'photo').length,
-    cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
-    cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
-    unknown: mapped.filter(w => w.source_type === 'unknown').length,
-  });
+  if (__DEV__) {
+    console.log('[HistoryAPI] source_type breakdown:', {
+      photo: mapped.filter(w => w.source_type === 'photo').length,
+      cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
+      cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
+      unknown: mapped.filter(w => w.source_type === 'unknown').length,
+    });
+  }
   return mapped;
 }
 
@@ -136,22 +139,13 @@ export async function getWorkflowDetails(
   }
 
   const raw = await res.json();
-  console.debug('[HistoryAPI] detail raw response keys:', Object.keys(raw ?? {}));
-  console.debug('[HistoryAPI] detail raw response (full):', JSON.stringify(raw, null, 2).substring(0, 5000));
 
-  // Log steps detail
-  const stepsSource = raw?.data?.steps ?? raw?.workflow?.steps ?? raw?.result?.steps ?? raw?.steps ?? raw?.workflow_steps ?? [];
-  console.debug('[HistoryAPI] steps count:', stepsSource.length);
-  stepsSource.forEach((step: any, i: number) => {
-    console.debug(`[HistoryAPI] step[${i}] tool="${step.tool ?? step.tool_name ?? step.name}" status="${step.status}" has_output=${!!step.output}`);
-    const toolName = (step.tool ?? step.tool_name ?? step.name ?? '').toLowerCase();
-    if (toolName.includes('blender')) {
-      console.debug(`[HistoryAPI] run_blender output:`, JSON.stringify(step.output, null, 2)?.substring(0, 3000));
-      console.debug(`[HistoryAPI] run_blender output.success:`, step.output?.success);
-      console.debug(`[HistoryAPI] run_blender screenshots:`, step.output?.screenshots);
-      console.debug(`[HistoryAPI] run_blender glb_artifact:`, step.output?.glb_artifact);
-    }
-  });
+  // Dev-only detailed logging
+  if (__DEV__) {
+    console.debug('[HistoryAPI] detail raw response keys:', Object.keys(raw ?? {}));
+    const stepsSource = raw?.data?.steps ?? raw?.workflow?.steps ?? raw?.result?.steps ?? raw?.steps ?? raw?.workflow_steps ?? [];
+    console.debug('[HistoryAPI] steps count:', stepsSource.length);
+  }
 
   // Normalize: backend may wrap response in different shapes
   const payload = raw?.data ?? raw?.workflow ?? raw?.result ?? raw;

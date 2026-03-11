@@ -239,7 +239,7 @@ export default function Generations() {
         if (e.thumbnail_url) preloadImage(e.thumbnail_url);
       });
       setGlobalLoading(false);
-      console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
+      if (import.meta.env.DEV) console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
     }
 
     // Always fetch fresh in background
@@ -247,7 +247,7 @@ export default function Generations() {
       try {
         if (!cached) setGlobalLoading(true);
         const workflows = await listMyWorkflows(100, 0);
-        console.log('[Generations] fetched:', workflows.length, 'workflows');
+        if (import.meta.env.DEV) console.log('[Generations] fetched:', workflows.length, 'workflows');
 
         // Re-apply any previously enriched data so thumbnails don't flash
         const merged = workflows.map(w => {
