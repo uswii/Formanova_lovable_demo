@@ -615,6 +615,7 @@ export default function TextToCAD() {
 
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
+    wasManualUploadRef.current = true;
     // Always replace the current model so magic texturing (name-based
     // material recognition) runs via the main decompose path.
     // Revoke old blob URLs to prevent memory leaks.
