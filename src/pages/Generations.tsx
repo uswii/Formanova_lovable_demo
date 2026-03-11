@@ -54,24 +54,9 @@ function saveCache(workflows: WorkflowSummary[], enriched: Record<string, Partia
   } catch { /* quota exceeded — ignore */ }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function findAzureUri(obj: unknown): string | null {
-  if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
-  if (Array.isArray(obj)) {
-    for (const item of obj) { const f = findAzureUri(item); if (f) return f; }
-  } else if (obj && typeof obj === 'object') {
-    for (const v of Object.values(obj as Record<string, unknown>)) {
-      const found = findAzureUri(v);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
 /** Preload an image into browser cache */
 function preloadImage(url: string) {
-  if (!url || url.startsWith('data:')) return; // data URIs are already inline
+  if (!url || url.startsWith('data:')) return;
   const img = new Image();
   img.src = url;
 }
@@ -86,122 +71,6 @@ async function batchSettled<T>(
     results.push(...(await Promise.allSettled(batch)));
   }
   return results;
-}
-
-function extractPhotoThumbnail(steps: any[]): string | null {
-  const genStep = steps.find((s: any) => s.tool === 'generate_jewelry_image');
-  if (!genStep?.output) return null;
-  const out = genStep.output as any;
-  const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
-  const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
-  if (b64) return `data:${mime};base64,${b64}`;
-  const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
-  if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) return outputUrl;
-  return null;
-}
-
-function extractCadTextData(steps: any[]) {
-  let screenshots: { angle: string; url: string }[] = [];
-  let glb_url: string | null = null;
-  let glb_filename: string | null = null;
-
-  // ── PRIMARY: Find the FIRST successful run_blender step with screenshots ──
-  const blenderStep = steps.find(
-    (s: any) =>
-      s.tool === 'run_blender' &&
-      s.output?.success === true &&
-      (s.output?.screenshots as any[])?.length > 0,
-  ) ?? null;
-
-  if (blenderStep?.output) {
-    // GLB artifact — apply azureUriToUrl
-    const glbUri = blenderStep.output.glb_artifact?.uri;
-    if (glbUri) {
-      glb_url = azureUriToUrl(glbUri);
-      const parts = String(glbUri).split('/');
-      glb_filename = parts[parts.length - 1] || 'model.glb';
-    }
-
-    // Screenshots — apply azureUriToUrl to each
-    const rawShots = blenderStep.output.screenshots as any[] | undefined;
-    if (rawShots?.length) {
-      screenshots = rawShots
-        .map((s: any, i: number) => {
-          const uri = s?.uri;
-          if (uri) {
-            return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
-          }
-          return null;
-        })
-        .filter((s): s is { angle: string; url: string } => !!s);
-    }
-  }
-
-  // ── FALLBACK: Legacy format (ring-screenshot, ring-validate, etc.) ──
-  if (screenshots.length === 0) {
-    const screenshotStep = steps.find((s: any) =>
-      s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
-    );
-    const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
-    if (rawShots?.length) {
-      screenshots = rawShots
-        .map((s: any) => {
-          const angle = (s.name as string) || (s.angle as string) || 'unknown';
-          const rawUri: string | undefined = s?.data_uri?.uri ?? s?.url ?? s?.uri;
-          if (rawUri) return { angle, url: azureUriToUrl(rawUri) };
-          const uri = findAzureUri(s);
-          return uri ? { angle, url: azureUriToUrl(uri) } : null;
-        })
-        .filter((s): s is { angle: string; url: string } => !!s?.url);
-    }
-  }
-
-  if (!glb_url) {
-    const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
-    const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
-    const glbStep = validateStep || generateStep;
-    if (glbStep?.output?.glb_path) {
-      const glbPath = glbStep.output.glb_path as any;
-      const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
-      if (uri) {
-        glb_url = azureUriToUrl(uri);
-        const parts = (uri as string).split('/');
-        glb_filename = parts[parts.length - 1] || 'model.glb';
-      }
-    }
-    if (!glb_url && glbStep?.output) {
-      const uri = findAzureUri(glbStep.output);
-      if (uri) {
-        glb_url = azureUriToUrl(uri);
-        const parts = uri.split('/');
-        glb_filename = parts[parts.length - 1] || 'model.glb';
-      }
-    }
-    if (!glb_url) {
-      for (const step of steps) {
-        const uri = findAzureUri(step.output);
-        if (uri && uri.includes('.glb')) {
-          glb_url = azureUriToUrl(uri);
-          const parts = uri.split('/');
-          glb_filename = parts[parts.length - 1] || 'model.glb';
-          break;
-        }
-      }
-    }
-  }
-
-  // Extract AI model from step inputs
-  let ai_model: string | null = null;
-  for (const step of steps) {
-    const model = step.input?.model ?? step.input?.ai_model;
-    if (typeof model === 'string' && model.length > 0) {
-      ai_model = model;
-      break;
-    }
-  }
-
-  const front = screenshots[0];
-  return { thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename, ai_model };
 }
 
 // ── Component ────────────────────────────────────────────────────────
