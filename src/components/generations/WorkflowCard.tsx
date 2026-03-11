@@ -210,7 +210,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           <div className="w-full aspect-[4/5] bg-muted/50 animate-pulse" />
         ) : (
           /* Enriched but no image found */
-          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
+          <div className="w-full aspect-[4/5] bg-muted/30 flex items-center justify-center">
             <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
               No preview
             </span>
