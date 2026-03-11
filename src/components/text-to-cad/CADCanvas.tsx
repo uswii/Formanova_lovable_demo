@@ -496,6 +496,25 @@ const LoadedModel = forwardRef<
     }
     } // end if (magicTexturing)
 
+    // ── Scene complexity guardrail ──
+    const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
+    const gemCount = Object.values(autoMaterials).filter(m => m.category === "gemstone" && m.refractionConfig).length;
+    
+    if (totalVerts > Q.vertexBudget) {
+      console.warn(`[CADCanvas] ⚠ Scene complexity warning: ${totalVerts.toLocaleString()} vertices exceeds ${Q.tier} tier budget of ${Q.vertexBudget.toLocaleString()}`);
+      // Import toast dynamically to avoid circular deps — fire-and-forget
+      import("sonner").then(({ toast }) => {
+        toast.warning(`Heavy model detected (${(totalVerts / 1000).toFixed(0)}K vertices)`, {
+          description: "Rendering quality has been automatically adjusted for stability.",
+          duration: 6000,
+        });
+      });
+    }
+
+    if (gemCount > Q.maxGemRefraction) {
+      console.warn(`[CADCanvas] ⚠ ${gemCount} refraction gems exceed ${Q.tier} tier limit of ${Q.maxGemRefraction} — excess will use fallback material`);
+    }
+
     setMeshDataList(list);
     setAssignedMaterials(autoMaterials);
     inv();
