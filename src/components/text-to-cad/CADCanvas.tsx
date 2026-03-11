@@ -67,12 +67,14 @@ function useInvalidate() {
 function TransformControlsWrapper({
   object,
   mode,
+  siblingObjects,
   onDragStart,
   onDragEnd,
   onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
+  siblingObjects?: THREE.Object3D[];
   onDragStart?: () => void;
   onDragEnd?: (obj: THREE.Object3D) => void;
   onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
@@ -81,6 +83,12 @@ function TransformControlsWrapper({
   const inv = useInvalidate();
   const controlsRef = useRef<any>(null);
   const prevQuatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
+
+  // Snapshots for multi-mesh transforms (siblings = other selected meshes)
+  const primaryStartPos = useRef(new THREE.Vector3());
+  const primaryStartQuat = useRef(new THREE.Quaternion());
+  const primaryStartScale = useRef(new THREE.Vector3(1, 1, 1));
+  const siblingStarts = useRef<{ obj: THREE.Object3D; pos: THREE.Vector3; quat: THREE.Quaternion; scale: THREE.Vector3 }[]>([]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -92,6 +100,16 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        // Snapshot primary + siblings for multi-mesh transform
+        primaryStartPos.current.copy(object.position);
+        primaryStartQuat.current.copy(object.quaternion);
+        primaryStartScale.current.copy(object.scale);
+        siblingStarts.current = (siblingObjects || []).map((s) => ({
+          obj: s,
+          pos: s.position.clone(),
+          quat: s.quaternion.clone(),
+          scale: s.scale.clone(),
+        }));
         onDragStart?.();
         inv();
       }
@@ -100,6 +118,29 @@ function TransformControlsWrapper({
     };
     controls.addEventListener("dragging-changed", handler);
     const onChange = () => {
+      // Apply delta to all sibling (other selected) meshes
+      const siblings = siblingStarts.current;
+      if (siblings.length > 0) {
+        if (mode === "translate") {
+          const delta = object.position.clone().sub(primaryStartPos.current);
+          for (const s of siblings) {
+            s.obj.position.copy(s.pos).add(delta);
+          }
+        } else if (mode === "rotate") {
+          const deltaQuat = object.quaternion.clone().multiply(primaryStartQuat.current.clone().invert());
+          for (const s of siblings) {
+            s.obj.quaternion.copy(deltaQuat).multiply(s.quat);
+          }
+        } else if (mode === "scale") {
+          const sx = primaryStartScale.current.x > 0 ? object.scale.x / primaryStartScale.current.x : 1;
+          const sy = primaryStartScale.current.y > 0 ? object.scale.y / primaryStartScale.current.y : 1;
+          const sz = primaryStartScale.current.z > 0 ? object.scale.z / primaryStartScale.current.z : 1;
+          for (const s of siblings) {
+            s.obj.scale.set(s.scale.x * sx, s.scale.y * sy, s.scale.z * sz);
+          }
+        }
+      }
+
       // During rotate drag, compute incremental delta and report it
       if (_isTransformDragging && mode === "rotate" && onRotationDelta) {
         const prevInv = prevQuatRef.current.clone().invert();
@@ -133,7 +174,7 @@ function TransformControlsWrapper({
       controls.removeEventListener("objectChange", onChange);
       _isTransformDragging = false;
     };
-  }, [gl, onDragEnd, onRotationDelta, inv, object, mode]);
+  }, [gl, onDragEnd, onRotationDelta, inv, object, mode, siblingObjects]);
 
   return (
     <TransformControls
@@ -631,25 +672,22 @@ const LoadedModel = forwardRef<
 
   // Called during rotate gizmo drag with incremental degree deltas (no Euler decomposition)
   const handleRotationDelta = useCallback((obj: THREE.Object3D, deltaDeg: [number, number, number]) => {
-    // Find which mesh this object is
-    for (const [name, meshObj] of meshRefs.current.entries()) {
-      if (meshObj === obj) {
-        setMeshDataList((prev) => prev.map((md) => {
-          if (md.name !== name) return md;
-          return {
-            ...md,
-            quaternion: obj.quaternion.clone(),
-            rotationDeg: [
-              md.rotationDeg[0] + deltaDeg[0],
-              md.rotationDeg[1] + deltaDeg[1],
-              md.rotationDeg[2] + deltaDeg[2],
-            ],
-          };
-        }));
-        break;
-      }
-    }
-  }, []);
+    // Apply rotation delta to ALL selected meshes (primary + siblings)
+    setMeshDataList((prev) => prev.map((md) => {
+      if (!selectedMeshNames.has(md.name)) return md;
+      const meshObj = meshRefs.current.get(md.name);
+      if (!meshObj) return md;
+      return {
+        ...md,
+        quaternion: meshObj.quaternion.clone(),
+        rotationDeg: [
+          md.rotationDeg[0] + deltaDeg[0],
+          md.rotationDeg[1] + deltaDeg[1],
+          md.rotationDeg[2] + deltaDeg[2],
+        ],
+      };
+    }));
+  }, [selectedMeshNames]);
 
   // Called when TransformControls drag starts
   const handleDragStart = useCallback(() => {
@@ -658,16 +696,15 @@ const LoadedModel = forwardRef<
 
   // Called when TransformControls drag ends
   const handleDragEnd = useCallback((obj: THREE.Object3D) => {
-    // Find which mesh this object corresponds to
+    // Sync ALL selected meshes (primary was moved by gizmo, siblings by our delta logic)
     for (const [name, meshObj] of meshRefs.current.entries()) {
-      if (meshObj === obj) {
-        syncTransformFromObject(name, obj);
-        break;
+      if (selectedMeshNames.has(name)) {
+        syncTransformFromObject(name, meshObj);
       }
     }
     onTransformEnd?.();
     inv();
-  }, [syncTransformFromObject, onTransformEnd, inv]);
+  }, [syncTransformFromObject, onTransformEnd, inv, selectedMeshNames]);
 
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
@@ -1200,9 +1237,21 @@ const LoadedModel = forwardRef<
     inv();
   }, [meshDataList, inv]);
 
-  // Find selected mesh ref for TransformControls
+  // Find selected mesh ref for TransformControls (primary = first selected)
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
   const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
+
+  // Collect sibling mesh refs (other selected meshes, excluding the primary)
+  const siblingObjects = useMemo(() => {
+    if (!selectedMeshName || selectedMeshNames.size <= 1) return [];
+    const siblings: THREE.Object3D[] = [];
+    for (const name of selectedMeshNames) {
+      if (name === selectedMeshName) continue;
+      const obj = meshRefs.current.get(name);
+      if (obj) siblings.push(obj);
+    }
+    return siblings;
+  }, [selectedMeshName, selectedMeshNames, meshDataList]);
 
   return (
     <group>
@@ -1238,6 +1287,7 @@ const LoadedModel = forwardRef<
       {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
+          siblingObjects={siblingObjects}
           mode={transformMode as "translate" | "rotate" | "scale"}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
