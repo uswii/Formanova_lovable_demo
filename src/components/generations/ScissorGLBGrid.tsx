@@ -397,6 +397,11 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     return card ? card.loaded : false;
   }, []);
 
+  const hasError = useCallback((id: string) => {
+    const card = cardsRef.current.get(id);
+    return card ? card.error : false;
+  }, []);
+
   const ctxValue = useMemo<GridContextValue>(() => ({
     registerCard,
     unregisterCard,
