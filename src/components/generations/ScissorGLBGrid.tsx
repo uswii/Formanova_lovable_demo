@@ -88,6 +88,7 @@ interface CardEntry {
   controls: OrbitControls;
   loaded: boolean;
   loading: boolean;
+  error: boolean;
 }
 
 interface GridContextValue {
