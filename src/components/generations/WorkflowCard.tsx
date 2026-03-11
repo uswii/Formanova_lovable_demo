@@ -7,7 +7,14 @@ import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
-import { format } from 'date-fns';
+
+const localDateFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+function formatLocal(ts: string): string {
+  return localDateFmt.format(new Date(ts));
+}
 
 interface WorkflowCardProps {
   workflow: WorkflowSummary;
@@ -35,10 +42,7 @@ const MODEL_LABELS: Record<string, string> = {
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  const dateStr = workflow.created_at
-    ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
-    : '—';
-
+  const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   // undefined = enrichment not started yet; [] = enriched but no shots found
@@ -143,10 +147,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const dateStr = workflow.created_at
-    ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
-    : '—';
-
+  const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const durationSec =
     workflow.finished_at && workflow.created_at
       ? Math.round(
