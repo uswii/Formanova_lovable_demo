@@ -398,13 +398,7 @@ export default function Generations() {
               <ArrowLeft className="h-3 w-3" />
               Dashboard
             </Link>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none">
-              From Photo
-            </h1>
           </div>
-          <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
-            Your workflow history
-          </p>
         </motion.div>
 
         {error && (
