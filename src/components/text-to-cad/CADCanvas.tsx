@@ -452,6 +452,7 @@ const LoadedModel = forwardRef<
         }
       });
     }
+    } // end if (magicTexturing)
 
     setMeshDataList(list);
     setAssignedMaterials(autoMaterials);
