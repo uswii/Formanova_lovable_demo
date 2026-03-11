@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
+import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { format } from 'date-fns';
 
 interface WorkflowCardProps {
@@ -82,43 +83,19 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </span>
         </div>
 
-        {/* ── Snapshot strip — hidden, keep for future re-enable
-        <div className="px-4 pb-3">
-          {hasShots ? (
-            <div className="flex gap-1 overflow-x-auto pb-0.5">
-              {shots.map((shot, i) => (
-                <button
-                  key={shot.angle}
-                  onClick={() => setPreviewIndex(i)}
-                  title={shot.angle.replace(/_/g, ' ')}
-                  className="group/thumb flex-shrink-0 w-14 h-14 bg-black overflow-hidden rounded-sm border border-border/30 hover:border-foreground/50 transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
-                >
-                  <OptimizedImage
-                    src={shot.url}
-                    alt={shot.angle}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover/thumb:scale-110"
-                  />
-                </button>
-              ))}
-            </div>
-          ) : isEnriching ? (
-            <div className="flex gap-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-14 h-14 bg-muted/50 rounded-sm animate-pulse"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-14 w-full">
-              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
-                No renders available
-              </span>
-            </div>
-          )}
-        </div>
-        */}
+        {/* ── Interactive 3D GLB Preview ── */}
+        {workflow.glb_url && (
+          <div className="mx-4 mb-3">
+            <GLBPreviewSlot
+              id={workflow.workflow_id}
+              glbUrl={workflow.glb_url}
+              className="w-full aspect-square bg-background/50 border border-border/30"
+            />
+          </div>
+        )}
+        {!workflow.glb_url && isEnriching && (
+          <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-square bg-muted/30 animate-pulse" />
+        )}
 
         {/* ── File box ── */}
         <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">

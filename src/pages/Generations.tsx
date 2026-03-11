@@ -10,6 +10,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
+import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import { azureUriToUrl } from '@/lib/azure-utils';
 
 const PER_PAGE = 5;
@@ -436,18 +437,20 @@ export default function Generations() {
               onWorkflowClick={() => {}}
             />
 
-            <WorkflowSection
-              title="Text to CAD"
-              subtitle="AI-generated 3D models from text"
-              icon={SectionIcons.cadText}
-              workflows={cadTextSection.workflows}
-              loading={cadTextSection.loading}
-              currentPage={cadTextSection.page}
-              totalPages={cadTextSection.totalPages}
-              indexOffset={(cadTextPage - 1) * PER_PAGE}
-              onPageChange={setCadTextPage}
-              onWorkflowClick={() => {}}
-            />
+            <ScissorGLBGrid>
+              <WorkflowSection
+                title="Text to CAD"
+                subtitle="AI-generated 3D models from text"
+                icon={SectionIcons.cadText}
+                workflows={cadTextSection.workflows}
+                loading={cadTextSection.loading}
+                currentPage={cadTextSection.page}
+                totalPages={cadTextSection.totalPages}
+                indexOffset={(cadTextPage - 1) * PER_PAGE}
+                onPageChange={setCadTextPage}
+                onWorkflowClick={() => {}}
+              />
+            </ScissorGLBGrid>
 
             <WorkflowSection
               title="From CAD"
