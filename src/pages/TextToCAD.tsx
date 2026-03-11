@@ -57,6 +57,7 @@ export default function TextToCAD() {
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const wasManualUploadRef = useRef(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
@@ -218,7 +219,12 @@ export default function TextToCAD() {
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
     setProgressStep("success_final");
-    toast.success("Ring generated successfully");
+    if (wasManualUploadRef.current) {
+      toast.success("File uploaded");
+      wasManualUploadRef.current = false;
+    } else {
+      toast.success("Ring generated successfully");
+    }
   }, []);
 
   const toggleModule = (mod: string) => {
@@ -609,6 +615,7 @@ export default function TextToCAD() {
 
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
+    wasManualUploadRef.current = true;
     // Always replace the current model so magic texturing (name-based
     // material recognition) runs via the main decompose path.
     // Revoke old blob URLs to prevent memory leaks.
