@@ -219,7 +219,12 @@ export default function TextToCAD() {
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
     setProgressStep("success_final");
-    toast.success("Ring generated successfully");
+    if (wasManualUploadRef.current) {
+      toast.success("File uploaded");
+      wasManualUploadRef.current = false;
+    } else {
+      toast.success("Ring generated successfully");
+    }
   }, []);
 
   const toggleModule = (mod: string) => {
