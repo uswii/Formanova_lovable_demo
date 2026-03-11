@@ -155,7 +155,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x111111, 1);
+    renderer.setClearColor(0x000000, 0);
     rendererRef.current = renderer;
 
     // Preload HDRI environment
