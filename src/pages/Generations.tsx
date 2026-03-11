@@ -9,9 +9,9 @@ import {
   getWorkflowDetails,
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
+import { extractPhotoThumbnail, extractCadTextData } from '@/lib/generation-enrichment';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
-import { azureUriToUrl } from '@/lib/azure-utils';
 
 const PER_PAGE = 5;
 const CACHE_KEY = 'formanova_gen_cache';
