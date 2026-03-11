@@ -1300,6 +1300,20 @@ const LoadedModel = forwardRef<
 
 LoadedModel.displayName = "LoadedModel";
 
+// ── Preload diamond HDRI at Canvas mount time ──
+// This ensures the heavy HDR texture + shader compilation happens eagerly,
+// preventing a black-screen stall when a gem material is first applied.
+function DiamondHDRIPreloader() {
+  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+  useEffect(() => {
+    if (envMap) {
+      envMap.mapping = THREE.EquirectangularReflectionMapping;
+      console.log("[DiamondHDRIPreloader] Diamond HDRI preloaded and ready");
+    }
+  }, [envMap]);
+  return null;
+}
+
 // ── Diamond/Gem Overlay with MeshRefractionMaterial ──
 // Renders gemstone meshes using real refraction (MeshRefractionMaterial from drei)
 // Uses a dedicated HDRI envMap loaded via RGBELoader, synced per frame.

@@ -628,12 +628,16 @@ export default function TextToCAD() {
 
     if (!workspaceActive) setWorkspaceActive(true);
 
-    if (hasModel && glbUrl) {
-      // Model already exists — add as an additional part (merge into scene)
+    // Check if scene actually has meshes — after Ctrl+A + Delete, hasModel may be true
+    // but the scene is empty, so we should treat it as a fresh upload.
+    const sceneHasMeshes = meshesRef.current.length > 0;
+
+    if (hasModel && glbUrl && sceneHasMeshes) {
+      // Model already exists with visible meshes — add as an additional part (merge into scene)
       setAdditionalParts((prev) => [...prev, url]);
       setStats((prev) => ({ ...prev, sizeKB: prev.sizeKB + Math.round(file.size / 1024) }));
     } else {
-      // No model yet — set as the primary model
+      // No model yet OR scene was cleared — set as the primary model
       if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
       additionalParts.forEach((u) => URL.revokeObjectURL(u));
       setAdditionalParts([]);
