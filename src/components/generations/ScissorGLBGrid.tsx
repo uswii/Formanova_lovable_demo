@@ -119,7 +119,7 @@ interface ScissorGLBGridProps {
   children: React.ReactNode;
 }
 
-const DARK_BG = new THREE.Color(0x111111);
+const DARK_BG = new THREE.Color(0x000000);
 
 export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,13 +149,13 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      alpha: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x111111, 1);
+    renderer.setClearColor(0x000000, 0);
     rendererRef.current = renderer;
 
     // Preload HDRI environment
@@ -201,7 +201,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       }
 
       renderer.setScissorTest(true);
-      renderer.setClearColor(0x111111, 1);
+      renderer.setClearColor(0x000000, 0);
 
       // Clear entire canvas
       renderer.setViewport(0, 0, width, height);
@@ -492,7 +492,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
     >
       {/* Loading state */}
       {!state.loaded && !state.error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-sm">
           <div className="flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase">
@@ -503,7 +503,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
       )}
       {/* Error fallback */}
       {state.error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-sm">
           <div className="flex flex-col items-center gap-1.5">
             <Box className="h-5 w-5 text-muted-foreground/40" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/60 uppercase">
