@@ -256,7 +256,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onReset, onDownload, onFullscreen }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -265,7 +265,6 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   onRedo: () => void;
   undoCount: number;
   redoCount: number;
-  onReset: () => void;
   onDownload: () => void;
   onFullscreen?: () => void;
 }) {
@@ -311,14 +310,10 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
 
       <SideDivider />
 
-      {/* Actions */}
+      {/* Export */}
       <button onClick={onDownload} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download">
         <SideTooltip label="Download" />
         <Download className="w-3.5 h-3.5" />
-      </button>
-      <button onClick={onReset} className={SIDE_BTN} title="Start over">
-        <SideTooltip label="Start Over" />
-        <RotateCcw className="w-3.5 h-3.5" />
       </button>
     </div>
   );

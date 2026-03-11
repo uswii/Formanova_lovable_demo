@@ -1077,7 +1077,6 @@ export default function TextToCAD() {
               onRedo={handleRedo}
               undoCount={undoStack.length}
               redoCount={redoStack.length}
-              onReset={handleReset}
               onDownload={handleDownloadGlb}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
