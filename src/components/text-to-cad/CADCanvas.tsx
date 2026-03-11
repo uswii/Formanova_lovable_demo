@@ -1572,7 +1572,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             gl.outputColorSpace = THREE.SRGBColorSpace;
           }}
         >
-          <Suspense fallback={null}>
+        <Suspense fallback={null}>
+            {/* Preload diamond HDRI so first gem application doesn't cause a black flash */}
+            <DiamondHDRIPreloader />
             {/* Dynamic light intensity sync */}
             <LightController intensity={lightIntensity} />
             {/* Lighting — scaled by lightIntensity */}
