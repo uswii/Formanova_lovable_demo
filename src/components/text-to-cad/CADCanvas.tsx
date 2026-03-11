@@ -15,6 +15,7 @@ import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
+import { toast } from "sonner";
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
