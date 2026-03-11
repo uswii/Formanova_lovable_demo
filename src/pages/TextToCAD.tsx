@@ -57,6 +57,7 @@ export default function TextToCAD() {
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const wasManualUploadRef = useRef(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
