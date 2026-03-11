@@ -492,7 +492,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
     >
       {/* Loading state */}
       {!state.loaded && !state.error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-sm">
           <div className="flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase">
