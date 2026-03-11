@@ -240,7 +240,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       return;
     }
     card.loading = true;
-
+    console.log('[ScissorGLBGrid] Starting GLB load:', card.glbUrl);
+    forceUpdate((n) => n + 1);
     const cached = getCachedScene(card.glbUrl);
     if (cached) {
       setupCardScene(card, cached);
