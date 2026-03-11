@@ -104,7 +104,7 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3 },
+      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3, skip_validation: false },
       return_nodes: [
         'build_initial', 'build_retry', 'build_corrected',
         'validate_output', 'success_final', 'success_original_glb', 'failed_final',
