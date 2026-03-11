@@ -1409,7 +1409,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div className="w-full h-full relative" style={{ background: "#111" }}>
+      <div className="w-full h-full relative bg-background">
         {/* Loading overlay */}
         {isLoading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
