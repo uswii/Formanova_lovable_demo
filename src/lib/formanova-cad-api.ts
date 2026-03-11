@@ -52,20 +52,6 @@ function azureUriToPublicUrl(azureUri: string): string | null {
   return `${AZURE_BLOB_HOST}/${path}`;
 }
 
-function extractGlbUri(results: Record<string, unknown>, nodeKey: string): string | null {
-  const node = results[nodeKey];
-  if (!node) return null;
-  const arr = Array.isArray(node) ? node : [node];
-  for (const entry of arr) {
-    const rec = entry as Record<string, unknown> | null;
-    if (!rec) continue;
-    const glbPath = rec.glb_path as Record<string, unknown> | undefined;
-    if (glbPath && typeof glbPath.uri === 'string' && glbPath.uri.startsWith('azure://')) {
-      return glbPath.uri;
-    }
-  }
-  return null;
-}
 
 function findAzureUri(obj: unknown): string | null {
   if (!obj || typeof obj !== 'object') return null;
