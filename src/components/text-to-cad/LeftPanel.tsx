@@ -34,7 +34,7 @@ export default function LeftPanel({
   model, setModel, prompt, setPrompt, editPrompt, setEditPrompt,
   selectedModules, toggleModule,
   isGenerating, isEditing, hasModel, modules,
-  onGenerate, onEdit, onQuickEdit, onMagicTexture, onGlbUpload,
+  onGenerate, onEdit, onQuickEdit, magicTexturing, onMagicTexturingChange, onGlbUpload,
   onRebuildPart, onAddPart,
   creditBlock,
 }: LeftPanelProps) {
