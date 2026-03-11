@@ -203,7 +203,8 @@ export default function LeftPanel({
                 value={editPrompt}
                 onChange={(e) => setEditPrompt(e.target.value)}
                 placeholder="Describe what to change, e.g.: Make the roses larger, add more petals, twist the band tighter"
-                className="w-full min-h-[70px] px-4 py-3.5 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-y font-body transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/30 border border-border"
+                className="w-full min-h-[70px] max-h-[250px] px-4 py-3.5 text-[13px] text-foreground placeholder:text-muted-foreground/50 font-body transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/30 border border-border"
+                style={{ resize: 'vertical', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
               />
 
               <button
