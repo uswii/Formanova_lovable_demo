@@ -624,25 +624,30 @@ export default function TextToCAD() {
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
     wasManualUploadRef.current = true;
-    // Always replace the current model so magic texturing (name-based
-    // material recognition) runs via the main decompose path.
-    // Revoke old blob URLs to prevent memory leaks.
-    if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
-    additionalParts.forEach((u) => URL.revokeObjectURL(u));
-    setAdditionalParts([]);
 
     if (!workspaceActive) setWorkspaceActive(true);
-    setIsModelLoading(true);
-    setProgressStep("_loading");
-    setGlbUrl(url);
-    setHasModel(true);
-    setShowPartRegen(true);
-    setMeshes([]);
-    setModules([]);
-    setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
-    setUndoStack([]);
-    setRedoStack([]);
-  }, [glbUrl, additionalParts, workspaceActive]);
+
+    if (hasModel && glbUrl) {
+      // Model already exists — add as an additional part (merge into scene)
+      setAdditionalParts((prev) => [...prev, url]);
+      setStats((prev) => ({ ...prev, sizeKB: prev.sizeKB + Math.round(file.size / 1024) }));
+    } else {
+      // No model yet — set as the primary model
+      if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
+      additionalParts.forEach((u) => URL.revokeObjectURL(u));
+      setAdditionalParts([]);
+      setIsModelLoading(true);
+      setProgressStep("_loading");
+      setGlbUrl(url);
+      setHasModel(true);
+      setShowPartRegen(true);
+      setMeshes([]);
+      setModules([]);
+      setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+      setUndoStack([]);
+      setRedoStack([]);
+    }
+  }, [glbUrl, additionalParts, workspaceActive, hasModel]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes((prev) => {
