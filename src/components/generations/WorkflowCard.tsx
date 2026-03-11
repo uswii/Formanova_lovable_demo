@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
+import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { format } from 'date-fns';
 
 interface WorkflowCardProps {
