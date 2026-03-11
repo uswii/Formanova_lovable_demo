@@ -448,10 +448,9 @@ export default function TextToCAD() {
 
     } catch (err) {
       console.error("Generation failed:", err);
-      toast.error(err instanceof Error ? err.message : "Generation failed");
       setIsGenerating(false);
-      setProgressStep("failed_final");
       setProgressStep("");
+      setGenerationFailed(true);
     }
   }, [prompt, model, isGenerating]);
 
