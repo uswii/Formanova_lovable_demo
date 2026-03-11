@@ -1382,6 +1382,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       smoothMesh: (meshNames, iters) => modelRef.current?.smoothMesh(meshNames, iters),
       applyTransform: (meshNames) => modelRef.current?.applyTransform(meshNames),
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
+      applyMagicTextures: () => modelRef.current?.applyMagicTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
       getSelectedTransform: () => modelRef.current?.getSelectedTransform() ?? null,
