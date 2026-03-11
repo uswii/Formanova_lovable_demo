@@ -411,12 +411,18 @@ export default function TextToCAD() {
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          // Fallback per spec: success_final → glb_artifact, then original_glb_artifact
+          // success_original_glb → original_glb_artifact
+          // failed_final → error
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          if (hasFailed) throw new Error("Generation failed — no valid model produced");
+
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
+            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
           if (rawUri) { glb_url = toUrl(rawUri); break; }
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          throw new Error(hasFailed ? "Generation failed — no valid model produced" : "No GLB model found in results");
+          throw new Error("No GLB model found in results");
         }
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
