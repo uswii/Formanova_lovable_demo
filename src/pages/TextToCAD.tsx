@@ -967,28 +967,32 @@ export default function TextToCAD() {
         {/* Viewport */}
         <ResizablePanel id="viewport-panel" order={2} defaultSize={hasModel ? 56 : 78} minSize={30}>
           <div data-cad-viewport className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
-            {/* Panel collapse toggles */}
-            <button
-              onClick={() => {
-                const panel = leftPanelRef.current;
-                if (panel) { leftCollapsed ? panel.expand(22) : panel.collapse(); }
-              }}
-              className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
-              title={leftCollapsed ? "Show left panel" : "Hide left panel"}
-            >
-              {leftCollapsed ? <PanelLeft className="w-4 h-4 text-foreground/70" /> : <PanelLeftClose className="w-4 h-4 text-foreground/70" />}
-            </button>
-            {hasModel && (
-              <button
-                onClick={() => {
-                  const panel = rightPanelRef.current;
-                  if (panel) { rightCollapsed ? panel.expand(22) : panel.collapse(); }
-                }}
-                className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
-                title={rightCollapsed ? "Show right panel" : "Hide right panel"}
-              >
-                {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
-              </button>
+            {/* Panel collapse toggles — hidden in fullscreen */}
+            {!isFullscreen && (
+              <>
+                <button
+                  onClick={() => {
+                    const panel = leftPanelRef.current;
+                    if (panel) { leftCollapsed ? panel.expand(22) : panel.collapse(); }
+                  }}
+                  className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+                  title={leftCollapsed ? "Show left panel" : "Hide left panel"}
+                >
+                  {leftCollapsed ? <PanelLeft className="w-4 h-4 text-foreground/70" /> : <PanelLeftClose className="w-4 h-4 text-foreground/70" />}
+                </button>
+                {hasModel && (
+                  <button
+                    onClick={() => {
+                      const panel = rightPanelRef.current;
+                      if (panel) { rightCollapsed ? panel.expand(22) : panel.collapse(); }
+                    }}
+                    className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+                    title={rightCollapsed ? "Show right panel" : "Hide right panel"}
+                  >
+                    {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
+                  </button>
+                )}
+              </>
             )}
 
             <CADCanvas
