@@ -119,7 +119,7 @@ interface ScissorGLBGridProps {
   children: React.ReactNode;
 }
 
-const DARK_BG = new THREE.Color(0x111111);
+const DARK_BG = new THREE.Color(0x000000);
 
 export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
