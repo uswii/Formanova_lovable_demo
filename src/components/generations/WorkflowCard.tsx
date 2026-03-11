@@ -196,8 +196,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             <OptimizedImage
               src={workflow.thumbnail_url!}
               alt={workflow.name || 'Generation preview'}
-              priority
-              className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full aspect-[4/5] object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* View / enlarge icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
@@ -208,10 +207,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </button>
         ) : isEnriching ? (
           /* Pulsing placeholder while enrichment is in progress */
-          <div className="w-full aspect-square bg-muted/50 animate-pulse" />
+          <div className="w-full aspect-[4/5] bg-muted/50 animate-pulse" />
         ) : (
           /* Enriched but no image found */
-          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
+          <div className="w-full aspect-[4/5] bg-muted/30 flex items-center justify-center">
             <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
               No preview
             </span>
