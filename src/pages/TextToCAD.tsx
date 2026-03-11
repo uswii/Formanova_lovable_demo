@@ -329,7 +329,7 @@ export default function TextToCAD() {
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 12 * 60 * 1000; // 12 min for Sonnet
+      const POLL_TIMEOUT_MS = 30 * 60 * 1000; // 30 min — backend retries can be long
       const pollStart = Date.now();
 
       const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
