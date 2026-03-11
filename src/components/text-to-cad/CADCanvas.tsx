@@ -1477,6 +1477,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
                 onModelReady={onModelReady}
+                magicTexturing={magicTexturing}
               />
             )}
 
