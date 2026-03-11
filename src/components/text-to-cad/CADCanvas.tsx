@@ -1237,9 +1237,21 @@ const LoadedModel = forwardRef<
     inv();
   }, [meshDataList, inv]);
 
-  // Find selected mesh ref for TransformControls
+  // Find selected mesh ref for TransformControls (primary = first selected)
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
   const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
+
+  // Collect sibling mesh refs (other selected meshes, excluding the primary)
+  const siblingObjects = useMemo(() => {
+    if (!selectedMeshName || selectedMeshNames.size <= 1) return [];
+    const siblings: THREE.Object3D[] = [];
+    for (const name of selectedMeshNames) {
+      if (name === selectedMeshName) continue;
+      const obj = meshRefs.current.get(name);
+      if (obj) siblings.push(obj);
+    }
+    return siblings;
+  }, [selectedMeshName, selectedMeshNames, meshDataList]);
 
   return (
     <group>
@@ -1275,6 +1287,7 @@ const LoadedModel = forwardRef<
       {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
+          siblingObjects={siblingObjects}
           mode={transformMode as "translate" | "rotate" | "scale"}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
