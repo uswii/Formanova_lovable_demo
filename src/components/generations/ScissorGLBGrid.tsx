@@ -283,9 +283,10 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     }
 
     promise.then((scene) => {
+      console.log('[ScissorGLBGrid] GLB loaded successfully:', card.glbUrl);
       setupCardScene(card, scene.clone(true));
     }).catch((err) => {
-      console.warn('[ScissorGLBGrid] Failed to load GLB:', card.glbUrl, err);
+      console.error('[ScissorGLBGrid] GLB load failed:', card.glbUrl, err);
       card.loading = false;
       card.error = true;
       glbErrors.add(card.glbUrl);
