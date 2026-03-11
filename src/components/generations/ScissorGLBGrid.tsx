@@ -411,7 +411,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     isLoading,
     isLoaded,
     hasError,
-  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError]);
+  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError, tick]);
 
   return (
     <GridContext.Provider value={ctxValue}>
