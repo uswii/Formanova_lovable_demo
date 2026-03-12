@@ -888,6 +888,7 @@ export default function TextToCAD() {
     onRedo: handleRedo,
     onDelete: () => handleSceneAction("delete"),
     onDuplicate: () => handleSceneAction("duplicate"),
+    onCopy: () => handleSceneAction("duplicate"),
     onSelectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: true }))),
     onDeselectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: false }))),
     onSetTransformMode: setTransformMode,
@@ -1143,6 +1144,12 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
+              onMagicTexture={() => {
+                pushUndo("Magic Texture");
+                canvasRef.current?.applyMagicTextures();
+                toast.success("Magic textures applied");
+              }}
+              onStartOver={hasModel ? handleReset : undefined}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
                 if (el) {
