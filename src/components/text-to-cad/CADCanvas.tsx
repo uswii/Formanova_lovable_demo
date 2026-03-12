@@ -1366,6 +1366,7 @@ const LoadedModel = forwardRef<
         mesh.scale.copy(md.scale);
       }
     });
+    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [meshDataList, inv]);
 

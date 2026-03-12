@@ -97,8 +97,6 @@ export default class GemInstanceRenderer {
       } else {
         g.instancedMesh.material.dispose();
       }
-      // Restore source mesh visibility
-      g.sourceMeshes.forEach((m) => { m.visible = true; });
     }
     this.groups = [];
   }
