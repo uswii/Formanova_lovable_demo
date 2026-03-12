@@ -1569,6 +1569,8 @@ interface CADCanvasProps {
   onModelReady?: () => void;
   magicTexturing?: boolean;
   qualityMode?: QualityMode;
+  gemMode?: GemMode;
+  onGemModeForced?: (mode: GemMode) => void;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
