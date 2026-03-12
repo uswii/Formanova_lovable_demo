@@ -1748,7 +1748,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             toneMappingExposure: 0.45 * lightIntensity,
             powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
           }}
-          dpr={Math.min(effectiveQ.dpr, 1.5)}
+          dpr={[effectiveQ.dpr[0], Math.min(effectiveQ.dpr[1], 1.5)]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           frameloop="demand"
