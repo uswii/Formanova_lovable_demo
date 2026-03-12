@@ -1218,19 +1218,7 @@ const LoadedModel = forwardRef<
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
     let refractionGemCount = 0;
 
-    // Cheap fallback material for gems beyond the quality-tier cap
-    const gemFallbackMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(0xffffff),
-      metalness: 0.0,
-      roughness: 0.0,
-      transmission: 0.8,
-      ior: 2.0,
-      thickness: 1.5,
-      envMapIntensity: 2.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.0,
-      side: THREE.DoubleSide,
-    });
+    // Reuse module-level fallback materials (see below useMemo)
 
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
