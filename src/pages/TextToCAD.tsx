@@ -1024,6 +1024,8 @@ export default function TextToCAD() {
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
               qualityMode={qualityMode}
+              gemMode={gemMode}
+              onGemModeForced={(mode) => setGemMode(mode)}
             />
 
             {/* Generation failed state */}
