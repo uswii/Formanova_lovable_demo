@@ -1717,13 +1717,13 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
         )}
         <Canvas
           gl={{
-            antialias: Q.antialias,
+            antialias: effectiveQ.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 0.45 * lightIntensity,
-            powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
+            powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
           }}
-          dpr={Q.dpr}
+          dpr={effectiveQ.dpr}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           frameloop="demand"
