@@ -319,7 +319,7 @@ function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setM
 }
 
 // ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction }: {
+function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onSelectMesh }: {
   meshTab: "list" | "actions";
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
@@ -329,29 +329,28 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
   onAction: (action: string) => void;
   onSceneAction: (action: string) => void;
+  onSelectMesh: (name: string, multi: boolean) => void;
 }) {
+  // Detect mesh families by common prefix (e.g. "rib_001", "rib_002" → family "rib")
+  const families = useMemo(() => {
+    const familyMap = new Map<string, string[]>();
+    filtered.forEach((m) => {
+      const prefix = m.name.replace(/(_copy)?(_\d+)?$/, '').replace(/_\d+$/, '');
+      if (!familyMap.has(prefix)) familyMap.set(prefix, []);
+      familyMap.get(prefix)!.push(m.name);
+    });
+    return new Map([...familyMap].filter(([_, names]) => names.length >= 2));
+  }, [filtered]);
+
+  const handleSelectFamily = useCallback((familyNames: string[]) => {
+    familyNames.forEach((name) => {
+      if (!meshes.find(m => m.name === name)?.selected) {
+        onSelectMesh(name, true);
+      }
+    });
+  }, [meshes, onSelectMesh]);
+
   if (meshTab === "list") {
-    // Detect mesh families by common prefix (e.g. "rib_001", "rib_002" → family "rib")
-    const families = useMemo(() => {
-      const familyMap = new Map<string, string[]>();
-      filtered.forEach((m) => {
-        // Strip trailing _number, _copy, _copy_N patterns to get family prefix
-        const prefix = m.name.replace(/(_copy)?(_\d+)?$/, '').replace(/_\d+$/, '');
-        if (!familyMap.has(prefix)) familyMap.set(prefix, []);
-        familyMap.get(prefix)!.push(m.name);
-      });
-      // Only return families with 2+ members
-      return new Map([...familyMap].filter(([_, names]) => names.length >= 2));
-    }, [filtered]);
-
-    const handleSelectFamily = useCallback((familyNames: string[]) => {
-      familyNames.forEach((name) => {
-        if (!meshes.find(m => m.name === name)?.selected) {
-          onSelectMesh(name, true);
-        }
-      });
-    }, [meshes, onSelectMesh]);
-
     return (
       <div className="flex-1 flex flex-col min-h-0">
         <div className="px-4 pt-3 pb-2 flex-shrink-0">
