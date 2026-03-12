@@ -742,6 +742,7 @@ const LoadedModel = forwardRef<
       }
     }
     onTransformEnd?.();
+    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [syncTransformFromObject, onTransformEnd, inv, selectedMeshNames]);
 
