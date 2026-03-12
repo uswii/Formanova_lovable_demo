@@ -1609,10 +1609,10 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
 
     // ── Stable DPR clamp (prevents Chrome renderer resets) ──
-    const safeDpr = useMemo(() => {
+    const safeDpr = useMemo((): number | [number, number] => {
       const dpr = effectiveQ.dpr;
       if (Array.isArray(dpr)) {
-        return [dpr[0], Math.min(dpr[1], 1.5)];
+        return [dpr[0], Math.min(dpr[1], 1.5)] as [number, number];
       }
       return Math.min(dpr, 1.5);
     }, [effectiveQ.dpr]);
