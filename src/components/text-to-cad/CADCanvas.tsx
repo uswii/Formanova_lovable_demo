@@ -277,8 +277,10 @@ const LoadedModel = forwardRef<
     onModelReady?: () => void;
     magicTexturing?: boolean;
     onDebugGemStats?: (total: number, refraction: number, fallback: number, effectiveBounces: number) => void;
+    gemMode?: GemMode;
+    onGemModeForced?: (mode: GemMode) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
