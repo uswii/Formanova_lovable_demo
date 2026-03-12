@@ -1550,7 +1550,7 @@ function DiamondEnvMapConsumer({
     >
       <MeshRefractionMaterial
         envMap={envMap}
-        color={new THREE.Color(refractionConfig.color)}
+        color={new THREE.Color(refractionConfig.color).convertSRGBToLinear()}
         ior={refractionConfig.ior}
         aberrationStrength={refractionConfig.sparkle * Q.aberrationScale}
         bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
