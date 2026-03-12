@@ -40,10 +40,18 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    title: "Clipboard",
+    shortcuts: [
+      { keys: ["Ctrl+C", "/", "⌘+C"], desc: "Copy selected" },
+      { keys: ["Ctrl+V", "/", "⌘+V"], desc: "Paste" },
+      { keys: ["Ctrl+X", "/", "⌘+X"], desc: "Cut selected" },
+    ],
+  },
+  {
     title: "Selection",
     shortcuts: [
       { keys: ["Ctrl+A", "/", "⌘+A"], desc: "Select all" },
-      { keys: ["Ctrl+Shift+A", "/", "⌘+Shift+A"], desc: "Deselect all" },
+      { keys: ["Esc"], desc: "Deselect all" },
     ],
   },
   {
@@ -76,6 +84,9 @@ export interface CADShortcutActions {
   onSetTransformMode: (mode: string) => void;
   onToggleWireframe: () => void;
   onToggleShortcutsPanel: () => void;
+  onCopy?: () => void;
+  onPaste?: () => void;
+  onCut?: () => void;
   /** If true, the workspace is active and shortcuts should fire */
   enabled: boolean;
 }
@@ -136,6 +147,27 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
         return;
       }
 
+      // Ctrl/Cmd + C → Copy
+      if (mod && key === "c") {
+        e.preventDefault();
+        a.onCopy?.();
+        return;
+      }
+
+      // Ctrl/Cmd + V → Paste
+      if (mod && key === "v") {
+        e.preventDefault();
+        a.onPaste?.();
+        return;
+      }
+
+      // Ctrl/Cmd + X → Cut
+      if (mod && key === "x") {
+        e.preventDefault();
+        a.onCut?.();
+        return;
+      }
+
       // Ctrl/Cmd + A → Select all
       if (mod && key === "a") {
         e.preventDefault();
@@ -179,6 +211,7 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
           a.onSetTransformMode("scale");
           break;
         case "escape":
+          a.onDeselectAll();
           a.onSetTransformMode("orbit");
           break;
         case "w":

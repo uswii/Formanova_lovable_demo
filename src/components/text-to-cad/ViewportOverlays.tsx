@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Wand2 } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 import type { MeshTransformData } from "./CADCanvas";
@@ -33,6 +33,7 @@ export function ViewportToolbar({
 }) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Get values for current mode from transform data
   const getValues = (): [number, number, number] => {
@@ -75,29 +76,45 @@ export function ViewportToolbar({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden pointer-events-auto"
           >
-            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg">
-              <div className="flex items-center gap-2 mb-2.5">
+            <div className="bg-card border border-border border-t-0 shadow-lg">
+              {/* Collapse toggle header */}
+              <button
+                onClick={() => setInspectorCollapsed(!inspectorCollapsed)}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-4 cursor-pointer hover:bg-accent/30 transition-colors"
+              >
                 <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
                   {config.icon} {config.title}
                 </span>
-                <div className="flex-1 h-px bg-border" />
-                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
-                  Gizmo + Numeric
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {AXES.map((axis, i) => (
-                  <NumericAxisInput
-                    key={`${mode}-${axis}`}
-                    axis={axis}
-                    axisColor={AXIS_COLORS[i]}
-                    value={values[i]}
-                    step={config.step}
-                    unit={config.unit}
-                    onChange={(val) => handleChange(i, val)}
-                  />
-                ))}
-              </div>
+                {inspectorCollapsed ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronUp className="w-3 h-3 text-muted-foreground" />}
+              </button>
+              
+              <AnimatePresence>
+                {!inspectorCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-3 min-w-[360px]">
+                      <div className="flex gap-2">
+                        {AXES.map((axis, i) => (
+                          <NumericAxisInput
+                            key={`${mode}-${axis}`}
+                            axis={axis}
+                            axisColor={AXIS_COLORS[i]}
+                            value={values[i]}
+                            step={config.step}
+                            unit={config.unit}
+                            onChange={(val) => handleChange(i, val)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
