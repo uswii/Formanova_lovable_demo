@@ -416,6 +416,12 @@ const LoadedModel = forwardRef<
       }
     });
 
+    // Dispose gem instance renderer on scene change
+    if (gemRendererRef.current) {
+      gemRendererRef.current.dispose();
+      gemRendererRef.current = null;
+    }
+
     // Dispose old caches
     flatGeoCache.current.forEach((g) => g.dispose());
     flatGeoCache.current.clear();
