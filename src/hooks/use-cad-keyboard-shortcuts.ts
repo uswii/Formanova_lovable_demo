@@ -139,6 +139,27 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
         return;
       }
 
+      // Ctrl/Cmd + C → Copy
+      if (mod && key === "c") {
+        e.preventDefault();
+        a.onCopy?.();
+        return;
+      }
+
+      // Ctrl/Cmd + V → Paste
+      if (mod && key === "v") {
+        e.preventDefault();
+        a.onPaste?.();
+        return;
+      }
+
+      // Ctrl/Cmd + X → Cut
+      if (mod && key === "x") {
+        e.preventDefault();
+        a.onCut?.();
+        return;
+      }
+
       // Ctrl/Cmd + A → Select all
       if (mod && key === "a") {
         e.preventDefault();
