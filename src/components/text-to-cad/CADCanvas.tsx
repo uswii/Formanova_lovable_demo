@@ -1267,8 +1267,16 @@ const LoadedModel = forwardRef<
       standard.push({ ...md, material, isSelected });
     });
 
-    return { standardElements: standard, gemElements: gems };
+    return { standardElements: standard, gemElements: gems, refractionGemCount };
   }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
+
+  // Report gem stats to parent for DebugHUD (event-driven, not per-frame)
+  const gemTotal = Object.values(assignedMaterials).filter(m => m?.category === "gemstone").length;
+  const gemRefraction = gemElements.length;
+  const gemFallback = gemTotal - gemRefraction;
+  useEffect(() => {
+    onDebugGemStats?.(gemTotal, gemRefraction, gemFallback, Q.gemBounces);
+  }, [gemTotal, gemRefraction, gemFallback, onDebugGemStats]);
 
   // ── Imperative transform sync: prevents React props from fighting TransformControls ──
   useEffect(() => {
