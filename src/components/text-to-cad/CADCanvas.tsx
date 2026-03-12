@@ -1261,15 +1261,19 @@ const LoadedModel = forwardRef<
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected });
+          standard.push({ ...md, material: GEM_HIDDEN_MATERIAL, isSelected });
           refractionGemCount++;
         } else {
-          // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
+          // Over budget — use cached fallback material per color
           const color = assigned.refractionConfig.color;
-          const fallback = gemFallbackMat.clone();
-          fallback.color = new THREE.Color(color);
-          fallback.attenuationColor = new THREE.Color(color);
+          const fbKey = `gem_fallback_${color}`;
+          let fallback = materialCache.current.get(fbKey);
+          if (!fallback) {
+            fallback = GEM_FALLBACK_TEMPLATE.clone();
+            (fallback as THREE.MeshPhysicalMaterial).color = new THREE.Color(color);
+            (fallback as THREE.MeshPhysicalMaterial).attenuationColor = new THREE.Color(color);
+            materialCache.current.set(fbKey, fallback);
+          }
           standard.push({ ...md, material: fallback, isSelected });
         }
         return;
