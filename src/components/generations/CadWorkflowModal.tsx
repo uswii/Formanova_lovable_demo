@@ -51,6 +51,8 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
     setGlbUrl(null);
     setCaption(null);
     setHeroIndex(0);
+    setIsFallbackResult(false);
+    setFallbackMessage(null);
 
     if (workflowStatus !== 'completed') {
       setError('This workflow did not complete successfully.');
