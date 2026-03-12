@@ -138,9 +138,42 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-              <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
-                {workflow.glb_filename || (isEnriching ? '—' : 'model.glb')}
-              </span>
+              {isRenaming ? (
+                <div className="flex items-center gap-1 min-w-0" onClick={e => e.stopPropagation()}>
+                  <Input
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmRename();
+                      if (e.key === 'Escape') handleCancelRename();
+                    }}
+                    autoFocus
+                    className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 min-w-[80px] max-w-[140px]"
+                  />
+                  <span className="text-[10px] text-muted-foreground font-mono">.{extension}</span>
+                  <button onClick={handleConfirmRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <Check className="h-3 w-3" />
+                  </button>
+                  <button onClick={handleCancelRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
+                    {isEnriching ? '—' : shownFilename}
+                  </span>
+                  {!isEnriching && workflow.glb_url && (
+                    <button
+                      onClick={handleStartRename}
+                      className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
+                      aria-label="Rename file"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {workflow.glb_url ? (
