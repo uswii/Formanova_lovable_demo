@@ -1652,11 +1652,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       setDebugStats(prev => ({ ...prev, totalVerts, totalFaces, meshCount: meshes.length }));
     }, [onMeshesDetected, debugActive]);
 
-    // ── WebGL context lost/restored listeners ──
+    // ── WebGL context lost/restored listeners — ALWAYS ACTIVE (circuit breaker) ──
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-      if (!debugActive) return;
-      // Find the actual canvas element inside the container
       const container = canvasContainerRef.current;
       if (!container) return;
 
@@ -1669,36 +1667,47 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           e.preventDefault(); // allow restore
           contextLostCountRef.current++;
           const count = contextLostCountRef.current;
-          console.error('[DebugHUD] ⚠ WebGL context LOST — event #' + count, {
-            totalVerts: debugStats.totalVerts,
-            totalFaces: debugStats.totalFaces,
-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
-            tier: debugStats.tier,
-            gpuRenderer: debugStats.gpuRenderer,
+          console.error('[CADCanvas] ⚠ WebGL context LOST — event #' + count);
+
+          // ── Circuit breaker: force simple gem mode and persist ──
+          onGemModeForced?.("simple");
+          localStorage.setItem("refractionBlocked", "true");
+
+          // Import toast dynamically to show user feedback
+          import("sonner").then(({ toast }) => {
+            toast.error("GPU overload detected", {
+              description: "Gem rendering switched to Safe Mode to prevent browser crashes. Real Refraction has been disabled.",
+              duration: 8000,
+            });
           });
-          setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
-          trackWebGLContextLost({
-            totalVerts: debugStats.totalVerts,
-            totalFaces: debugStats.totalFaces,
-            meshCount: debugStats.meshCount,
-            gemMeshCountTotal: debugStats.gemMeshCountTotal,
-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
-            tier: debugStats.tier,
-            dpr: debugStats.dpr,
-            gpuRenderer: debugStats.gpuRenderer,
-            effectiveGemBounces: debugStats.effectiveGemBounces,
-            contextLostCount: count,
-          });
+
+          if (debugActive) {
+            setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
+            trackWebGLContextLost({
+              totalVerts: debugStats.totalVerts,
+              totalFaces: debugStats.totalFaces,
+              meshCount: debugStats.meshCount,
+              gemMeshCountTotal: debugStats.gemMeshCountTotal,
+              gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+              tier: debugStats.tier,
+              dpr: debugStats.dpr,
+              gpuRenderer: debugStats.gpuRenderer,
+              effectiveGemBounces: debugStats.effectiveGemBounces,
+              contextLostCount: count,
+            });
+          }
         };
 
         const onRestored = () => {
-          console.log('[DebugHUD] ✓ WebGL context restored');
-          setDebugStats(prev => ({ ...prev, contextLost: false }));
-          trackWebGLContextRestored({
-            tier: debugStats.tier,
-            gpuRenderer: debugStats.gpuRenderer,
-            contextLostCount: contextLostCountRef.current,
-          });
+          console.log('[CADCanvas] ✓ WebGL context restored');
+          if (debugActive) {
+            setDebugStats(prev => ({ ...prev, contextLost: false }));
+            trackWebGLContextRestored({
+              tier: debugStats.tier,
+              gpuRenderer: debugStats.gpuRenderer,
+              contextLostCount: contextLostCountRef.current,
+            });
+          }
         };
 
         canvasEl.addEventListener('webglcontextlost', onLost);
@@ -1711,7 +1720,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       }, 500);
 
       return () => clearTimeout(timer);
-    }, [debugActive]); // intentionally not including debugStats to avoid re-registering
+    }, [debugActive, onGemModeForced]); // intentionally not including debugStats to avoid re-registering
 
     // Track loading state from LoadedModel
     const handleLoadStart = useCallback(() => setIsLoading(true), []);
