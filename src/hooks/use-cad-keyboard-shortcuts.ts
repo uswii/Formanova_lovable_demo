@@ -76,6 +76,7 @@ export interface CADShortcutActions {
   onSetTransformMode: (mode: string) => void;
   onToggleWireframe: () => void;
   onToggleShortcutsPanel: () => void;
+  onCopy?: () => void;
   /** If true, the workspace is active and shortcuts should fire */
   enabled: boolean;
 }
