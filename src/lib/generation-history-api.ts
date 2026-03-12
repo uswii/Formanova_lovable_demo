@@ -42,6 +42,12 @@ export interface WorkflowStep {
   deterministic: boolean;
   took_ms: number;
   at: string;
+  /** New API fields */
+  node_instance_id?: string;
+  is_success?: boolean;
+  output_data?: Record<string, unknown>;
+  attempt_seq?: number;
+  created_at?: string;
 }
 
 export interface WorkflowDetail {
