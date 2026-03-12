@@ -1601,12 +1601,96 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 
     const [isLoading, setIsLoading] = useState(false);
 
+    // ── Debug HUD state (only active when ?debug=1) ──
+    const debugActive = isDebugMode();
+    const [debugStats, setDebugStats] = useState<DebugStats>({
+      totalVerts: 0, totalFaces: 0, meshCount: 0,
+      gemMeshCountTotal: 0, gemMeshCountRefraction: 0, gemMeshCountFallback: 0,
+      tier: Q.tier, dpr: Q.dpr, antialias: Q.antialias,
+      refractionEnabled: false, effectiveGemBounces: Q.gemBounces,
+      gpuRenderer: getGPURendererString(),
+      contextLost: false, contextLostCount: 0,
+    });
+    const contextLostCountRef = useRef(0);
+
+    // Update debug stats whenever meshes are detected (event-driven, not per-frame)
+    const handleMeshesDetectedWithDebug = useCallback((meshes: { name: string; verts: number; faces: number }[]) => {
+      onMeshesDetected?.(meshes);
+      if (!debugActive) return;
+      const totalVerts = meshes.reduce((s, m) => s + m.verts, 0);
+      const totalFaces = meshes.reduce((s, m) => s + m.faces, 0);
+      setDebugStats(prev => ({ ...prev, totalVerts, totalFaces, meshCount: meshes.length }));
+    }, [onMeshesDetected, debugActive]);
+
+    // ── WebGL context lost/restored listeners ──
+    const canvasContainerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!debugActive) return;
+      // Find the actual canvas element inside the container
+      const container = canvasContainerRef.current;
+      if (!container) return;
+
+      // Small delay to let R3F mount the canvas
+      const timer = setTimeout(() => {
+        const canvasEl = container.querySelector('canvas');
+        if (!canvasEl) return;
+
+        const onLost = (e: Event) => {
+          e.preventDefault(); // allow restore
+          contextLostCountRef.current++;
+          const count = contextLostCountRef.current;
+          console.error('[DebugHUD] ⚠ WebGL context LOST — event #' + count, {
+            totalVerts: debugStats.totalVerts,
+            totalFaces: debugStats.totalFaces,
+            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+            tier: debugStats.tier,
+            gpuRenderer: debugStats.gpuRenderer,
+          });
+          setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
+          trackWebGLContextLost({
+            totalVerts: debugStats.totalVerts,
+            totalFaces: debugStats.totalFaces,
+            meshCount: debugStats.meshCount,
+            gemMeshCountTotal: debugStats.gemMeshCountTotal,
+            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+            tier: debugStats.tier,
+            dpr: debugStats.dpr,
+            gpuRenderer: debugStats.gpuRenderer,
+            effectiveGemBounces: debugStats.effectiveGemBounces,
+            contextLostCount: count,
+          });
+        };
+
+        const onRestored = () => {
+          console.log('[DebugHUD] ✓ WebGL context restored');
+          setDebugStats(prev => ({ ...prev, contextLost: false }));
+          trackWebGLContextRestored({
+            tier: debugStats.tier,
+            gpuRenderer: debugStats.gpuRenderer,
+            contextLostCount: contextLostCountRef.current,
+          });
+        };
+
+        canvasEl.addEventListener('webglcontextlost', onLost);
+        canvasEl.addEventListener('webglcontextrestored', onRestored);
+
+        return () => {
+          canvasEl.removeEventListener('webglcontextlost', onLost);
+          canvasEl.removeEventListener('webglcontextrestored', onRestored);
+        };
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }, [debugActive]); // intentionally not including debugStats to avoid re-registering
+
     // Track loading state from LoadedModel
     const handleLoadStart = useCallback(() => setIsLoading(true), []);
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div className="w-full h-full relative bg-background">
+      <div ref={canvasContainerRef} className="w-full h-full relative bg-background">
+        {/* Debug HUD */}
+        {debugActive && <DebugHUD stats={debugStats} />}
         {/* Loading overlay */}
         {isLoading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
