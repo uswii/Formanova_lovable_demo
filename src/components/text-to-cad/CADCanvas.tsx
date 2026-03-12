@@ -1535,16 +1535,14 @@ function DiamondEnvMapConsumer({
 
   if (!envMap) return null;
 
-  {
+  if (isDebugMode()) {
     const srgb = refractionConfig.color;
     const linear = new THREE.Color(srgb).convertSRGBToLinear();
     console.log(`[GemColor:Refraction] ${meshName}`, {
       srgbInput: srgb,
-      linearApplied: `rgb(${(linear.r * 255).toFixed(0)}, ${(linear.g * 255).toFixed(0)}, ${(linear.b * 255).toFixed(0)})`,
       linearHex: `#${linear.getHexString()}`,
       ior: refractionConfig.ior,
       bounces: Math.min(refractionConfig.bounces, Q.gemBounces),
-      renderer: getGPURendererString()
     });
   }
 
