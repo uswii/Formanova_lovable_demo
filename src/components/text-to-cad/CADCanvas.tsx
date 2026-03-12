@@ -16,7 +16,8 @@ import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, c
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
-export type { GemMode } from "./GemInstanceRenderer";
+import type { GemMode } from "./GemInstanceRenderer";
+export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
 
