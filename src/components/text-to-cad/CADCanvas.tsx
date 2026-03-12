@@ -1548,10 +1548,10 @@ function DiamondEnvMapConsumer({
 
   if (isDebugMode()) {
     const srgb = refractionConfig.color;
-    const linear = new THREE.Color(srgb).convertSRGBToLinear();
+    const shaderColor = new THREE.Color(srgb);
     console.log(`[GemColor:Refraction] ${meshName}`, {
       srgbInput: srgb,
-      linearHex: `#${linear.getHexString()}`,
+      shaderHex: `#${shaderColor.getHexString()}`,
       ior: refractionConfig.ior,
       bounces: Math.min(refractionConfig.bounces, Q.gemBounces),
     });
@@ -1572,7 +1572,7 @@ function DiamondEnvMapConsumer({
     >
       <MeshRefractionMaterial
         envMap={envMap}
-        color={new THREE.Color(refractionConfig.color).convertSRGBToLinear()}
+        color={new THREE.Color(refractionConfig.color)}
         ior={refractionConfig.ior}
         aberrationStrength={refractionConfig.sparkle * Q.aberrationScale}
         bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
