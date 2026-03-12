@@ -783,6 +783,15 @@ export default function TextToCAD() {
     );
   };
 
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
+  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSelectionWarning = useCallback((msg: string) => {
+    setSelectionWarning(msg);
+    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
+    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
+  }, []);
+
   const handleMeshAction = useCallback((action: string) => {
     const needsSelection = ["hide", "show", "isolate"].includes(action);
     if (needsSelection && selectedNames.length === 0) {
@@ -790,7 +799,6 @@ export default function TextToCAD() {
       return;
     }
 
-    // Track visibility changes for undo (skip selection-only changes)
     const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
     if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
 
@@ -807,15 +815,6 @@ export default function TextToCAD() {
       }
     });
   }, [selectedNames, pushUndo, showSelectionWarning]);
-
-  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
-  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showSelectionWarning = useCallback((msg: string) => {
-    setSelectionWarning(msg);
-    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
-    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
-  }, []);
 
   const handleApplyMaterial = useCallback((matId: string) => {
     if (selectedNames.length === 0) {
