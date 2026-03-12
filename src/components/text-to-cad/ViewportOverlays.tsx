@@ -33,6 +33,7 @@ export function ViewportToolbar({
 }) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Get values for current mode from transform data
   const getValues = (): [number, number, number] => {
@@ -67,7 +68,7 @@ export function ViewportToolbar({
 
       {/* Integrated numeric inspector — slides down from viewer tools */}
       <AnimatePresence>
-        {isTransformActive && config && (
+        {isTransformActive && config && !inspectorCollapsed && (
           <motion.div
             initial={{ opacity: 0, height: 0, y: -4 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
@@ -75,15 +76,19 @@ export function ViewportToolbar({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden pointer-events-auto"
           >
-            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg">
+            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg relative">
               <div className="flex items-center gap-2 mb-2.5">
                 <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
                   {config.icon} {config.title}
                 </span>
                 <div className="flex-1 h-px bg-border" />
-                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
-                  Gizmo + Numeric
-                </span>
+                <button
+                  onClick={() => setInspectorCollapsed(true)}
+                  className="text-muted-foreground/50 hover:text-foreground transition-colors cursor-pointer"
+                  title="Collapse inspector"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
               </div>
               <div className="flex gap-2">
                 {AXES.map((axis, i) => (
@@ -102,6 +107,20 @@ export function ViewportToolbar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Collapsed indicator — click to expand */}
+      {isTransformActive && inspectorCollapsed && (
+        <button
+          onClick={() => setInspectorCollapsed(false)}
+          className="pointer-events-auto mt-1 px-3 py-1.5 bg-card border border-border border-t-0 shadow-lg cursor-pointer hover:bg-accent/40 transition-colors flex items-center gap-1.5"
+          title="Show numeric inspector"
+        >
+          <span className={`font-mono text-[9px] font-bold uppercase tracking-[0.12em] ${config?.color}`}>
+            {config?.icon} {config?.title}
+          </span>
+          <ChevronUp className="w-3 h-3 text-muted-foreground rotate-180" />
+        </button>
+      )}
     </div>
   );
 }
