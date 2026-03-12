@@ -38,6 +38,8 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [isFallbackResult, setIsFallbackResult] = useState(false);
+  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workflowId) return;
