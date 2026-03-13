@@ -350,9 +350,9 @@ export default function LeftPanel({
       </div>
 
 
-      {/* Start Over button — pinned at bottom, matches Upload Ring Part sizing */}
+      {/* Start Over button — pinned at bottom, bottom-aligned with viewport gem toggle (bottom-4 = 16px) */}
       {hasModel && !isGenerating && onReset && (
-        <div className="px-4 lg:px-6 py-3 bg-card">
+        <div className="px-4 lg:px-6 pb-4 pt-3 bg-card">
           <button
             onClick={onReset}
             className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 bg-muted/30 border border-border text-muted-foreground hover:text-foreground hover:bg-accent active:scale-[0.98] flex-wrap"
