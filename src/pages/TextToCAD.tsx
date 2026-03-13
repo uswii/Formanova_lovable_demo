@@ -1186,6 +1186,8 @@ export default function TextToCAD() {
                   else el.requestFullscreen();
                 }
               }}
+              onDisplayMenu={() => setDisplayMenuOpen(p => !p)}
+              onKeyboardShortcuts={() => setShortcutsOpen(true)}
             />
           </div>
         </ResizablePanel>
