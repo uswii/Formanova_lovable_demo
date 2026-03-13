@@ -15,6 +15,7 @@ interface MeshPanelProps {
 }
 
 const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
+const ACTION_BTN_DISABLED = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide bg-muted/20 border border-border/50 text-muted-foreground/30 cursor-not-allowed";
 
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
