@@ -95,6 +95,8 @@ function TransformControlsWrapper({
   const primaryStartScale = useRef(new THREE.Vector3(1, 1, 1));
   const siblingStarts = useRef<{ obj: THREE.Object3D; pos: THREE.Vector3; quat: THREE.Quaternion; scale: THREE.Vector3 }[]>([]);
   const groupPivot = useRef(new THREE.Vector3());
+  // Freeze sibling refs at drag start so dependency changes don't cause re-mounts mid-drag
+  const frozenSiblingsRef = useRef<THREE.Object3D[]>([]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -106,11 +108,13 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        // Freeze siblings at drag start so they don't change mid-drag
+        frozenSiblingsRef.current = siblingObjects ? [...siblingObjects] : [];
         // Snapshot primary + siblings for multi-mesh transform
         primaryStartPos.current.copy(object.position);
         primaryStartQuat.current.copy(object.quaternion);
         primaryStartScale.current.copy(object.scale);
-        const allSiblings = (siblingObjects || []).map((s) => ({
+        const allSiblings = frozenSiblingsRef.current.map((s) => ({
           obj: s,
           pos: s.position.clone(),
           quat: s.quaternion.clone(),
@@ -222,7 +226,9 @@ function TransformControlsWrapper({
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
-      _isTransformDragging = false;
+      // Do NOT reset _isTransformDragging here — the cleanup may fire mid-drag
+      // when dependencies (e.g. siblingObjects) change. The flag is correctly
+      // managed by the dragging-changed event handler above.
     };
   }, [gl, onDragEnd, onRotationDelta, inv, object, mode, siblingObjects]);
 
