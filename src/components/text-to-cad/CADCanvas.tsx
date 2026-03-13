@@ -545,17 +545,15 @@ const LoadedModel = forwardRef<
         const maxDim = Math.max(size.x, size.y, size.z);
         // Distance multiplier: 1.8× ensures the model sits comfortably below the toolbar
         const dist = maxDim * 1.8;
-        const cam = gl.domElement ? (gl.domElement as any).__orbitControls : null;
-        if (cam) {
-          cam.target.copy(center);
-          cam.object.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
-          cam.update();
+        const orbitCtrl = (glRenderer.domElement as any).__orbitControls;
+        if (orbitCtrl) {
+          orbitCtrl.target.copy(center);
+          orbitCtrl.object.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          orbitCtrl.update();
         } else {
-          // Fallback: directly set camera
-          const camera = gl.domElement?.parentElement?.querySelector('canvas')?.__r$?.camera;
-          if (!camera) {
-            // Use three context camera
-          }
+          // Fallback: use R3F camera directly
+          camera.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          (camera as THREE.PerspectiveCamera).lookAt(center);
         }
         inv();
       }
