@@ -87,6 +87,7 @@ export interface CADShortcutActions {
   onCopy?: () => void;
   onPaste?: () => void;
   onCut?: () => void;
+  onResetTransform?: () => void;
   /** If true, the workspace is active and shortcuts should fire */
   enabled: boolean;
 }

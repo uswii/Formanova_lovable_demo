@@ -1132,6 +1132,7 @@ export default function TextToCAD() {
                 setMode={setTransformMode}
                 transformData={selectedTransform}
                 onTransformChange={handleNumericTransformChange}
+                onResetTransform={() => handleSceneAction("reset-transform")}
               />
             )}
             
