@@ -1,4 +1,4 @@
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
+import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
