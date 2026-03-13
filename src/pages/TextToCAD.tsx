@@ -1117,23 +1117,25 @@ export default function TextToCAD() {
               />
             )}
             
-            {/* Bottom-left toolbar consolidated below with gem toggle */}
-
-            {/* Gem toggle — bottom left, next to display menu */}
-            <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
-              <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
-              <GemToggle
-                visible={hasModel && !isGenerating && !isModelLoading}
-                mode={gemMode}
-                onModeChange={setGemMode}
-              />
-              {hasModel && !isGenerating && !isModelLoading && (
-                <div className="relative">
-                  <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
-                  <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+            {/* Bottom-left vertical toolbar: display, keyboard, gem toggle */}
+            {hasModel && !isGenerating && !isModelLoading && (
+              <div className="absolute bottom-4 left-4 z-50 flex flex-col gap-1.5 items-start">
+                {/* Gem toggle (proper switch) */}
+                <GemToggle
+                  visible
+                  mode={gemMode}
+                  onModeChange={setGemMode}
+                />
+                {/* Icon row: Eye + Keyboard */}
+                <div className="flex gap-1.5">
+                  <ViewportDisplayMenu visible onSceneAction={handleSceneAction} />
+                  <div className="relative">
+                    <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
+                    <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Selection warning — centered overlay instead of toast */}
             <AnimatePresence>

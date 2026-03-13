@@ -1,6 +1,6 @@
 /**
- * GemToggle — Proper segmented toggle between "Simple" and "Refractive" gem rendering.
- * Placed in the bottom-left viewport toolbar area for clean alignment.
+ * GemToggle — A proper toggle switch between Simple and Refractive gem rendering.
+ * Compact horizontal toggle for the bottom-left viewport toolbar.
  */
 
 import type { GemMode } from "./GemInstanceRenderer";
@@ -17,31 +17,31 @@ export default function GemToggle({ visible, mode, onModeChange }: GemToggleProp
   const isRefractive = mode === "refraction";
 
   return (
-    <div className="flex bg-card/90 backdrop-blur-sm border border-border/50 rounded-sm overflow-hidden shadow-sm">
-      <button
-        onClick={() => onModeChange("simple")}
-        className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-150 cursor-pointer ${
-          !isRefractive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
-        }`}
-        title="Standard gem rendering (fast)"
-      >
-        <span className="text-[12px]">◆</span>
-        Simple
-      </button>
-      <button
-        onClick={() => onModeChange("refraction")}
-        className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-150 cursor-pointer ${
-          isRefractive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
-        }`}
-        title="Ray-traced refractive gems (higher quality)"
-      >
-        <span className="text-[12px]">◇</span>
-        Refractive
-      </button>
-    </div>
+    <button
+      onClick={() => onModeChange(isRefractive ? "simple" : "refraction")}
+      className="flex items-center gap-2 px-2.5 py-1.5 bg-card/90 backdrop-blur-sm border border-border/50 rounded-sm shadow-sm cursor-pointer hover:bg-accent/30 transition-all duration-150 group"
+      title={isRefractive ? "Refractive gems (click for Simple)" : "Simple gems (click for Refractive)"}
+    >
+      {/* Diamond icon */}
+      <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
+        {isRefractive ? "◇" : "◆"}
+      </span>
+
+      {/* Toggle track */}
+      <div className="relative w-[28px] h-[14px] rounded-full border border-border bg-muted/50 transition-colors duration-200">
+        <div
+          className={`absolute top-[1px] w-[10px] h-[10px] rounded-full transition-all duration-200 ${
+            isRefractive
+              ? "left-[15px] bg-primary"
+              : "left-[1px] bg-muted-foreground/60"
+          }`}
+        />
+      </div>
+
+      {/* Label */}
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors min-w-[52px]">
+        {isRefractive ? "Refract" : "Simple"}
+      </span>
+    </button>
   );
 }
