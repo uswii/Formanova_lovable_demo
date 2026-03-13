@@ -39,9 +39,6 @@ export default function LeftPanel({
   onRebuildPart, onAddPart,
   onReset,
   creditBlock,
-  gemMode = "simple",
-  onGemModeChange,
-  refractionBlocked = false,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
   const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
