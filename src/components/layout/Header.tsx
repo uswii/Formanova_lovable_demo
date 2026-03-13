@@ -177,6 +177,15 @@ export function Header() {
                       <img src={creditCoinIcon} alt="" className="h-6 w-6 mr-2 object-contain" width={24} height={24} loading="eager" decoding="sync" />
                       My Credits
                     </DropdownMenuItem>
+                    {isAdminEmail(user.email) && (
+                      <DropdownMenuItem
+                        onClick={() => navigate('/admin/promo-codes')}
+                        className="cursor-pointer text-sm"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()}
