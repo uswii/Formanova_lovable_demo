@@ -71,12 +71,7 @@ export default function TextToCAD() {
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
-  const [gemMode, setGemMode] = useState<GemMode>(() => {
-    // Circuit breaker: if refraction was previously blocked by context loss, stay in simple mode
-    return localStorage.getItem("refractionBlocked") === "true" ? "simple" : "simple";
-  });
-  const refractionBlocked = localStorage.getItem("refractionBlocked") === "true";
+  const [gemMode, setGemMode] = useState<GemMode>("simple");
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
