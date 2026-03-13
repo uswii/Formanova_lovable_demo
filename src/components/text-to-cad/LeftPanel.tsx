@@ -147,8 +147,6 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Start Over button moved to viewport bottom-left */}
-
           {/* Magic Texturing checkbox — hidden, keep for future re-enable
           {hasModel && (
             <label className="w-full mt-3 flex items-center gap-2.5 py-3 px-1 cursor-pointer select-none group">
