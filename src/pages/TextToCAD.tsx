@@ -1109,13 +1109,6 @@ export default function TextToCAD() {
             )}
 
             {hasModel && (
-              <EditToolbar
-                onSceneAction={handleSceneAction}
-                hasSelection={selectedNames.length > 0}
-                transformMode={transformMode}
-              />
-            )}
-            {hasModel && (
               <ViewportToolbar
                 mode={transformMode}
                 setMode={setTransformMode}
