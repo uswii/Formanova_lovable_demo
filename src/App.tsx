@@ -140,14 +140,7 @@ const App = () => (
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
                   
-                  {/* Admin routes - protected by admin secret */}
-                  <Route path="/admin" element={<AdminRoute><AdminBatches /></AdminRoute>} />
-                  <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                  <Route path="/admin/users/:externalId" element={<AdminRoute><AdminUserDetail /></AdminRoute>} />
-                  <Route path="/admin/workflows" element={<AdminRoute><AdminWorkflows /></AdminRoute>} />
-                  <Route path="/admin/workflows/:workflowId" element={<AdminRoute><AdminWorkflowDetail /></AdminRoute>} />
-                  <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
-                  <Route path="/admin/tenants" element={<AdminRoute><AdminTenants /></AdminRoute>} />
+                  {/* Admin routes */}
                   <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
                   
                   {/* Results page - handles auth internally (login button + ownership check) */}
