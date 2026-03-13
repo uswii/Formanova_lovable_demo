@@ -108,11 +108,13 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        // Freeze siblings at drag start so they don't change mid-drag
+        frozenSiblingsRef.current = siblingObjects ? [...siblingObjects] : [];
         // Snapshot primary + siblings for multi-mesh transform
         primaryStartPos.current.copy(object.position);
         primaryStartQuat.current.copy(object.quaternion);
         primaryStartScale.current.copy(object.scale);
-        const allSiblings = (siblingObjects || []).map((s) => ({
+        const allSiblings = frozenSiblingsRef.current.map((s) => ({
           obj: s,
           pos: s.position.clone(),
           quat: s.quaternion.clone(),
