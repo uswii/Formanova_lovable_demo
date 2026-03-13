@@ -843,6 +843,18 @@ export default function TextToCAD() {
       case "duplicate":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Duplicate meshes");
+        // Pre-compute expected duplicate names so they auto-select after onMeshesDetected fires
+        const existingNames = new Set(meshesRef.current.map(m => m.name));
+        const dupNames = new Set<string>();
+        names.forEach(n => {
+          let finalName = `${n}_copy`;
+          let suffix = 2;
+          while (existingNames.has(finalName) || dupNames.has(finalName)) {
+            finalName = `${n}_copy_${suffix++}`;
+          }
+          dupNames.add(finalName);
+        });
+        pendingSelectRef.current = dupNames;
         canvasRef.current?.duplicateMeshes(names);
         break;
       case "flip-normals":
