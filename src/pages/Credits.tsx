@@ -188,7 +188,7 @@ export default function Credits() {
               {creditsLoading ? '...' : (credits !== null ? credits.toLocaleString() : '—')}
             </span>
             <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-              credits available
+              credits remaining
             </span>
           </div>
           <p className="font-mono text-[9px] tracking-wider text-muted-foreground mt-3">
