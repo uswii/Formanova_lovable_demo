@@ -226,7 +226,9 @@ function TransformControlsWrapper({
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
-      _isTransformDragging = false;
+      // Do NOT reset _isTransformDragging here — the cleanup may fire mid-drag
+      // when dependencies (e.g. siblingObjects) change. The flag is correctly
+      // managed by the dragging-changed event handler above.
     };
   }, [gl, onDragEnd, onRotationDelta, inv, object, mode, siblingObjects]);
 
