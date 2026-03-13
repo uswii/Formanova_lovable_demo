@@ -110,12 +110,30 @@ function TransformControlsWrapper({
         primaryStartPos.current.copy(object.position);
         primaryStartQuat.current.copy(object.quaternion);
         primaryStartScale.current.copy(object.scale);
-        siblingStarts.current = (siblingObjects || []).map((s) => ({
+        const allSiblings = (siblingObjects || []).map((s) => ({
           obj: s,
           pos: s.position.clone(),
           quat: s.quaternion.clone(),
           scale: s.scale.clone(),
         }));
+        siblingStarts.current = allSiblings;
+        
+        // Compute shared pivot = center of combined bounding box of all selected meshes
+        if (allSiblings.length > 0) {
+          const box = new THREE.Box3();
+          // Include primary object
+          const pBox = new THREE.Box3().setFromObject(object);
+          box.union(pBox);
+          // Include all siblings
+          for (const s of allSiblings) {
+            const sBox = new THREE.Box3().setFromObject(s.obj);
+            box.union(sBox);
+          }
+          box.getCenter(groupPivot.current);
+        } else {
+          groupPivot.current.copy(object.position);
+        }
+        
         onDragStart?.();
         inv();
       }
