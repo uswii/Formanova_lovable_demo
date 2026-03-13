@@ -53,71 +53,7 @@ export function ViewportToolbar({
   );
 }
 
-/** Controlled numeric input that syncs with external value but allows free typing */
-function NumericAxisInput({
-  axis,
-  axisColor,
-  value,
-  step,
-  unit,
-  onChange,
-}: {
-  axis: string;
-  axisColor: string;
-  value: number;
-  step: string;
-  unit: string;
-  onChange: (val: string) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localValue, setLocalValue] = useState(formatNum(value));
-  const isFocused = useRef(false);
 
-  // Sync external value when not focused
-  useEffect(() => {
-    if (!isFocused.current) {
-      setLocalValue(formatNum(value));
-    }
-  }, [value]);
-
-  function formatNum(n: number): string {
-    return Number(n.toFixed(2)).toString();
-  }
-
-  return (
-    <div className="flex items-center gap-1.5 flex-1">
-      <span className={`font-mono text-[11px] font-bold ${axisColor}`}>{axis}</span>
-      <input
-        ref={inputRef}
-        type="number"
-        step={step}
-        value={localValue}
-        onFocus={() => { isFocused.current = true; }}
-        onBlur={() => {
-          isFocused.current = false;
-          onChange(localValue);
-          setLocalValue(formatNum(parseFloat(localValue) || 0));
-        }}
-        onChange={(e) => {
-          setLocalValue(e.target.value);
-          // Live update on every keystroke
-          const num = parseFloat(e.target.value);
-          if (!isNaN(num)) onChange(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onChange(localValue);
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-        className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-      />
-      {unit && (
-        <span className="font-mono text-[9px] text-muted-foreground">{unit}</span>
-      )}
-    </div>
-  );
-}
 
 // ── Progress Overlay ──
 export function ProgressOverlay({ visible, progress, currentStep }: { visible: boolean; progress: number; currentStep: string }) {
