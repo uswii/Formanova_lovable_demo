@@ -49,20 +49,16 @@ export default function ViewportDisplayMenu({ visible, open, onOpenChange, onSce
     });
   };
 
-  const positionClass = anchor === "side-toolbar"
-    ? "absolute right-full mr-2 top-0"
-    : "absolute bottom-11 left-0";
-
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef}>
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className={`${positionClass} w-[180px] bg-card border border-border shadow-lg rounded-lg overflow-hidden z-50`}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] bg-card border border-border shadow-lg rounded-lg overflow-hidden z-[201]"
           >
             <div className="px-3 pt-2.5 pb-1.5">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground">

@@ -1129,6 +1129,16 @@ export default function TextToCAD() {
               </div>
             )}
 
+            {/* Bottom-center: status indicator */}
+            {hasModel && !isGenerating && !isModelLoading && (
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2 bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg font-mono text-[10px]">
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  isGenerating ? "bg-yellow-400 animate-pulse" : "bg-green-400"
+                }`} />
+                <span className="text-muted-foreground tracking-wide">Ready</span>
+              </div>
+            )}
+
             {/* Display menu (anchored to side toolbar) */}
             <ViewportDisplayMenu
               visible={hasModel && !isGenerating && !isModelLoading}
