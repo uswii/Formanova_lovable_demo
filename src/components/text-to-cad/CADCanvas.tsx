@@ -356,6 +356,7 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
+  const { camera, gl: glRenderer } = useThree();
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
