@@ -1097,8 +1097,7 @@ export default function UnifiedStudio() {
                 <RefreshCw className="h-4 w-4" />
                 Regenerate
                 <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                  ≤ 10
+                  ≤ <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
                 </span>
               </Button>
             </div>
