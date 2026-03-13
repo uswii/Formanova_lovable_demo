@@ -34,7 +34,7 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
             transition={{ delay: 0.15, duration: 0.4 }}
             className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/60 backdrop-blur-sm border border-border/50"
           >
-            <ShieldX className="h-10 w-10 text-muted-foreground" />
+            <Ghost className="h-10 w-10 text-muted-foreground" />
           </motion.div>
 
           <h1 className="text-5xl font-display font-bold text-foreground mb-3 tracking-tight">
