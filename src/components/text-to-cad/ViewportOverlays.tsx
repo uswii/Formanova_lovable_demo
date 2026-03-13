@@ -11,13 +11,12 @@ const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 export function ViewportToolbar({
   mode,
   setMode,
-  onResetTransform,
 }: {
   mode: string;
   setMode: (m: string) => void;
   transformData?: unknown;
   onTransformChange?: unknown;
-  onResetTransform?: () => void;
+  onResetTransform?: unknown;
 }) {
   const isTransformActive = mode !== "orbit";
 
