@@ -60,10 +60,15 @@ export default function PromoAdminPage() {
   const fetchCodes = useCallback(async () => {
     try {
       const res = await authenticatedFetch(`${API_BASE}?include_inactive=true`);
-      if (!res.ok) throw new Error('Failed to load');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const detail = body?.detail || body?.message || `HTTP ${res.status}`;
+        throw new Error(detail);
+      }
       setCodes(await res.json());
-    } catch {
-      toast.error('Failed to load promo codes');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load promo codes';
+      toast.error(`Failed to load promo codes: ${message}`);
     } finally {
       setLoading(false);
     }
