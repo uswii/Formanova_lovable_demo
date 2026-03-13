@@ -42,7 +42,7 @@ export function Header() {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'From Photo' },
-    ...(cadEnabled ? [{ path: '/studio-cad', label: 'From CAD' }] : []),
+    ...(cadEnabled ? [{ path: '/studio-cad', label: '3D Studio' }] : []),
     // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
 
