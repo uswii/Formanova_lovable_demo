@@ -1128,18 +1128,17 @@ const LoadedModel = forwardRef<
       };
     },
     setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
-      const selectedNames = new Set(meshDataList.filter((m) => selectedMeshNames.has(m.name)).map(m => m.name));
-      if (selectedNames.size === 0) return;
+      const allSelected = meshDataList.filter((m) => selectedMeshNames.has(m.name));
+      if (allSelected.length === 0) return;
       const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-      // For single-mesh selection, apply directly
-      const primaryName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
-      if (!primaryName) return;
+      const primaryName = allSelected[0].name;
+      const primaryMd = allSelected[0];
+      const isMulti = allSelected.length > 1;
 
-      if (selectedNames.size === 1 || property !== 'scale') {
-        // Single mesh or non-scale: apply to the primary mesh only (move/rotate affect all via gizmo)
+      if (!isMulti) {
+        // ── Single mesh: apply value directly ──
         setMeshDataList((prev) => prev.map((md) => {
-          if (property === 'scale' && md.name !== primaryName) return md;
-          if (property !== 'scale' && md.name !== primaryName) return md;
+          if (md.name !== primaryName) return md;
           if (property === 'position') {
             const newPos = md.position.clone();
             if (axisIdx === 0) newPos.x = value;
@@ -1149,8 +1148,7 @@ const LoadedModel = forwardRef<
           } else if (property === 'rotation') {
             const newDeg: [number, number, number] = [...md.rotationDeg];
             newDeg[axisIdx] = value;
-            const newQuat = degToQuat(newDeg);
-            return { ...md, rotationDeg: newDeg, quaternion: newQuat };
+            return { ...md, rotationDeg: newDeg, quaternion: degToQuat(newDeg) };
           } else {
             const newScale = md.scale.clone();
             if (axisIdx === 0) newScale.x = value;
@@ -1159,7 +1157,6 @@ const LoadedModel = forwardRef<
             return { ...md, scale: newScale };
           }
         }));
-        // Update Three.js mesh directly for immediate visual feedback
         const meshObj = meshRefs.current.get(primaryName);
         if (meshObj) {
           if (property === 'position') {
@@ -1167,12 +1164,9 @@ const LoadedModel = forwardRef<
             else if (axisIdx === 1) meshObj.position.y = value;
             else meshObj.position.z = value;
           } else if (property === 'rotation') {
-            const md = meshDataList.find(m => m.name === primaryName);
-            if (md) {
-              const newDeg: [number, number, number] = [...md.rotationDeg];
-              newDeg[axisIdx] = value;
-              meshObj.quaternion.copy(degToQuat(newDeg));
-            }
+            const newDeg: [number, number, number] = [...primaryMd.rotationDeg];
+            newDeg[axisIdx] = value;
+            meshObj.quaternion.copy(degToQuat(newDeg));
           } else {
             if (axisIdx === 0) meshObj.scale.x = value;
             else if (axisIdx === 1) meshObj.scale.y = value;
@@ -1180,62 +1174,109 @@ const LoadedModel = forwardRef<
           }
         }
       } else {
-        // Multi-mesh scale: treat as group, scale around shared pivot
-        const primaryMd = meshDataList.find(m => m.name === primaryName);
-        if (!primaryMd) return;
+        // ── Multi-mesh: transform as group around shared pivot ──
+        const selectedNames = new Set(allSelected.map(m => m.name));
 
-        // Compute current scale value of primary on this axis
-        const currentVal = axisIdx === 0 ? primaryMd.scale.x : axisIdx === 1 ? primaryMd.scale.y : primaryMd.scale.z;
-        if (currentVal === 0) return;
-        const ratio = value / currentVal;
-
-        // Compute shared pivot from all selected meshes
-        const selectedMeshData = meshDataList.filter(m => selectedNames.has(m.name));
+        // Compute shared pivot
         const box = new THREE.Box3();
-        for (const md of selectedMeshData) {
+        for (const md of allSelected) {
           const meshObj = meshRefs.current.get(md.name);
-          if (meshObj) {
-            const mBox = new THREE.Box3().setFromObject(meshObj);
-            box.union(mBox);
-          }
+          if (meshObj) box.union(new THREE.Box3().setFromObject(meshObj));
         }
         const pivot = new THREE.Vector3();
         box.getCenter(pivot);
 
-        setMeshDataList((prev) => prev.map((md) => {
-          if (!selectedNames.has(md.name)) return md;
-          // Apply scale ratio on the target axis
-          const newScale = md.scale.clone();
-          if (axisIdx === 0) newScale.x *= ratio;
-          else if (axisIdx === 1) newScale.y *= ratio;
-          else newScale.z *= ratio;
+        if (property === 'position') {
+          // Compute delta from primary's current position on this axis
+          const currentVal = axisIdx === 0 ? primaryMd.position.x : axisIdx === 1 ? primaryMd.position.y : primaryMd.position.z;
+          const delta = value - currentVal;
 
-          // Scale position offset from pivot on target axis
-          const offset = md.position.clone().sub(pivot);
-          if (axisIdx === 0) offset.x *= ratio;
-          else if (axisIdx === 1) offset.y *= ratio;
-          else offset.z *= ratio;
-          const newPos = pivot.clone().add(offset);
+          setMeshDataList((prev) => prev.map((md) => {
+            if (!selectedNames.has(md.name)) return md;
+            const newPos = md.position.clone();
+            if (axisIdx === 0) newPos.x += delta;
+            else if (axisIdx === 1) newPos.y += delta;
+            else newPos.z += delta;
+            return { ...md, position: newPos };
+          }));
 
-          return { ...md, scale: newScale, position: newPos };
-        }));
+          for (const [name, meshObj] of meshRefs.current.entries()) {
+            if (!selectedNames.has(name)) continue;
+            if (axisIdx === 0) meshObj.position.x += delta;
+            else if (axisIdx === 1) meshObj.position.y += delta;
+            else meshObj.position.z += delta;
+          }
+        } else if (property === 'rotation') {
+          // Compute delta rotation from primary's current value on this axis
+          const currentVal = primaryMd.rotationDeg[axisIdx];
+          const deltaDeg = value - currentVal;
+          // Build delta quaternion from axis-angle
+          const worldAxis = new THREE.Vector3(
+            axisIdx === 0 ? 1 : 0,
+            axisIdx === 1 ? 1 : 0,
+            axisIdx === 2 ? 1 : 0,
+          );
+          const deltaQuat = new THREE.Quaternion().setFromAxisAngle(worldAxis, deltaDeg * Math.PI / 180);
 
-        // Update Three.js meshes directly
-        for (const [name, meshObj] of meshRefs.current.entries()) {
-          if (!selectedNames.has(name)) continue;
-          const md = meshDataList.find(m => m.name === name);
-          if (!md) continue;
-          const newScale = md.scale.clone();
-          if (axisIdx === 0) newScale.x *= ratio;
-          else if (axisIdx === 1) newScale.y *= ratio;
-          else newScale.z *= ratio;
-          meshObj.scale.copy(newScale);
+          setMeshDataList((prev) => prev.map((md) => {
+            if (!selectedNames.has(md.name)) return md;
+            // Rotate orientation
+            const newQuat = deltaQuat.clone().multiply(md.quaternion);
+            const newDeg: [number, number, number] = [
+              md.rotationDeg[0] + (axisIdx === 0 ? deltaDeg : 0),
+              md.rotationDeg[1] + (axisIdx === 1 ? deltaDeg : 0),
+              md.rotationDeg[2] + (axisIdx === 2 ? deltaDeg : 0),
+            ];
+            // Rotate position around pivot
+            const offset = md.position.clone().sub(pivot);
+            offset.applyQuaternion(deltaQuat);
+            const newPos = pivot.clone().add(offset);
+            return { ...md, quaternion: newQuat, rotationDeg: newDeg, position: newPos };
+          }));
 
-          const offset = md.position.clone().sub(pivot);
-          if (axisIdx === 0) offset.x *= ratio;
-          else if (axisIdx === 1) offset.y *= ratio;
-          else offset.z *= ratio;
-          meshObj.position.copy(pivot.clone().add(offset));
+          for (const [name, meshObj] of meshRefs.current.entries()) {
+            if (!selectedNames.has(name)) continue;
+            meshObj.quaternion.premultiply(deltaQuat);
+            const offset = meshObj.position.clone().sub(pivot);
+            offset.applyQuaternion(deltaQuat);
+            meshObj.position.copy(pivot.clone().add(offset));
+          }
+        } else {
+          // Scale: compute ratio from primary's current scale on this axis
+          const currentVal = axisIdx === 0 ? primaryMd.scale.x : axisIdx === 1 ? primaryMd.scale.y : primaryMd.scale.z;
+          if (currentVal === 0) return;
+          const ratio = value / currentVal;
+
+          setMeshDataList((prev) => prev.map((md) => {
+            if (!selectedNames.has(md.name)) return md;
+            const newScale = md.scale.clone();
+            if (axisIdx === 0) newScale.x *= ratio;
+            else if (axisIdx === 1) newScale.y *= ratio;
+            else newScale.z *= ratio;
+
+            const offset = md.position.clone().sub(pivot);
+            if (axisIdx === 0) offset.x *= ratio;
+            else if (axisIdx === 1) offset.y *= ratio;
+            else offset.z *= ratio;
+            return { ...md, scale: newScale, position: pivot.clone().add(offset) };
+          }));
+
+          for (const [name, meshObj] of meshRefs.current.entries()) {
+            if (!selectedNames.has(name)) continue;
+            const md = allSelected.find(m => m.name === name);
+            if (!md) continue;
+            const newScale = md.scale.clone();
+            if (axisIdx === 0) newScale.x *= ratio;
+            else if (axisIdx === 1) newScale.y *= ratio;
+            else newScale.z *= ratio;
+            meshObj.scale.copy(newScale);
+
+            const offset = md.position.clone().sub(pivot);
+            if (axisIdx === 0) offset.x *= ratio;
+            else if (axisIdx === 1) offset.y *= ratio;
+            else offset.z *= ratio;
+            meshObj.position.copy(pivot.clone().add(offset));
+          }
         }
       }
       inv();
