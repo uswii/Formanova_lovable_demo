@@ -10,7 +10,6 @@ import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
-import { AdminRoute } from '@/components/admin/AdminRoute';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
