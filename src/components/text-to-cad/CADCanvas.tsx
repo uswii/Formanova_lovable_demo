@@ -573,7 +573,7 @@ const LoadedModel = forwardRef<
         });
       });
     }, 500);
-  }, [scene, onMeshesDetected, inv, onModelReady]);
+  }, [scene, onMeshesDetected, inv, onModelReady, camera, glRenderer]);
 
   // ── Merge additional GLB parts into the existing scene ──
   const mergedUrlsRef = useRef<Set<string>>(new Set());
