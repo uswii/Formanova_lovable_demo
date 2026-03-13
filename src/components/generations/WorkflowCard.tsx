@@ -255,7 +255,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             <OptimizedImage
               src={workflow.thumbnail_url!}
               alt={workflow.name || 'Generation preview'}
-              priority
+              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* View / enlarge icon overlay */}
