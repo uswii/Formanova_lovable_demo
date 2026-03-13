@@ -48,6 +48,7 @@ const AdminWorkflows = lazy(() => import("./pages/AdminWorkflows"));
 const AdminWorkflowDetail = lazy(() => import("./pages/AdminWorkflowDetail"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminTenants = lazy(() => import("./pages/AdminTenants"));
+const AdminPromoCodes = lazy(() => import("./pages/AdminPromoCodes"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
 const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
@@ -154,6 +155,7 @@ const App = () => (
                   <Route path="/admin/workflows/:workflowId" element={<AdminRoute><AdminWorkflowDetail /></AdminRoute>} />
                   <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
                   <Route path="/admin/tenants" element={<AdminRoute><AdminTenants /></AdminRoute>} />
+                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                   
                   {/* Results page - handles auth internally (login button + ownership check) */}
                   <Route path="/yourresults/:token" element={<DeliveryResults />} />

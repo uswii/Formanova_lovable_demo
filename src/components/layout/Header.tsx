@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdminEmail } from '@/lib/admin-utils';
 import { useCredits } from '@/contexts/CreditsContext';
 import { isCADEnabled } from '@/lib/feature-flags';
 import {
@@ -176,6 +177,15 @@ export function Header() {
                       <img src={creditCoinIcon} alt="" className="h-6 w-6 mr-2 object-contain" width={24} height={24} loading="eager" decoding="sync" />
                       My Credits
                     </DropdownMenuItem>
+                    {isAdminEmail(user.email) && (
+                      <DropdownMenuItem
+                        onClick={() => navigate('/admin/promo-codes')}
+                        className="cursor-pointer text-sm"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()}
