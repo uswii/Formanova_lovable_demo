@@ -32,6 +32,8 @@ export interface WorkflowSummary {
   ai_model?: string | null;
   /** Mode from workflow input (e.g. 'lite', 'standard', 'premium') — available in list response */
   mode?: string | null;
+  /** Total credits spent on this generation — populated from /credits/audit endpoint */
+  credits_spent?: number | null;
 }
 
 export interface WorkflowStep {
