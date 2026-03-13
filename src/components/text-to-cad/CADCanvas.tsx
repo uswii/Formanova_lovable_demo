@@ -583,27 +583,43 @@ const LoadedModel = forwardRef<
       })));
     }
 
-    // ── Auto-frame: fit camera so model doesn't overlap the top toolbar ──
-    if (scene) {
-      const box = new THREE.Box3().setFromObject(scene);
-      if (!box.isEmpty()) {
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        // Distance multiplier: 2.4× ensures the model sits comfortably below the toolbar
-        const dist = maxDim * 2.4;
-        // Slight downward offset so the model center sits below viewport midpoint
-        const yOffset = maxDim * 0.15;
+    // ── Auto-frame: fit camera from NORMALIZED mesh bounds (stable across GLB unit scales) ──
+    {
+      const framedBox = new THREE.Box3();
+      const meshBounds = new THREE.Box3();
+      const transform = new THREE.Matrix4();
+
+      for (const md of list) {
+        if (!md.geometry.boundingBox) md.geometry.computeBoundingBox();
+        if (!md.geometry.boundingBox) continue;
+
+        meshBounds.copy(md.geometry.boundingBox);
+        transform.compose(md.position, md.quaternion, md.scale);
+        meshBounds.applyMatrix4(transform);
+        framedBox.union(meshBounds);
+      }
+
+      if (!framedBox.isEmpty()) {
+        const center = framedBox.getCenter(new THREE.Vector3());
+        const size = framedBox.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z, 1);
+
+        // Keep models comfortably below top toolbar and visible on first paint
+        const dist = Math.max(maxDim * 2.4, 6.5);
+        const targetY = center.y - maxDim * 0.12;
+        const cameraY = targetY + maxDim * 0.2;
+
         const orbitCtrl = (glRenderer.domElement as any).__orbitControls;
         if (orbitCtrl) {
-          orbitCtrl.target.set(center.x, center.y - yOffset, center.z);
-          orbitCtrl.object.position.set(center.x, center.y - yOffset + maxDim * 0.2, center.z + dist);
+          orbitCtrl.target.set(center.x, targetY, center.z);
+          orbitCtrl.object.position.set(center.x, cameraY, center.z + dist);
           orbitCtrl.update();
         } else {
           // Fallback: use R3F camera directly
-          camera.position.set(center.x, center.y - yOffset + maxDim * 0.2, center.z + dist);
-          (camera as THREE.PerspectiveCamera).lookAt(center);
+          camera.position.set(center.x, cameraY, center.z + dist);
+          (camera as THREE.PerspectiveCamera).lookAt(center.x, targetY, center.z);
         }
+
         inv();
       }
     }
