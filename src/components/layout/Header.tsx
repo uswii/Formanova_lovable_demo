@@ -43,7 +43,7 @@ export function Header() {
   useEffect(() => {
     if (!lastDelta) return;
     setVisibleDelta(lastDelta);
-    const timer = setTimeout(() => setVisibleDelta(null), 2000);
+    const timer = setTimeout(() => setVisibleDelta(null), 4000);
     return () => clearTimeout(timer);
   }, [lastDelta]);
 
