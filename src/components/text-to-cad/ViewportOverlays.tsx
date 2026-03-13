@@ -25,11 +25,13 @@ export function ViewportToolbar({
   setMode,
   transformData,
   onTransformChange,
+  onResetTransform,
 }: {
   mode: string;
   setMode: (m: string) => void;
   transformData?: MeshTransformData | null;
   onTransformChange?: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
+  onResetTransform?: () => void;
 }) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
@@ -64,6 +66,20 @@ export function ViewportToolbar({
             {tm.label}
           </button>
         ))}
+        {/* Reset Transform — visible when a transform mode is active */}
+        {isTransformActive && onResetTransform && (
+          <>
+            <div className="w-px bg-border" />
+            <button
+              onClick={onResetTransform}
+              className={`${VT_BTN_DEFAULT} gap-1.5 text-destructive/80 hover:text-destructive`}
+              title="Reset Transform (Alt+R)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
+            </button>
+          </>
+        )}
       </div>
 
       {/* Integrated numeric inspector — slides down from viewer tools */}

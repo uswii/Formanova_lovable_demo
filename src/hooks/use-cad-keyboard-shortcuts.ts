@@ -37,6 +37,7 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: ["Delete", "/", "Backspace", "/", `${modKey}+Backspace`], desc: "Delete selected" },
       { keys: ["Shift+D"], desc: "Duplicate selected" },
       { keys: ["W"], desc: "Toggle wireframe" },
+      { keys: ["Alt+R"], desc: "Reset transform" },
     ],
   },
   {
@@ -87,6 +88,7 @@ export interface CADShortcutActions {
   onCopy?: () => void;
   onPaste?: () => void;
   onCut?: () => void;
+  onResetTransform?: () => void;
   /** If true, the workspace is active and shortcuts should fire */
   enabled: boolean;
 }
@@ -185,7 +187,12 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
       // Don't intercept other Ctrl/Cmd combos (browser shortcuts)
       if (mod) return;
 
-      // Shift + D → Duplicate
+      // Alt + R → Reset Transform
+      if (e.altKey && key === "r") {
+        e.preventDefault();
+        a.onResetTransform?.();
+        return;
+      }
       if (e.shiftKey && key === "d") {
         e.preventDefault();
         a.onDuplicate();
