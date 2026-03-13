@@ -34,18 +34,6 @@ export function ViewportToolbar({
           </button>
         ))}
       </div>
-
-      {/* Reset Transform — separate row below toolbar, only when a transform mode is active */}
-      {isTransformActive && onResetTransform && (
-        <button
-          onClick={onResetTransform}
-          className="pointer-events-auto mt-1.5 flex items-center gap-1.5 px-3 py-1.5 bg-card/90 border border-border shadow text-[10px] font-mono uppercase tracking-[0.12em] text-destructive/70 hover:text-destructive hover:bg-card cursor-pointer transition-colors"
-          title="Reset Transform (Alt+R)"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset Transform
-        </button>
-      )}
     </div>
   );
 }
