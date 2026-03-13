@@ -1,6 +1,6 @@
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ShieldX } from 'lucide-react';
+import { Loader2, Ghost } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AdminRouteGuardProps {
