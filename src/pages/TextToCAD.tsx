@@ -670,19 +670,24 @@ export default function TextToCAD() {
     }
   }, [glbUrl, additionalParts, workspaceActive, hasModel]);
 
+  // Track names of recently duplicated meshes so they get auto-selected
+  const pendingSelectRef = useRef<Set<string> | null>(null);
+
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes((prev) => {
       // Preserve existing visibility/selection state for known meshes
       const prevMap = new Map(prev.map(m => [m.name, m]));
+      const pendingSelect = pendingSelectRef.current;
       return detected.map((d) => {
         const existing = prevMap.get(d.name);
         return {
           ...d,
           visible: existing?.visible ?? true,
-          selected: existing?.selected ?? false,
+          selected: existing?.selected ?? (pendingSelect?.has(d.name) ?? false),
         };
       });
     });
+    pendingSelectRef.current = null;
     setStats((prev) => ({ ...prev, meshes: detected.length }));
   }, []);
 
