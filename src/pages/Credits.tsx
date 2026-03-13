@@ -84,16 +84,6 @@ export default function Credits() {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Determine "plan" based on balance (simple heuristic)
-  const currentPlan = credits !== null
-    ? credits >= 1500 ? 'Pro' : credits >= 500 ? 'Standard' : credits >= 100 ? 'Basic' : 'Free'
-    : '—';
-
-  // Credit bar max (next tier ceiling)
-  const maxCredits = credits !== null
-    ? credits >= 1500 ? 2000 : credits >= 500 ? 1500 : credits >= 100 ? 500 : 100
-    : 100;
-  const usagePercent = credits !== null ? Math.min((credits / maxCredits) * 100, 100) : 0;
 
   const handleCheckout = async (tierId: string) => {
     if (!user?.id) {
@@ -189,37 +179,21 @@ export default function Credits() {
         </motion.div>
 
         {/* Plan + Balance row */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 mb-12">
-          {/* Current Plan Card */}
-          <div className="border border-border/30 p-6 flex flex-col justify-center">
-            <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground uppercase mb-3">
-              Current Plan
+        <motion.div variants={itemVariants} className="border border-border/30 p-6 mb-12">
+          <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground uppercase block mb-2">
+            Credit Balance
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-5xl uppercase tracking-tight text-foreground">
+              {creditsLoading ? '...' : (credits !== null ? credits.toLocaleString() : '—')}
             </span>
-            <span className="font-display text-3xl uppercase tracking-wide text-foreground">
-              {creditsLoading ? '...' : currentPlan}
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
+              credits available
             </span>
           </div>
-
-          {/* Credit Balance Bar */}
-          <div className="border border-border/30 p-6">
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground uppercase block mb-2">
-                  Credit Balance
-                </span>
-                <span className="font-display text-4xl uppercase tracking-tight text-foreground">
-                  {creditsLoading ? '...' : (credits !== null ? credits.toLocaleString() : '—')}
-                </span>
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground ml-2">
-                  credits available
-                </span>
-              </div>
-            </div>
-            <Progress value={usagePercent} className="h-2 bg-secondary" />
-            <p className="font-mono text-[9px] tracking-wider text-muted-foreground mt-2">
-              Each photo generation costs ~10 credits
-            </p>
-          </div>
+          <p className="font-mono text-[9px] tracking-wider text-muted-foreground mt-3">
+            Each photo generation costs ~10 credits
+          </p>
         </motion.div>
 
         {/* Plans */}
