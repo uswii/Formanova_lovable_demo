@@ -31,8 +31,8 @@ function formatDate(iso: string | null) {
 }
 
 function codeStatus(code: PromoCode): 'active' | 'expired' | 'inactive' {
+  if (code.expires_at && new Date(code.expires_at) <= new Date()) return 'expired';
   if (!code.is_active) return 'inactive';
-  if (code.expires_at && new Date(code.expires_at) < new Date()) return 'expired';
   return 'active';
 }
 
