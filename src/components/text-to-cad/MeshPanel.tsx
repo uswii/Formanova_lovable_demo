@@ -421,7 +421,7 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
       <div className="px-3 py-2 font-mono text-[10px] border border-border bg-muted/20 text-muted-foreground">
         {hasSelection
           ? `${selectedMeshes.length} mesh${selectedMeshes.length > 1 ? "es" : ""} selected`
-          : "No mesh selected — select from the List tab or press Ctrl+A"}
+          : "No mesh selected"}
       </div>
 
       <div>
