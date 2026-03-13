@@ -39,13 +39,13 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             className="fixed inset-0 z-[200] bg-black/20"
             onClick={onClose}
           />
-          {/* Panel – anchored above trigger via absolute positioning in parent */}
+          {/* Panel – fixed center */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute bottom-full left-0 mb-2 z-[201] w-[380px] max-h-[70vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[380px] max-h-[70vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">

@@ -350,7 +350,7 @@ export default function LeftPanel({
       </div>
 
 
-      {/* Start Over button — pinned above status bar */}
+      {/* Start Over button — pinned at bottom */}
       {hasModel && !isGenerating && onReset && (
         <div className="px-4 lg:px-5 py-3 bg-card">
           <button
@@ -362,14 +362,6 @@ export default function LeftPanel({
           </button>
         </div>
       )}
-
-      {/* Status bar */}
-      <div className="px-4 lg:px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] bg-card min-w-0">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-          isGenerating ? "bg-yellow-400 animate-pulse" : "bg-green-400"
-        }`} />
-        <span className="text-muted-foreground tracking-wide truncate">{isGenerating ? "Processing…" : "Ready"}</span>
-      </div>
     </div>
   );
 }
