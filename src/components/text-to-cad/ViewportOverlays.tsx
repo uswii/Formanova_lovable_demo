@@ -52,7 +52,7 @@ export function ViewportToolbar({
   };
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-4 pointer-events-none">
+    <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-2 pointer-events-none">
       {/* Centered viewer tools */}
       <div className="pointer-events-auto flex gap-0 bg-card border border-border shadow-lg">
         {TRANSFORM_MODES.map((tm) => (
