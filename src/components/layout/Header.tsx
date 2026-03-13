@@ -178,7 +178,7 @@ export function Header() {
                       <img src={creditCoinIcon} alt="" className="h-6 w-6 mr-2 object-contain" width={24} height={24} loading="eager" decoding="sync" />
                       My Credits
                     </DropdownMenuItem>
-                    {isAdminEmail(user.email) && (
+                    {isAdmin && (
                       <DropdownMenuItem
                         onClick={() => navigate('/admin/promo-codes')}
                         className="cursor-pointer text-sm"
