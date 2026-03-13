@@ -1177,14 +1177,24 @@ const LoadedModel = forwardRef<
         // ── Multi-mesh: transform as group around shared pivot ──
         const selectedNames = new Set(allSelected.map(m => m.name));
 
-        // Compute shared pivot
+        // Compute shared pivot (with safety fallback if mesh refs aren't mounted)
         const box = new THREE.Box3();
+        let hasValidBounds = false;
         for (const md of allSelected) {
           const meshObj = meshRefs.current.get(md.name);
-          if (meshObj) box.union(new THREE.Box3().setFromObject(meshObj));
+          if (meshObj) {
+            box.union(new THREE.Box3().setFromObject(meshObj));
+            hasValidBounds = true;
+          }
         }
         const pivot = new THREE.Vector3();
-        box.getCenter(pivot);
+        if (hasValidBounds && !box.isEmpty()) {
+          box.getCenter(pivot);
+        } else {
+          // Fallback: average of mesh positions from React state
+          for (const md of allSelected) pivot.add(md.position);
+          pivot.divideScalar(allSelected.length);
+        }
 
         if (property === 'position') {
           // Compute delta from primary's current position on this axis
