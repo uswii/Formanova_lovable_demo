@@ -1135,19 +1135,21 @@ export default function TextToCAD() {
               />
             )}
             
-            {/* Bottom-left: gem toggle + ready status aligned on same row */}
+            {/* Bottom-left: gem toggle */}
             {hasModel && !isGenerating && !isModelLoading && (
-              <div className="absolute bottom-4 left-4 z-50 flex items-center gap-3">
+              <div className="absolute bottom-4 left-4 z-50">
                 <GemToggle
                   visible
                   mode={gemMode}
                   onModeChange={setGemMode}
                 />
-                {/* Ready status — just a dot + label, no button styling */}
-                <div className="flex items-center gap-1.5 font-mono text-[9px]">
-                  <div className="w-[6px] h-[6px] rounded-full flex-shrink-0 bg-green-400" />
-                  <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">Ready</span>
-                </div>
+              </div>
+            )}
+            {/* Bottom-center: Ready status — aligned on same baseline as toggle */}
+            {hasModel && !isGenerating && !isModelLoading && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 font-mono text-[9px]">
+                <div className="w-[6px] h-[6px] rounded-full flex-shrink-0 bg-green-400" />
+                <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">Ready</span>
               </div>
             )}
 
