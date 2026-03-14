@@ -397,18 +397,15 @@ export default function TextToCAD() {
         }),
       });
 
+      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        // FastAPI 422 returns { detail: [{ msg, ... }] }
-        const msg = typeof err.detail === 'string'
-          ? err.detail
-          : Array.isArray(err.detail)
-            ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-            : err.error || `Failed to start generation (${startRes.status})`;
-        throw new Error(msg);
+        throw new Error(getApiErrorMessage(startPayload, `Failed to start generation (${startRes.status})`));
+      }
+      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
+        throw new Error("Invalid generation start response");
       }
 
-      const startData = await startRes.json();
+      const startData = startPayload as Record<string, unknown>;
       // Spec returns workflowId; fallback to workflow_id for backward compat
       const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
