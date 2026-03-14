@@ -353,6 +353,8 @@ export function CinematicShowcase() {
             <OptimizedImage
               src={allImages[currentImageIndex]}
               alt="Current"
+              width={896}
+              height={1200}
               className="w-full h-full object-contain"
             />
           </div>
