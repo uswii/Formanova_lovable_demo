@@ -266,8 +266,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             </div>
           </button>
         ) : isEnriching ? (
-          /* Pulsing placeholder while enrichment is in progress */
-          <div className="w-full aspect-square bg-muted/50 animate-pulse" />
+          /* Spinner placeholder while enrichment is in progress */
+          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
+          </div>
         ) : null}
 
         {/* Card footer: index · credits · date · duration */}
