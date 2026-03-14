@@ -40,6 +40,19 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
+function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
+  const workflowToken = encodeURIComponent(workflowId);
+  const raw = typeof template === "string" && template.trim().length > 0
+    ? template
+    : fallbackPath;
+
+  return raw
+    .replaceAll("{workflow_id}", workflowToken)
+    .replaceAll("{workflowId}", workflowToken)
+    .replaceAll(":workflow_id", workflowToken)
+    .replaceAll(":workflowId", workflowToken);
+}
+
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
@@ -342,11 +355,19 @@ export default function TextToCAD() {
 
       const startData = await startRes.json();
       // Spec returns workflowId; fallback to workflow_id for backward compat
-      const workflowId = startData.workflowId || startData.workflow_id;
+      const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
-      // Use returned URLs or construct from workflowId
-      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
-      const resultUrl = startData.resultUrl || `/api/workflows/${workflowId}/result`;
+      // Support templated urls like /api/workflows/{workflow_id}/progress
+      const progressUrl = resolveWorkflowEndpoint(
+        startData.progressUrl || startData.status_url,
+        workflowId,
+        `/api/status/${encodeURIComponent(workflowId)}`,
+      );
+      const resultUrl = resolveWorkflowEndpoint(
+        startData.resultUrl || startData.result_url,
+        workflowId,
+        `/api/result/${encodeURIComponent(workflowId)}`,
+      );
 
       console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
 
@@ -528,10 +549,18 @@ export default function TextToCAD() {
       }
 
       const startData = await startRes.json();
-      const workflowId = startData.workflowId || startData.workflow_id;
+      const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
-      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
-      const resultUrlEdit = startData.resultUrl || `/api/workflows/${workflowId}/result`;
+      const progressUrl = resolveWorkflowEndpoint(
+        startData.progressUrl || startData.status_url,
+        workflowId,
+        `/api/status/${encodeURIComponent(workflowId)}`,
+      );
+      const resultUrlEdit = resolveWorkflowEndpoint(
+        startData.resultUrl || startData.result_url,
+        workflowId,
+        `/api/result/${encodeURIComponent(workflowId)}`,
+      );
       console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
 
       // Step 2: Poll progress
