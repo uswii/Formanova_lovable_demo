@@ -11,10 +11,12 @@ import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
 
-// Toast/tooltip providers — deferred since toasts only fire on user interaction
+// Toast providers — deferred since toasts only fire on user interaction
 const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
-const TooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
+
+// TooltipProvider is tiny — load eagerly to avoid blank flash on initial render
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Decorative / non-critical components — lazy-loaded to reduce initial JS payload
 const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
