@@ -323,8 +323,8 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start generation — per API spec: POST /api/run/:wfName
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      // Step 1: Start generation — per API spec: POST /api/run/state/:wfName
+      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -344,10 +344,13 @@ export default function TextToCAD() {
       // Spec returns workflowId; fallback to workflow_id for backward compat
       const workflowId = startData.workflowId || startData.workflow_id;
       if (!workflowId) throw new Error("No workflowId returned");
+      // Use returned URLs or construct from workflowId
+      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
+      const resultUrl = startData.resultUrl || `/api/workflows/${workflowId}/result`;
 
-      console.log("[TextToCAD] Workflow started:", workflowId);
+      console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
 
-      // Step 2: Poll progress — per API spec: GET /api/workflows/:workflowId/progress
+      // Step 2: Poll progress
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
@@ -366,7 +369,7 @@ export default function TextToCAD() {
         await new Promise((r) => setTimeout(r, 3000));
         try {
           const statusRes = await authenticatedFetch(
-            `/api/workflows/${encodeURIComponent(workflowId)}/progress`,
+            progressUrl,
             { signal: pollAbort.signal }
           );
 
@@ -426,7 +429,7 @@ export default function TextToCAD() {
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/workflows/${encodeURIComponent(workflowId)}/result`);
+        const resultRes = await authenticatedFetch(resultUrl);
 
         if (resultRes.ok) {
           const result = await resultRes.json();
@@ -507,8 +510,8 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start edit — per API spec: POST /api/run/:wfName
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      // Step 1: Start edit — per API spec: POST /api/run/state/:wfName
+      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -527,9 +530,11 @@ export default function TextToCAD() {
       const startData = await startRes.json();
       const workflowId = startData.workflowId || startData.workflow_id;
       if (!workflowId) throw new Error("No workflowId returned");
-      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId);
+      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
+      const resultUrlEdit = startData.resultUrl || `/api/workflows/${workflowId}/result`;
+      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
 
-      // Step 2: Poll progress — per API spec: GET /api/workflows/:workflowId/progress
+      // Step 2: Poll progress
       const TERMINAL_STEPS = new Set(["success_final", "success_original_glb", "failed_final"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
@@ -545,7 +550,7 @@ export default function TextToCAD() {
         await new Promise((r) => setTimeout(r, 3000));
         try {
           const statusRes = await authenticatedFetch(
-            `/api/workflows/${encodeURIComponent(workflowId)}/progress`,
+            progressUrl,
             { signal: pollAbort.signal }
           );
           if (statusRes.status === 404) {
@@ -581,7 +586,7 @@ export default function TextToCAD() {
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/workflows/${encodeURIComponent(workflowId)}/result`);
+        const resultRes = await authenticatedFetch(resultUrlEdit);
         if (resultRes.ok) {
           const result = await resultRes.json();
           const toUrl = (uri: string) => uri.startsWith("azure://")
