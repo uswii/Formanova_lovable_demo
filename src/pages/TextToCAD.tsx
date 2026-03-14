@@ -1316,15 +1316,17 @@ export default function TextToCAD() {
             transition={{ duration: 0.2 }}
             className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
           >
-            <div className="pointer-events-auto bg-card border border-border shadow-2xl px-8 py-6 max-w-sm text-center">
+            <div className="pointer-events-auto bg-card border border-border shadow-2xl w-[340px] px-8 py-7 text-center">
               <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
                 Download for 3D Printing
               </div>
-              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-4">
+              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5">
                 Scale sets the real-world size. Default prints approximately a US size 7 ring (20mm diameter).
               </p>
-              <div className="mb-3">
-                <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground block mb-1.5">
+
+              {/* Scale input */}
+              <div className="mb-4">
+                <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground block mb-2">
                   mm per unit
                 </label>
                 <input
@@ -1334,10 +1336,12 @@ export default function TextToCAD() {
                   step={0.1}
                   value={stlScaleMm}
                   onChange={(e) => setStlScaleMm(parseFloat(e.target.value) || 1)}
-                  className="w-24 px-3 py-1.5 text-center font-mono text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary"
+                  className="w-full px-3 py-2 text-center font-mono text-sm bg-background border border-border text-foreground focus:outline-none focus:border-primary tabular-nums"
                 />
               </div>
-              <div className="flex gap-2 justify-center mb-4">
+
+              {/* Size presets — equal width grid */}
+              <div className="grid grid-cols-3 gap-2 mb-6">
                 {[
                   { label: "Size 6", value: 6.33 },
                   { label: "Size 7", value: 6.67 },
@@ -1346,26 +1350,28 @@ export default function TextToCAD() {
                   <button
                     key={preset.label}
                     onClick={() => setStlScaleMm(preset.value)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] border cursor-pointer transition-opacity ${
+                    className={`py-2 text-[10px] font-bold uppercase tracking-[0.12em] border cursor-pointer transition-all duration-150 ${
                       stlScaleMm === preset.value
                         ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:opacity-80"
+                        : "bg-background text-muted-foreground border-border hover:border-foreground/30"
                     }`}
                   >
                     {preset.label}
                   </button>
                 ))}
               </div>
-              <div className="flex gap-3 justify-center">
+
+              {/* Actions — equal width grid */}
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setStlModalOpen(false)}
-                  className="px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                  className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDownloadStl}
-                  className="px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                  className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Download STL
                 </button>
