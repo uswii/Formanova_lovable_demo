@@ -516,7 +516,15 @@ export default function TextToCAD() {
         const resultRes = await authenticatedFetch(resultUrl);
 
         if (resultRes.ok) {
-          const result = await resultRes.json();
+          const resultPayload = await readResponseBody(resultRes);
+          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
+            throw new Error("Invalid generation result response");
+          }
+          const result = resultPayload as Record<string, any>;
+          if (result.__non_json) {
+            throw new Error(getApiErrorMessage(result, "Failed to fetch result"));
+          }
+
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -541,8 +549,8 @@ export default function TextToCAD() {
           continue;
         }
 
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch result");
+        const errPayload = await readResponseBody(resultRes);
+        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch result"));
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
