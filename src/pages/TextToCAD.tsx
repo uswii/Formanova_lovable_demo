@@ -394,6 +394,7 @@ export default function TextToCAD() {
 
           if (step) {
             setProgressStep(step);
+            setProgressLabel(progress.stepLabel || "");
             if (progress.attempt) {
               setRetryAttempt(progress.attempt);
             }
