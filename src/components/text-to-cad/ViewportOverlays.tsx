@@ -124,7 +124,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -134,6 +134,7 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   undoCount: number;
   redoCount: number;
   onDownload: () => void;
+  onDownloadStl?: () => void;
   onFullscreen?: () => void;
   onDisplayMenu?: () => void;
   onKeyboardShortcuts?: () => void;
