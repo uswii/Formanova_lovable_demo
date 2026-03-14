@@ -350,7 +350,7 @@ export default function Generations() {
         {!error && (
           <>
             <WorkflowSection
-              title="From Photo"
+              title="Photo Studio"
               subtitle="Jewelry photo to on-model imagery"
               icon={SectionIcons.photo}
               workflows={photoSection.workflows}
@@ -378,18 +378,6 @@ export default function Generations() {
               />
             </ScissorGLBGrid>
 
-            <WorkflowSection
-              title="From CAD"
-              subtitle="3D CAD to photorealistic catalog"
-              icon={SectionIcons.cadRender}
-              workflows={cadRenderSection.workflows}
-              loading={cadRenderSection.loading}
-              currentPage={cadRenderSection.page}
-              totalPages={cadRenderSection.totalPages}
-              columns={4}
-              onPageChange={setCadRenderPage}
-              onWorkflowClick={() => {}}
-            />
           </>
         )}
       </div>
