@@ -56,8 +56,10 @@ export function useEstimatedCost({
         if (cancelled) return;
 
         if (res.ok) {
-          const data = await res.json();
-          const serverCost = data.projected_max_hold ?? data.estimated_credits;
+          const text = await res.text();
+          try {
+            const data = JSON.parse(text);
+            const serverCost = data.projected_max_hold ?? data.estimated_credits;
           if (serverCost && serverCost > 0) {
             setCost(serverCost);
             setLoading(false);
