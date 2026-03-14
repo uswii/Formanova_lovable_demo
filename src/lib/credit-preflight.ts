@@ -4,8 +4,6 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { TOOL_COSTS } from '@/lib/credits-api';
 
-const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
-
 export interface PreflightResult {
   approved: boolean;
   estimatedCredits: number;
@@ -30,7 +28,7 @@ export async function performCreditPreflight(
   let estimatedCredits = TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? 5;
 
   try {
-    const estimateRes = await authenticatedFetch(`${API_BASE}/credits/estimate`, {
+    const estimateRes = await authenticatedFetch('/api/credits/estimate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -41,15 +39,11 @@ export async function performCreditPreflight(
     });
 
     if (estimateRes.ok) {
-      const text = await estimateRes.text();
-      try {
-        const data = JSON.parse(text);
-        const serverCost = data.projected_max_hold ?? data.estimated_credits;
-        if (serverCost && serverCost > 0) {
-          estimatedCredits = serverCost;
-        }
-      } catch {
-        // Non-JSON response (HTML error page) — use fallback
+      const data = await estimateRes.json();
+      // Backend returns projected_max_hold, NOT estimated_credits
+      const serverCost = data.projected_max_hold ?? data.estimated_credits;
+      if (serverCost && serverCost > 0) {
+        estimatedCredits = serverCost;
       }
     }
   } catch {
@@ -57,19 +51,13 @@ export async function performCreditPreflight(
   }
 
   // 2️⃣ Fetch current balance
-  const balanceRes = await authenticatedFetch(`${API_BASE}/credits/balance/me`);
+  const balanceRes = await authenticatedFetch('/api/credits/balance/me');
 
   if (!balanceRes.ok) {
     throw new Error(`Balance fetch failed (${balanceRes.status})`);
   }
 
-  const balanceText = await balanceRes.text();
-  let balanceData: any;
-  try {
-    balanceData = JSON.parse(balanceText);
-  } catch {
-    throw new Error('Balance response was not valid JSON');
-  }
+  const balanceData = await balanceRes.json();
   // Use "available" (balance minus reserved holds), fall back to "balance"
   const currentBalance = balanceData.available ?? balanceData.balance ?? 0;
 

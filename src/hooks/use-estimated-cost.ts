@@ -41,8 +41,7 @@ export function useEstimatedCost({
 
     (async () => {
       try {
-        const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
-        const res = await authenticatedFetch(`${API_BASE}/credits/estimate`, {
+        const res = await authenticatedFetch('/api/credits/estimate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -56,16 +55,13 @@ export function useEstimatedCost({
         if (cancelled) return;
 
         if (res.ok) {
-          const text = await res.text();
-          try {
-            const data = JSON.parse(text);
-            const serverCost = data.projected_max_hold ?? data.estimated_credits;
+          const data = await res.json();
+          const serverCost = data.projected_max_hold ?? data.estimated_credits;
           if (serverCost && serverCost > 0) {
             setCost(serverCost);
             setLoading(false);
             return;
           }
-          } catch { /* non-JSON — fall through */ }
         }
       } catch {
         // Network error or aborted — fall through to fallback

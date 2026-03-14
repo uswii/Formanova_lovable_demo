@@ -11,8 +11,10 @@ import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
+
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
+
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
@@ -38,68 +40,6 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
-const API_BASE = import.meta.env.DEV ? "https://formanova.ai/api" : "/api";
-
-function normalizeApiUrl(pathOrUrl: string): string {
-  const trimmed = pathOrUrl.trim();
-  if (!trimmed) return API_BASE;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith("/api/")) return `${API_BASE}${trimmed.slice(4)}`;
-  if (trimmed.startsWith("/")) return `${API_BASE}${trimmed}`;
-  return `${API_BASE}/${trimmed}`;
-}
-
-async function readResponseBody(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { __non_json: true, __raw_text: text };
-  }
-}
-
-function getApiErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") return fallback;
-
-  const data = payload as Record<string, unknown>;
-  if (typeof data.detail === "string") return data.detail;
-  if (Array.isArray(data.detail)) {
-    const messages = data.detail
-      .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>).msg : null))
-      .filter((msg): msg is string => typeof msg === "string");
-    if (messages.length > 0) return messages.join("; ");
-  }
-  if (typeof data.error === "string") return data.error;
-
-  if (data.__non_json) {
-    const raw = String(data.__raw_text ?? "").trim();
-    const lowered = raw.slice(0, 200).toLowerCase();
-    if (lowered.includes("<!doctype") || lowered.includes("<html")) {
-      return `${fallback} (received HTML instead of JSON)`;
-    }
-    return `${fallback} (received non-JSON response)`;
-  }
-
-  return fallback;
-}
-
-function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
-  const workflowToken = encodeURIComponent(workflowId);
-  const raw = typeof template === "string" && template.trim().length > 0
-    ? template
-    : fallbackPath;
-
-  const resolved = raw
-    .replaceAll("{workflow_id}", workflowToken)
-    .replaceAll("{workflowId}", workflowToken)
-    .replaceAll(":workflow_id", workflowToken)
-    .replaceAll(":workflowId", workflowToken);
-
-  return normalizeApiUrl(resolved);
-}
-
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
@@ -113,7 +53,6 @@ export default function TextToCAD() {
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(false);
   const [progressStep, setProgressStep] = useState("");
-  const [progressLabel, setProgressLabel] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
   const [showPartRegen, setShowPartRegen] = useState(false);
@@ -383,47 +322,28 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start generation — per API spec: POST /api/run/state/:wfName
-      const startRes = await authenticatedFetch(`${API_BASE}/run/state/ring_generate_v1`, {
+      // Step 1: Start generation
+      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: {
-            prompt: prompt.trim(),
-            llm,
-            max_attempts: 3,
-            skip_validation: false,
-          },
+          payload: { llm, prompt: prompt.trim(), max_attempts: 3, skip_validation: false },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
 
-      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        throw new Error(getApiErrorMessage(startPayload, `Failed to start generation (${startRes.status})`));
-      }
-      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
-        throw new Error("Invalid generation start response");
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || `Failed to start generation (${startRes.status})`);
       }
 
-      const startData = startPayload as Record<string, unknown>;
-      // Spec returns workflowId; fallback to workflow_id for backward compat
-      const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
-      if (!workflowId) throw new Error("No workflowId returned");
-      // Support templated urls like /api/workflows/{workflow_id}/progress
-      const progressUrl = resolveWorkflowEndpoint(
-        startData.progressUrl || startData.status_url,
-        workflowId,
-        `${API_BASE}/status/${encodeURIComponent(workflowId)}`,
-      );
-      const resultUrl = resolveWorkflowEndpoint(
-        startData.resultUrl || startData.result_url,
-        workflowId,
-        `${API_BASE}/result/${encodeURIComponent(workflowId)}`,
-      );
+      const { workflow_id } = await startRes.json();
+      if (!workflow_id) throw new Error("No workflow_id returned");
 
-      console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
+      console.log("[TextToCAD] Workflow started:", workflow_id);
 
-      // Step 2: Poll progress
+      // Step 2: Poll status every 3s — use active_nodes[0] for real progress
+      const TERMINAL_STATES = new Set(["failed", "budget_exhausted"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
@@ -433,16 +353,16 @@ export default function TextToCAD() {
       const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
       const pollStart = Date.now();
 
-      const TERMINAL_STEPS = new Set(["success_final", "success_original_glb", "failed_final"]);
+      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
 
       while (true) {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
           throw new Error("Generation timed out");
         }
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
         try {
           const statusRes = await authenticatedFetch(
-            progressUrl,
+            `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
           );
 
@@ -461,40 +381,31 @@ export default function TextToCAD() {
             continue;
           }
 
-          const progressPayload = await readResponseBody(statusRes);
-          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
-            throw new Error("Status polling failed: invalid response body");
-          }
-          const progress = progressPayload as Record<string, unknown>;
-          if (progress.__non_json) {
-            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
-          }
-
+          const statusData = await statusRes.json();
           pollErrors = 0;
 
-          // Spec response: { state, step, stepLabel, attempt, maxAttempts }
-          const state = String(progress.state || "running").toLowerCase();
-          const step = String(progress.step || "");
+          const state = (statusData.runtime?.state || "unknown").toLowerCase();
+          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
+          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
 
-          if (step) {
-            setProgressStep(step);
-            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
-            if (progress.attempt != null) {
-              const attemptValue = Number(progress.attempt);
-              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
-                setRetryAttempt(attemptValue);
-              }
+          // Update progress from active node or last exited node
+          const displayNode = activeNode || lastExitNode;
+          if (displayNode) {
+            setProgressStep(displayNode);
+            if (retryCount > 0) {
+              setRetryAttempt(retryCount);
             }
           }
 
-          // Terminal checks
-          if (state === "completed" || state === "done") break;
+          // Terminal checks: state OR node
+          if (state === "completed") break;
           if (state === "failed" || state === "budget_exhausted") {
             setProgressStep("failed_final");
             throw new Error(`Generation ${state}`);
           }
-          if (TERMINAL_STEPS.has(step)) {
-            if (step === "failed_final") {
+          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") {
               setProgressStep("failed_final");
               throw new Error("Generation failed");
             }
@@ -508,28 +419,20 @@ export default function TextToCAD() {
         }
       }
 
-      // Step 3: Fetch result — per API spec: GET /api/workflows/:workflowId/result
+      // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
+      setProgressStep("_loading");
       setProgressStep("_loading");
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(resultUrl);
+        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
 
         if (resultRes.ok) {
-          const resultPayload = await readResponseBody(resultRes);
-          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
-            throw new Error("Invalid generation result response");
-          }
-          const result = resultPayload as Record<string, any>;
-          if (result.__non_json) {
-            throw new Error(getApiErrorMessage(result, "Failed to fetch result"));
-          }
-
+          const result = await resultRes.json();
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
-
-          // Spec fallback: success_final → glb_artifact, then original_glb_artifact
+          // Fallback per spec: success_final → glb_artifact, then original_glb_artifact
           // success_original_glb → original_glb_artifact
           // failed_final → error
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
@@ -545,12 +448,12 @@ export default function TextToCAD() {
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           console.warn(`[TextToCAD] result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
 
-        const errPayload = await readResponseBody(resultRes);
-        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch result"));
+        const err = await resultRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to fetch result");
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
@@ -602,60 +505,42 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start edit — per API spec: POST /api/run/state/:wfName
-      const startRes = await authenticatedFetch(`${API_BASE}/run/state/ring_generate_v1`, {
+      // Step 1: Start generation with edit prompt
+      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: {
-            prompt: promptText.trim(),
-            llm,
-            max_attempts: 3,
-            skip_validation: false,
-          },
+          payload: { llm, prompt: promptText.trim(), max_attempts: 3, skip_validation: false },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
 
-      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        throw new Error(getApiErrorMessage(startPayload, `Failed to start edit (${startRes.status})`));
-      }
-      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
-        throw new Error("Invalid edit start response");
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || `Failed to start edit (${startRes.status})`);
       }
 
-      const startData = startPayload as Record<string, unknown>;
-      const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
-      if (!workflowId) throw new Error("No workflowId returned");
-      const progressUrl = resolveWorkflowEndpoint(
-        startData.progressUrl || startData.status_url,
-        workflowId,
-        `${API_BASE}/status/${encodeURIComponent(workflowId)}`,
-      );
-      const resultUrlEdit = resolveWorkflowEndpoint(
-        startData.resultUrl || startData.result_url,
-        workflowId,
-        `${API_BASE}/result/${encodeURIComponent(workflowId)}`,
-      );
-      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
+      const { workflow_id } = await startRes.json();
+      if (!workflow_id) throw new Error("No workflow_id returned");
+      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflow_id);
 
-      // Step 2: Poll progress
-      const TERMINAL_STEPS = new Set(["success_final", "success_original_glb", "failed_final"]);
+      // Step 2: Poll status
+      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000;
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
       const pollStart = Date.now();
 
       while (true) {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) throw new Error("Edit timed out");
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
         try {
           const statusRes = await authenticatedFetch(
-            progressUrl,
+            `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
           );
           if (statusRes.status === 404) {
@@ -666,33 +551,19 @@ export default function TextToCAD() {
           consecutive404s = 0;
           if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
 
-          const progressPayload = await readResponseBody(statusRes);
-          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
-            throw new Error("Status polling failed: invalid response body");
-          }
-          const progress = progressPayload as Record<string, unknown>;
-          if (progress.__non_json) {
-            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
-          }
-
+          const statusData = await statusRes.json();
           pollErrors = 0;
-          const state = String(progress.state || "running").toLowerCase();
-          const step = String(progress.step || "");
-          if (step) {
-            setProgressStep(step);
-            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
-            if (progress.attempt != null) {
-              const attemptValue = Number(progress.attempt);
-              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
-                setRetryAttempt(attemptValue);
-              }
-            }
-          }
+          const state = (statusData.runtime?.state || "unknown").toLowerCase();
+          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
+          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
+          const displayNode = activeNode || lastExitNode;
+          if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
 
-          if (state === "completed" || state === "done") break;
+          if (state === "completed") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
-          if (TERMINAL_STEPS.has(step)) {
-            if (step === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
+          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
             break;
           }
         } catch (err) {
@@ -703,22 +574,14 @@ export default function TextToCAD() {
         }
       }
 
-      // Step 3: Fetch result — per API spec: GET /api/workflows/:workflowId/result
+      // Step 3: Fetch result GLB
       setProgressStep("_loading");
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(resultUrlEdit);
+        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
         if (resultRes.ok) {
-          const resultPayload = await readResponseBody(resultRes);
-          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
-            throw new Error("Invalid edit result response");
-          }
-          const result = resultPayload as Record<string, any>;
-          if (result.__non_json) {
-            throw new Error(getApiErrorMessage(result, "Failed to fetch edit result"));
-          }
-
+          const result = await resultRes.json();
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -733,11 +596,11 @@ export default function TextToCAD() {
           throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
-        const errPayload = await readResponseBody(resultRes);
-        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch edit result"));
+        const err = await resultRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to fetch edit result");
       }
       if (!glb_url) throw new Error("No GLB model found in edit results");
 
@@ -1391,7 +1254,7 @@ export default function TextToCAD() {
               )}
             </AnimatePresence>
 
-            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} stepLabel={progressLabel} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
+            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}

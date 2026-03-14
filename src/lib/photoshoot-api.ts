@@ -2,13 +2,13 @@
  * Photoshoot Generation API
  * POST /run/state/jewelry_photoshoots_generator
  *
- * Uses authenticatedFetch for centralized JWT auth & 401 handling.
+ * Uses direct JWT auth to the Temporal API gateway at /api.
  * Jewelry image URL comes from the classification step (azure-upload → classify → reuse URL).
  */
 
-import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { getStoredToken } from '@/lib/auth-api';
 
-const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
+const API_BASE = '/api';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -45,46 +45,17 @@ export interface PhotoshootResultResponse {
   [key: string]: unknown[];
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
+// ─── Auth Headers ───────────────────────────────────────────────────
 
-function normalizeApiUrl(pathOrUrl: string): string {
-  const trimmed = pathOrUrl.trim();
-  if (!trimmed) return API_BASE;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith('/api/')) return `${API_BASE}${trimmed.slice(4)}`;
-  if (trimmed.startsWith('/')) return `${API_BASE}${trimmed}`;
-  return `${API_BASE}/${trimmed}`;
-}
-
-async function readResponseBody(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { __non_json: true, __raw_text: text };
+function getAuthHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-}
-
-function getApiErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== 'object') return fallback;
-  const data = payload as Record<string, unknown>;
-  if (typeof data.detail === 'string') return data.detail;
-  if (Array.isArray(data.detail)) {
-    const msgs = data.detail
-      .map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>).msg : null))
-      .filter((m): m is string => typeof m === 'string');
-    if (msgs.length > 0) return msgs.join('; ');
-  }
-  if (typeof data.error === 'string') return data.error;
-  if (data.__non_json) {
-    const raw = String(data.__raw_text ?? '').trim().toLowerCase();
-    if (raw.includes('<!doctype') || raw.includes('<html')) {
-      return `${fallback} (received HTML instead of JSON — check API routing)`;
-    }
-    return `${fallback} (received non-JSON response)`;
-  }
-  return fallback;
+  return headers;
 }
 
 // ─── Start Photoshoot ───────────────────────────────────────────────
@@ -99,35 +70,18 @@ export async function startPhotoshoot(
     throw new Error('A valid model image URL must be provided.');
   }
 
-  const res = await authenticatedFetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
+  const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ payload: request }),
   });
 
-  const payload = await readResponseBody(res);
-
   if (!res.ok) {
-    throw new Error(getApiErrorMessage(payload, `Failed to start photoshoot (${res.status})`));
+    const text = await res.text();
+    throw new Error(`Failed to start photoshoot: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new Error('Photoshoot start response is invalid');
-  }
-
-  const data = payload as Record<string, unknown>;
-  const workflow_id = String(data.workflowId || data.workflow_id || '').trim();
-  if (!workflow_id) {
-    throw new Error('Photoshoot start response missing workflow_id');
-  }
-
-  return {
-    workflow_id,
-    status_url: typeof data.status_url === 'string' ? normalizeApiUrl(data.status_url) : `${API_BASE}/status/${encodeURIComponent(workflow_id)}`,
-    result_url: typeof data.result_url === 'string' ? normalizeApiUrl(data.result_url) : `${API_BASE}/result/${encodeURIComponent(workflow_id)}`,
-    projected_cost: typeof data.projected_cost === 'number' ? data.projected_cost : undefined,
-    authorized_budget: typeof data.authorized_budget === 'number' ? data.authorized_budget : undefined,
-  };
+  return res.json();
 }
 
 // ─── Poll Status ────────────────────────────────────────────────────
@@ -135,29 +89,21 @@ export async function startPhotoshoot(
 export async function getPhotoshootStatus(
   workflowId: string,
 ): Promise<PhotoshootStatusResponse> {
-  const res = await authenticatedFetch(`${API_BASE}/status/${encodeURIComponent(workflowId)}`);
+  const res = await fetch(`${API_BASE}/status/${workflowId}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
 
   if (res.status === 404) {
     return { state: 'running' };
   }
 
-  const payload = await readResponseBody(res);
-
   if (!res.ok) {
-    throw new Error(getApiErrorMessage(payload, `Status check failed (${res.status})`));
+    const text = await res.text();
+    throw new Error(`Status check failed: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return { state: 'running' };
-  }
-
-  const data = payload as Record<string, unknown>;
-  if (data.__non_json) {
-    console.warn('[photoshoot-api] Status returned non-JSON, treating as running');
-    return { state: 'running' };
-  }
-
-  return data as PhotoshootStatusResponse;
+  return res.json();
 }
 
 // ─── Get Result (with retry for result-write lag) ───────────────────
@@ -174,7 +120,10 @@ export async function getPhotoshootResult(
       await new Promise(r => setTimeout(r, retryDelayMs));
     }
 
-    const res = await authenticatedFetch(`${API_BASE}/result/${encodeURIComponent(workflowId)}`);
+    const res = await fetch(`${API_BASE}/result/${workflowId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
 
     // 404 = result not written yet — retry
     if (res.status === 404) {
@@ -183,24 +132,12 @@ export async function getPhotoshootResult(
       continue;
     }
 
-    const payload = await readResponseBody(res);
-
     if (!res.ok) {
-      throw new Error(getApiErrorMessage(payload, `Result fetch failed (${res.status})`));
+      const text = await res.text();
+      throw new Error(`Result fetch failed: ${res.status} — ${text.substring(0, 200)}`);
     }
 
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      throw new Error('Result fetch returned invalid response');
-    }
-
-    const data = payload as Record<string, unknown>;
-    if (data.__non_json) {
-      lastError = new Error(getApiErrorMessage(data, 'Result not ready'));
-      console.log(`[photoshoot-api] Result non-JSON, retry ${attempt + 1}/${maxRetries}`);
-      continue;
-    }
-
-    return data as PhotoshootResultResponse;
+    return res.json();
   }
 
   throw lastError || new Error('Result fetch exhausted retries');

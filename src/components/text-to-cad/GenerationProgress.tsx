@@ -3,15 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Diamond } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
-  generate_initial: "Generating",
-  build_initial: "Rendering",
-  generate_fix: "Fixing mesh",
-  build_retry: "Beautifying",
-  validate_output: "Polishing",
-  build_corrected: "Rendering",
-  success_final: "Completed",
-  success_original_glb: "Completed",
-  failed_final: "Failed — want to try again?",
+  generate_initial: "Designing your ring...",
+  build_initial: "Crafting the 3D model...",
+  generate_fix: "Improving the design...",
+  build_retry: "Refining the geometry...",
+  validate_output: "Checking for accuracy...",
+  build_corrected: "Applying corrections...",
+  success_final: "Your ring is ready",
+  success_original_glb: "Your ring is ready",
+  failed_final: "Something went wrong — want to try again?",
   _loading: "Loading model into viewport",
 };
 
@@ -26,7 +26,6 @@ function formatElapsed(seconds: number): string {
 interface GenerationProgressProps {
   visible: boolean;
   currentStep: string;
-  stepLabel?: string;
   retryAttempt?: number;
   maxAttempts?: number;
   onRetry?: () => void;
@@ -35,7 +34,6 @@ interface GenerationProgressProps {
 export default function GenerationProgress({
   visible,
   currentStep,
-  stepLabel,
   retryAttempt,
   maxAttempts = 3,
   onRetry,
@@ -64,10 +62,9 @@ export default function GenerationProgress({
   const isDone = currentStep === "success_final" || currentStep === "success_original_glb";
   const isTerminal = isFailed || isDone;
 
-  // Use API stepLabel first, fall back to local map
-  let label = stepLabel || NODE_LABELS[currentStep] || "";
+  let label = NODE_LABELS[currentStep] || "";
   if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Fixing mesh (attempt ${retryAttempt} of ${maxAttempts})`;
+    label = `Improving the design... (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
   return (
