@@ -30,7 +30,7 @@ export async function performCreditPreflight(
   let estimatedCredits = TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? 5;
 
   try {
-    const estimateRes = await authenticatedFetch('/api/credits/estimate', {
+    const estimateRes = await authenticatedFetch(`${API_BASE}/credits/estimate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
