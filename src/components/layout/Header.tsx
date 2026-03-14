@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, ScanEye } from 'lucide-react';
@@ -28,13 +27,21 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const rafId = useRef<number | undefined>();
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (rafId.current) return;
+      rafId.current = requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 20);
+        rafId.current = undefined;
+      });
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -115,25 +122,19 @@ export function Header() {
                       {credits !== null ? credits : '—'}
                     </span>
                   </Link>
-                  {/* Animated delta badge */}
-                  <AnimatePresence>
-                    {visibleDelta && (
-                      <motion.span
-                        key={visibleDelta.id}
-                        initial={{ opacity: 0, y: 8, scale: 0.85 }}
-                        animate={{ opacity: 1, y: -8, scale: 1 }}
-                        exit={{ opacity: 0, y: -24, scale: 0.85 }}
-                        transition={{ duration: 0.45, ease: 'easeOut' }}
-                        className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2.5 py-1 rounded-full font-mono text-sm font-bold pointer-events-none whitespace-nowrap shadow-lg ${
-                          visibleDelta.amount > 0
-                            ? 'bg-primary/20 text-primary'
-                            : 'bg-destructive/20 text-destructive'
-                        }`}
-                      >
-                        {visibleDelta.amount > 0 ? '+' : ''}{visibleDelta.amount}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  {/* Animated delta badge — CSS animation (no framer-motion) */}
+                  {visibleDelta && (
+                    <span
+                      key={visibleDelta.id}
+                      className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2.5 py-1 rounded-full font-mono text-sm font-bold pointer-events-none whitespace-nowrap shadow-lg animate-credit-delta ${
+                        visibleDelta.amount > 0
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-destructive/20 text-destructive'
+                      }`}
+                    >
+                      {visibleDelta.amount > 0 ? '+' : ''}{visibleDelta.amount}
+                    </span>
+                  )}
                 </div>
 
                 {/* Profile dropdown */}
