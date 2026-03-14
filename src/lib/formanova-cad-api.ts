@@ -121,7 +121,7 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
   const llmName = MODEL_MAP[model] || 'gemini';
 
-  const res = await authenticatedFetch(`${FORMANOVA_API}/run/ring_generate_v1`, {
+  const res = await authenticatedFetch(`${FORMANOVA_API}/run/state/ring_generate_v1`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
