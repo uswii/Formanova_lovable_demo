@@ -76,7 +76,8 @@ export function extractCadTextData(steps: any[]) {
     const screenshotStep = steps.find((s: any) =>
       s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
     );
-    const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
+    const ssOut = getOutput(screenshotStep);
+    const rawShots = (ssOut?.screenshots ?? ssOut?.images) as any[] | undefined;
     if (rawShots?.length) {
       screenshots = rawShots
         .map((s: any) => {
