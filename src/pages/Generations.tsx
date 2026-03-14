@@ -240,7 +240,7 @@ export default function Generations() {
     return () => { cancelled = true; };
   }, [allWorkflows.length, globalLoading]);
 
-  // ── Step 3: Fetch credit audit for each completed workflow ────────
+  // ── Step 3: Fetch credit audit — throttled, only visible page items first
   const auditFetchedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -254,31 +254,46 @@ export default function Generations() {
 
     if (needsAudit.length === 0) return;
 
-    // Mark to prevent duplicate fetches
     needsAudit.forEach(w => auditFetchedRef.current.add(w.workflow_id));
 
-    batchSettled(
-      needsAudit.map(wf => async () => {
-        const credits = await fetchWorkflowCreditAudit(wf.workflow_id);
-        return { id: wf.workflow_id, credits_spent: credits };
-      }),
-      5, // higher concurrency for lightweight audit calls
-    ).then(results => {
-      const updates: Record<string, number | null> = {};
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) {
-          updates[r.value.id] = r.value.credits_spent;
+    let cancelled = false;
+
+    (async () => {
+      // Process in small batches of 3 with delays
+      for (let i = 0; i < needsAudit.length; i += 3) {
+        if (cancelled) return;
+        const batch = needsAudit.slice(i, i + 3);
+        const results = await Promise.allSettled(
+          batch.map(async wf => {
+            const credits = await fetchWorkflowCreditAudit(wf.workflow_id);
+            return { id: wf.workflow_id, credits_spent: credits };
+          })
+        );
+
+        if (cancelled) return;
+
+        const updates: Record<string, number | null> = {};
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            updates[r.value.id] = r.value.credits_spent;
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          setAllWorkflows(prev =>
+            prev.map(w => updates[w.workflow_id] !== undefined
+              ? { ...w, credits_spent: updates[w.workflow_id] }
+              : w
+            )
+          );
+        }
+
+        if (i + 3 < needsAudit.length) {
+          await new Promise(r => setTimeout(r, 500));
         }
       }
-      if (Object.keys(updates).length === 0) return;
+    })();
 
-      setAllWorkflows(prev =>
-        prev.map(w => updates[w.workflow_id] !== undefined
-          ? { ...w, credits_spent: updates[w.workflow_id] }
-          : w
-        )
-      );
-    });
+    return () => { cancelled = true; };
   }, [allWorkflows.length, globalLoading]);
 
   const photoSection = getSection('photo', photoPage, true);
