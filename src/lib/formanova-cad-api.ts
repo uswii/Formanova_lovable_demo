@@ -152,11 +152,24 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
 
   const data = await res.json();
   // Normalize spec response (workflowId) to internal shape (workflow_id)
+  const workflow_id = String(data.workflowId || data.workflow_id || '').trim();
+  if (!workflow_id) {
+    throw new Error('Pipeline start response missing workflow_id');
+  }
+
   return {
     ...data,
-    workflow_id: data.workflowId || data.workflow_id,
-    status_url: data.progressUrl || data.status_url,
-    result_url: data.resultUrl || data.result_url,
+    workflow_id,
+    status_url: resolveWorkflowEndpoint(
+      data.progressUrl || data.status_url,
+      workflow_id,
+      `${FORMANOVA_API}/status/${encodeURIComponent(workflow_id)}`,
+    ),
+    result_url: resolveWorkflowEndpoint(
+      data.resultUrl || data.result_url,
+      workflow_id,
+      `${FORMANOVA_API}/result/${encodeURIComponent(workflow_id)}`,
+    ),
   };
 }
 
