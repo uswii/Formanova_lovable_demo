@@ -1,7 +1,4 @@
 import React, { Suspense, lazy, useState, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -13,6 +10,11 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
+
+// Toast/tooltip providers — deferred since toasts only fire on user interaction
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const TooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
 
 // Decorative / non-critical components — lazy-loaded to reduce initial JS payload
 const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
