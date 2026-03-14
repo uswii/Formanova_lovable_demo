@@ -40,14 +40,20 @@ export function extractCadTextData(steps: any[]) {
   let glb_url: string | null = null;
   let glb_filename: string | null = null;
 
+  // Normalize: backend may use output or output_data
+  const getOutput = (s: any) => s?.output_data ?? s?.output ?? {};
+
   const blenderStep = steps.find(
-    (s: any) =>
-      s.tool === 'run_blender' &&
-      s.output?.success === true &&
-      (s.output?.screenshots as any[])?.length > 0,
+    (s: any) => {
+      const out = getOutput(s);
+      return s.tool === 'run_blender' &&
+        out?.success === true &&
+        (out?.screenshots as any[])?.length > 0;
+    },
   ) ?? null;
 
-  if (blenderStep?.output) {
+  if (blenderStep) {
+    const blenderOut = getOutput(blenderStep);
     const glbUri = blenderStep.output.glb_artifact?.uri;
     if (glbUri) {
       glb_url = azureUriToUrl(glbUri);
