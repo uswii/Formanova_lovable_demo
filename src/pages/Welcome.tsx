@@ -1,11 +1,10 @@
-import React, { lazy, Suspense, useMemo } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy-load heavy below-fold component (452 lines + multiple image imports)
 const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));
@@ -26,24 +25,19 @@ import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.webp';
 export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
 
-  // On mobile, use fewer hero images to reduce network payload & memory
-  const heroImages = useMemo(() => {
-    const allImages = [
-      { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
-      { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
-      { src: heroChokerBack, alt: 'Diamond choker from back' },
-      { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
-      { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
-      { src: heroGoldPendant, alt: 'Gold pendant necklace' },
-      { src: heroEmeraldEarrings, alt: 'Emerald crystal earrings' },
-      { src: heroGemstoneRings, alt: 'Colorful gemstone rings' },
-      { src: heroAquamarineRings, alt: 'Aquamarine rings on hands' },
-      { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
-    ];
-    return isMobile ? allImages.slice(0, 4) : allImages;
-  }, [isMobile]);
+  const heroImages = [
+    { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
+    { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
+    { src: heroChokerBack, alt: 'Diamond choker from back' },
+    { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
+    { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
+    { src: heroGoldPendant, alt: 'Gold pendant necklace' },
+    { src: heroEmeraldEarrings, alt: 'Emerald crystal earrings' },
+    { src: heroGemstoneRings, alt: 'Colorful gemstone rings' },
+    { src: heroAquamarineRings, alt: 'Aquamarine rings on hands' },
+    { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
+  ];
 
   // If signed in, go straight to studio. Otherwise, prompt to sign in.
   const handleStart = () => {
