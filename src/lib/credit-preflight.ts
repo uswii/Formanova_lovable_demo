@@ -41,11 +41,15 @@ export async function performCreditPreflight(
     });
 
     if (estimateRes.ok) {
-      const data = await estimateRes.json();
-      // Backend returns projected_max_hold, NOT estimated_credits
-      const serverCost = data.projected_max_hold ?? data.estimated_credits;
-      if (serverCost && serverCost > 0) {
-        estimatedCredits = serverCost;
+      const text = await estimateRes.text();
+      try {
+        const data = JSON.parse(text);
+        const serverCost = data.projected_max_hold ?? data.estimated_credits;
+        if (serverCost && serverCost > 0) {
+          estimatedCredits = serverCost;
+        }
+      } catch {
+        // Non-JSON response (HTML error page) — use fallback
       }
     }
   } catch {
