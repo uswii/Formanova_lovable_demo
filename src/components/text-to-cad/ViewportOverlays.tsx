@@ -201,6 +201,12 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
         <SideTooltip label="Download" />
         <Download className="w-3.5 h-3.5" />
       </button>
+      {onDownloadStl && (
+        <button onClick={onDownloadStl} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download STL for 3D printing">
+          <SideTooltip label="Print (STL)" />
+          <Printer className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
