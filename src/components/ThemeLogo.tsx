@@ -14,8 +14,7 @@ interface ThemeLogoProps {
 
 export function ThemeLogo({ className, width = 234, height = 56 }: ThemeLogoProps) {
   const { theme } = useTheme();
-  const isDark = DARK_THEMES.has(theme) || 
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark = DARK_THEMES.has(theme);
 
   return (
     <img
