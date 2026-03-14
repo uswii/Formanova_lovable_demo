@@ -8,7 +8,7 @@
 
 import { getStoredToken } from '@/lib/auth-api';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
 
 // ─── Types ──────────────────────────────────────────────────────────
 

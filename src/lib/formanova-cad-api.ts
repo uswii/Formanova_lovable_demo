@@ -116,17 +116,63 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
   return { glb_url: null, azure_source: null };
 }
 
+function normalizeApiUrl(pathOrUrl: string): string {
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed) return FORMANOVA_API;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/api/')) return `${FORMANOVA_API}${trimmed.slice(4)}`;
+  if (trimmed.startsWith('/')) return `${FORMANOVA_API}${trimmed}`;
+  return `${FORMANOVA_API}/${trimmed}`;
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { __non_json: true, __raw_text: text };
+  }
+}
+
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') return fallback;
+
+  const data = payload as Record<string, unknown>;
+  if (typeof data.detail === 'string') return data.detail;
+  if (Array.isArray(data.detail)) {
+    const messages = data.detail
+      .map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>).msg : null))
+      .filter((msg): msg is string => typeof msg === 'string');
+    if (messages.length > 0) return messages.join('; ');
+  }
+  if (typeof data.error === 'string') return data.error;
+
+  if (data.__non_json) {
+    const raw = String(data.__raw_text ?? '').trim().toLowerCase();
+    if (raw.includes('<!doctype') || raw.includes('<html')) {
+      return `${fallback} (received HTML instead of JSON)`;
+    }
+    return `${fallback} (received non-JSON response)`;
+  }
+
+  return fallback;
+}
+
 function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
   const workflowToken = encodeURIComponent(workflowId);
   const raw = typeof template === 'string' && template.trim().length > 0
     ? template
     : fallbackPath;
 
-  return raw
+  const resolved = raw
     .replaceAll('{workflow_id}', workflowToken)
     .replaceAll('{workflowId}', workflowToken)
     .replaceAll(':workflow_id', workflowToken)
     .replaceAll(':workflowId', workflowToken);
+
+  return normalizeApiUrl(resolved);
 }
 
 // ── API calls ──
@@ -147,17 +193,15 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     }),
   });
 
+  const payload = await readResponseBody(res);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const msg = typeof err.detail === 'string'
-      ? err.detail
-      : Array.isArray(err.detail)
-        ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-        : err.error || `Pipeline start failed (${res.status})`;
-    throw new Error(msg);
+    throw new Error(getApiErrorMessage(payload, `Pipeline start failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Pipeline start response is invalid');
   }
 
-  const data = await res.json();
+  const data = payload as Record<string, unknown>;
   // Normalize spec response (workflowId) to internal shape (workflow_id)
   const workflow_id = String(data.workflowId || data.workflow_id || '').trim();
   if (!workflow_id) {
@@ -182,27 +226,38 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
 
 export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
   // Per API spec: GET /api/workflows/:workflowId/progress
-  const fullUrl = statusUrl.startsWith('http')
-    ? statusUrl
-    : `${FORMANOVA_API}${statusUrl.startsWith('/') ? '' : '/'}${statusUrl}`;
+  const fullUrl = normalizeApiUrl(statusUrl);
 
   const res = await authenticatedFetch(fullUrl);
+  const payload = await readResponseBody(res);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Status poll failed (${res.status})`);
+    throw new Error(getApiErrorMessage(payload, `Status poll failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Status poll failed: invalid response body');
   }
 
-  const raw = await res.json();
+  const raw = payload as Record<string, unknown>;
+  if (raw.__non_json) {
+    throw new Error(getApiErrorMessage(raw, 'Status poll failed'));
+  }
 
   // Spec response: { state, step, stepLabel, attempt, maxAttempts }
+  const rawState = String(raw.state ?? 'running').toLowerCase();
   const data: StatusResponse = {
-    status: (raw.state || 'running').toLowerCase(),
-    current_step: raw.step || raw.current_step,
-    progress: (raw.state === 'completed' || raw.state === 'done') ? 100 : (raw.progress ?? 0),
-    steps_completed: raw.steps_completed,
-    steps_total: raw.steps_total,
-    results: raw.results,
+    status: rawState,
+    current_step: typeof raw.step === 'string'
+      ? raw.step
+      : (typeof raw.current_step === 'string' ? raw.current_step : undefined),
+    progress: (rawState === 'completed' || rawState === 'done')
+      ? 100
+      : Number(raw.progress ?? 0),
+    steps_completed: raw.steps_completed == null ? undefined : Number(raw.steps_completed),
+    steps_total: raw.steps_total == null ? undefined : Number(raw.steps_total),
+    results: raw.results && typeof raw.results === 'object' && !Array.isArray(raw.results)
+      ? (raw.results as Record<string, unknown>)
+      : undefined,
   };
 
   // Also handle legacy progress object shape
@@ -235,18 +290,22 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
 
 export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
   // Per API spec: GET /api/workflows/:workflowId/result
-  const fullUrl = resultUrl.startsWith('http')
-    ? resultUrl
-    : `${FORMANOVA_API}${resultUrl.startsWith('/') ? '' : '/'}${resultUrl}`;
+  const fullUrl = normalizeApiUrl(resultUrl);
 
   const res = await authenticatedFetch(fullUrl);
+  const payload = await readResponseBody(res);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Result fetch failed (${res.status})`);
+    throw new Error(getApiErrorMessage(payload, `Result fetch failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Result fetch failed: invalid response body');
   }
 
-  const data = await res.json();
+  const data = payload as Record<string, unknown>;
+  if (data.__non_json) {
+    throw new Error(getApiErrorMessage(data, 'Result fetch failed'));
+  }
 
   // Resolve GLB URL per spec fallback rules
   const { glb_url, azure_source } = resolveGlbFromResults(data);

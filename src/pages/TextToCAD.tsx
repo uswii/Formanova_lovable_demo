@@ -11,12 +11,8 @@ import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
-
-const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
-
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
-
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
@@ -42,17 +38,66 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
+const API_BASE = import.meta.env.DEV ? "https://formanova.ai/api" : "/api";
+
+function normalizeApiUrl(pathOrUrl: string): string {
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed) return API_BASE;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/api/")) return `${API_BASE}${trimmed.slice(4)}`;
+  if (trimmed.startsWith("/")) return `${API_BASE}${trimmed}`;
+  return `${API_BASE}/${trimmed}`;
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { __non_json: true, __raw_text: text };
+  }
+}
+
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const data = payload as Record<string, unknown>;
+  if (typeof data.detail === "string") return data.detail;
+  if (Array.isArray(data.detail)) {
+    const messages = data.detail
+      .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>).msg : null))
+      .filter((msg): msg is string => typeof msg === "string");
+    if (messages.length > 0) return messages.join("; ");
+  }
+  if (typeof data.error === "string") return data.error;
+
+  if (data.__non_json) {
+    const raw = String(data.__raw_text ?? "").trim();
+    const lowered = raw.slice(0, 200).toLowerCase();
+    if (lowered.includes("<!doctype") || lowered.includes("<html")) {
+      return `${fallback} (received HTML instead of JSON)`;
+    }
+    return `${fallback} (received non-JSON response)`;
+  }
+
+  return fallback;
+}
+
 function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
   const workflowToken = encodeURIComponent(workflowId);
   const raw = typeof template === "string" && template.trim().length > 0
     ? template
     : fallbackPath;
 
-  return raw
+  const resolved = raw
     .replaceAll("{workflow_id}", workflowToken)
     .replaceAll("{workflowId}", workflowToken)
     .replaceAll(":workflow_id", workflowToken)
     .replaceAll(":workflowId", workflowToken);
+
+  return normalizeApiUrl(resolved);
 }
 
 export default function TextToCAD() {
@@ -352,18 +397,15 @@ export default function TextToCAD() {
         }),
       });
 
+      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        // FastAPI 422 returns { detail: [{ msg, ... }] }
-        const msg = typeof err.detail === 'string'
-          ? err.detail
-          : Array.isArray(err.detail)
-            ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-            : err.error || `Failed to start generation (${startRes.status})`;
-        throw new Error(msg);
+        throw new Error(getApiErrorMessage(startPayload, `Failed to start generation (${startRes.status})`));
+      }
+      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
+        throw new Error("Invalid generation start response");
       }
 
-      const startData = await startRes.json();
+      const startData = startPayload as Record<string, unknown>;
       // Spec returns workflowId; fallback to workflow_id for backward compat
       const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
@@ -419,18 +461,29 @@ export default function TextToCAD() {
             continue;
           }
 
-          const progress = await statusRes.json();
+          const progressPayload = await readResponseBody(statusRes);
+          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
+            throw new Error("Status polling failed: invalid response body");
+          }
+          const progress = progressPayload as Record<string, unknown>;
+          if (progress.__non_json) {
+            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
+          }
+
           pollErrors = 0;
 
           // Spec response: { state, step, stepLabel, attempt, maxAttempts }
-          const state = (progress.state || "running").toLowerCase();
-          const step = progress.step || "";
+          const state = String(progress.state || "running").toLowerCase();
+          const step = String(progress.step || "");
 
           if (step) {
             setProgressStep(step);
-            setProgressLabel(progress.stepLabel || "");
-            if (progress.attempt) {
-              setRetryAttempt(progress.attempt);
+            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
+            if (progress.attempt != null) {
+              const attemptValue = Number(progress.attempt);
+              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
+                setRetryAttempt(attemptValue);
+              }
             }
           }
 
@@ -463,7 +516,15 @@ export default function TextToCAD() {
         const resultRes = await authenticatedFetch(resultUrl);
 
         if (resultRes.ok) {
-          const result = await resultRes.json();
+          const resultPayload = await readResponseBody(resultRes);
+          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
+            throw new Error("Invalid generation result response");
+          }
+          const result = resultPayload as Record<string, any>;
+          if (result.__non_json) {
+            throw new Error(getApiErrorMessage(result, "Failed to fetch result"));
+          }
+
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -488,8 +549,8 @@ export default function TextToCAD() {
           continue;
         }
 
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch result");
+        const errPayload = await readResponseBody(resultRes);
+        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch result"));
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
@@ -555,17 +616,15 @@ export default function TextToCAD() {
         }),
       });
 
+      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        const msg = typeof err.detail === 'string'
-          ? err.detail
-          : Array.isArray(err.detail)
-            ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-            : err.error || `Failed to start edit (${startRes.status})`;
-        throw new Error(msg);
+        throw new Error(getApiErrorMessage(startPayload, `Failed to start edit (${startRes.status})`));
+      }
+      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
+        throw new Error("Invalid edit start response");
       }
 
-      const startData = await startRes.json();
+      const startData = startPayload as Record<string, unknown>;
       const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
       const progressUrl = resolveWorkflowEndpoint(
@@ -607,11 +666,28 @@ export default function TextToCAD() {
           consecutive404s = 0;
           if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
 
-          const progress = await statusRes.json();
+          const progressPayload = await readResponseBody(statusRes);
+          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
+            throw new Error("Status polling failed: invalid response body");
+          }
+          const progress = progressPayload as Record<string, unknown>;
+          if (progress.__non_json) {
+            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
+          }
+
           pollErrors = 0;
-          const state = (progress.state || "running").toLowerCase();
-          const step = progress.step || "";
-          if (step) { setProgressStep(step); setProgressLabel(progress.stepLabel || ""); if (progress.attempt) setRetryAttempt(progress.attempt); }
+          const state = String(progress.state || "running").toLowerCase();
+          const step = String(progress.step || "");
+          if (step) {
+            setProgressStep(step);
+            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
+            if (progress.attempt != null) {
+              const attemptValue = Number(progress.attempt);
+              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
+                setRetryAttempt(attemptValue);
+              }
+            }
+          }
 
           if (state === "completed" || state === "done") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
@@ -634,7 +710,15 @@ export default function TextToCAD() {
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
         const resultRes = await authenticatedFetch(resultUrlEdit);
         if (resultRes.ok) {
-          const result = await resultRes.json();
+          const resultPayload = await readResponseBody(resultRes);
+          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
+            throw new Error("Invalid edit result response");
+          }
+          const result = resultPayload as Record<string, any>;
+          if (result.__non_json) {
+            throw new Error(getApiErrorMessage(result, "Failed to fetch edit result"));
+          }
+
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -652,8 +736,8 @@ export default function TextToCAD() {
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch edit result");
+        const errPayload = await readResponseBody(resultRes);
+        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch edit result"));
       }
       if (!glb_url) throw new Error("No GLB model found in edit results");
 
