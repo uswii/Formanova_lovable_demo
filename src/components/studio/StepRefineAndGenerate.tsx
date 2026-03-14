@@ -359,6 +359,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked('step-refine'));
     const link = document.createElement('a');
     link.href = imageUrl;
     link.download = filename;

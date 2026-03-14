@@ -27,6 +27,11 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Web Vitals tracking — landing page only
+  useEffect(() => {
+    import('@/lib/web-vitals').then(({ initWebVitals }) => initWebVitals());
+  }, []);
+
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
     { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
