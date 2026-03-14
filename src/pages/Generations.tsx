@@ -64,7 +64,7 @@ function preloadImage(url: string) {
 
 async function batchSettled<T>(
   tasks: Array<() => Promise<T>>,
-  concurrency = 3,
+  concurrency = 5,
 ): Promise<PromiseSettledResult<T>[]> {
   const results: PromiseSettledResult<T>[] = [];
   for (let i = 0; i < tasks.length; i += concurrency) {
