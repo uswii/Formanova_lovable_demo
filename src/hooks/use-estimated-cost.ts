@@ -41,7 +41,8 @@ export function useEstimatedCost({
 
     (async () => {
       try {
-        const res = await authenticatedFetch('/api/credits/estimate', {
+        const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
+        const res = await authenticatedFetch(`${API_BASE}/credits/estimate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
