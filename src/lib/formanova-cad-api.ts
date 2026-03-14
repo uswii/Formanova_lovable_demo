@@ -138,16 +138,23 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      prompt,
-      llm: llmName,
-      max_attempts: 3,
-      skip_validation: false,
+      payload: {
+        prompt,
+        llm: llmName,
+        max_attempts: 3,
+        skip_validation: false,
+      },
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || err.detail || `Pipeline start failed (${res.status})`);
+    const msg = typeof err.detail === 'string'
+      ? err.detail
+      : Array.isArray(err.detail)
+        ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
+        : err.error || `Pipeline start failed (${res.status})`;
+    throw new Error(msg);
   }
 
   const data = await res.json();
