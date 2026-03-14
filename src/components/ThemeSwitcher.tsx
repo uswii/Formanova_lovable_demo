@@ -20,6 +20,7 @@ export function ThemeSwitcher() {
         <Button 
           variant="outline" 
           size="sm" 
+          aria-label="Change theme"
           className="h-10 px-4 gap-2.5 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
         >
           <ThemeIcon theme={theme} size={18} className="text-primary group-hover:scale-110 transition-transform" />
