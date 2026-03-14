@@ -95,8 +95,9 @@ export function extractCadTextData(steps: any[]) {
     const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
     const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
     const glbStep = validateStep || generateStep;
-    if (glbStep?.output?.glb_path) {
-      const glbPath = glbStep.output.glb_path as any;
+    const glbOut = getOutput(glbStep);
+    if (glbOut?.glb_path) {
+      const glbPath = glbOut.glb_path as any;
       const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
       if (uri) {
         glb_url = azureUriToUrl(uri);
