@@ -103,9 +103,11 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PostHogPageView />
-            <FloatingElements />
-            <ScrollProgressIndicator />
-            <ThemeDecorations />
+            <Suspense fallback={null}>
+              <FloatingElements />
+              <ScrollProgressIndicator />
+              <ThemeDecorations />
+            </Suspense>
             <div className="min-h-screen flex flex-col relative z-10">
               <Header />
               <main className="flex-1">
