@@ -53,6 +53,7 @@ export default function TextToCAD() {
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(false);
   const [progressStep, setProgressStep] = useState("");
+  const [progressLabel, setProgressLabel] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
   const [showPartRegen, setShowPartRegen] = useState(false);
