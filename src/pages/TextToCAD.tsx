@@ -344,10 +344,13 @@ export default function TextToCAD() {
       // Spec returns workflowId; fallback to workflow_id for backward compat
       const workflowId = startData.workflowId || startData.workflow_id;
       if (!workflowId) throw new Error("No workflowId returned");
+      // Use returned URLs or construct from workflowId
+      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
+      const resultUrl = startData.resultUrl || `/api/workflows/${workflowId}/result`;
 
-      console.log("[TextToCAD] Workflow started:", workflowId);
+      console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
 
-      // Step 2: Poll progress — per API spec: GET /api/workflows/:workflowId/progress
+      // Step 2: Poll progress
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
