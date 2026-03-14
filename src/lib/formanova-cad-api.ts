@@ -226,18 +226,22 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
 
 export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
   // Per API spec: GET /api/workflows/:workflowId/progress
-  const fullUrl = statusUrl.startsWith('http')
-    ? statusUrl
-    : `${FORMANOVA_API}${statusUrl.startsWith('/') ? '' : '/'}${statusUrl}`;
+  const fullUrl = normalizeApiUrl(statusUrl);
 
   const res = await authenticatedFetch(fullUrl);
+  const payload = await readResponseBody(res);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Status poll failed (${res.status})`);
+    throw new Error(getApiErrorMessage(payload, `Status poll failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Status poll failed: invalid response body');
   }
 
-  const raw = await res.json();
+  const raw = payload as Record<string, unknown>;
+  if (raw.__non_json) {
+    throw new Error(getApiErrorMessage(raw, 'Status poll failed'));
+  }
 
   // Spec response: { state, step, stepLabel, attempt, maxAttempts }
   const data: StatusResponse = {
