@@ -710,7 +710,15 @@ export default function TextToCAD() {
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
         const resultRes = await authenticatedFetch(resultUrlEdit);
         if (resultRes.ok) {
-          const result = await resultRes.json();
+          const resultPayload = await readResponseBody(resultRes);
+          if (!resultPayload || typeof resultPayload !== "object" || Array.isArray(resultPayload)) {
+            throw new Error("Invalid edit result response");
+          }
+          const result = resultPayload as Record<string, any>;
+          if (result.__non_json) {
+            throw new Error(getApiErrorMessage(result, "Failed to fetch edit result"));
+          }
+
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -728,8 +736,8 @@ export default function TextToCAD() {
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch edit result");
+        const errPayload = await readResponseBody(resultRes);
+        throw new Error(getApiErrorMessage(errPayload, "Failed to fetch edit result"));
       }
       if (!glb_url) throw new Error("No GLB model found in edit results");
 
