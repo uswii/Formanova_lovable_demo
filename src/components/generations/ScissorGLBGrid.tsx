@@ -365,7 +365,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     if (!renderer) return;
 
     const scene = new THREE.Scene();
-    scene.background = DARK_BG;
+    scene.background = getThemeBgColor();
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambient);
