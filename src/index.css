@@ -636,8 +636,14 @@
 
   .hero-accent-text {
     color: hsl(var(--formanova-hero-accent));
-  }
-  
+}
+
+/* Below-fold sections: skip rendering until near viewport */
+.content-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
 
   /* Editorial styling - keeping for backward compat */
   .editorial-caps {

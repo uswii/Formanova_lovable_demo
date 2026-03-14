@@ -5,6 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 // Lazy-load heavy below-fold component (452 lines + multiple image imports)
 const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));
@@ -25,6 +26,11 @@ import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.webp';
 export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Web Vitals tracking — landing page only
+  useEffect(() => {
+    import('@/lib/web-vitals').then(({ initWebVitals }) => initWebVitals());
+  }, []);
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
@@ -103,7 +109,7 @@ export default function Welcome() {
 
 
       {/* Features Section */}
-      <section className="marta-section">
+      <section className="marta-section content-deferred">
         <div className="marta-container">
           <ScrollRevealSection animation="fade-up" className="mb-16 md:mb-24">
             <span className="marta-label mb-6 block">Why FormaNova</span>
@@ -133,7 +139,7 @@ export default function Welcome() {
       </section>
 
       {/* CTA Section */}
-      <section className="marta-section">
+      <section className="marta-section content-deferred">
         <ScrollRevealSection animation="zoom" className="marta-container text-center">
           <div className="max-w-4xl mx-auto">
             <span className="marta-label mb-12 block">Start Now</span>
@@ -152,7 +158,7 @@ export default function Welcome() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/20">
+      <footer className="border-t border-border/20 content-deferred">
         <div className="marta-section border-b border-border/20">
           <div className="marta-container text-center">
             <span className="marta-label">Featured In</span>

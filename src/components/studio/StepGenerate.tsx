@@ -178,6 +178,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
   };
 
   const handleDownload = (imageUrl: string, filename: string) => {
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked('step-generate'));
     const link = document.createElement('a');
     link.href = imageUrl;
     link.download = filename;
