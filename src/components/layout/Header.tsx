@@ -27,13 +27,21 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const rafId = useRef<number | undefined>();
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (rafId.current) return;
+      rafId.current = requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 20);
+        rafId.current = undefined;
+      });
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
   }, []);
 
   useEffect(() => {
