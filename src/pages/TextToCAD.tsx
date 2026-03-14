@@ -542,7 +542,7 @@ export default function TextToCAD() {
 
     try {
       // Step 1: Start edit — per API spec: POST /api/run/state/:wfName
-      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`${API_BASE}/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
