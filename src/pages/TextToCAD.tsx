@@ -549,10 +549,18 @@ export default function TextToCAD() {
       }
 
       const startData = await startRes.json();
-      const workflowId = startData.workflowId || startData.workflow_id;
+      const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
-      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
-      const resultUrlEdit = startData.resultUrl || `/api/workflows/${workflowId}/result`;
+      const progressUrl = resolveWorkflowEndpoint(
+        startData.progressUrl || startData.status_url,
+        workflowId,
+        `/api/status/${encodeURIComponent(workflowId)}`,
+      );
+      const resultUrlEdit = resolveWorkflowEndpoint(
+        startData.resultUrl || startData.result_url,
+        workflowId,
+        `/api/result/${encodeURIComponent(workflowId)}`,
+      );
       console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
 
       // Step 2: Poll progress
