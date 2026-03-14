@@ -586,7 +586,7 @@ export default function TextToCAD() {
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/workflows/${encodeURIComponent(workflowId)}/result`);
+        const resultRes = await authenticatedFetch(resultUrlEdit);
         if (resultRes.ok) {
           const result = await resultRes.json();
           const toUrl = (uri: string) => uri.startsWith("azure://")
