@@ -571,7 +571,7 @@ export default function TextToCAD() {
       const progressUrl = resolveWorkflowEndpoint(
         startData.progressUrl || startData.status_url,
         workflowId,
-        `/api/status/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/status/${encodeURIComponent(workflowId)}`,
       );
       const resultUrlEdit = resolveWorkflowEndpoint(
         startData.resultUrl || startData.result_url,
