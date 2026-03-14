@@ -176,7 +176,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         )}
 
         {/* ── File box — only shown when GLB is available or still loading ── */}
-        {(workflow.glb_url || isEnriching) && (
+        {!isFailed && (workflow.glb_url || isEnriching) && (
           <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
