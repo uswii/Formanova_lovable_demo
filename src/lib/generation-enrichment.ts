@@ -54,13 +54,13 @@ export function extractCadTextData(steps: any[]) {
 
   if (blenderStep) {
     const blenderOut = getOutput(blenderStep);
-    const glbUri = blenderStep.output.glb_artifact?.uri;
+    const glbUri = blenderOut.glb_artifact?.uri;
     if (glbUri) {
       glb_url = azureUriToUrl(glbUri);
       const parts = String(glbUri).split('/');
       glb_filename = parts[parts.length - 1] || 'model.glb';
     }
-    const rawShots = blenderStep.output.screenshots as any[] | undefined;
+    const rawShots = blenderOut.screenshots as any[] | undefined;
     if (rawShots?.length) {
       screenshots = rawShots
         .map((s: any, i: number) => {
