@@ -341,16 +341,24 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: prompt.trim(),
-          llm,
-          max_attempts: 3,
-          skip_validation: false,
+          payload: {
+            prompt: prompt.trim(),
+            llm,
+            max_attempts: 3,
+            skip_validation: false,
+          },
         }),
       });
 
       if (!startRes.ok) {
         const err = await startRes.json().catch(() => ({}));
-        throw new Error(err.error || err.detail || `Failed to start generation (${startRes.status})`);
+        // FastAPI 422 returns { detail: [{ msg, ... }] }
+        const msg = typeof err.detail === 'string'
+          ? err.detail
+          : Array.isArray(err.detail)
+            ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
+            : err.error || `Failed to start generation (${startRes.status})`;
+        throw new Error(msg);
       }
 
       const startData = await startRes.json();
