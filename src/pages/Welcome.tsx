@@ -109,7 +109,7 @@ export default function Welcome() {
 
 
       {/* Features Section */}
-      <section className="marta-section">
+      <section className="marta-section content-deferred">
         <div className="marta-container">
           <ScrollRevealSection animation="fade-up" className="mb-16 md:mb-24">
             <span className="marta-label mb-6 block">Why FormaNova</span>
