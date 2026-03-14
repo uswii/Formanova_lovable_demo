@@ -530,9 +530,11 @@ export default function TextToCAD() {
       const startData = await startRes.json();
       const workflowId = startData.workflowId || startData.workflow_id;
       if (!workflowId) throw new Error("No workflowId returned");
-      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId);
+      const progressUrl = startData.progressUrl || `/api/workflows/${workflowId}/progress`;
+      const resultUrlEdit = startData.resultUrl || `/api/workflows/${workflowId}/result`;
+      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
 
-      // Step 2: Poll progress — per API spec: GET /api/workflows/:workflowId/progress
+      // Step 2: Poll progress
       const TERMINAL_STEPS = new Set(["success_final", "success_original_glb", "failed_final"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
