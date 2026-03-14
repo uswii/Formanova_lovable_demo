@@ -59,16 +59,23 @@ export default function PromoAdminPage() {
   const [formIsActive, setFormIsActive] = useState(true);
 
   const fetchCodes = useCallback(async () => {
+    setFetchError(null);
     try {
       const res = await authenticatedFetch(`${API_BASE}?include_inactive=true`);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         const detail = body?.detail || body?.message || `HTTP ${res.status}`;
+        if (res.status === 403) {
+          setFetchError('Your account is not authorized on the backend gateway. Contact the system administrator to add your email to the backend whitelist.');
+        } else {
+          setFetchError(detail);
+        }
         throw new Error(detail);
       }
       setCodes(await res.json());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load promo codes';
+      if (!fetchError) setFetchError(message);
       toast.error(`Failed to load promo codes: ${message}`);
     } finally {
       setLoading(false);
