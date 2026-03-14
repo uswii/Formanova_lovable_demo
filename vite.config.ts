@@ -62,7 +62,6 @@ export default defineConfig(({ mode }) => ({
           // Radix: no manual chunk — let each component split naturally
           // with the lazy page that imports it. Avoids 230KB on landing.
         },
-        },
       },
     },
   },
