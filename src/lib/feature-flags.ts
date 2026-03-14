@@ -3,11 +3,8 @@
  * This is a UI-only gate — not a security boundary.
  */
 
-const CAD_ALLOWED_DOMAIN = 'raresense.so';
-
-export function isCADEnabled(userEmail: string | undefined | null): boolean {
-  if (!userEmail) return false;
-  return userEmail.toLowerCase().endsWith(`@${CAD_ALLOWED_DOMAIN}`);
+export function isCADEnabled(_userEmail: string | undefined | null): boolean {
+  return true;
 }
 
 /**
