@@ -3,15 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Diamond } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
-  generate_initial: "Designing your ring...",
-  build_initial: "Crafting the 3D model...",
-  generate_fix: "Improving the design...",
-  build_retry: "Refining the geometry...",
-  validate_output: "Checking for accuracy...",
-  build_corrected: "Applying corrections...",
-  success_final: "Your ring is ready",
-  success_original_glb: "Your ring is ready",
-  failed_final: "Something went wrong — want to try again?",
+  generate_initial: "Generating",
+  build_initial: "Rendering",
+  generate_fix: "Fixing mesh",
+  build_retry: "Beautifying",
+  validate_output: "Polishing",
+  build_corrected: "Rendering",
+  success_final: "Completed",
+  success_original_glb: "Completed",
+  failed_final: "Failed — want to try again?",
   _loading: "Loading model into viewport",
 };
 

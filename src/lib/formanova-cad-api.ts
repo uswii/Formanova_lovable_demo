@@ -121,15 +121,14 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
   const llmName = MODEL_MAP[model] || 'gemini';
 
-  const res = await authenticatedFetch(`${FORMANOVA_API}/run/state/ring_generate_v1`, {
+  const res = await authenticatedFetch(`${FORMANOVA_API}/run/ring_generate_v1`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3, skip_validation: false },
-      return_nodes: [
-        'build_initial', 'build_retry', 'build_corrected',
-        'validate_output', 'success_final', 'success_original_glb', 'failed_final',
-      ],
+      prompt,
+      llm: llmName,
+      max_attempts: 3,
+      skip_validation: false,
     }),
   });
 
@@ -138,10 +137,18 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     throw new Error(err.error || err.detail || `Pipeline start failed (${res.status})`);
   }
 
-  return res.json();
+  const data = await res.json();
+  // Normalize spec response (workflowId) to internal shape (workflow_id)
+  return {
+    ...data,
+    workflow_id: data.workflowId || data.workflow_id,
+    status_url: data.progressUrl || data.status_url,
+    result_url: data.resultUrl || data.result_url,
+  };
 }
 
 export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
+  // Per API spec: GET /api/workflows/:workflowId/progress
   const fullUrl = statusUrl.startsWith('http')
     ? statusUrl
     : `${FORMANOVA_API}${statusUrl.startsWith('/') ? '' : '/'}${statusUrl}`;
@@ -153,30 +160,37 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
     throw new Error(err.error || `Status poll failed (${res.status})`);
   }
 
-  const data: StatusResponse = await res.json();
+  const raw = await res.json();
 
-  // Normalize progress object → numeric percentage
-  const progressObj = data.progress as unknown;
+  // Spec response: { state, step, stepLabel, attempt, maxAttempts }
+  const data: StatusResponse = {
+    status: (raw.state || 'running').toLowerCase(),
+    current_step: raw.step || raw.current_step,
+    progress: (raw.state === 'completed' || raw.state === 'done') ? 100 : (raw.progress ?? 0),
+    steps_completed: raw.steps_completed,
+    steps_total: raw.steps_total,
+    results: raw.results,
+  };
+
+  // Also handle legacy progress object shape
+  const progressObj = raw.progress;
   if (progressObj && typeof progressObj === 'object') {
     const p = progressObj as Record<string, unknown>;
     const completed = Number(p.completed_nodes ?? 0);
     const total = Number(p.total_nodes ?? 1);
-    const state = String(p.state || 'running').toLowerCase();
+    const state = String(p.state || raw.state || 'running').toLowerCase();
 
     data.status = state;
     data.steps_completed = completed;
     data.steps_total = total;
-    data.progress = state === 'completed' || state === 'done'
+    data.progress = (state === 'completed' || state === 'done')
       ? 100
       : total > 0 ? Math.round((completed / total) * 100) : 0;
-  } else if (typeof data.progress !== 'number') {
-    const s = (data.status || '').toLowerCase();
-    data.progress = (s === 'completed' || s === 'done') ? 100 : 0;
   }
 
   // Resolve GLB URL from inline results if completed
   if ((data.progress as number) >= 100 && data.results) {
-    const { glb_url, azure_source } = resolveGlbFromResults(data.results);
+    const { glb_url, azure_source } = resolveGlbFromResults(data.results as Record<string, unknown>);
     if (glb_url) {
       data.glb_url = glb_url;
       data.azure_source = azure_source;
@@ -187,6 +201,7 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
 }
 
 export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
+  // Per API spec: GET /api/workflows/:workflowId/result
   const fullUrl = resultUrl.startsWith('http')
     ? resultUrl
     : `${FORMANOVA_API}${resultUrl.startsWith('/') ? '' : '/'}${resultUrl}`;
@@ -200,7 +215,7 @@ export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
 
   const data = await res.json();
 
-  // Resolve GLB URL
+  // Resolve GLB URL per spec fallback rules
   const { glb_url, azure_source } = resolveGlbFromResults(data);
   return { ...data, glb_url, azure_source };
 }
