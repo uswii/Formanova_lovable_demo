@@ -1852,6 +1852,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       setMeshTransform: (axis, property, value) => modelRef.current?.setMeshTransform(axis, property, value),
       exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
+      exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
