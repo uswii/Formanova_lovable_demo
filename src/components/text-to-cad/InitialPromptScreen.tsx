@@ -34,7 +34,7 @@ export default function InitialPromptScreen({
 
   const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onGlbUpload(file);
+    if (file && onGlbUpload) onGlbUpload(file);
   }, [onGlbUpload]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
