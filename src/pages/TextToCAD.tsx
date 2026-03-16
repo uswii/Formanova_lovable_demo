@@ -1075,7 +1075,7 @@ export default function TextToCAD() {
           setPrompt={setPrompt}
           isGenerating={isGenerating}
           onGenerate={simulateGeneration}
-          onGlbUpload={handleGlbUpload}
+          onGlbUpload={showCadUpload ? handleGlbUpload : undefined}
           creditBlock={creditBlock ? (
             <InsufficientCreditsInline
               currentBalance={creditBlock.currentBalance}
