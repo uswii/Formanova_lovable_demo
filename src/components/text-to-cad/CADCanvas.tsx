@@ -316,6 +316,9 @@ const LoadedModel = forwardRef<
     applyMagicTextures: () => void;
     getSelectedTransform: () => MeshTransformData | null;
     setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
+    exportSceneBlob: () => Promise<Blob>;
+    exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
+    exportSceneRawBlob: () => Promise<Blob>;
   },
   {
   url: string;
@@ -404,6 +407,9 @@ const LoadedModel = forwardRef<
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  // Store normalisation factors so exportSceneRawBlob can reverse the transform
+  const normScaleRef = useRef<number>(1);
+  const normCenterRef = useRef<THREE.Vector3>(new THREE.Vector3());
   // Tracks meshes where the user explicitly applied a material AFTER selecting them.
   // When this set contains a mesh name, the applied material is shown instead of the blue overlay.
   // Cleared when selection changes; populated by applyMaterial.
@@ -421,6 +427,8 @@ const LoadedModel = forwardRef<
     const center = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const s = maxDim === 0 ? 1 : 3 / maxDim;
+    normScaleRef.current = s;
+    normCenterRef.current = center.clone();
 
     const list: MeshData[] = [];
     let idx = 0;
@@ -680,6 +688,8 @@ const LoadedModel = forwardRef<
             const center = box.getCenter(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
             const s = maxDim === 0 ? 1 : 3 / maxDim;
+            normScaleRef.current = s;
+            normCenterRef.current = center.clone();
 
             const newParts: MeshData[] = [];
             let idx = 0;
@@ -1361,6 +1371,39 @@ const LoadedModel = forwardRef<
       console.log(`[STL Export] Done. Blob size: ${blob.size} bytes, meshes: ${exportScene.children.length}, scale: ${scaleMm}mm/unit`);
       return blob;
     },
+    exportSceneRawBlob: async (): Promise<Blob> => {
+      // ── Export geometry at original real-world metre scale ──
+      // Reverses the viewport normalisation (s = 3/maxDim, center offset)
+      const exportScene = new THREE.Scene();
+      const currentMeshData = meshDataListRef.current;
+      const s = normScaleRef.current;
+      const center = normCenterRef.current;
+
+      console.log('[Raw Export] Starting. meshDataList:', currentMeshData.length, 'normScale:', s);
+
+      currentMeshData.forEach((md) => {
+        const material = new THREE.MeshStandardMaterial();
+        const geo = md.geometry.clone();
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.name = md.name;
+
+        // Reverse normalisation: rawPos = (normalisedPos / s) + center
+        const rawPosition = md.position.clone().divideScalar(s).add(center);
+        const rawScale = md.scale.clone().divideScalar(s);
+        // Quaternion is unaffected by uniform scaling
+        mesh.position.copy(rawPosition);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(rawScale);
+
+        exportScene.add(mesh);
+      });
+
+      const exporter = new GLTFExporter();
+      const result = await exporter.parseAsync(exportScene, { binary: true });
+      const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+      console.log(`[Raw Export] Done. Blob size: ${blob.size} bytes, normScale: ${normScaleRef.current}`);
+      return blob;
+    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // Selection-change detection moved into useMemo below (synchronous)
@@ -1756,6 +1799,7 @@ export interface CADCanvasHandle {
   resetCamera: () => void;
   exportSceneBlob: () => Promise<Blob>;
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
+  exportSceneRawBlob: () => Promise<Blob>;
 }
 
 interface CADCanvasProps {
@@ -1811,6 +1855,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       setMeshTransform: (axis, property, value) => modelRef.current?.setMeshTransform(axis, property, value),
       exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
+      exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;

@@ -73,8 +73,15 @@ export default function TextToCAD() {
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gemMode, setGemMode] = useState<GemMode>("simple");
-  const [stlModalOpen, setStlModalOpen] = useState(false);
-  const [stlScaleMm, setStlScaleMm] = useState(6.67);
+  const [weightResult, setWeightResult] = useState<{
+    weight_14k_gold_g: number;
+    weight_platinum_g: number;
+    scale_warning: boolean;
+  } | null>(null);
+  const [weightLoading, setWeightLoading] = useState(false);
+  const [stlExporting, setStlExporting] = useState(false);
+  const [stlPresetOpen, setStlPresetOpen] = useState(false);
+  const [stlQuality, setStlQuality] = useState<'draft' | 'standard' | 'high'>('standard');
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
@@ -789,64 +796,101 @@ export default function TextToCAD() {
     }
   }, [glbUrl]);
 
-  const handleDownloadStl = useCallback(() => {
-    setStlModalOpen(true);
+  const handleEstimateWeight = useCallback(async () => {
+    if (!canvasRef.current) {
+      toast.error("3D canvas not ready");
+      return;
+    }
+    setWeightLoading(true);
+    try {
+      const blob = await canvasRef.current.exportSceneRawBlob();
+      const formData = new FormData();
+      formData.append('glb', blob, 'scene.glb');
+      const response = await fetch('/estimate_weight', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!result.success) {
+        toast.error(result.error || "Weight estimation failed");
+        return;
+      }
+      if (result.scale_warning) {
+        toast.warning("Weight estimate may be inaccurate — geometry scale looks unusual");
+      }
+      setWeightResult({
+        weight_14k_gold_g: result.weight_14k_gold_g,
+        weight_platinum_g: result.weight_platinum_g,
+        scale_warning: result.scale_warning,
+      });
+    } catch (err) {
+      toast.error("Weight estimation failed");
+      console.error('[Weight]', err);
+    } finally {
+      setWeightLoading(false);
+    }
   }, []);
 
-  const confirmDownloadStl = useCallback(async () => {
-    setStlModalOpen(false);
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-    const defaultName = `model-${timestamp}.stl`;
-    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: defaultName, file_type: 'stl', context: 'text-to-cad' }));
+  const handleDownloadStl = useCallback(() => {
+    setStlPresetOpen(true);
+  }, []);
 
-    const anchorDownload = (blob: Blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = defaultName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    };
-
+  const executeStlDownload = useCallback(async () => {
+    setStlPresetOpen(false);
+    if (!canvasRef.current) {
+      toast.error("3D canvas not ready");
+      return;
+    }
+    const voxelSizeMm = stlQuality === 'draft' ? 0.1 : stlQuality === 'high' ? 0.03 : 0.05;
+    setStlExporting(true);
     try {
-      if (!canvasRef.current) {
-        toast.error("3D canvas not ready");
+      const blob = await canvasRef.current.exportSceneRawBlob();
+      const formData = new FormData();
+      formData.append('glb', blob, 'scene.glb');
+      formData.append('voxel_size_mm', String(voxelSizeMm));
+
+      const response = await fetch('/prepare_stl', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (!result.success || !result.stl_artifact) {
+        toast.error(result.error_text || "STL export failed");
         return;
       }
-      const blob = await canvasRef.current.exportSceneStlBlob(stlScaleMm);
 
-      if (!blob || blob.size === 0) {
-        toast.error("Export produced an empty file");
-        return;
-      }
+      // Resolve stl_artifact.uri using the same azure:// pattern as GLB downloads
+      const toUrl = (uri: string) => uri.startsWith("azure://")
+        ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
+        : uri;
+      const downloadUrl = toUrl(result.stl_artifact.uri);
+      const timestamp = Date.now();
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await (window as any).showSaveFilePicker({
-            suggestedName: defaultName,
-            types: [{
-              description: 'STL 3D Print File',
-              accept: { 'model/stl': ['.stl'] },
-            }],
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-        } catch (e: any) {
-          if (e?.name === 'AbortError') return;
-          console.warn('[STL Download] showSaveFilePicker failed, using fallback:', e);
-          anchorDownload(blob);
+      try {
+        const fileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: `model-${timestamp}.stl`,
+          types: [{ description: 'STL 3D Print File', accept: { 'model/stl': ['.stl'] } }],
+        });
+        const writable = await fileHandle.createWritable();
+        const stlResponse = await fetch(downloadUrl);
+        await writable.write(await stlResponse.blob());
+        await writable.close();
+      } catch (pickerErr: any) {
+        if (pickerErr?.name !== 'AbortError') {
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `model-${timestamp}.stl`;
+          a.click();
         }
-      } else {
-        anchorDownload(blob);
       }
     } catch (err) {
-      console.error('[STL Download] Failed to export/download model:', err);
-      toast.error("Failed to download STL");
+      toast.error("STL export failed");
+      console.error('[STL Export]', err);
+    } finally {
+      setStlExporting(false);
     }
-  }, [stlScaleMm]);
+  }, [stlQuality]);
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
@@ -1267,7 +1311,10 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
-              // onDownloadStl={handleDownloadStl} — hidden for now, kept in codebase
+              onEstimateWeight={handleEstimateWeight}
+              weightLoading={weightLoading}
+              onDownloadStl={handleDownloadStl}
+              stlExporting={stlExporting}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
                 if (el) {
@@ -1308,9 +1355,22 @@ export default function TextToCAD() {
         </ResizablePanel>
       </ResizablePanelGroup>
       
-      {/* STL Scale Modal */}
+      {/* Weight result display */}
+      {weightResult && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-card/95 backdrop-blur-sm border border-border rounded-sm font-mono text-[11px] text-muted-foreground">
+          <span className="text-foreground">Est. weight:</span>
+          <span>{weightResult.weight_14k_gold_g.toFixed(1)}g (14K gold)</span>
+          <span>·</span>
+          <span>{weightResult.weight_platinum_g.toFixed(1)}g (platinum)</span>
+          {weightResult.scale_warning && (
+            <span title="Geometry scale may be incorrect">⚠</span>
+          )}
+        </div>
+      )}
+
+      {/* STL Quality Preset Modal */}
       <AnimatePresence>
-        {stlModalOpen && (
+        {stlPresetOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1319,9 +1379,8 @@ export default function TextToCAD() {
             className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
           >
             <div className="pointer-events-auto bg-card border border-border shadow-2xl w-[340px] px-8 py-7 text-center relative">
-              {/* Close button */}
               <button
-                onClick={() => setStlModalOpen(false)}
+                onClick={() => setStlPresetOpen(false)}
                 className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-sm transition-colors cursor-pointer"
                 aria-label="Close"
               >
@@ -1331,56 +1390,41 @@ export default function TextToCAD() {
                 Download for 3D Printing
               </div>
               <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5 text-left">
-                Scale sets the real-world size. Default prints approximately a US size 7 ring (20mm diameter).
+                Choose a quality level. Higher quality takes longer to process (30–120 seconds).
               </p>
 
-              {/* Scale input */}
-              <div className="mb-4">
-                <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground block mb-2">
-                  mm per unit
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  step={0.1}
-                  value={stlScaleMm}
-                  onChange={(e) => setStlScaleMm(parseFloat(e.target.value) || 1)}
-                  className="w-full px-3 py-2 text-center font-mono text-sm bg-background border border-border text-foreground focus:outline-none focus:border-primary tabular-nums"
-                />
-              </div>
-
-              {/* Size presets — equal width grid */}
-              <div className="grid grid-cols-3 gap-2 mb-6">
-                {[
-                  { label: "Size 6", value: 6.33 },
-                  { label: "Size 7", value: 6.67 },
-                  { label: "Size 8", value: 7.0 },
-                ].map((preset) => (
+              {/* Quality presets */}
+              <div className="flex flex-col gap-2 mb-6">
+                {([
+                  { label: "Draft", sublabel: "Fast · FDM prototyping", value: "draft" as const },
+                  { label: "Standard", sublabel: "Recommended · Resin/wax", value: "standard" as const },
+                  { label: "High Detail", sublabel: "Slow · Milgrain/filigree", value: "high" as const },
+                ] as const).map((preset) => (
                   <button
-                    key={preset.label}
-                    onClick={() => setStlScaleMm(preset.value)}
-                    className={`py-2 text-[10px] font-bold uppercase tracking-[0.12em] border cursor-pointer transition-all duration-150 ${
-                      stlScaleMm === preset.value
+                    key={preset.value}
+                    onClick={() => setStlQuality(preset.value)}
+                    className={`py-3 px-4 text-left border cursor-pointer transition-all duration-150 ${
+                      stlQuality === preset.value
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background text-muted-foreground border-border hover:border-foreground/30"
                     }`}
                   >
-                    {preset.label}
+                    <div className="text-[11px] font-bold uppercase tracking-[0.12em]">{preset.label}</div>
+                    <div className={`text-[9px] tracking-wide mt-0.5 ${stlQuality === preset.value ? "text-primary-foreground/70" : "text-muted-foreground/60"}`}>{preset.sublabel}</div>
                   </button>
                 ))}
               </div>
 
-              {/* Actions — equal width grid */}
+              {/* Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setStlModalOpen(false)}
+                  onClick={() => setStlPresetOpen(false)}
                   className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={confirmDownloadStl}
+                  onClick={executeStlDownload}
                   className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Download STL
