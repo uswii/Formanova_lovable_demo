@@ -45,6 +45,9 @@ interface UndoEntry {
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
+  const { user } = useAuth();
+  const showWeightStl = isWeightStlEnabled(user?.email);
+  const showCadUpload = isCadUploadEnabled(user?.email);
   
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
