@@ -124,7 +124,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts, onEstimateWeight, weightLoading, stlExporting }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -138,6 +138,9 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   onFullscreen?: () => void;
   onDisplayMenu?: () => void;
   onKeyboardShortcuts?: () => void;
+  onEstimateWeight?: () => void;
+  weightLoading?: boolean;
+  stlExporting?: boolean;
 }) {
   if (!visible) return null;
 
