@@ -404,6 +404,9 @@ const LoadedModel = forwardRef<
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  // Store normalisation factors so exportSceneRawBlob can reverse the transform
+  const normScaleRef = useRef<number>(1);
+  const normCenterRef = useRef<THREE.Vector3>(new THREE.Vector3());
   // Tracks meshes where the user explicitly applied a material AFTER selecting them.
   // When this set contains a mesh name, the applied material is shown instead of the blue overlay.
   // Cleared when selection changes; populated by applyMaterial.
