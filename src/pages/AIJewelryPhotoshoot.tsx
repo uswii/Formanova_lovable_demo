@@ -31,7 +31,7 @@ export default function AIJewelryPhotoshoot() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>AI Jewelry Photoshoot Studio | FormaNova</title>
-        <meta name="description" content="AI jewelry photoshoot tool for rings, necklaces, earrings & bracelets. Upload a product image and get professional model photos in minutes. Try free." />
+        <meta name="description" content="AI jewelry photoshoot tool for rings, necklaces, earrings & bracelets. Upload a product image and get professional model photos in minutes. Try now." />
         <link rel="canonical" href="https://formanova.ai/ai-jewelry-photoshoot" />
       </Helmet>
       {/* JSON-LD FAQPage */}

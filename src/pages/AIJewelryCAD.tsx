@@ -29,7 +29,7 @@ export default function AIJewelryCAD() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>AI Jewelry CAD Generator | Text to 3D Model | FormaNova</title>
-        <meta name="description" content="AI jewelry CAD generator — describe any ring, necklace, or bracelet in text and get a manufacturable 3D model in minutes. Try free." />
+        <meta name="description" content="AI jewelry CAD generator — describe any ring, necklace, or bracelet in text and get a manufacturable 3D model in minutes. Try now." />
         <link rel="canonical" href="https://formanova.ai/ai-jewelry-cad" />
       </Helmet>
       {/* JSON-LD FAQPage */}
