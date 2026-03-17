@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useEffect, useState, useRef, forwardRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -238,6 +239,9 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <Helmet>
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <ThemeLogo className="h-16 md:h-20 mb-8" />
       
       <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">

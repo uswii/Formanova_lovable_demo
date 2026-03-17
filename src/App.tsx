@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -109,6 +110,7 @@ class ChunkErrorBoundary extends React.Component<
 const queryClient = new QueryClient();
 
 const App = () => (
+  <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
@@ -183,6 +185,7 @@ const App = () => (
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

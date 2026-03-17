@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Camera, Sparkles, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,11 @@ const FAQS = [
 export default function AIJewelryPhotoshoot() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>AI Jewelry Photoshoot Studio | FormaNova</title>
+        <meta name="description" content="AI jewelry photoshoot tool for rings, necklaces, earrings & bracelets. Upload a product image and get professional model photos in minutes. Try free." />
+        <link rel="canonical" href="https://formanova.ai/ai-jewelry-photoshoot" />
+      </Helmet>
       {/* JSON-LD FAQPage */}
       <script
         type="application/ld+json"
