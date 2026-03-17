@@ -236,11 +236,6 @@ export function Header() {
         }`}
       >
         <nav className="flex flex-col items-center justify-center h-full gap-8">
-          {/* Theme switcher - mobile only */}
-          <div className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-            style={{ transitionDelay: isMobileMenuOpen ? '100ms' : '0ms' }}>
-            <ThemeSwitcher />
-          </div>
           {navLinks.map((link, index) => (
             <Link 
               key={link.path}
