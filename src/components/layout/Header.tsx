@@ -207,8 +207,9 @@ export function Header() {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-2">
+          {/* Mobile: Theme Switcher + Menu Button */}
+          <div className="flex lg:hidden items-center gap-3">
+            <ThemeSwitcher />
             <Button
               variant="ghost"
               size="icon"
