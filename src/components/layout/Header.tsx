@@ -210,11 +210,8 @@ export function Header() {
             )}
           </nav>
 
-          {/* Mobile right-side group: Theme + Menu */}
-          <div className="flex lg:hidden items-center gap-2.5">
-            <div className="mobile-theme-switcher">
-              <ThemeSwitcher />
-            </div>
+          {/* Mobile right-side group: Menu only */}
+          <div className="flex lg:hidden items-center">
             <Button
               variant="ghost"
               size="icon"
@@ -256,11 +253,19 @@ export function Header() {
             </Link>
           ))}
           
+          {/* Theme Switcher in mobile menu */}
+          <div
+            className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+          >
+            <ThemeSwitcher />
+          </div>
+
           {/* Mobile User Profile / Auth Button */}
           {user ? (
-            <div 
+            <div
               className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
             >
               <div className="flex items-center gap-3">
                 {user.avatar_url ? (
@@ -318,7 +323,7 @@ export function Header() {
             <Link
               to="/login"
               className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
             >
               <Button variant="default" size="lg" className="gap-2">
                 <LogIn className="h-5 w-5" />
