@@ -70,8 +70,8 @@ export function Header() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-black border-b border-white/10'
-            : 'bg-black'
+            ? 'bg-background border-b border-border/20'
+            : 'bg-background'
         }`}
       >
         <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
@@ -96,8 +96,8 @@ export function Header() {
                 to={link.path}
                 className={`text-sm font-medium transition-colors whitespace-nowrap ${
                   location.pathname === link.path || location.pathname.startsWith(link.path + '/')
-                    ? 'text-white'
-                    : 'text-white/60 hover:text-white'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {link.label}
@@ -231,7 +231,7 @@ export function Header() {
 
       {/* Mobile Menu Overlay - Marta Style */}
       <div 
-        className={`fixed inset-0 z-40 bg-black transition-all duration-500 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-background transition-all duration-500 lg:hidden ${
           isMobileMenuOpen 
             ? 'opacity-100 pointer-events-auto' 
             : 'opacity-0 pointer-events-none'
@@ -244,8 +244,8 @@ export function Header() {
               to={link.path}
               className={`font-display text-4xl tracking-wide transition-all duration-500 ${
                 location.pathname === link.path
-                  ? 'text-white'
-                  : 'text-white/60 hover:text-white'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               } ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${index * 100 + 200}ms` : '0ms' }}
             >
