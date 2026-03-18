@@ -10,7 +10,7 @@ import {
   AlertCircle, Loader2, X, Maximize2, Minimize2 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import { supabase } from '@/integrations/supabase/client';
 import { FLUX_GEN_DAG_STEPS, ALL_JEWELRY_DAG_STEPS } from '@/lib/workflow-api';
 
 interface NodeOutput {
@@ -388,22 +388,18 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
         return;
       }
       
-      // Try Azure URI — convert to public URL
+      // Try Azure URI
       const azureUri = extractAzureUri(node.data, preferMask);
       if (azureUri) {
         try {
-          // Convert azure://container/path to public blob URL
-          const publicUrl = azureUri.startsWith('azure://')
-            ? `https://snapwear.blob.core.windows.net/${azureUri.replace('azure://', '')}`
-            : azureUri;
-
-          const response = await fetch(publicUrl);
-          if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-          const arrayBuffer = await response.arrayBuffer();
-          const base64 = btoa(new Uint8Array(arrayBuffer).reduce((d, b) => d + String.fromCharCode(b), ''));
-          const contentType = response.headers.get('content-type') || 'image/png';
+          const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
+            body: { azure_uri: azureUri },
+          });
           
-          const imageData = `data:${contentType};base64,${base64}`;
+          if (error) throw error;
+          if (!data?.base64) throw new Error('No base64 in response');
+          
+          const imageData = `data:${data.content_type || 'image/png'};base64,${data.base64}`;
           setNodes(prev => prev.map((n, i) => 
             i === index ? { ...n, resolvedImage: imageData, loading: false } : n
           ));
