@@ -1,3 +1,16 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ⛔  DEAD CODE — DO NOT USE THIS FUNCTION                           ║
+// ║                                                                      ║
+// ║  This Supabase edge function is no longer called by anything.        ║
+// ║  The frontend previously routed API calls through here as a proxy,   ║
+// ║  but was refactored to call the backend directly via nginx:           ║
+// ║    /api/* → port 8005 (Temporal workflow service)                    ║
+// ║                                                                      ║
+// ║  If you think you need this: you don't. Use authenticatedFetch()     ║
+// ║  in src/lib/authenticated-fetch.ts with a direct /api/* path.        ║
+// ║  See src/lib/workflow-api.ts and src/lib/temporal-api.ts for usage.  ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Allowed origins for CORS

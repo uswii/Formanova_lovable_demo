@@ -1,3 +1,18 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ⛔  DEAD CODE — DO NOT USE THIS FUNCTION                           ║
+// ║                                                                      ║
+// ║  This Supabase edge function is no longer called by anything.        ║
+// ║  It was previously used to proxy Google OAuth authorize requests      ║
+// ║  and convert the 302 redirect into a JSON response the frontend       ║
+// ║  could read.                                                          ║
+// ║                                                                      ║
+// ║  Auth.tsx now calls /auth/auth/google/authorize directly via fetch,   ║
+// ║  reads the JSON { authorization_url } response, then navigates.       ║
+// ║  The nginx proxy at /auth/* → port 8009 handles routing.             ║
+// ║                                                                      ║
+// ║  If you think you need this: you don't. See src/pages/Auth.tsx.      ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // ═══════════════════════════════════════════════════════════════

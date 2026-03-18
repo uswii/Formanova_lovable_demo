@@ -1,3 +1,13 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ⛔  DEAD CODE — DO NOT USE THIS FUNCTION                           ║
+// ║                                                                      ║
+// ║  This Supabase edge function was never wired up in the frontend.     ║
+// ║  Nothing has ever called it in production.                           ║
+// ║                                                                      ║
+// ║  Credits API calls go directly to /api/credits/* via nginx           ║
+// ║  (port 8005). See src/lib/credits-api.ts for the actual client.      ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
