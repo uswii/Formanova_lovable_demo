@@ -73,7 +73,6 @@ export function Header() {
             ? 'border-b border-border/20 shadow-sm'
             : ''
         }`}
-        style={{ backgroundColor: 'hsl(var(--background))' }}
       >
         <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
           {/* Left side: Logo first, then Theme Switcher */}
