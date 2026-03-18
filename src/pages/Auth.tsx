@@ -186,8 +186,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
 
     try {
       const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
-      // Navigate directly — browser follows the 302 to Google automatically
-      window.location.href = `/auth/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
+      const response = await fetch(`/auth/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`);
+      const data = await response.json();
+      const redirectUrl = data.authorization_url || data.redirect_url;
+      if (!redirectUrl) throw new Error('No authorization URL returned');
+      window.location.href = redirectUrl;
     } catch (error) {
       console.error('[Auth] Google OAuth error:', error);
       setLoading(false);
