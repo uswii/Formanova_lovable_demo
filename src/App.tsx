@@ -59,7 +59,6 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 const PromoAdminPage = lazy(() => import("./pages/PromoAdminPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
 const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazy(() => import("./pages/AIJewelryCAD"));
 const LinkAccount = lazy(() => import("./pages/LinkAccount"));
