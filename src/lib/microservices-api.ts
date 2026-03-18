@@ -18,42 +18,6 @@ function getAuthHeaders(): Record<string, string> {
   }
   return headers;
 }
-// ========== Azure Upload ==========
-export interface AzureUploadResponse {
-  uri: string;  // azure:// format for microservices
-  sas_url: string;  // SAS URL for direct browser access
-  https_url: string;  // Plain HTTPS URL (won't work for private containers)
-  asset_id?: string | null;  // set by backend registration; null if fail-open triggered
-}
-
-export async function uploadToAzure(
-  base64: string,
-  contentType: string = 'image/jpeg',
-  assetType?: 'jewelry_photo' | 'model_photo'
-): Promise<AzureUploadResponse> {
-  console.log('[microservices] Uploading to Azure...');
-  
-  const response = await fetch(AZURE_UPLOAD_URL, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      base64,
-      content_type: contentType,
-      ...(assetType ? { asset_type: assetType } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('[microservices] Azure upload failed:', error);
-    throw new Error(`Azure upload failed: ${error}`);
-  }
-
-  const data = await response.json();
-  console.log('[microservices] Azure upload success:', data.uri);
-  return data;
-}
-
 // ========== Image Manipulator ==========
 export interface ResizeRequest {
   image: string;  // Can be azure:// URI, HTTP URL, or base64
