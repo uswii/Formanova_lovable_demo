@@ -190,7 +190,7 @@ serve(async (req) => {
       );
     }
 
-    const { base64, filename, content_type } = await req.json();
+    const { base64, filename, content_type, asset_type } = await req.json();
 
     if (!base64) {
       return new Response(
@@ -231,6 +231,12 @@ serve(async (req) => {
 
     // Decode base64 to binary
     const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+
+    // Compute SHA-256 server-side — binaryData is already in memory, zero extra cost
+    const hashBuffer = await crypto.subtle.digest('SHA-256', binaryData);
+    const sha256 = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
     // Validate decoded image size
     if (binaryData.length > MAX_IMAGE_SIZE) {
@@ -309,6 +315,37 @@ serve(async (req) => {
       );
     }
 
+    // Register asset — fail-open: never fail the upload for a registration error
+    let assetId: string | null = null;
+    // PIPELINE_API_URL must be set in Supabase secrets: supabase secrets set PIPELINE_API_URL=<value from .env VITE_PIPELINE_API_URL>
+    const BACKEND_URL = Deno.env.get('PIPELINE_API_URL');
+    const userToken = req.headers.get('X-User-Token');
+    if (BACKEND_URL && asset_type) {
+      try {
+        const regResp = await fetch(`${BACKEND_URL}/assets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Token': userToken,  // forward the validated user token
+          },
+          body: JSON.stringify({
+            sha256,
+            uri: `azure://${AZURE_CONTAINER_NAME}/${blobName}`,
+            mime_type: blobContentType,
+            size_bytes: contentLength,
+            asset_type,
+          }),
+        });
+        if (regResp.ok) {
+          assetId = (await regResp.json()).asset_id ?? null;
+        } else {
+          console.warn(`[azure-upload] Asset registration failed: ${regResp.status} — upload still succeeds`);
+        }
+      } catch (e) {
+        console.warn('[azure-upload] Asset registration error (non-fatal):', e);
+      }
+    }
+
     // Generate SAS token for the uploaded blob (valid for 60 minutes)
     const sasToken = await generateSasToken(
       AZURE_ACCOUNT_NAME,
@@ -327,10 +364,11 @@ serve(async (req) => {
     console.log(`Upload successful: ${azureUri}`);
 
     return new Response(
-      JSON.stringify({ 
-        uri: azureUri,  // Primary: azure:// format for microservices
-        sas_url: sasUrl,  // SAS URL for direct client access to private blobs
-        https_url: url  // Plain HTTPS URL (won't work for private containers without SAS)
+      JSON.stringify({
+        uri: azureUri,        // Primary: azure:// format for microservices
+        sas_url: sasUrl,      // SAS URL for direct client access to private blobs
+        https_url: url,       // Plain HTTPS URL (won't work for private containers without SAS)
+        asset_id: assetId,    // null if registration failed (fail-open)
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
