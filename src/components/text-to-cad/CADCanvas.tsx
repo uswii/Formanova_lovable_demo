@@ -654,17 +654,8 @@ const LoadedModel = forwardRef<
         try {
           const isBlobUrl = partUrl.startsWith("blob:");
           let arrayBuffer: ArrayBuffer;
-          if (isBlobUrl) {
-            arrayBuffer = await (await fetch(partUrl)).arrayBuffer();
-          } else {
-            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-            const resp = await fetch(proxyUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: partUrl }),
-            });
-            arrayBuffer = await resp.arrayBuffer();
-          }
+          const resp = await fetch(partUrl);
+          arrayBuffer = await resp.arrayBuffer();
 
           const loader = new GLTFLoader();
           loader.parse(arrayBuffer, "", (gltf) => {
