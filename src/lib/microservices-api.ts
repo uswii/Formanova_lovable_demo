@@ -24,20 +24,23 @@ export interface AzureUploadResponse {
   uri: string;  // azure:// format for microservices
   sas_url: string;  // SAS URL for direct browser access
   https_url: string;  // Plain HTTPS URL (won't work for private containers)
+  asset_id?: string | null;  // set by backend registration; null if fail-open triggered
 }
 
 export async function uploadToAzure(
-  base64: string, 
-  contentType: string = 'image/jpeg'
+  base64: string,
+  contentType: string = 'image/jpeg',
+  assetType?: 'jewelry_photo' | 'model_photo'
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
   
   const response = await fetch(AZURE_UPLOAD_URL, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ 
-      base64, 
-      content_type: contentType 
+    body: JSON.stringify({
+      base64,
+      content_type: contentType,
+      ...(assetType ? { asset_type: assetType } : {}),
     }),
   });
 
