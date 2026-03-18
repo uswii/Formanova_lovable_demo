@@ -142,7 +142,8 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
 
 **Supabase edge function — modify `azure-upload`:**
 - After successful Azure upload, call `POST /assets` with sha256 + uri + asset_type
-- Returns `asset_id` and `https_url` to frontend
+- **`POST /assets` failure behavior (fail-open):** If the `POST /assets` call fails (network error, 5xx), the edge function still returns a successful response to the frontend with the SAS URL. The Azure upload succeeded — the user can proceed with their generation. The registration failure is logged server-side. The asset will be missing from the vault for that upload but can be recovered via the backfill script. Do NOT return an error to the frontend for a registration failure.
+- Returns `asset_id` and `https_url` to frontend (asset_id may be null if registration failed)
 
 **Tests (pytest, written alongside new code):**
 1. `POST /assets` happy path — asset created, returns `asset_id` + `https_url`
@@ -211,6 +212,7 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
   { preloadedModelUrl: string }
   ```
 - `UnifiedStudio.tsx` reads `useLocation().state` on mount; if `preloadedJewelryUrl` is present, sets `jewelryUploadedUrl` state directly (same state variable used after a normal upload) — skips the upload step entirely, treats URL as already uploaded
+- **SAS URL is intentional here.** `jewelryUploadedUrl` is set to the SAS URL (plain HTTPS with token), not an `azure://` URI. The existing code in `UnifiedStudio.tsx` checks `if (jewelryUploadedUrl.startsWith('azure://'))` to convert to HTTPS — vault-pre-loaded URLs will skip that branch and use the SAS URL as-is via the `else` path. This is correct: the backend can fetch the blob via SAS URL directly. No conversion step is missing.
 - The SAS URL from the vault is valid for 1 hour — sufficient to complete a generation
 - Reuses existing generation pipeline — no new backend work
 
