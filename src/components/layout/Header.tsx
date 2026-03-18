@@ -68,10 +68,10 @@ export function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'border-b border-border/20 shadow-sm'
-            : ''
+            ? 'bg-background/95 backdrop-blur-md border-b border-border/20 shadow-sm'
+            : 'bg-background'
         }`}
       >
         <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
