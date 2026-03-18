@@ -279,7 +279,7 @@ export default function UnifiedStudio() {
           reader.onerror = reject;
           reader.readAsDataURL(compressedJewelry);
         });
-        const azResult = await uploadToAzure(base64);
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo');
         jewelryUrl = azResult.https_url || azResult.sas_url;
         setGenerationProgress(20);
       }
@@ -301,7 +301,7 @@ export default function UnifiedStudio() {
           reader.onerror = reject;
           reader.readAsDataURL(compressedModel);
         });
-        const azResult = await uploadToAzure(base64);
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
         modelUrl = azResult.https_url || azResult.sas_url;
       } else {
         throw new Error('No model selected');
