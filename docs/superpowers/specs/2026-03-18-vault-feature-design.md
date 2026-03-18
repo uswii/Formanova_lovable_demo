@@ -9,21 +9,21 @@
 
 FormaNova currently operates as a vending machine: users upload a jewelry photo or model face, generate images, and leave. Nothing persists. Every new shoot starts from zero.
 
-This spec introduces a **Digital Asset Manager** layer — "My Products" and "My Models" — that surfaces users' previously uploaded jewelry photos and fashion model faces as a permanent, searchable, reusable library. The primary retention mechanism: once a B2B jewelry business has 50 SKUs organized in the vault, the operational dependency makes switching costly.
+This spec introduces a **Digital Asset Manager** layer — "My Products" and "My Models" — that surfaces users' previously uploaded raw input jewelry photos and fashion model faces as a permanent, searchable, reusable library. The primary retention mechanism: once a B2B jewelry business has 50 SKUs organized in the vault, the operational dependency makes switching costly.
 
 ---
 
 ## 2. Goals
 
-1. Jewelry photos uploaded by a user become permanently reusable across sessions with one click.
+1. Input jewelry photos (either flatlay or worn) uploaded by a user become permanently reusable across sessions with one click.
 2. Model face photos uploaded by a user become permanently reusable across sessions with one click.
 3. SHA-256 deduplication prevents a user from accumulating duplicate cards for the same physical image.
-4. Historical uploads (pre-feature) are backfilled into the vault from `workflow_executions.input_payload`.
-5. A "Re-shoot" button on any product card pre-loads that product into UnifiedStudio Step 1, skipping re-upload.
+4. Historical uploads (pre-feature) will be backfilled into the vault from `workflow_executions.input_payload` to give users a sense of completeness.
+5. Ultimately introduce a "Re-shoot" button on any product card pre-loads that product into UnifiedStudio Step 1, skipping re-upload.
 
 ### Non-Goals (explicitly deferred)
 
-- Perceptual dedup (detecting same ring photographed twice differently)
+- Perceptual dedup (detecting same ring photographed differently multiple times)
 - SKU/name field (Phase 4)
 - Shopify sync / bulk export (PostHog-gated, post Re-shoot data)
 - CAD output graduation to My Products (Phase 4+)
@@ -62,7 +62,7 @@ workflow_executions (two new nullable FK columns)
 
 **Key architectural decision:** `user_assets` references `artifacts.sha256` — it does NOT store its own `uri` or `sha256`. The URI comes from `artifacts` via a JOIN. Deduplication lives in one place: the `artifacts` CAS table. Multiple users can reference the same `artifact` row without any duplication of storage metadata.
 
-**Important FK constraint:** All FKs must point to `users.id` (the wallet table, UUID PK), never to `user` (the Supabase auth table).
+**Important FK constraint:** All FKs must point to `users.id` (the wallet table, UUID PK), never to `user` (the application auth table - not in models.py, not used for FKs).
 
 ### 3.2 Why Not Use the Existing `artifacts` Table Directly?
 
@@ -140,7 +140,7 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
 - `register_asset(user_id, tenant_id, sha256, uri, mime_type, size_bytes, asset_type) → UserAsset`
 - `get_user_assets(user_id, asset_type, page, page_size) → List[UserAsset]`
 
-**Supabase edge function — modify `azure-upload`:**
+**Modify `azure-upload` function** *(this function holds the Azure storage key server-side — it must remain a server-side function; no alternative)*
 - After successful Azure upload, call `POST /assets` with sha256 + uri + asset_type
 - **`POST /assets` failure behavior (fail-open):** If the `POST /assets` call fails (network error, 5xx), the edge function still returns a successful response to the frontend with the SAS URL. The Azure upload succeeded — the user can proceed with their generation. The registration failure is logged server-side. The asset will be missing from the vault for that upload but can be recovered via the backfill script. Do NOT return an error to the frontend for a registration failure.
 - Returns `asset_id` and `https_url` to frontend (asset_id may be null if registration failed)
@@ -153,14 +153,14 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
 5. `GET /assets` pagination — correct page/page_size behaviour
 6. `GET /assets` type filter — `asset_type=jewelry_photo` returns only jewelry assets
 
-**Blast radius:** Backend heavy (migration + 2 endpoints + repository functions + edge function modification). Frontend: none.
+**Blast radius:** Backend heavy (migration + 2 endpoints + repository functions + azure-upload modification). Frontend: none.
 
 ---
 
 ### Phase 1 — Surface the Grid *(full stack)*
 
 **Backend:**
-- New Supabase edge function `assets-proxy` — exposes `GET /assets` to the frontend (same proxy pattern as existing `workflow-proxy`)
+- No new middleware layer — FastAPI already exposes `GET /assets` publicly at `VITE_PIPELINE_API_URL`. Frontend calls it directly. No proxy needed.
 - One-time backfill migration script (idempotent Python script):
   - Extracts unique `jewelry_image_url` and `model_image_url` per user from `workflow_executions.input_payload`
   - **Scope: single-photo workflows only** — bulk upload workflows have a different `input_payload` schema and are excluded from Phase 1 backfill. Bulk backfill is a separate out-of-scope task.
@@ -172,7 +172,7 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
   - Idempotent: re-running produces no duplicate rows (UPSERT with ON CONFLICT DO NOTHING)
 
 **Frontend:**
-- New `src/lib/assets-api.ts` — `fetchUserAssets(type: 'jewelry_photo' | 'model_photo')` using `assets-proxy` edge function
+- New `src/lib/assets-api.ts` — `fetchUserAssets(type: 'jewelry_photo' | 'model_photo')` calls `GET /assets` on FastAPI directly via `authenticatedFetch(`${VITE_PIPELINE_API_URL}/assets?asset_type=${type}`)`. No proxy involved.
 - New "My Products" tab on Dashboard — shows jewelry asset grid
 - New components:
   - `AssetGrid` — wraps `AssetCard` in the same grid layout as the Generations page
@@ -180,7 +180,7 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
 
 **Design constraints:** Components must use existing design tokens only — Bebas Neue (display), Inter (body), Space Mono (mono), `formanova-glow`, `formanova-success`, `formanova-warning`, `formanova-hero-accent`. `AssetCard` is an extension of `WorkflowCard`, not a new component family.
 
-**Blast radius:** Backend medium (proxy + backfill script). Frontend medium (new tab + 2 components + API module).
+**Blast radius:** Backend medium (backfill script only — no new middleware). Frontend medium (new tab + 2 components + API module).
 
 ---
 
@@ -246,10 +246,10 @@ The existing `artifacts` table is populated exclusively by `normalise_payload()`
 
 ## 5. Blast Radius Summary
 
-| Phase | Backend | Edge Functions | Frontend |
-|-------|---------|----------------|----------|
+| Phase | Backend | Server-side functions | Frontend |
+|-------|---------|----------------------|----------|
 | 0 | Heavy | Modified: azure-upload | None |
-| 1 | Medium | New: assets-proxy | Medium |
+| 1 | Medium | None | Medium |
 | 2 | Light | None | Light |
 | 3 | None | None | Medium |
 | 4 | Light | None | Light |
@@ -315,7 +315,7 @@ Always run `--dry-run` first. Inspect row counts and sample URLs. Only run live 
 
 ## 9. Key Implementation Constraints
 
-1. **FK target:** All `user_id` foreign keys point to `users.id` (wallet table, UUID), never to the Supabase `user` auth table.
+1. **FK target:** All `user_id` foreign keys point to `users.id` (wallet table, UUID), never to `user` (the application auth table — not in models.py).
 2. **CAS dedup lives in `artifacts`:** `user_assets` never stores its own `uri` or `sha256` — always retrieved via JOIN.
 3. **Design consistency:** `AssetCard` is directly modelled on `WorkflowCard`. Do not introduce new component families or design patterns.
 4. **Backfill is idempotent:** Script must be re-runnable safely. UPSERT, not INSERT.
