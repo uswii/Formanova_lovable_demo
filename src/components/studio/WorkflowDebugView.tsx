@@ -10,7 +10,6 @@ import {
   AlertCircle, Loader2, X, Maximize2, Minimize2 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { FLUX_GEN_DAG_STEPS, ALL_JEWELRY_DAG_STEPS } from '@/lib/workflow-api';
 
 interface NodeOutput {
@@ -388,26 +387,12 @@ export function WorkflowDebugView({ results, workflowType, className, onClose }:
         return;
       }
       
-      // Try Azure URI
+      // Try SAS URL
       const azureUri = extractAzureUri(node.data, preferMask);
       if (azureUri) {
-        try {
-          const { data, error } = await supabase.functions.invoke('azure-fetch-image', {
-            body: { azure_uri: azureUri },
-          });
-          
-          if (error) throw error;
-          if (!data?.base64) throw new Error('No base64 in response');
-          
-          const imageData = `data:${data.content_type || 'image/png'};base64,${data.base64}`;
-          setNodes(prev => prev.map((n, i) => 
-            i === index ? { ...n, resolvedImage: imageData, loading: false } : n
-          ));
-        } catch (err) {
-          setNodes(prev => prev.map((n, i) => 
-            i === index ? { ...n, error: String(err), loading: false } : n
-          ));
-        }
+        setNodes(prev => prev.map((n, i) =>
+          i === index ? { ...n, resolvedImage: azureUri, loading: false } : n
+        ));
       } else {
         setNodes(prev => prev.map((n, i) => 
           i === index ? { ...n, loading: false, error: 'No image data found' } : n

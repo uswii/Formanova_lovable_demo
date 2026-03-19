@@ -441,9 +441,6 @@ export default function TextToCAD() {
 
         if (resultRes.ok) {
           const result = await resultRes.json();
-          const toUrl = (uri: string) => uri.startsWith("azure://")
-            ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
-            : uri;
           // Fallback per spec: success_final → glb_artifact, then original_glb_artifact
           // success_original_glb → original_glb_artifact
           // failed_final → error
@@ -454,7 +451,7 @@ export default function TextToCAD() {
             || result["success_final"]?.[0]?.original_glb_artifact?.uri;
           const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
-          if (rawUri) { glb_url = toUrl(rawUri); break; }
+          if (rawUri) { glb_url = rawUri; break; }
           throw new Error("No GLB model found in results");
         }
 
@@ -594,9 +591,6 @@ export default function TextToCAD() {
         const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
         if (resultRes.ok) {
           const result = await resultRes.json();
-          const toUrl = (uri: string) => uri.startsWith("azure://")
-            ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
-            : uri;
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
           if (hasFailed) throw new Error("Edit failed — no valid model produced");
 
@@ -604,7 +598,7 @@ export default function TextToCAD() {
             || result["success_final"]?.[0]?.original_glb_artifact?.uri;
           const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
-          if (rawUri) { glb_url = toUrl(rawUri); break; }
+          if (rawUri) { glb_url = rawUri; break; }
           throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {

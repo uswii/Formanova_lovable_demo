@@ -122,18 +122,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         ? upscalerResult.image?.uri 
         : (upscalerResult.image_uri || upscalerResult.image);
 
-      let generatedImageUrl: string | null = null;
-
-      if (imageUri) {
-        try {
-          const images = await temporalApi.fetchImages({ result: imageUri });
-          if (images.result) {
-            generatedImageUrl = `data:image/png;base64,${images.result}`;
-          }
-        } catch (fetchError) {
-          console.warn('[Generation] Failed to fetch result image:', fetchError);
-        }
-      }
+      const generatedImageUrl: string | null = imageUri || null;
 
       setProgress(100);
       

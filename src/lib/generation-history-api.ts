@@ -185,15 +185,6 @@ export async function getWorkflowDetails(
 export async function fetchCadResult(
   workflowId: string,
 ): Promise<{ glb_url: string | null; azure_source: string | null }> {
-  const AZURE_BLOB_HOST = 'https://snapwear.blob.core.windows.net';
-
-  function azureUriToPublicUrl(uri: string): string | null {
-    if (!uri.startsWith('azure://')) return null;
-    const path = uri.replace('azure://', '');
-    if (!path.includes('/')) return null;
-    return `${AZURE_BLOB_HOST}/${path}`;
-  }
-
   function extractArtifactUri(results: Record<string, unknown>, nodeKey: string, artifactKey: string): string | null {
     const node = results[nodeKey];
     if (!node) return null;
@@ -209,7 +200,7 @@ export async function fetchCadResult(
 
   try {
     const res = await authenticatedFetch(
-      `${BASE_URL}/api/workflows/${workflowId}/result`,
+      `${BASE_URL}/api/result/${workflowId}`,
     );
     if (!res.ok) return { glb_url: null, azure_source: null };
 
@@ -225,15 +216,13 @@ export async function fetchCadResult(
     const finalUri = extractArtifactUri(data, 'success_final', 'glb_artifact')
       || extractArtifactUri(data, 'success_final', 'original_glb_artifact');
     if (finalUri) {
-      const url = azureUriToPublicUrl(finalUri) || finalUri;
-      return { glb_url: url, azure_source: 'success_final' };
+      return { glb_url: finalUri, azure_source: 'success_final' };
     }
 
     // 3. success_original_glb: use original_glb_artifact only
     const originalUri = extractArtifactUri(data, 'success_original_glb', 'original_glb_artifact');
     if (originalUri) {
-      const url = azureUriToPublicUrl(originalUri) || originalUri;
-      return { glb_url: url, azure_source: 'success_original_glb' };
+      return { glb_url: originalUri, azure_source: 'success_original_glb' };
     }
 
     return { glb_url: null, azure_source: null };
