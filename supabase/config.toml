@@ -36,8 +36,6 @@ verify_jwt = false
 [functions.send-resubmit-email]
 verify_jwt = false
 
-[functions.checkout-proxy]
-verify_jwt = false
 
 [functions.send-announcement]
 verify_jwt = false
