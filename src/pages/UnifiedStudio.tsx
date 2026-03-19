@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -149,6 +149,8 @@ export default function UnifiedStudio() {
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
   const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
+  const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
+  const [modelAssetId, setModelAssetId] = useState<string | null>(null);
 
   // Generation
   const [isGenerating, setIsGenerating] = useState(false);
@@ -157,6 +159,31 @@ export default function UnifiedStudio() {
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
+
+  const location = useLocation();
+  // Intentionally empty deps: pre-load runs once on mount from route state.
+  // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const state = location.state as {
+      preloadedJewelryUrl?: string;
+      preloadedJewelryAssetId?: string;
+      preloadedModelUrl?: string;
+      preloadedModelAssetId?: string;
+    } | null;
+
+    if (state?.preloadedJewelryUrl) {
+      setJewelryUploadedUrl(state.preloadedJewelryUrl);
+      setJewelryAssetId(state.preloadedJewelryAssetId ?? null);
+    }
+
+    if (state?.preloadedModelUrl) {
+      setCustomModelImage(state.preloadedModelUrl);
+      setModelAssetId(state.preloadedModelAssetId ?? null);
+    }
+  }, []); // run once on mount — location.state is set before component renders
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
