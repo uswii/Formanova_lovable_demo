@@ -351,27 +351,9 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const isBlobUrl = url.startsWith("blob:");
-        let arrayBuffer: ArrayBuffer;
-
-        if (isBlobUrl) {
-          console.log("[CADCanvas] Loading local blob GLB directly");
-          const response = await fetch(url);
-          arrayBuffer = await response.arrayBuffer();
-        } else {
-          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-          console.log("[CADCanvas] Fetching GLB via blob-proxy for:", url.substring(0, 80));
-          const response = await fetch(proxyUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-          if (!response.ok) {
-            const errBody = await response.text();
-            throw new Error(`Proxy returned ${response.status}: ${errBody.substring(0, 200)}`);
-          }
-          arrayBuffer = await response.arrayBuffer();
-        }
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch GLB: ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
 
         if (cancelled) return;
 
@@ -666,19 +648,9 @@ const LoadedModel = forwardRef<
       mergedUrlsRef.current.add(partUrl);
       (async () => {
         try {
-          const isBlobUrl = partUrl.startsWith("blob:");
-          let arrayBuffer: ArrayBuffer;
-          if (isBlobUrl) {
-            arrayBuffer = await (await fetch(partUrl)).arrayBuffer();
-          } else {
-            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-            const resp = await fetch(proxyUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: partUrl }),
-            });
-            arrayBuffer = await resp.arrayBuffer();
-          }
+          const resp = await fetch(partUrl);
+          if (!resp.ok) throw new Error(`Failed to fetch GLB: ${resp.status}`);
+          const arrayBuffer = await resp.arrayBuffer();
 
           const loader = new GLTFLoader();
           loader.parse(arrayBuffer, "", (gltf) => {
