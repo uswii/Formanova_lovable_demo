@@ -18,11 +18,6 @@ verify_jwt = false
 [functions.jewelry-generate]
 verify_jwt = false
 
-[functions.workflow-proxy]
-verify_jwt = false
-
-[functions.auth-proxy]
-verify_jwt = false
 
 [functions.batch-submit]
 verify_jwt = false
@@ -37,14 +32,10 @@ verify_jwt = false
 [functions.blob-proxy]
 verify_jwt = false
 
-[functions.pipeline-api]
-verify_jwt = false
 
 [functions.send-resubmit-email]
 verify_jwt = false
 
-[functions.checkout-proxy]
-verify_jwt = false
 
 [functions.send-announcement]
 verify_jwt = false
@@ -52,8 +43,6 @@ verify_jwt = false
 [functions.admin-batches]
 verify_jwt = false
 
-[functions.credits-proxy]
-verify_jwt = false
 
 [functions.generate-ring]
 verify_jwt = false
