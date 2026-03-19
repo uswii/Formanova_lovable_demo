@@ -218,12 +218,38 @@ export default function UnifiedStudio() {
     }
     const normalized = await normalizeImageFile(file);
     setCustomModelFile(normalized);
+
+    // Show preview immediately via local blob URL while upload runs
     const reader = new FileReader();
     reader.onload = (e) => {
       setCustomModelImage(e.target?.result as string);
       setSelectedModel(null);
     };
     reader.readAsDataURL(normalized);
+
+    // Upload to Azure immediately so the model registers in My Models vault
+    try {
+      // normalized is a File (which is a Blob) — pass directly to compressImageBlob
+      const { blob: compressed } = await compressImageBlob(normalized);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader2 = new FileReader();
+        reader2.onload = () => resolve(reader2.result as string);
+        reader2.onerror = reject;
+        reader2.readAsDataURL(compressed);
+      });
+      const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
+      // Replace the local preview with the stable SAS URL for generation
+      setCustomModelImage(azResult.sas_url || azResult.https_url);
+      setModelAssetId(azResult.asset_id ?? null);
+      setCustomModelFile(null);  // clear stale file reference
+    } catch (e) {
+      // Upload failed — clear state so the user is not left with a broken 'data:' URL in customModelImage.
+      // (A 'data:' URL would silently fail the startsWith('http') guard in handleGenerate.)
+      setCustomModelImage(null);
+      setCustomModelFile(null);
+      toast({ variant: 'destructive', title: 'Upload failed', description: 'Model image could not be uploaded. Please re-select the file.' });
+      console.warn('[handleModelUpload] Azure upload failed:', e);
+    }
   }, [toast]);
 
   const handleSelectLibraryModel = (model: ModelImage) => {
@@ -308,6 +334,7 @@ export default function UnifiedStudio() {
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo');
         jewelryUrl = azResult.https_url || azResult.sas_url;
+        setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
       }
 
@@ -318,18 +345,10 @@ export default function UnifiedStudio() {
       if (selectedModel) {
         // Preset models already have HTTPS URLs — use directly
         modelUrl = selectedModel.url;
-      } else if (customModelImage && customModelFile) {
-        setGenerationStep('Uploading model image...');
-        const modelBlob = await imageSourceToBlob(customModelImage);
-        const { blob: compressedModel } = await compressImageBlob(modelBlob);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(compressedModel);
-        });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
-        modelUrl = azResult.https_url || azResult.sas_url;
+      } else if (customModelImage && customModelImage.startsWith('http')) {
+        // Model was uploaded at selection time (handleModelUpload) — customModelImage is a SAS URL.
+        // startsWith('http') guards against 'data:' URL previews set briefly before the Azure upload completes.
+        modelUrl = customModelImage;
       } else {
         throw new Error('No model selected');
       }
@@ -350,6 +369,8 @@ export default function UnifiedStudio() {
         model_image_url: modelUrl,
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
+        ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
+        ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
       };
       const startResponse = await startPhotoshoot(photoshootPayload);
 
