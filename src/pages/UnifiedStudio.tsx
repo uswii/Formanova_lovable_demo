@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,6 +32,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
+import { fetchUserAssets, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
   startPhotoshoot,
@@ -162,13 +163,50 @@ export default function UnifiedStudio() {
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
-  // My Models (user-uploaded, persisted via localStorage)
-  const [myModels, setMyModels] = useState<UserModel[]>(loadMyModels);
+  // My Models — backend-fetched + optimistic local additions for instant feedback
+  const [myModels, setMyModels] = useState<UserModel[]>([]);
+  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [myModelsLoading, setMyModelsLoading] = useState(true);
 
-  // Persist my models to localStorage with versioning
-  useEffect(() => { saveMyModels(myModels); }, [myModels]);
+  // Fetch user-uploaded models from backend API
+  const fetchMyModels = useCallback(async () => {
+    try {
+      setMyModelsLoading(true);
+      const data = await fetchUserAssets('model_photo', 0, 100);
+      const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
+        id: a.id,
+        name: a.name || 'Untitled',
+        url: a.thumbnail_url,
+        uploadedAt: new Date(a.created_at).getTime(),
+      }));
+      setMyModels(backendModels);
+      // Clear local pending models that now exist in backend (matched by URL)
+      const backendUrls = new Set(backendModels.map(m => m.url));
+      setLocalPendingModels(prev => {
+        const remaining = prev.filter(m => !backendUrls.has(m.url));
+        saveMyModels(remaining);
+        return remaining;
+      });
+    } catch (e) {
+      console.warn('[MyModels] Failed to fetch from backend, falling back to localStorage', e);
+    } finally {
+      setMyModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchMyModels(); }, [fetchMyModels]);
+
+  // Merged list: local pending (optimistic) + backend models, deduplicated
+  const mergedMyModels = useMemo(() => {
+    const backendUrls = new Set(myModels.map(m => m.url));
+    const unique = localPendingModels.filter(m => !backendUrls.has(m.url));
+    return [...unique, ...myModels];
+  }, [myModels, localPendingModels]);
+
+  // Persist only local pending models to localStorage
+  useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
@@ -274,7 +312,9 @@ export default function UnifiedStudio() {
         url: stableUrl,
         uploadedAt: Date.now(),
       };
-      setMyModels(prev => [newModel, ...prev]);
+      setLocalPendingModels(prev => [newModel, ...prev]);
+      // Refetch from backend to sync
+      fetchMyModels();
     } catch (e) {
       setCustomModelImage(null);
       setCustomModelFile(null);
@@ -554,6 +594,7 @@ export default function UnifiedStudio() {
     const trimmed = renameValue.trim();
     if (trimmed) {
       setMyModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
+      setLocalPendingModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
     }
     setRenamingId(null);
     setRenameValue('');
@@ -561,9 +602,10 @@ export default function UnifiedStudio() {
 
   const handleDeleteUserModel = (modelId: string) => {
     setMyModels(prev => prev.filter(m => m.id !== modelId));
+    setLocalPendingModels(prev => prev.filter(m => m.id !== modelId));
     // If the deleted model was the active selection, clear it
     if (customModelImage) {
-      const deleted = myModels.find(m => m.id === modelId);
+      const deleted = mergedMyModels.find(m => m.id === modelId);
       if (deleted && deleted.url === customModelImage) {
         setCustomModelImage(null);
         setModelAssetId(null);
@@ -996,7 +1038,7 @@ export default function UnifiedStudio() {
 
               {/* Right 1/3 — Model Selection Sidebar with My Models / Formanova tabs */}
               <div className="space-y-4">
-                <Tabs defaultValue={myModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
+                <Tabs defaultValue={mergedMyModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
@@ -1021,7 +1063,7 @@ export default function UnifiedStudio() {
                       </button>
 
                       {/* User-uploaded models */}
-                      {myModels.map((model) => {
+                      {mergedMyModels.map((model) => {
                         const isActive = customModelImage === model.url;
                         return (
                           <div key={model.id} className="relative group">
@@ -1076,7 +1118,7 @@ export default function UnifiedStudio() {
                         );
                       })}
 
-                      {myModels.length === 0 && (
+                      {mergedMyModels.length === 0 && !myModelsLoading && (
                         <div className="col-span-2 flex items-center justify-center py-8">
                           <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
                             No models uploaded yet
