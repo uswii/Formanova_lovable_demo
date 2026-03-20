@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
 import { useParams, useLocation } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -384,6 +385,8 @@ export default function UnifiedStudio() {
     setGenerationError(null);
     setCurrentStep('generating');
 
+    let _genWorkflowId = 'unknown';
+    const _genStartTime = Date.now();
     try {
       setGenerationProgress(5);
       let jewelryUrl: string;
@@ -444,8 +447,10 @@ export default function UnifiedStudio() {
         ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
       };
       const startResponse = await startPhotoshoot(photoshootPayload);
+      _genWorkflowId = startResponse.workflow_id;
 
       setWorkflowId(startResponse.workflow_id);
+      markGenerationStarted(startResponse.workflow_id);
 
       setGenerationStep('Generating photoshoot...');
       const pollStart = Date.now();
@@ -491,6 +496,7 @@ export default function UnifiedStudio() {
             setGenerationProgress(100);
             setCurrentStep('results');
             setIsGenerating(false);
+            markGenerationCompleted(_genWorkflowId, _genStartTime);
             refreshCredits();
             return;
           }
@@ -505,6 +511,11 @@ export default function UnifiedStudio() {
         clearInterval(ticker);
       }
     } catch (error) {
+      markGenerationFailed(
+        _genWorkflowId,
+        error instanceof Error ? error.message : String(error),
+        _genStartTime,
+      );
       setGenerationError('unavailable');
       setIsGenerating(false);
     }

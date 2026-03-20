@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
 import {
   temporalApi,
   WorkflowStatusResponse,
@@ -104,6 +105,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
           stepLabel: 'Complete',
         }));
 
+        if (workflowIdRef.current) markGenerationCompleted(workflowIdRef.current);
         onComplete?.(status.result);
       } else if (status.status === 'FAILED') {
         if (pollingRef.current) {
@@ -118,6 +120,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
           stepLabel: 'Failed',
         }));
 
+        if (workflowIdRef.current) markGenerationFailed(workflowIdRef.current, status.error?.message);
         onError?.(status.error || new Error('Workflow failed'));
       } else if (status.status === 'CANCELLED') {
         if (pollingRef.current) {
@@ -181,6 +184,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
       });
 
       workflowIdRef.current = workflowId;
+      markGenerationStarted(workflowId);
       setState(prev => ({ ...prev, workflowId }));
 
       // Start polling

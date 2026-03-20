@@ -25,6 +25,8 @@ import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 
+import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
+
 interface Props {
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
@@ -69,6 +71,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
     setProgressStep('Starting generation workflow...');
     updateState({ isGenerating: true });
 
+    let _wfId = 'unknown';
+    let _genStart = Date.now();
     try {
       // Convert original image to blob
       const imageBlob = base64ToBlob(state.originalImage);
@@ -89,9 +93,12 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         imageBlob,
         maskBase64,
         prompt,
-        false // invert_mask - backend now handles mask format
+        false
       );
 
+      _wfId = workflow_id;
+      _genStart = Date.now();
+      markGenerationStarted(workflow_id);
       console.log('[Generation] Started workflow:', workflow_id);
 
       // Poll for status with progress updates
@@ -138,6 +145,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       });
 
       if (generatedImageUrl) {
+        markGenerationCompleted(_wfId, _genStart);
         toast({
           title: 'Generation complete',
           description: 'Your photoshoot has been generated successfully.',
@@ -146,6 +154,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
     } catch (error) {
       console.error('Generation error:', error);
+      markGenerationFailed(_wfId, error instanceof Error ? error.message : String(error), _genStart);
       toast({
         variant: 'destructive',
         title: 'Generation failed',
