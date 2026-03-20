@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
 import { useParams, useLocation } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
