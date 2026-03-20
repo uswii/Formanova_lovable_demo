@@ -138,6 +138,7 @@ const App = () => (
               <Header />
               <main className="flex-1">
               <ChunkErrorBoundary>
+                <DevChunkErrorBomb />
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
