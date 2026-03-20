@@ -54,9 +54,8 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
       })
       .catch(() => {});
 
-    // If a generation is active, do NOTHING — the modal handles everything.
-    // Only auto-reload when no generation is in progress.
-    if (!this.state.generationWasActive) {
+    // If no generation is active, attempt a guarded auto-reload
+    if (!(window as any).__generationInProgress) {
       const key = 'chunk_reload_attempted';
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
