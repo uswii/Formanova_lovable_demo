@@ -75,10 +75,33 @@ const PageLoader = () => (
   </div>
 );
 
+const LAST_PATH_KEY = 'formanova_last_path';
+
+/**
+ * Saves the current path on every unload (F5, Cmd+R, version reload, etc.)
+ * so PostReloadHandler can restore it regardless of how the reload was triggered.
+ */
+function PathSaver() {
+  const location = useLocation();
+  useEffect(() => {
+    const save = () => {
+      const path = window.location.pathname + window.location.search + window.location.hash;
+      // Don't save login/oauth pages — those are transient
+      if (!path.startsWith('/login') && !path.startsWith('/oauth')) {
+        localStorage.setItem(LAST_PATH_KEY, path);
+      }
+    };
+    window.addEventListener('beforeunload', save);
+    return () => window.removeEventListener('beforeunload', save);
+  }, [location]);
+  return null;
+}
+
 /** Handles post-reload redirect + success toast when returning from a chunk error during generation */
 function PostReloadHandler() {
   const navigate = useNavigate();
   useEffect(() => {
+    // Priority 1: explicit redirect set by reloadPreservingSession or lazyWithRetry
     const redirect = sessionStorage.getItem('post_reload_redirect');
     const message = sessionStorage.getItem('post_reload_message');
     if (redirect) {
@@ -87,15 +110,19 @@ function PostReloadHandler() {
       sessionStorage.removeItem('chunk_reload_attempted');
       navigate(redirect, { replace: true });
       if (message) {
-        // Lazy-import toast to avoid adding to critical bundle
         import('@/hooks/use-toast').then(({ toast }) => {
-          toast({
-            title: 'Welcome back',
-            description: message,
-            duration: 8000,
-          });
+          toast({ title: 'Welcome back', description: message, duration: 8000 });
         });
       }
+      return;
+    }
+
+    // Priority 2: path saved by PathSaver on beforeunload (covers hard F5 refreshes
+    // where the browser may not preserve the full URL, e.g. some mobile browsers)
+    const lastPath = localStorage.getItem(LAST_PATH_KEY);
+    if (lastPath && lastPath !== window.location.pathname + window.location.search) {
+      localStorage.removeItem(LAST_PATH_KEY);
+      navigate(lastPath, { replace: true });
     }
   }, [navigate]);
   return null;
@@ -125,6 +152,7 @@ const App = () => (
           </DeferredDecorations>
           <BrowserRouter>
             <PostHogPageView />
+            <PathSaver />
             <PostReloadHandler />
             <VersionBanner />
             
