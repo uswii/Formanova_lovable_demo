@@ -496,7 +496,7 @@ export default function UnifiedStudio() {
             setGenerationProgress(100);
             setCurrentStep('results');
             setIsGenerating(false);
-            markGenerationCompleted(startResponse.workflow_id, genStartTime);
+            markGenerationCompleted(_genWorkflowId, _genStartTime);
             refreshCredits();
             return;
           }
