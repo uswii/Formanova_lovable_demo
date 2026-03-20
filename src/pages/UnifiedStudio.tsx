@@ -1178,7 +1178,7 @@ export default function UnifiedStudio() {
                   <TabsContent value="formanova">
                     <div className="max-h-[480px] overflow-y-auto pr-1">
                       <div className="grid grid-cols-3 gap-2">
-                        {/* Pinterest-style category cards — inline with the grid */}
+                        {/* Pinterest-style category cards — sit inside the grid, images flow around */}
                         <div className="row-span-3 flex flex-col gap-1.5">
                           {([
                             { key: 'ecom' as const, label: 'E-Commerce', count: ECOM_MODELS.length },
@@ -1203,33 +1203,32 @@ export default function UnifiedStudio() {
                           ))}
                         </div>
                         {/* Model thumbnails flow in the remaining grid cells */}
-                        {(formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => (
-                          <button
-                            key={model.id}
-                            onClick={() => handleFormanovaModelSelect(model)}
-                            className={`group relative aspect-[3/4] overflow-hidden border transition-all duration-200 ${
-                              selectedModel?.id === model.id
-                                ? 'border-foreground/30 ring-1 ring-foreground/20'
-                                : 'border-border/20 hover:border-foreground/20'
-                            }`}
-                          >
-                            <img
-                              src={model.thumb}
-                              alt={model.label}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                            <span className="absolute bottom-1.5 left-1.5 right-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate">
-                              {model.label}
-                            </span>
-                            {selectedModel?.id === model.id && (
-                              <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-foreground flex items-center justify-center">
-                                <Check className="w-3 h-3 text-background" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
+                        {(formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
+                          const isSelected = selectedModel?.id === model.id && !customModelImage;
+                          return (
+                            <button
+                              key={model.id}
+                              onClick={() => handleSelectLibraryModel(model)}
+                              className={`group relative aspect-[3/4] overflow-hidden border transition-all duration-200 ${
+                                isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+                              }`}
+                            >
+                              <img
+                                src={model.url}
+                                alt={model.label}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                              />
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                                    <Check className="h-3.5 w-3.5 text-background" />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </TabsContent>
