@@ -800,17 +800,23 @@ export default function UnifiedStudio() {
                 {/* Next button — inline below upload canvas */}
                 {jewelryImage && (
                   <div className="flex items-center justify-end gap-3 pt-4">
-                    {isValidating && (
-                      <span className="text-xs text-muted-foreground font-mono tracking-wider">Validating…</span>
-                    )}
                     <Button
                       size="lg"
                       onClick={handleNextStep}
                       disabled={!canProceed}
-                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:from-[hsl(var(--formanova-hero-accent))] disabled:to-[hsl(var(--formanova-glow))]"
                     >
-                      Next
-                      <ArrowRight className="h-4 w-4" />
+                      {isValidating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Validating…
+                        </>
+                      ) : (
+                        <>
+                          Next
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}

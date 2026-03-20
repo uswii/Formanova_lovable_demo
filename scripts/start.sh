@@ -112,7 +112,7 @@ if [ -f "$SERVE_PATH" ] || command -v serve &> /dev/null; then
     # Run in background with nohup
     echo -e "${YELLOW}Starting serve in background...${NC}"
     cd "$PROJECT_DIR"
-    nohup $SERVE_CMD -s dist -l tcp://0.0.0.0:$PORT >> "$LOG_DIR/formanova.log" 2>> "$LOG_DIR/formanova-error.log" &
+    nohup $SERVE_CMD -s dist -l tcp://0.0.0.0:$PORT --config "$PROJECT_DIR/serve.json" >> "$LOG_DIR/formanova.log" 2>> "$LOG_DIR/formanova-error.log" &
     SERVE_PID=$!
     echo $SERVE_PID > "$PROJECT_DIR/.formanova.pid"
     
