@@ -447,7 +447,7 @@ export default function UnifiedStudio() {
         ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
       };
       const startResponse = await startPhotoshoot(photoshootPayload);
-      const genStartTime = Date.now();
+      _genWorkflowId = startResponse.workflow_id;
 
       setWorkflowId(startResponse.workflow_id);
       markGenerationStarted(startResponse.workflow_id);
