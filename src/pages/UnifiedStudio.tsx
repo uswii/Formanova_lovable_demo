@@ -83,7 +83,6 @@ import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
 
-const TEST_EMPTY_STATE_EMAILS = ['uswa@raresense.so'];
 
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
   necklace: { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3], notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
@@ -159,7 +158,7 @@ export default function UnifiedStudio() {
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
-  const forceEmptyMyModels = TEST_EMPTY_STATE_EMAILS.includes(user?.email ?? '');
+
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
@@ -227,7 +226,7 @@ export default function UnifiedStudio() {
     return mergedMyModels.filter(m => m.name.toLowerCase().includes(q));
   }, [mergedMyModels, myModelsSearch]);
 
-  const isMyModelsEmptyState = !myModelsLoading && (mergedMyModels.length === 0 || forceEmptyMyModels) && !myModelsSearch.trim();
+  const isMyModelsEmptyState = !myModelsLoading && mergedMyModels.length === 0;
 
   // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
   useEffect(() => {
