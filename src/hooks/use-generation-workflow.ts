@@ -182,6 +182,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
       });
 
       workflowIdRef.current = workflowId;
+      markGenerationStarted(workflowId);
       setState(prev => ({ ...prev, workflowId }));
 
       // Start polling
