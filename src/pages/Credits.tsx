@@ -20,7 +20,6 @@ const PLANS = [
     credits: 100,
     photos: 10,
     perPhoto: '$0.99',
-    popular: false,
   },
   {
     tier: 'standard',
@@ -30,7 +29,6 @@ const PLANS = [
     credits: 500,
     photos: 50,
     perPhoto: '$0.78',
-    popular: true,
   },
   {
     tier: 'pro',
@@ -40,7 +38,6 @@ const PLANS = [
     credits: 1500,
     photos: 150,
     perPhoto: '$0.66',
-    popular: false,
   },
 ];
 
@@ -205,21 +202,12 @@ export default function Credits() {
             {PLANS.map((plan) => (
               <div
                 key={plan.tier}
-                className={`p-8 flex flex-col gap-6 ${
-                  plan.popular ? 'border-2 border-foreground' : 'border border-border/30'
-                }`}
+                className="p-8 flex flex-col gap-6 border-2 border-foreground"
               >
-                <div className="space-y-3">
+                <div>
                   <span className="font-mono text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
                     {plan.name}
                   </span>
-                  {plan.popular && (
-                    <div>
-                      <span className="font-mono text-[9px] tracking-[0.2em] text-foreground uppercase border border-foreground/50 px-2 py-1">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 <div>
