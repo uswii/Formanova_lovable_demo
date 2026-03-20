@@ -1103,15 +1103,19 @@ export default function UnifiedStudio() {
                   {/* ── FORMANOVA MODELS TAB ── */}
                   <TabsContent value="formanova">
                     <div className="max-h-[480px] overflow-y-auto pr-1">
-                      <div className="grid grid-cols-3 gap-2">
-                        {/* Pinterest-style category cards — sit inside the grid, images flow around */}
-                        <div className="row-span-3 flex flex-col gap-1.5">
-                          {([
-                            { key: 'ecom' as const, label: 'E-Commerce' },
-                            { key: 'editorial' as const, label: 'Editorial' },
-                          ]).map((cat) => (
+                      {/*
+                        CSS columns layout: content flows top-to-bottom in each column before
+                        moving to the next. Category buttons anchor to the top of column 1,
+                        and images fill the remaining space below them and in columns 2 & 3.
+                      */}
+                      <div className="columns-3 gap-2">
+                        {/* Category buttons — naturally occupy the top of column 1 */}
+                        {([
+                          { key: 'ecom' as const, label: 'E-Commerce' },
+                          { key: 'editorial' as const, label: 'Editorial' },
+                        ]).map((cat) => (
+                          <div key={cat.key} className="break-inside-avoid mb-2">
                             <button
-                              key={cat.key}
                               onClick={() => setFormanovaCategory(cat.key)}
                               className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                                 formanovaCategory === cat.key
@@ -1119,37 +1123,38 @@ export default function UnifiedStudio() {
                                   : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                               }`}
                             >
-                              <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight text-center">
+                              <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
                                 {cat.label}
                               </span>
                             </button>
-                          ))}
-                        </div>
-                        {/* Model thumbnails flow in the remaining grid cells */}
+                          </div>
+                        ))}
+                        {/* Model thumbnails — flow into remaining space in col 1 then cols 2 & 3 */}
                         {(formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
                           const isSelected = selectedModel?.id === model.id && !customModelImage;
                           return (
-                            <button
-                              key={model.id}
-                              onClick={() => handleSelectLibraryModel(model)}
-                              className={`group relative aspect-[3/4] overflow-hidden border transition-all duration-200 ${
-                                isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-                              }`}
-                            >
-                              <img
-                                src={model.url}
-                                alt={model.label}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                loading="lazy"
-                              />
-                              {isSelected && (
-                                <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                                  <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                                    <Check className="h-3.5 w-3.5 text-background" />
+                            <div key={model.id} className="break-inside-avoid mb-2">
+                              <button
+                                onClick={() => handleSelectLibraryModel(model)}
+                                className={`group relative aspect-[3/4] overflow-hidden border transition-all duration-200 w-full ${
+                                  isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+                                }`}
+                              >
+                                <img
+                                  src={model.url}
+                                  alt={model.label}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  loading="lazy"
+                                />
+                                {isSelected && (
+                                  <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                                      <Check className="h-3.5 w-3.5 text-background" />
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </button>
+                                )}
+                              </button>
+                            </div>
                           );
                         })}
                       </div>
