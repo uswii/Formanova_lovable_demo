@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { toast } from '@/hooks/use-toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { useBillingLocale } from '@/hooks/use-billing-locale';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const CHECKOUT_URL = '/billing/checkout';
@@ -19,6 +20,8 @@ const PLANS = [
     credits: 100,
     photos: 10,
     perPhoto: '$0.99',
+    inrPrice: 999,
+    inrPerPhoto: '₹99.9',
   },
   {
     tier: 'standard',
@@ -28,6 +31,8 @@ const PLANS = [
     credits: 500,
     photos: 50,
     perPhoto: '$0.78',
+    inrPrice: 3499,
+    inrPerPhoto: '₹69.9',
   },
   {
     tier: 'pro',
@@ -37,6 +42,8 @@ const PLANS = [
     credits: 1500,
     photos: 150,
     perPhoto: '$0.66',
+    inrPrice: 8999,
+    inrPerPhoto: '₹59.9',
   },
 ];
 
@@ -46,6 +53,8 @@ export default function Pricing() {
   const [searchParams] = useSearchParams();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [errorTier, setErrorTier] = useState<string | null>(null);
+  const { currency, symbol, country } = useBillingLocale();
+  const isINR = currency === 'INR';
 
   const returnTo = searchParams.get('redirect') || '/studio';
 
@@ -63,7 +72,7 @@ export default function Pricing() {
       const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier_id: tierId, redirect: returnTo.startsWith('/') ? returnTo : '/studio' }),
+        body: JSON.stringify({ tier_id: tierId, redirect: returnTo.startsWith('/') ? returnTo : '/studio', ...(country ? { country } : {}) }),
       });
 
       if (!response.ok) {
@@ -129,14 +138,14 @@ export default function Pricing() {
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="font-display text-5xl uppercase tracking-tight text-foreground">
-                    ${plan.price}
+                    {isINR ? `${symbol}${plan.inrPrice.toLocaleString('en-IN')}` : `$${plan.price}`}
                   </span>
                   <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                    USD
+                    {currency}
                   </span>
                 </div>
                 <p className="font-mono text-[10px] tracking-wider text-muted-foreground mt-1">
-                  {plan.perPhoto} per photo
+                  {isINR ? plan.inrPerPhoto : plan.perPhoto} per photo
                 </p>
               </div>
 

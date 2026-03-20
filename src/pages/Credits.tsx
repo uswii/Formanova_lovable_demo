@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { useBillingLocale } from '@/hooks/use-billing-locale';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const PLANS = [
@@ -20,6 +21,8 @@ const PLANS = [
     credits: 100,
     photos: 10,
     perPhoto: '$0.99',
+    inrPrice: 999,
+    inrPerPhoto: '₹99.9',
   },
   {
     tier: 'standard',
@@ -29,6 +32,8 @@ const PLANS = [
     credits: 500,
     photos: 50,
     perPhoto: '$0.78',
+    inrPrice: 3499,
+    inrPerPhoto: '₹69.9',
   },
   {
     tier: 'pro',
@@ -38,6 +43,8 @@ const PLANS = [
     credits: 1500,
     photos: 150,
     perPhoto: '$0.66',
+    inrPrice: 8999,
+    inrPerPhoto: '₹59.9',
   },
 ];
 
@@ -64,6 +71,9 @@ export default function Credits() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { credits, loading: creditsLoading, refreshCredits } = useCredits();
+
+  const { currency, symbol, country } = useBillingLocale();
+  const isINR = currency === 'INR';
 
   const [promoCode, setPromoCode] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
@@ -95,7 +105,7 @@ export default function Credits() {
       const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier_id: tierId, redirect: '/credits' }),
+        body: JSON.stringify({ tier_id: tierId, redirect: '/credits', ...(country ? { country } : {}) }),
       });
 
       if (!response.ok) throw new Error('Checkout failed');
@@ -213,14 +223,14 @@ export default function Credits() {
                 <div>
                   <div className="flex items-baseline gap-1">
                     <span className="font-display text-5xl uppercase tracking-tight text-foreground">
-                      ${plan.price}
+                      {isINR ? `${symbol}${plan.inrPrice.toLocaleString('en-IN')}` : `$${plan.price}`}
                     </span>
                     <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                      USD
+                      {currency}
                     </span>
                   </div>
                   <p className="font-mono text-[10px] tracking-wider text-muted-foreground mt-1">
-                    {plan.perPhoto} per photo
+                    {isINR ? plan.inrPerPhoto : plan.perPhoto} per photo
                   </p>
                 </div>
 
