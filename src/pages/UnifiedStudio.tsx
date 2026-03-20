@@ -502,47 +502,18 @@ export default function UnifiedStudio() {
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed3;
   const canProceed = jewelryImage && !isValidating;
 
-  // ─── Model Grid Component ────────────────────────────────────────
+  // ─── Formanova Model Grid (no upload card) ────────────────────────
 
-  const ModelGrid = ({ models }: { models: ModelImage[] }) => (
+  const FormanovaModelGrid = ({ models }: { models: ModelImage[] }) => (
     <div className="grid grid-cols-3 gap-3">
-      {/* + Upload Your Own card — first position */}
-      <button
-        onClick={() => modelInputRef.current?.click()}
-        className={`group relative aspect-[3/4] overflow-hidden border-2 border-dashed transition-all rounded-sm flex flex-col items-center justify-center gap-2 ${
-          customModelImage ? 'border-primary ring-2 ring-primary/20' : 'border-border/30 hover:border-primary/40 hover:bg-primary/[0.02]'
-        }`}
-      >
-        {customModelImage ? (
-          <>
-            <img
-              src={customModelImage}
-              alt="Custom model"
-              className="w-full h-full object-cover absolute inset-0"
-            />
-            <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                <Check className="h-3.5 w-3.5 text-primary-foreground" />
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <Upload className="h-5 w-5 text-muted-foreground/50" />
-            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider text-center px-1">
-              + Upload Your Own
-            </span>
-          </>
-        )}
-      </button>
       {models.map((model) => {
         const isSelected = selectedModel?.id === model.id && !customModelImage;
         return (
           <button
             key={model.id}
             onClick={() => handleSelectLibraryModel(model)}
-            className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
-              isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
+            className={`group relative aspect-[3/4] overflow-hidden border transition-all ${
+              isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
             }`}
           >
             <img
@@ -552,22 +523,63 @@ export default function UnifiedStudio() {
               loading="lazy"
             />
             {isSelected && (
-              <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+              <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                  <Check className="h-3.5 w-3.5 text-background" />
                 </div>
               </div>
             )}
           </button>
         );
       })}
-      <input
-        ref={modelInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
-      />
+    </div>
+  );
+
+  // ─── Inline rename handler ────────────────────────────────────────
+
+  const handleRenameConfirm = (modelId: string) => {
+    const trimmed = renameValue.trim();
+    if (trimmed) {
+      setMyModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
+    }
+    setRenamingId(null);
+    setRenameValue('');
+  };
+
+  const handleDeleteUserModel = (modelId: string) => {
+    setMyModels(prev => prev.filter(m => m.id !== modelId));
+    // If the deleted model was the active selection, clear it
+    if (customModelImage) {
+      const deleted = myModels.find(m => m.id === modelId);
+      if (deleted && deleted.url === customModelImage) {
+        setCustomModelImage(null);
+        setModelAssetId(null);
+      }
+    }
+  };
+
+  // ─── Relative time helper ─────────────────────────────────────────
+  const relativeTime = (ts: number) => {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  // Hidden file input for model uploads
+  const modelFileInput = (
+    <input
+      ref={modelInputRef}
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
+    />
+  );
     </div>
   );
 
