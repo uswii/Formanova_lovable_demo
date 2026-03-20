@@ -32,6 +32,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
+import { fetchUserAssets, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
   startPhotoshoot,
