@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { reloadPreservingSession } from '@/lib/reload-utils';
 
 function isChunkError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -59,7 +60,7 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
       const key = 'chunk_reload_attempted';
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => reloadPreservingSession(), 1500);
       }
     }
   }
@@ -89,8 +90,7 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
                 size="lg"
                 className="w-full gap-2"
                 onClick={() => {
-                  sessionStorage.setItem('post_reload_redirect', '/generations');
-                  window.location.reload();
+                  reloadPreservingSession();
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
