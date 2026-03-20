@@ -119,7 +119,24 @@ const LABEL_NAMES: Record<string, string> = {
   floating: 'a floating product',
 };
 
+const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
+const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
+
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+
+function loadMyModels(): UserModel[] {
+  try {
+    const raw = localStorage.getItem(MY_MODELS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(MY_MODELS_STORAGE_KEY); return []; }
+    return Array.isArray(parsed.models) ? parsed.models : [];
+  } catch { return []; }
+}
+
+function saveMyModels(models: UserModel[]) {
+  localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
+}
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
