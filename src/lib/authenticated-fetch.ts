@@ -29,7 +29,7 @@ function redirectToLogin(): void {
   removeStoredUser();
   dispatchAuthChange(null);
 
-  const currentPath = window.location.pathname + window.location.search;
+  const currentPath = window.location.pathname + window.location.search + window.location.hash;
   window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 

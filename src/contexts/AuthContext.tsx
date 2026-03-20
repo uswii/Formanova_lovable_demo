@@ -5,8 +5,6 @@ import {
   authApi, 
   getStoredToken, 
   getStoredUser, 
-  removeStoredToken,
-  removeStoredUser,
   AUTH_STATE_CHANGE_EVENT,
   type AuthUser 
 } from '@/lib/auth-api';
@@ -68,10 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Identify returning users so PostHog links them to their email
             identifyUser(currentUser.id, { email: currentUser.email, name: currentUser.full_name });
           } else {
-            // 401: token expired/invalid — clear session to prevent fake UI
-            removeStoredToken();
-            removeStoredUser();
-            setUser(null);
+            // Keep existing local session; token-only auth is handled by guards + API 401s.
+            const cachedUser = getStoredUser();
+            if (cachedUser) setUser(cachedUser);
           }
         } catch (error) {
           // Network error / timeout — keep existing session

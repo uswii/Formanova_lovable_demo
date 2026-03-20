@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { reloadPreservingSession } from "./lib/reload-utils";
 
 // requestIdleCallback polyfill for Safari
 if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
@@ -37,7 +38,7 @@ window.addEventListener('unhandledrejection', (event) => {
     const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
     if (!alreadyAttempted) {
       sessionStorage.setItem('chunk_reload_attempted', '1');
-      window.location.reload();
+      reloadPreservingSession();
     }
   }
 });
@@ -57,7 +58,7 @@ window.addEventListener('error', (event) => {
     const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
     if (!alreadyAttempted) {
       sessionStorage.setItem('chunk_reload_attempted', '1');
-      window.location.reload();
+      reloadPreservingSession();
     }
   }
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getStoredToken } from '@/lib/auth-api';
+import { reloadPreservingSession } from '@/lib/reload-utils';
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 const DEPLOY_SAFETY_POLL_MS = 10_000; // re-check every 10s while deploy unsafe
@@ -121,7 +122,7 @@ export function useVersionPolling() {
   }, [checkVersion]);
 
   const refresh = useCallback(() => {
-    window.location.reload();
+    reloadPreservingSession();
   }, []);
 
   const dismiss = useCallback(() => {

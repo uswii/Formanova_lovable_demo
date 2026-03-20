@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, initializing } = useAuth();
+  const { initializing } = useAuth();
   const location = useLocation();
   const token = getStoredToken();
 
@@ -21,8 +21,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Strict guard: both a valid user AND a token must exist
-  if (!user || !token) {
+  // Guard by token presence. User profile hydration can complete after mount.
+  if (!token) {
     const destination = location.pathname + location.search + location.hash;
     return <Navigate to={`/login?redirect=${encodeURIComponent(destination)}`} replace />;
   }

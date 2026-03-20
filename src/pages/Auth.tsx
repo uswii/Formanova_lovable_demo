@@ -9,7 +9,6 @@ import { ThemeLogo } from '@/components/ThemeLogo';
 import { 
   authApi, 
   getStoredToken, 
-  getStoredUser, 
   setStoredToken, 
   setStoredUser, 
   dispatchAuthChange 
@@ -59,8 +58,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   useEffect(() => {
     // Already logged in → go to studio
     const token = getStoredToken();
-    const user = getStoredUser();
-    if (token && user) {
+    if (token) {
       const returnUrl = getReturnUrl(); clearReturnUrl();
       navigate(returnUrl, { replace: true });
       return;
