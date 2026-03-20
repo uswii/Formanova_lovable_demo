@@ -71,6 +71,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
     setProgressStep('Starting generation workflow...');
     updateState({ isGenerating: true });
 
+    let _wfId = 'unknown';
+    let _genStart = Date.now();
     try {
       // Convert original image to blob
       const imageBlob = base64ToBlob(state.originalImage);
