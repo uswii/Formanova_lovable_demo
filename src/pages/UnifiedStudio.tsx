@@ -119,6 +119,8 @@ const LABEL_NAMES: Record<string, string> = {
   floating: 'a floating product',
 };
 
+interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
 export default function UnifiedStudio() {
