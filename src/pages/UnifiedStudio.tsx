@@ -509,6 +509,11 @@ export default function UnifiedStudio() {
         clearInterval(ticker);
       }
     } catch (error) {
+      markGenerationFailed(
+        startResponse?.workflow_id || 'unknown',
+        error instanceof Error ? error.message : String(error),
+        genStartTime,
+      );
       setGenerationError('unavailable');
       setIsGenerating(false);
     }
