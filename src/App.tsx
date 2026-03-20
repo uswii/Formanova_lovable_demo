@@ -13,10 +13,10 @@ import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useVersionPolling } from '@/hooks/use-version-polling';
-import { DevErrorTestPanel } from '@/components/DevErrorTestPanel';
+
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { Loader2 } from "lucide-react";
-import { DevChunkErrorBomb } from '@/components/DevChunkErrorBomb';
+
 
 // Toast providers — deferred since toasts only fire on user interaction
 const Toaster = lazyWithRetry(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
@@ -127,7 +127,7 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <VersionBanner />
-            <DevErrorTestPanel />
+            
             <DeferredDecorations>
               <Suspense fallback={null}>
                 <FloatingElements />
@@ -139,7 +139,7 @@ const App = () => (
               <Header />
               <main className="flex-1">
               <ChunkErrorBoundary>
-                <DevChunkErrorBomb />
+                
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
