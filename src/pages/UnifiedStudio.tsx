@@ -125,11 +125,8 @@ const LABEL_NAMES: Record<string, string> = {
 const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
 const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
 
-// ─── Studio session persistence ───────────────────────────────────────────────
-// Stored in localStorage with a TTL so it survives iOS Safari force-reloads,
-// mobile background/foreground cycles, and version-triggered reloads.
-const STUDIO_SESSION_KEY = 'formanova_studio_session_v2';
-const STUDIO_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
+// ─── Studio session persistence (survives reloads, cleared on reset) ──────────
+const STUDIO_SESSION_KEY = 'formanova_studio_session_v1';
 
 interface StudioSession {
   jewelryUploadedUrl: string;
@@ -138,32 +135,24 @@ interface StudioSession {
   selectedModelId: string | null;
   customModelImage: string | null;
   modelAssetId: string | null;
-  savedAt: number;
 }
 
 function loadStudioSession(): StudioSession | null {
   try {
-    const raw = localStorage.getItem(STUDIO_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StudioSession;
-    // Discard stale sessions
-    if (Date.now() - (parsed.savedAt ?? 0) > STUDIO_SESSION_TTL_MS) {
-      localStorage.removeItem(STUDIO_SESSION_KEY);
-      return null;
-    }
-    return parsed;
+    const raw = sessionStorage.getItem(STUDIO_SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StudioSession) : null;
   } catch { return null; }
 }
 
 function saveStudioSession(patch: Partial<StudioSession>) {
   try {
     const existing = loadStudioSession() ?? {} as StudioSession;
-    localStorage.setItem(STUDIO_SESSION_KEY, JSON.stringify({ ...existing, ...patch, savedAt: Date.now() }));
+    sessionStorage.setItem(STUDIO_SESSION_KEY, JSON.stringify({ ...existing, ...patch }));
   } catch { /* quota exceeded — silently ignore */ }
 }
 
 function clearStudioSession() {
-  localStorage.removeItem(STUDIO_SESSION_KEY);
+  sessionStorage.removeItem(STUDIO_SESSION_KEY);
 }
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
