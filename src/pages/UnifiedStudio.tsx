@@ -17,8 +17,6 @@ import {
   RefreshCw,
   ArrowRight,
   ArrowLeft,
-  ChevronLeft,
-  Layers,
   AlertTriangle,
   ExternalLink,
 } from 'lucide-react';
