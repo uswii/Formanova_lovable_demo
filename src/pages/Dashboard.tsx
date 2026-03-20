@@ -154,20 +154,7 @@ export default function Dashboard() {
           My Vault
         </span>
 
-        <Tabs defaultValue="products">
-          <TabsList className="mb-6">
-            <TabsTrigger value="products">My Products</TabsTrigger>
-            <TabsTrigger value="models">My Models</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="products">
-            <MyProductsTab />
-          </TabsContent>
-
-          <TabsContent value="models">
-            <MyModelsTab />
-          </TabsContent>
-        </Tabs>
+        <MyProductsTab />
       </div>
     </div>
   );
