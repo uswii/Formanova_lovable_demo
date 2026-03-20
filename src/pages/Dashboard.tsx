@@ -50,25 +50,6 @@ function MyProductsTab() {
   );
 }
 
-function MyModelsTab() {
-  const navigate = useNavigate();
-  const { assets, isLoading, error } = useUserAssets('model_photo');
-
-  const handleReshoot = (asset: UserAsset) => {
-    navigate('/studio', { state: { preloadedModelUrl: asset.thumbnail_url, preloadedModelAssetId: asset.id } });
-  };
-
-  return (
-    <AssetGrid
-      assets={assets}
-      isLoading={isLoading}
-      error={error}
-      emptyMessage="No model photos yet. Upload a model face to get started."
-      onReshoot={handleReshoot}
-      reshootLabel="New Shoot"
-    />
-  );
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
