@@ -10,8 +10,6 @@ import {
   Upload,
   Check,
   Gem,
-  Pencil,
-  Search,
   Download,
   Loader2,
   RefreshCw,
@@ -82,7 +80,6 @@ import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
 
-const TEST_EMPTY_STATE_EMAILS = ['uswa@raresense.so'];
 
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
   necklace: { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3], notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
@@ -158,7 +155,6 @@ export default function UnifiedStudio() {
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
-  const forceEmptyMyModels = TEST_EMPTY_STATE_EMAILS.includes(user?.email ?? '');
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
@@ -178,10 +174,7 @@ export default function UnifiedStudio() {
   // My Models — backend-fetched + optimistic local additions for instant feedback
   const [myModels, setMyModels] = useState<UserModel[]>([]);
   const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
   const [myModelsLoading, setMyModelsLoading] = useState(true);
-  const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<'ecom' | 'editorial'>('ecom');
 
   // Fetch user-uploaded models from backend API
@@ -219,14 +212,7 @@ export default function UnifiedStudio() {
     return [...unique, ...myModels];
   }, [myModels, localPendingModels]);
 
-  // Filtered My Models by search query
-  const filteredMyModels = useMemo(() => {
-    if (!myModelsSearch.trim()) return mergedMyModels;
-    const q = myModelsSearch.trim().toLowerCase();
-    return mergedMyModels.filter(m => m.name.toLowerCase().includes(q));
-  }, [mergedMyModels, myModelsSearch]);
-
-  const isMyModelsEmptyState = !myModelsLoading && (mergedMyModels.length === 0 || forceEmptyMyModels) && !myModelsSearch.trim();
+  const isMyModelsEmptyState = !myModelsLoading && mergedMyModels.length === 0;
 
   // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
   useEffect(() => {
@@ -637,18 +623,6 @@ export default function UnifiedStudio() {
     </div>
   );
 
-  // ─── Inline rename handler ────────────────────────────────────────
-
-  const handleRenameConfirm = (modelId: string) => {
-    const trimmed = renameValue.trim();
-    if (trimmed) {
-      setMyModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
-      setLocalPendingModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
-    }
-    setRenamingId(null);
-    setRenameValue('');
-  };
-
   const handleDeleteUserModel = (modelId: string) => {
     setMyModels(prev => prev.filter(m => m.id !== modelId));
     setLocalPendingModels(prev => prev.filter(m => m.id !== modelId));
@@ -1052,7 +1026,7 @@ export default function UnifiedStudio() {
 
               {/* Right 1/3 — Model Selection Sidebar with My Models / Formanova tabs */}
               <div className="space-y-4">
-                <Tabs defaultValue={mergedMyModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
+                <Tabs defaultValue="formanova" className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
@@ -1068,29 +1042,17 @@ export default function UnifiedStudio() {
                     {isMyModelsEmptyState ? (
                       <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
                         <p className="text-sm text-muted-foreground max-w-[28ch]">
-                          No models yet. Upload a model—it’ll be saved here.
+                          No models yet. Upload a model. It will be saved here
                         </p>
                         <Button
                           onClick={() => modelInputRef.current?.click()}
                           className="gap-2 font-mono text-[11px] uppercase tracking-widest"
                         >
                           <Upload className="h-4 w-4" />
-                          Upload Your Own
+                          Upload Model
                         </Button>
                       </div>
                     ) : (
-                      <>
-                      {/* Search bar — only when models exist */}
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-                        <input
-                          type="text"
-                          placeholder="Search models..."
-                          value={myModelsSearch}
-                          onChange={(e) => setMyModelsSearch(e.target.value)}
-                          className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
-                        />
-                      </div>
                       <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                         {/* Upload card — always first */}
                         <button
@@ -1104,7 +1066,7 @@ export default function UnifiedStudio() {
                         </button>
 
                         {/* User-uploaded models */}
-                        {filteredMyModels.map((model) => {
+                        {mergedMyModels.map((model) => {
                           const isActive = customModelImage === model.url;
                           return (
                             <div key={model.id} className="relative group">
@@ -1123,54 +1085,18 @@ export default function UnifiedStudio() {
                                   </div>
                                 )}
                               </button>
-                              {/* Name + inline rename */}
-                              <div className="mt-1.5 flex items-center gap-1">
-                                {renamingId === model.id ? (
-                                  <input
-                                    autoFocus
-                                    value={renameValue}
-                                    onChange={(e) => setRenameValue(e.target.value)}
-                                    onBlur={() => handleRenameConfirm(model.id)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameConfirm(model.id); if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
-                                    className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
-                                  />
-                                ) : (
-                                  <span className="text-[10px] font-mono text-muted-foreground truncate text-left flex-1">
-                                    {model.name || 'Untitled'}
-                                  </span>
-                                )}
-                                {/* Edit (pencil) button */}
-                                {renamingId !== model.id && (
-                                  <button
-                                    onClick={() => { setRenamingId(model.id); setRenameValue(model.name || 'Untitled'); }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                    aria-label="Rename model"
-                                  >
-                                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                  </button>
-                                )}
-                                {/* Delete button — visible on hover */}
-                                <button
-                                  onClick={() => handleDeleteUserModel(model.id)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                  aria-label="Delete model"
-                                >
-                                  <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                                </button>
-                              </div>
+                              {/* Delete overlay on hover */}
+                              <button
+                                onClick={() => handleDeleteUserModel(model.id)}
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center"
+                                aria-label="Delete model"
+                              >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </button>
                             </div>
                           );
                         })}
-
-                        {filteredMyModels.length === 0 && !myModelsLoading && myModelsSearch.trim() && (
-                          <div className="col-span-2 flex items-center justify-center py-8">
-                            <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
-                              No models match your search
-                            </p>
-                          </div>
-                        )}
                       </div>
-                      </>
                     )}
                   </TabsContent>
 
