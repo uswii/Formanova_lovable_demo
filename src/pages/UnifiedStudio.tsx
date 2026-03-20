@@ -234,16 +234,12 @@ export default function UnifiedStudio() {
     setCustomModelFile(normalized);
 
     // Show preview immediately via local blob URL while upload runs
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCustomModelImage(e.target?.result as string);
-      setSelectedModel(null);
-    };
-    reader.readAsDataURL(normalized);
+    const localPreviewUrl = URL.createObjectURL(normalized);
+    setCustomModelImage(localPreviewUrl);
+    setSelectedModel(null);
 
     // Upload to Azure immediately so the model registers in My Models vault
     try {
-      // normalized is a File (which is a Blob) — pass directly to compressImageBlob
       const { blob: compressed } = await compressImageBlob(normalized);
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader2 = new FileReader();
@@ -252,13 +248,20 @@ export default function UnifiedStudio() {
         reader2.readAsDataURL(compressed);
       });
       const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
-      // Replace the local preview with the stable SAS URL for generation
-      setCustomModelImage(azResult.sas_url || azResult.https_url);
+      const stableUrl = azResult.sas_url || azResult.https_url;
+      setCustomModelImage(stableUrl);
       setModelAssetId(azResult.asset_id ?? null);
-      setCustomModelFile(null);  // clear stale file reference
+      setCustomModelFile(null);
+
+      // Add to My Models list
+      const newModel: UserModel = {
+        id: `user-${Date.now()}`,
+        name: file.name.replace(/\.[^.]+$/, ''),
+        url: stableUrl,
+        uploadedAt: Date.now(),
+      };
+      setMyModels(prev => [newModel, ...prev]);
     } catch (e) {
-      // Upload failed — clear state so the user is not left with a broken 'data:' URL in customModelImage.
-      // (A 'data:' URL would silently fail the startsWith('http') guard in handleGenerate.)
       setCustomModelImage(null);
       setCustomModelFile(null);
       toast({ variant: 'destructive', title: 'Upload failed', description: 'Model image could not be uploaded. Please re-select the file.' });
