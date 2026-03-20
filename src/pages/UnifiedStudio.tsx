@@ -1187,13 +1187,13 @@ export default function UnifiedStudio() {
                             <button
                               key={cat.key}
                               onClick={() => setFormanovaCategory(cat.key)}
-                              className={`w-full px-3 py-3 text-left transition-all duration-200 ${
+                              className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                                 formanovaCategory === cat.key
                                   ? 'bg-foreground text-background'
                                   : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                               }`}
                             >
-                              <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
+                              <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight text-center">
                                 {cat.label}
                               </span>
                             </button>
