@@ -512,9 +512,9 @@ export default function UnifiedStudio() {
       }
     } catch (error) {
       markGenerationFailed(
-        startResponse?.workflow_id || 'unknown',
+        _genWorkflowId,
         error instanceof Error ? error.message : String(error),
-        genStartTime,
+        _genStartTime,
       );
       setGenerationError('unavailable');
       setIsGenerating(false);
