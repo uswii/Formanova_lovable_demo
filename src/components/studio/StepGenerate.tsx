@@ -91,9 +91,11 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         imageBlob,
         maskBase64,
         prompt,
-        false // invert_mask - backend now handles mask format
+        false
       );
 
+      const genStartTime = Date.now();
+      markGenerationStarted(workflow_id);
       console.log('[Generation] Started workflow:', workflow_id);
 
       // Poll for status with progress updates
