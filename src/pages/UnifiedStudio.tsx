@@ -1052,7 +1052,7 @@ export default function UnifiedStudio() {
 
               {/* Right 1/3 — Model Selection Sidebar with My Models / Formanova tabs */}
               <div className="space-y-4">
-                <Tabs defaultValue={mergedMyModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
+                <Tabs defaultValue="formanova" className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
@@ -1068,14 +1068,14 @@ export default function UnifiedStudio() {
                     {isMyModelsEmptyState ? (
                       <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
                         <p className="text-sm text-muted-foreground max-w-[28ch]">
-                          No models yet. Upload a model—it’ll be saved here.
+                          No models yet. Upload a model it’ll be saved here.
                         </p>
                         <Button
                           onClick={() => modelInputRef.current?.click()}
                           className="gap-2 font-mono text-[11px] uppercase tracking-widest"
                         >
                           <Upload className="h-4 w-4" />
-                          Upload Your Own
+                          Upload Model
                         </Button>
                       </div>
                     ) : (
