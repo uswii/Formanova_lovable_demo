@@ -1038,7 +1038,7 @@ export default function UnifiedStudio() {
 
               {/* Right 1/3 — Model Selection Sidebar with My Models / Formanova tabs */}
               <div className="space-y-4">
-                <Tabs defaultValue={myModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
+                <Tabs defaultValue={mergedMyModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
