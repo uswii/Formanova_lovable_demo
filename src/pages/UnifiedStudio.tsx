@@ -163,13 +163,50 @@ export default function UnifiedStudio() {
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
-  // My Models (user-uploaded, persisted via localStorage)
-  const [myModels, setMyModels] = useState<UserModel[]>(loadMyModels);
+  // My Models — backend-fetched + optimistic local additions for instant feedback
+  const [myModels, setMyModels] = useState<UserModel[]>([]);
+  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [myModelsLoading, setMyModelsLoading] = useState(true);
 
-  // Persist my models to localStorage with versioning
-  useEffect(() => { saveMyModels(myModels); }, [myModels]);
+  // Fetch user-uploaded models from backend API
+  const fetchMyModels = useCallback(async () => {
+    try {
+      setMyModelsLoading(true);
+      const data = await fetchUserAssets('model_photo', 0, 100);
+      const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
+        id: a.id,
+        name: a.name || 'Untitled',
+        url: a.thumbnail_url,
+        uploadedAt: new Date(a.created_at).getTime(),
+      }));
+      setMyModels(backendModels);
+      // Clear local pending models that now exist in backend (matched by URL)
+      const backendUrls = new Set(backendModels.map(m => m.url));
+      setLocalPendingModels(prev => {
+        const remaining = prev.filter(m => !backendUrls.has(m.url));
+        saveMyModels(remaining);
+        return remaining;
+      });
+    } catch (e) {
+      console.warn('[MyModels] Failed to fetch from backend, falling back to localStorage', e);
+    } finally {
+      setMyModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchMyModels(); }, [fetchMyModels]);
+
+  // Merged list: local pending (optimistic) + backend models, deduplicated
+  const mergedMyModels = useMemo(() => {
+    const backendUrls = new Set(myModels.map(m => m.url));
+    const unique = localPendingModels.filter(m => !backendUrls.has(m.url));
+    return [...unique, ...myModels];
+  }, [myModels, localPendingModels]);
+
+  // Persist only local pending models to localStorage
+  useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
