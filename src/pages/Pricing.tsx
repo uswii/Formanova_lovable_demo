@@ -119,9 +119,7 @@ export default function Pricing() {
           {PLANS.map((plan) => (
             <div
               key={plan.tier}
-              className={`p-8 flex flex-col gap-8 ${
-                plan.popular ? 'border-2 border-foreground' : 'border border-border/30'
-              }`}
+              className="p-8 flex flex-col gap-8 border-2 border-foreground"
             >
               {/* Plan name */}
               <div className="space-y-3">
