@@ -602,9 +602,10 @@ export default function UnifiedStudio() {
 
   const handleDeleteUserModel = (modelId: string) => {
     setMyModels(prev => prev.filter(m => m.id !== modelId));
+    setLocalPendingModels(prev => prev.filter(m => m.id !== modelId));
     // If the deleted model was the active selection, clear it
     if (customModelImage) {
-      const deleted = myModels.find(m => m.id === modelId);
+      const deleted = mergedMyModels.find(m => m.id === modelId);
       if (deleted && deleted.url === customModelImage) {
         setCustomModelImage(null);
         setModelAssetId(null);
