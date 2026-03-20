@@ -9,7 +9,7 @@ import {
   Upload,
   Check,
   Gem,
-  Sparkles,
+  
   Download,
   Loader2,
   RefreshCw,
