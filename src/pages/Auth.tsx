@@ -9,7 +9,6 @@ import { ThemeLogo } from '@/components/ThemeLogo';
 import { 
   authApi, 
   getStoredToken, 
-  getStoredUser, 
   setStoredToken, 
   setStoredUser, 
   dispatchAuthChange 
