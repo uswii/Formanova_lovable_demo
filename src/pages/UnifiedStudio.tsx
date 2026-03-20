@@ -385,6 +385,8 @@ export default function UnifiedStudio() {
     setGenerationError(null);
     setCurrentStep('generating');
 
+    let _genWorkflowId = 'unknown';
+    const _genStartTime = Date.now();
     try {
       setGenerationProgress(5);
       let jewelryUrl: string;
