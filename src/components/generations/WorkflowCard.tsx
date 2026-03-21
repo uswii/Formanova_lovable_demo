@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle } from 'lucide-react';
+import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ function CreditsBadge({ credits }: { credits?: number | null }) {
 }
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
+  const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -107,6 +109,12 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     a.download = shownFilename;
     a.target = '_blank';
     a.click();
+  };
+
+  const handleLoadInStudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!workflow.glb_url) return;
+    navigate(`/text-to-cad?glb=${encodeURIComponent(workflow.glb_url)}`);
   };
 
   return (
@@ -218,14 +226,27 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </div>
 
             {workflow.glb_url ? (
-              <Button
-                size="sm"
-                onClick={handleDownloadGlb}
-                className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5 flex-shrink-0"
-              >
-                <Download className="h-3 w-3" />
-                Download GLB
-              </Button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleDownloadGlb}
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                  title="Download GLB"
+                  aria-label="Download GLB"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleLoadInStudio}
+                  className="h-7 px-2.5 font-mono text-[9px] tracking-wider uppercase gap-1 whitespace-nowrap"
+                >
+                  <Layers className="h-3 w-3 flex-shrink-0" />
+                  <span className="hidden sm:inline">Load in Studio</span>
+                  <span className="sm:hidden">Studio</span>
+                </Button>
+              </div>
             ) : (
               <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
                 Loading…

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useCredits } from "@/contexts/CreditsContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, X } from "lucide-react";
@@ -44,6 +44,7 @@ interface UndoEntry {
 
 export default function TextToCAD() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
   const showWeightStl = isWeightStlEnabled(user?.email);
@@ -122,6 +123,20 @@ export default function TextToCAD() {
       rightPanelRef.current?.collapse();
     }
   }, [hasModel]);
+
+  // Boot directly into the workspace when ?glb= param is present (e.g. from Generations page)
+  useEffect(() => {
+    const glbParam = searchParams.get('glb');
+    if (!glbParam) return;
+    setWorkspaceActive(true);
+    setHasModel(true);
+    setIsModelLoading(true);
+    setProgressStep("_loading");
+    setGlbUrl(glbParam);
+    // Clean the param from the URL without triggering a re-render loop
+    navigate('/text-to-cad', { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   meshesRef.current = meshes;
 
@@ -801,7 +816,18 @@ export default function TextToCAD() {
         method: 'POST',
         body: formData,
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const codeMessages: Record<string, string> = {
+          empty_glb: "GLB export was empty — try again",
+          glb_read_failed: "Could not read the exported file — try again",
+          postprocess_queue_full: "Server is busy, please try again shortly",
+          blender_timeout: "Weight estimation timed out — try again",
+          weight_no_result: "Blender ran but returned no result — try again",
+        };
+        toast.error(codeMessages[result?.code] || result?.error || "Weight estimation failed");
+        return;
+      }
       if (!result.success) {
         toast.error(result.error || "Weight estimation failed");
         return;
@@ -844,8 +870,18 @@ export default function TextToCAD() {
         method: 'POST',
         body: formData,
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
+      if (!response.ok) {
+        const codeMessages: Record<string, string> = {
+          empty_glb: "GLB export was empty — try again",
+          glb_read_failed: "Could not read the exported file — try again",
+          postprocess_queue_full: "Server is busy, please try again shortly",
+          blender_timeout: "STL preparation timed out — try High Detail with a simpler model, or use Standard quality",
+        };
+        toast.error(codeMessages[result?.code] || result?.error_text || "STL export failed");
+        return;
+      }
       if (!result.success || !result.stl_artifact) {
         toast.error(result.error_text || "STL export failed");
         return;
@@ -1410,13 +1446,13 @@ export default function TextToCAD() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setStlPresetOpen(false)}
-                  className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150 cursor-pointer"
+                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={executeStlDownload}
-                  className="py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Download STL
                 </button>
