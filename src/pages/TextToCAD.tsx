@@ -66,6 +66,7 @@ export default function TextToCAD() {
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const [glbArtifact, setGlbArtifact] = useState<{ uri: string; type: string; bytes: number; sha256: string } | null>(null);
   const [generationFailed, setGenerationFailed] = useState(false);
   const wasManualUploadRef = useRef(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
@@ -462,11 +463,11 @@ export default function TextToCAD() {
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
           if (hasFailed) throw new Error("Generation failed — no valid model produced");
 
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
-            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
-          const rawUri = successFinal || successOriginal;
-          if (rawUri) { glb_url = rawUri; break; }
+          const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
+            || result["success_final"]?.[0]?.original_glb_artifact;
+          const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
+          const artifact = successFinalArtifact || successOriginalArtifact;
+          if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found in results");
         }
 
@@ -609,11 +610,11 @@ export default function TextToCAD() {
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
           if (hasFailed) throw new Error("Edit failed — no valid model produced");
 
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
-            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
-          const rawUri = successFinal || successOriginal;
-          if (rawUri) { glb_url = rawUri; break; }
+          const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
+            || result["success_final"]?.[0]?.original_glb_artifact;
+          const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
+          const artifact = successFinalArtifact || successOriginalArtifact;
+          if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
@@ -803,29 +804,46 @@ export default function TextToCAD() {
   }, [glbUrl]);
 
   const handleEstimateWeight = useCallback(async () => {
-    if (!canvasRef.current) {
-      toast.error("3D canvas not ready");
+    if (!glbArtifact) {
+      toast.error("No model artifact available — generate a model first");
       return;
     }
     setWeightLoading(true);
     try {
-      const blob = await canvasRef.current.exportSceneRawBlob();
-      const formData = new FormData();
-      formData.append('glb', blob, 'scene.glb');
-      const response = await authenticatedFetch('/estimate_weight', {
+      const startRes = await authenticatedFetch('/api/run/state/estimate_weight', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: { glb_artifact: glbArtifact, timeout_seconds: 60 },
+          meta: {},
+        }),
       });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const codeMessages: Record<string, string> = {
-          empty_glb: "GLB export was empty — try again",
-          glb_read_failed: "Could not read the exported file — try again",
-          postprocess_queue_full: "Server is busy, please try again shortly",
-          blender_timeout: "Weight estimation timed out — try again",
-          weight_no_result: "Blender ran but returned no result — try again",
-        };
-        toast.error(codeMessages[result?.code] || result?.error || "Weight estimation failed");
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        toast.error(err?.error || "Failed to start weight estimation");
+        return;
+      }
+      const { workflow_id } = await startRes.json();
+
+      // Poll until done (2s interval, ~2 min timeout)
+      const POLL_INTERVAL = 2000;
+      const POLL_TIMEOUT = 120_000;
+      const deadline = Date.now() + POLL_TIMEOUT;
+      let result: any = null;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
+        if (!pollRes.ok) {
+          const err = await pollRes.json().catch(() => ({}));
+          throw new Error(err?.error || "Polling failed");
+        }
+        const data = await pollRes.json();
+        if (data?.status === 'running') continue;
+        result = data;
+        break;
+      }
+      if (!result) {
+        toast.error("Weight estimation timed out — try again");
         return;
       }
       if (!result.success) {
@@ -846,7 +864,7 @@ export default function TextToCAD() {
     } finally {
       setWeightLoading(false);
     }
-  }, []);
+  }, [glbArtifact]);
 
   const handleDownloadStl = useCallback(() => {
     setStlPresetOpen(true);
@@ -854,32 +872,47 @@ export default function TextToCAD() {
 
   const executeStlDownload = useCallback(async () => {
     setStlPresetOpen(false);
-    if (!canvasRef.current) {
-      toast.error("3D canvas not ready");
+    if (!glbArtifact) {
+      toast.error("No model artifact available — generate a model first");
       return;
     }
     const voxelSizeMm = stlQuality === 'draft' ? 0.1 : stlQuality === 'high' ? 0.03 : 0.05;
     setStlExporting(true);
     try {
-      const blob = await canvasRef.current.exportSceneRawBlob();
-      const formData = new FormData();
-      formData.append('glb', blob, 'scene.glb');
-      formData.append('voxel_size_mm', String(voxelSizeMm));
-
-      const response = await authenticatedFetch('/prepare_stl', {
+      const startRes = await authenticatedFetch('/api/run/state/prepare_stl', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: { glb_artifact: glbArtifact, voxel_size_mm: voxelSizeMm },
+          meta: {},
+        }),
       });
-      const result = await response.json().catch(() => ({}));
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        toast.error(err?.error || "Failed to start STL export");
+        return;
+      }
+      const { workflow_id } = await startRes.json();
 
-      if (!response.ok) {
-        const codeMessages: Record<string, string> = {
-          empty_glb: "GLB export was empty — try again",
-          glb_read_failed: "Could not read the exported file — try again",
-          postprocess_queue_full: "Server is busy, please try again shortly",
-          blender_timeout: "STL preparation timed out — try High Detail with a simpler model, or use Standard quality",
-        };
-        toast.error(codeMessages[result?.code] || result?.error_text || "STL export failed");
+      // Poll until done (2s interval, ~5 min timeout for high quality)
+      const POLL_INTERVAL = 2000;
+      const POLL_TIMEOUT = 300_000;
+      const deadline = Date.now() + POLL_TIMEOUT;
+      let result: any = null;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
+        if (!pollRes.ok) {
+          const err = await pollRes.json().catch(() => ({}));
+          throw new Error(err?.error || "Polling failed");
+        }
+        const data = await pollRes.json();
+        if (data?.status === 'running') continue;
+        result = data;
+        break;
+      }
+      if (!result) {
+        toast.error("STL preparation timed out — try Standard quality or a simpler model");
         return;
       }
       if (!result.success || !result.stl_artifact) {
@@ -887,11 +920,8 @@ export default function TextToCAD() {
         return;
       }
 
-      // Resolve stl_artifact.uri using the same azure:// pattern as GLB downloads
-      const toUrl = (uri: string) => uri.startsWith("azure://")
-        ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
-        : uri;
-      const downloadUrl = toUrl(result.stl_artifact.uri);
+      // stl_artifact.uri is a signed Azure Blob URL ready to use directly
+      const downloadUrl = result.stl_artifact.uri;
       const timestamp = Date.now();
 
       try {
@@ -917,7 +947,7 @@ export default function TextToCAD() {
     } finally {
       setStlExporting(false);
     }
-  }, [stlQuality]);
+  }, [stlQuality, glbArtifact]);
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
