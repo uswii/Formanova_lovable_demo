@@ -813,6 +813,14 @@ export default function UnifiedStudio() {
                   if ((currentStep as string) === 'model') setCurrentStep('upload');
                 }}
                 onNextStep={handleNextStep}
+                onProductSelect={(thumbnailUrl, assetId) => {
+                  setJewelryImage(thumbnailUrl);
+                  setJewelryUploadedUrl(thumbnailUrl);
+                  setJewelryAssetId(assetId);
+                  setValidationResult(null);
+                  setJewelryFile(null);
+                  clearValidation();
+                }}
               />
             ) : (
             <>
