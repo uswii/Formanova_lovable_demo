@@ -46,6 +46,8 @@ import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
+import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
+import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 // ExampleGuidePanel removed — guide is inline
 
 // Example images for inline Upload Guide
@@ -789,6 +791,32 @@ export default function UnifiedStudio() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
+            {/* ── Alternate two-column layout (internal experiment) ── */}
+            {isAltUploadLayoutEnabled(user?.email) ? (
+              <AlternateUploadStep
+                jewelryType={jewelryType}
+                exampleCategoryType={exampleCategoryType}
+                jewelryImage={jewelryImage}
+                isValidating={isValidating}
+                validationResult={validationResult}
+                isFlagged={!!isFlagged}
+                canProceed={!!canProceed}
+                jewelryInputRef={jewelryInputRef}
+                onFileUpload={handleJewelryUpload}
+                onClearImage={() => {
+                  clearStudioSession();
+                  setJewelryImage(null);
+                  setJewelryFile(null);
+                  setValidationResult(null);
+                  setJewelryUploadedUrl(null);
+                  setJewelryAssetId(null);
+                  clearValidation();
+                  if ((currentStep as string) === 'model') setCurrentStep('upload');
+                }}
+                onNextStep={handleNextStep}
+              />
+            ) : (
+            <>
             {/* Step 1 Header */}
             <div className="mb-6">
               <span className="marta-label">Step 1</span>
@@ -941,6 +969,8 @@ export default function UnifiedStudio() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </motion.div>
         )}
 

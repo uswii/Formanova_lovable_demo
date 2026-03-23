@@ -31,6 +31,18 @@ export function isWeightStlEnabled(email: string | undefined | null): boolean {
 }
 
 /**
+ * Users who see the alternate two-column upload layout (internal experiment).
+ * Left: upload canvas with ambient guide imagery.
+ * Right: My Products library.
+ */
+const ALT_UPLOAD_LAYOUT_EMAILS = ['uswa@raresense.so'];
+
+export function isAltUploadLayoutEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return ALT_UPLOAD_LAYOUT_EMAILS.includes(email.toLowerCase());
+}
+
+/**
  * Users allowed to see the "Upload CAD File" button on the initial prompt screen.
  */
 const CAD_UPLOAD_EMAILS = ['uswa@raresense.so', 'abdullah@raresense.so'];
