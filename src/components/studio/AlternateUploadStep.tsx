@@ -144,7 +144,7 @@ export function AlternateUploadStep({
                 {examples.allowed.map((src, i) => (
                   <div key={`ok-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
                     <img src={src} alt="" draggable={false}
-                         className="absolute inset-0 w-full h-full object-contain grayscale opacity-[0.15]" />
+                         className="absolute inset-0 w-full h-full object-cover grayscale opacity-[0.14]" />
                     <div className="absolute top-2 right-2 z-10 bg-background/85 border border-green-500/50
                                     flex items-center justify-center w-5 h-5">
                       <Check className="w-3 h-3 text-green-500" strokeWidth={2.5} />
@@ -162,7 +162,7 @@ export function AlternateUploadStep({
                 {examples.notAllowed.map((src, i) => (
                   <div key={`no-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
                     <img src={src} alt="" draggable={false}
-                         className="absolute inset-0 w-full h-full object-contain grayscale opacity-[0.12]" />
+                         className="absolute inset-0 w-full h-full object-cover grayscale opacity-[0.11]" />
                     <div className="absolute top-2 right-2 z-10 bg-background/85 border border-destructive/50
                                     flex items-center justify-center w-5 h-5">
                       <X className="w-3 h-3 text-destructive" strokeWidth={2.5} />
@@ -316,7 +316,7 @@ export function AlternateUploadStep({
                         onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
                         className={`relative aspect-square overflow-hidden border transition-all group
                           ${isSelected
-                            ? 'border-foreground'
+                            ? 'border-[hsl(var(--formanova-hero-accent))]'
                             : 'border-border/20 hover:border-foreground/30'}`}
                       >
                         <img
@@ -326,10 +326,12 @@ export function AlternateUploadStep({
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
 
-                        {/* Selected overlay — same pattern as Step 2 model selection */}
+                        {/* Selected overlay — uses theme accent colour */}
                         {isSelected && (
-                          <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                            <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                          <div className="absolute inset-0 flex items-center justify-center"
+                               style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
+                            <div className="w-6 h-6 flex items-center justify-center"
+                                 style={{ background: 'hsl(var(--formanova-hero-accent))' }}>
                               <Check className="h-3.5 w-3.5 text-background" />
                             </div>
                           </div>
