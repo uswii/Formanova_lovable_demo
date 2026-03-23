@@ -814,7 +814,7 @@ export default function TextToCAD() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data: { glb_artifact: glbArtifact, timeout_seconds: 60 },
+          payload: { glb_artifact: glbArtifact, timeout_seconds: 60 },
           meta: {},
         }),
       });
@@ -883,7 +883,7 @@ export default function TextToCAD() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data: { glb_artifact: glbArtifact, voxel_size_mm: voxelSizeMm },
+          payload: { glb_artifact: glbArtifact, voxel_size_mm: voxelSizeMm },
           meta: {},
         }),
       });
