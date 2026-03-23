@@ -796,6 +796,7 @@ export default function UnifiedStudio() {
               <AlternateUploadStep
                 exampleCategoryType={exampleCategoryType}
                 jewelryImage={jewelryImage}
+                activeProductAssetId={jewelryAssetId}
                 isValidating={isValidating}
                 validationResult={validationResult}
                 isFlagged={!!isFlagged}
