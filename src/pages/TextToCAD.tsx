@@ -814,8 +814,7 @@ export default function TextToCAD() {
     setWeightLoading(true);
     try {
       const weightPayload = {
-        data: { glb_artifact: glbArtifact, timeout_seconds: 60 },
-        meta: {},
+        payload: { glb_artifact: glbArtifact, timeout_seconds: 60 },
       };
       console.log('[Weight] Request payload:', weightPayload);
       const startRes = await authenticatedFetch('/api/run/state/estimate_weight', {
@@ -887,14 +886,13 @@ export default function TextToCAD() {
     setStlExporting(true);
     try {
       const stlPayload = {
-        data: {
+        payload: {
           glb_artifact: glbArtifact,
           voxel_size_mm: voxelSizeMm,
           island_min_fraction: 0.005,
           decimate_ratio: 0.3,
           timeout_seconds: 300,
         },
-        meta: {},
       };
       console.log('[STL] Request payload:', stlPayload);
       const startRes = await authenticatedFetch('/api/run/state/prepare_stl', {

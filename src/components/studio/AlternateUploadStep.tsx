@@ -184,6 +184,7 @@ export function AlternateUploadStep({
   const CANVAS_H = 'h-[500px] md:h-[640px]';
 
   return (
+    <>
     <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
 
       {/* ══════════════════════════════════════════════════════════════
@@ -427,6 +428,7 @@ export function AlternateUploadStep({
     </div>
 
     {/* ── Flagged image popup — centered overlay ── */}
+
     {showFlagWarning && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
         <div className="bg-background border border-border/40 shadow-2xl max-w-sm w-full mx-4 p-8 flex flex-col items-center text-center gap-5">
@@ -459,5 +461,6 @@ export function AlternateUploadStep({
         </div>
       </div>
     )}
+    </>
   );
 }
