@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { reloadPreservingSession } from "./lib/reload-utils";
+import { getStoredUser } from "./lib/auth-api";
 
 // requestIdleCallback polyfill for Safari
 if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
@@ -97,6 +98,12 @@ if (
         capture_exceptions: true,
         enable_heatmaps: true,
       });
+      // Re-identify cached sessions — fixes race where identifyUser() fires
+      // before PostHog finishes loading, leaving returning users as anonymous UUIDs.
+      const cachedUser = getStoredUser();
+      if (cachedUser) {
+        posthog.identify(cachedUser.id, { email: cachedUser.email, name: cachedUser.full_name });
+      }
     });
   };
 
