@@ -180,6 +180,9 @@ export function AlternateUploadStep({
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
+  // Necklace worn example looks better as the 3rd image
+  const popupWornExample = exampleCategoryType === 'necklace' ? examples.allowed[2] : examples.allowed[0];
+
   // Shared height — locks both columns to the same vertical bounds.
   const CANVAS_H = 'h-[500px] md:h-[640px]';
 
@@ -449,7 +452,7 @@ export function AlternateUploadStep({
             {/* Worn example */}
             <div className="flex flex-col gap-1.5">
               <div className="overflow-hidden border border-border/30 bg-muted/10">
-                <img src={examples.allowed[0]} alt="Works better" className="w-full block" />
+                <img src={popupWornExample} alt="Works better" className="w-full block" />
               </div>
               <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
                 Works better
