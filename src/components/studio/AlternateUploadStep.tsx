@@ -442,8 +442,9 @@ export function AlternateUploadStep({
             <path d="M12 4L10 8L13.5 10L11.5 14" />
           </svg>
           <div className="space-y-2">
+            <p className="font-display text-xl uppercase tracking-wide">Sorry to bug you...</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Worn looks best. Could be you. Product shots often miss the mark.
+              Photos where jewelry is worn on a person (could be anyone, even you!) generally produce better results. Product shots may not work as well.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 w-full">
