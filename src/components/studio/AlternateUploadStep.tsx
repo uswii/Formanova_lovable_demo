@@ -462,7 +462,7 @@ export function AlternateUploadStep({
 
           {/* Soft one-liner */}
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Worn on a person tends to produce better results — could be anyone, even you.
+            Worn on a person tends to produce better results (could be anyone, even you).
           </p>
 
           {/* Actions */}
