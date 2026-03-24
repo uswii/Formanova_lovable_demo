@@ -432,7 +432,16 @@ export function AlternateUploadStep({
     {showFlagWarning && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
         <div className="bg-background border border-border/40 shadow-2xl max-w-sm w-full mx-4 p-8 flex flex-col items-center text-center gap-5">
-          <span className="text-5xl select-none" role="img" aria-label="cracked egg">🐣</span>
+          {/* Cracked egg — SVG style matching theme selector icons */}
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.5"
+               strokeLinecap="round" strokeLinejoin="round"
+               className="text-primary" aria-hidden="true">
+            {/* Egg outline */}
+            <path d="M12 2.5C8 2.5 4.5 7 4.5 13C4.5 18 7.5 21.5 12 21.5C16.5 21.5 19.5 18 19.5 13C19.5 7 16 2.5 12 2.5Z" />
+            {/* Crack */}
+            <path d="M12 4L10 8L13.5 10L11.5 14" />
+          </svg>
           <div className="space-y-2">
             <p className="font-display text-xl uppercase tracking-wide">Almost there</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
