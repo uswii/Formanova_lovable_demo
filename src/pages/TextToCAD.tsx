@@ -134,6 +134,10 @@ export default function TextToCAD() {
     setIsModelLoading(true);
     setProgressStep("_loading");
     setGlbUrl(glbParam);
+    // Synthesise an artifact so weight/STL tools work on history-loaded models.
+    // Only the uri field is used by the backend to fetch the file; type/bytes/sha256
+    // are metadata that we don't have here but won't block the API calls.
+    setGlbArtifact({ uri: glbParam, type: 'model/gltf-binary', bytes: 0, sha256: '' });
     // Clean the param from the URL without triggering a re-render loop
     navigate('/text-to-cad', { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
