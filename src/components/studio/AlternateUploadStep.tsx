@@ -258,45 +258,17 @@ export function AlternateUploadStep({
               )}
             </div>
 
-            {/* Action area */}
-            {showFlagWarning ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-prose">
-                  You'll get better results when the jewelry is worn — on a model, mannequin, or even yourself.
-                  Product shots alone often miss the mark.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={onClearImage}
-                    className="font-mono text-[10px] uppercase tracking-widest"
-                  >
-                    Go Back and Fix
-                  </Button>
-                  <Button
-                    size="lg"
-                    onClick={() => { setFlagAcknowledged(true); onForceNextStep(); }}
-                    className="font-mono text-[10px] uppercase tracking-widest
-                               bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                               text-background hover:opacity-90 transition-opacity border-0"
-                  >
-                    Continue Anyway
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-end gap-3">
-                <Button size="lg" onClick={onNextStep} disabled={!canProceed}
-                        className="gap-2.5 font-display text-base uppercase tracking-wide px-10
-                                   bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                                   text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
-                  {isValidating
-                    ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
-                    : <>Next <ArrowRight className="h-4 w-4" /></>}
-                </Button>
-              </div>
-            )}
+            {/* Action area — normal Next button */}
+            <div className="flex items-center justify-end gap-3">
+              <Button size="lg" onClick={onNextStep} disabled={!canProceed}
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10
+                                 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
+                                 text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
+                {isValidating
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
+                  : <>Next <ArrowRight className="h-4 w-4" /></>}
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -453,5 +425,39 @@ export function AlternateUploadStep({
       </div>
 
     </div>
+
+    {/* ── Flagged image popup — centered overlay ── */}
+    {showFlagWarning && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+        <div className="bg-background border border-border/40 shadow-2xl max-w-sm w-full mx-4 p-8 flex flex-col items-center text-center gap-5">
+          <span className="text-5xl select-none" role="img" aria-label="cracked egg">🐣</span>
+          <div className="space-y-2">
+            <p className="font-display text-xl uppercase tracking-wide">Almost there</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Worn looks best — could be you. Product shots often miss the mark.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 w-full">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={onClearImage}
+              className="font-mono text-[10px] uppercase tracking-widest"
+            >
+              Go Back
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => { setFlagAcknowledged(true); onForceNextStep(); }}
+              className="font-mono text-[10px] uppercase tracking-widest
+                         bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
+                         text-background hover:opacity-90 transition-opacity border-0"
+            >
+              Continue
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
