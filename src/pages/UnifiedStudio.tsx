@@ -820,9 +820,24 @@ export default function UnifiedStudio() {
                   setJewelryUploadedUrl(thumbnailUrl);
                   setJewelryAssetId(assetId);
                   setJewelryFile(null);
+                  setValidationResult(null);
                   clearValidation();
-                  // Library items were validated on upload — mark as accepted
-                  setValidationResult({ index: 0, detected_type: 'worn', is_acceptable: true, flags: [], confidence: 1, message: '', category: 'model' });
+                  // Fetch and validate the selected product image
+                  fetch(thumbnailUrl)
+                    .then(r => r.blob())
+                    .then(blob => {
+                      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
+                      return validateImages([file], jewelryType);
+                    })
+                    .then(result => {
+                      if (result && result.results.length > 0) {
+                        setValidationResult(result.results[0]);
+                        if (result.results[0].uploaded_url) {
+                          setJewelryUploadedUrl(result.results[0].uploaded_url);
+                        }
+                      }
+                    })
+                    .catch(e => console.warn('[ProductSelect] Validation failed:', e));
                 }}
               />
             ) : (
