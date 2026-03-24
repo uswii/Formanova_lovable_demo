@@ -814,13 +814,15 @@ export default function UnifiedStudio() {
                   if ((currentStep as string) === 'model') setCurrentStep('upload');
                 }}
                 onNextStep={handleNextStep}
+                onForceNextStep={handleContinueAnyway}
                 onProductSelect={(thumbnailUrl, assetId) => {
                   setJewelryImage(thumbnailUrl);
                   setJewelryUploadedUrl(thumbnailUrl);
                   setJewelryAssetId(assetId);
-                  setValidationResult(null);
                   setJewelryFile(null);
                   clearValidation();
+                  // Library items were validated on upload — mark as accepted
+                  setValidationResult({ index: 0, detected_type: 'worn', is_acceptable: true, flags: [], confidence: 1, message: '', category: 'model' });
                 }}
               />
             ) : (
