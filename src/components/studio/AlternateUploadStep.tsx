@@ -84,6 +84,9 @@ function UploadGuidePanel({
       {/* Accepted */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+            <Check className="w-2.5 h-2.5 text-green-500" />
+          </div>
           <span className="text-xs font-medium text-foreground">For best results:</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -98,12 +101,15 @@ function UploadGuidePanel({
       {/* Not Accepted */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-foreground">Also accepted:</span>
+          <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+            <X className="w-2.5 h-2.5 text-destructive" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Results may vary:</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {examples.notAllowed.map((src, i) => (
-            <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-border/30 bg-muted/20">
-              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
+            <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
+              <img src={src} alt="" draggable={false} className="w-full h-full object-cover opacity-70" />
             </div>
           ))}
         </div>
