@@ -21,41 +21,75 @@ import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import necklaceAllowed1    from '@/assets/examples/necklace-allowed-1.jpg';
 import necklaceAllowed2    from '@/assets/examples/necklace-allowed-2.jpg';
 import necklaceAllowed3    from '@/assets/examples/necklace-allowed-3.jpg';
+import necklaceAllowed4    from '@/assets/examples/necklace-allowed-4.jpg';
 import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.png';
 import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.png';
 import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.png';
 import earringAllowed1     from '@/assets/examples/earring-allowed-1.jpg';
 import earringAllowed2     from '@/assets/examples/earring-allowed-2.jpg';
 import earringAllowed3     from '@/assets/examples/earring-allowed-3.jpg';
+import earringAllowed4     from '@/assets/examples/earring-allowed-4.jpg';
 import earringNotAllowed1  from '@/assets/examples/earring-notallowed-1.png';
 import earringNotAllowed2  from '@/assets/examples/earring-notallowed-2.png';
 import earringNotAllowed3  from '@/assets/examples/earring-notallowed-3.png';
 import braceletAllowed1    from '@/assets/examples/bracelet-allowed-1.jpg';
 import braceletAllowed2    from '@/assets/examples/bracelet-allowed-2.jpg';
 import braceletAllowed3    from '@/assets/examples/bracelet-allowed-3.jpg';
+import braceletAllowed4    from '@/assets/examples/bracelet-allowed-4.jpg';
 import braceletNotAllowed1 from '@/assets/examples/bracelet-notallowed-1.png';
 import braceletNotAllowed2 from '@/assets/examples/bracelet-notallowed-2.png';
 import braceletNotAllowed3 from '@/assets/examples/bracelet-notallowed-3.png';
 import ringAllowed1        from '@/assets/examples/ring-allowed-1.png';
 import ringAllowed2        from '@/assets/examples/ring-allowed-2.png';
 import ringAllowed3        from '@/assets/examples/ring-allowed-3.jpg';
+import ringAllowed4        from '@/assets/examples/ring-allowed-4.jpg';
 import ringNotAllowed1     from '@/assets/examples/ring-notallowed-1.png';
 import ringNotAllowed2     from '@/assets/examples/ring-notallowed-2.png';
 import ringNotAllowed3     from '@/assets/examples/ring-notallowed-3.png';
 import watchAllowed1       from '@/assets/examples/watch-allowed-1.jpg';
 import watchAllowed2       from '@/assets/examples/watch-allowed-2.jpg';
 import watchAllowed3       from '@/assets/examples/watch-allowed-3.png';
+import watchAllowed4       from '@/assets/examples/watch-allowed-4.jpg';
 import watchNotAllowed1    from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2    from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3    from '@/assets/examples/watch-notallowed-3.png';
 
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
-  necklace:  { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3],   notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
-  earrings:  { allowed: [earringAllowed1,  earringAllowed2,  earringAllowed3],    notAllowed: [earringNotAllowed1,  earringNotAllowed2,  earringNotAllowed3]  },
-  bracelets: { allowed: [braceletAllowed1, braceletAllowed2, braceletAllowed3],   notAllowed: [braceletNotAllowed1, braceletNotAllowed2, braceletNotAllowed3] },
-  rings:     { allowed: [ringAllowed1,     ringAllowed2,     ringAllowed3],        notAllowed: [ringNotAllowed1,     ringNotAllowed2,     ringNotAllowed3]     },
-  watches:   { allowed: [watchAllowed1,    watchAllowed2,    watchAllowed3],       notAllowed: [watchNotAllowed1,    watchNotAllowed2,    watchNotAllowed3]    },
+  necklace:  { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3, necklaceAllowed4],   notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
+  earrings:  { allowed: [earringAllowed1,  earringAllowed2,  earringAllowed3,  earringAllowed4],    notAllowed: [earringNotAllowed1,  earringNotAllowed2,  earringNotAllowed3]  },
+  bracelets: { allowed: [braceletAllowed1, braceletAllowed2, braceletAllowed3, braceletAllowed4],   notAllowed: [braceletNotAllowed1, braceletNotAllowed2, braceletNotAllowed3] },
+  rings:     { allowed: [ringAllowed1,     ringAllowed2,     ringAllowed3,     ringAllowed4],        notAllowed: [ringNotAllowed1,     ringNotAllowed2,     ringNotAllowed3]     },
+  watches:   { allowed: [watchAllowed1,    watchAllowed2,    watchAllowed3,    watchAllowed4],       notAllowed: [watchNotAllowed1,    watchNotAllowed2,    watchNotAllowed3]    },
 };
+
+// ── Test Mode Guide — 2×2 recommended photos only ─────────────────────────────
+function TestModeGuidePanel({
+  examples,
+  canvasH,
+}: {
+  examples: { allowed: string[]; notAllowed: string[] };
+  canvasH: string;
+}) {
+  return (
+    <div className={`${canvasH} border border-border/30 p-4`}>
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+            <Check className="w-2.5 h-2.5 text-green-500" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Recommended photos</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {examples.allowed.slice(0, 4).map((src, i) => (
+            <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
+              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Pagination helper ─────────────────────────────────────────────────────────
 function buildPageList(current: number, total: number): (number | '…')[] {
@@ -304,8 +338,9 @@ export function AlternateUploadStep({
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && (
-          <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />
+        {showGuide && (testMode
+          ? <TestModeGuidePanel examples={examples} canvasH={CANVAS_H} />
+          : <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />
         )}
 
         {/* ── Product library ── */}
