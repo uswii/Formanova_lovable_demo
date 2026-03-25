@@ -47,6 +47,7 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
+import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 // ExampleGuidePanel removed — guide is inline
 
@@ -107,14 +108,6 @@ const CATEGORY_TYPE_MAP: Record<string, string> = {
   watch: 'watches', watches: 'watches',
 };
 
-// Normalise URL param (plural or singular) → singular for the API payload
-const TO_SINGULAR: Record<string, string> = {
-  necklace: 'necklace', necklaces: 'necklace',
-  earring: 'earring',  earrings: 'earring',
-  ring: 'ring',        rings: 'ring',
-  bracelet: 'bracelet', bracelets: 'bracelet',
-  watch: 'watch',      watches: 'watch',
-};
 
 const LABEL_NAMES: Record<string, string> = {
   flatlay: 'a flat lay',
