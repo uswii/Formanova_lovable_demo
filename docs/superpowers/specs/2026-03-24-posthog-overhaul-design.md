@@ -385,6 +385,68 @@ posthog.capture('payment_success', {
 
 ---
 
+## Unit Tests
+
+Test file: `src/lib/posthog-events.test.ts`
+Run with: `npx vitest run src/lib/posthog-events.test.ts`
+
+Mock posthog-js at the top of the test file — this intercepts all `capture()` calls:
+
+```ts
+vi.mock('posthog-js', () => ({
+  default: { capture: vi.fn(), __loaded: true },
+}))
+```
+
+Reset between tests to prevent bleed:
+```ts
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear()
+})
+```
+
+### What to test
+
+**`consumeFirstGeneration()`** — localStorage flip logic:
+```ts
+it('returns true on first call, false on all subsequent', () => {
+  expect(consumeFirstGeneration()).toBe(true)
+  expect(consumeFirstGeneration()).toBe(false)
+  expect(consumeFirstGeneration()).toBe(false)
+})
+```
+
+**Event functions** — verify `capture` is called with the exact property shape. One test per function, covering the required properties:
+```ts
+it('trackJewelryUploaded calls capture with correct shape', () => {
+  trackJewelryUploaded({ category: 'ring', upload_type: 'mannequin', was_flagged: false })
+  expect(posthog.capture).toHaveBeenCalledWith('jewelry_uploaded', {
+    category: 'ring', upload_type: 'mannequin', was_flagged: false,
+  })
+})
+
+it('trackValidationFlagged calls capture with correct shape', () => {
+  trackValidationFlagged({ category: 'ring', detected_label: 'flatlay' })
+  expect(posthog.capture).toHaveBeenCalledWith('validation_flagged', {
+    category: 'ring', detected_label: 'flatlay', validation_reason: 'wrong_shot_type',
+  })
+})
+```
+
+**`posthog.__loaded` guard** — verify events silently no-op when PostHog is not loaded:
+```ts
+it('does not capture when __loaded is false', () => {
+  vi.mocked(posthog).__loaded = false
+  trackJewelryUploaded({ category: 'ring', upload_type: 'mannequin', was_flagged: false })
+  expect(posthog.capture).not.toHaveBeenCalled()
+})
+```
+
+**Scope:** `posthog-events.ts` functions and helpers only. Component call sites (UnifiedStudio, PhotographyStudioCategories, etc.) are verified manually via PostHog Live Events after deploy.
+
+---
+
 ## Testing Checklist
 
 **Init / Identity:**
