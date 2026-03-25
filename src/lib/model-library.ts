@@ -14,7 +14,7 @@ export interface ModelImage {
   label: string;
   /** Public thumbnail/full-res URL */
   url: string;
-  category: 'ecom' | 'editorial';
+  category: string;
 }
 
 // Ecom: A through I (9 images)
