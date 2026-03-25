@@ -93,9 +93,6 @@ function UploadGuidePanel({
           {examples.allowed.map((src, i) => (
             <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
               <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
-              <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                <Check className="w-2.5 h-2.5 text-white" />
-              </div>
             </div>
           ))}
         </div>
@@ -111,11 +108,8 @@ function UploadGuidePanel({
         </div>
         <div className="grid grid-cols-3 gap-2">
           {examples.notAllowed.map((src, i) => (
-            <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
-              <img src={src} alt="" draggable={false} className="w-full h-full object-cover opacity-70" />
-              <div className="absolute bottom-1 right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
-                <X className="w-2.5 h-2.5 text-white" />
-              </div>
+            <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-border/30 bg-muted/20">
+              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
             </div>
           ))}
         </div>
