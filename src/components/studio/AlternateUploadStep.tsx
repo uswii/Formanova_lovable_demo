@@ -87,7 +87,7 @@ function UploadGuidePanel({
           <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
             <Check className="w-2.5 h-2.5 text-green-500" />
           </div>
-          <span className="text-xs font-medium text-foreground">For best results:</span>
+          <span className="text-xs font-medium text-foreground">Accepted</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {examples.allowed.map((src, i) => (
@@ -104,7 +104,7 @@ function UploadGuidePanel({
           <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
             <X className="w-2.5 h-2.5 text-destructive" />
           </div>
-          <span className="text-xs font-medium text-foreground">Results may vary:</span>
+          <span className="text-xs font-medium text-foreground">Not Accepted</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {examples.notAllowed.map((src, i) => (
