@@ -73,12 +73,12 @@ function TestModeGuidePanel({
   return (
     <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
       {/* Top label */}
-      <p className="px-4 pt-3 pb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground flex-shrink-0">
+      <p className="px-4 pt-3 pb-2 text-[40px] font-bold uppercase leading-tight tracking-tight text-foreground flex-shrink-0">
         Recommended photos for best results
       </p>
 
       {/* Grid — padded horizontally to keep images small */}
-      <div className="flex-1 px-8 overflow-hidden min-h-0">
+      <div className="flex-1 px-12 overflow-hidden min-h-0">
         <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-4 h-full">
           {examples.allowed.slice(0, 4).map((src, i) => (
             <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
@@ -90,8 +90,8 @@ function TestModeGuidePanel({
 
       {/* Bottom tip */}
       <div className="px-4 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
-        <Lightbulb className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
+        <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-muted-foreground leading-relaxed">
           For more accurate results, use clear photos of jewelry worn on a person or on a mannequin.
         </p>
       </div>
