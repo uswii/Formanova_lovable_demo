@@ -1518,7 +1518,7 @@ export default function UnifiedStudio() {
 
             {/* Action buttons directly under results */}
             <div className="flex items-center justify-center gap-4 pt-2">
-              <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider px-8 h-11">
+              <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider h-11 w-44">
                 <Diamond className="h-4 w-4" />
                 New Photoshoot
               </Button>
@@ -1535,7 +1535,7 @@ export default function UnifiedStudio() {
                   setCurrentStep('generating');
                   handleGenerate();
                 }}
-                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 h-11 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+                className="gap-2.5 font-display text-base uppercase tracking-wide h-11 w-44 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
               >
                 <RefreshCw className="h-4 w-4" />
                 Regenerate

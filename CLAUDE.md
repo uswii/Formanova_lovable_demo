@@ -28,7 +28,7 @@ VITE_ADMIN_EMAILS=   # Comma-separated list of admin emails
 Follow UX best practices as established by designers like Don Norman:
 
 - **Alignment**: Parallel elements (canvases, containers, cards) must align top and bottom. Never let siblings sit at different vertical positions.
-- **Consistent sizing**: Buttons or controls sitting side-by-side must be the same size and height — no mismatched siblings.
+- **Consistent sizing**: Buttons or controls sitting side-by-side must be the same size and height — no mismatched siblings. Example: "New Photoshoot" and "Regenerate" buttons must always be equal size.
 - **Justified text**: Use justified text alignment for body copy and descriptive text.
 - **No cramped text**: Give text breathing room. Avoid tight padding or lines that feel compressed.
 - **No overflowing text**: Text must never overflow its container. Truncate or wrap as needed.
