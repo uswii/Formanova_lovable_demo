@@ -12,7 +12,7 @@ const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').th
 
 // Assets
 import { ThemeLogo } from '@/components/ThemeLogo';
-import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.webp';
+const heroDiamondChoker = '/hero-diamond-choker.webp';
 import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.webp';
 import heroChokerBack from '@/assets/jewelry/hero-choker-back.webp';
 import heroHandDiamonds from '@/assets/jewelry/hero-hand-diamonds.webp';
