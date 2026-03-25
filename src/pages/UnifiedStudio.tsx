@@ -370,6 +370,7 @@ export default function UnifiedStudio() {
       setValidationResult(localResult);
       if (localResult.uploaded_url) {
         setJewelryUploadedUrl(localResult.uploaded_url);
+        setJewelryAssetId(localResult.asset_id ?? null);
       }
 
       if (localResult.is_acceptable) {
