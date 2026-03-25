@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import {
   Check, X, Diamond, Upload, ArrowRight, Loader2,
-  ChevronLeft, ChevronRight, FlaskConical, ImageIcon,
+  ChevronLeft, ChevronRight, FlaskConical, ImageIcon, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
@@ -71,13 +71,29 @@ function TestModeGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className={`${canvasH} border border-border/30 p-4 px-8 overflow-hidden`}>
-      <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-6 h-full">
-        {examples.allowed.slice(0, 4).map((src, i) => (
-          <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
-            <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
-          </div>
-        ))}
+    <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
+      {/* Top label */}
+      <p className="px-4 pt-3 pb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground flex-shrink-0">
+        Recommended photos for best results
+      </p>
+
+      {/* Grid — padded horizontally to keep images small */}
+      <div className="flex-1 px-8 overflow-hidden min-h-0">
+        <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-4 h-full">
+          {examples.allowed.slice(0, 4).map((src, i) => (
+            <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
+              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom tip */}
+      <div className="px-4 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
+        <Lightbulb className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          For more accurate results, use clear photos of jewelry worn on a person or on a mannequin.
+        </p>
       </div>
     </div>
   );
@@ -309,8 +325,8 @@ export function AlternateUploadStep({
             <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
               {showGuide ? 'Upload Guide' : 'My Products'}
             </h3>
-            <p className={`mt-1.5 text-sm ${testMode ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
-              {testMode ? 'Recommended photos for best results.' : showGuide ? 'Follow these guidelines for best results.' : 'Previously uploaded jewelry'}
+            <p className="text-muted-foreground mt-1.5 text-sm">
+              {showGuide ? 'For best results, follow the guidelines below.' : 'Previously uploaded jewelry'}
             </p>
           </div>
 
