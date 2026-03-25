@@ -7,8 +7,10 @@ import fs from "fs";
 
 /**
  * Converts render-blocking <link rel="stylesheet"> tags to non-render-blocking
- * async pattern using the media="print" trick (Google/web.dev recommended).
- * The browser downloads print-media CSS at low priority and applies it on load.
+ * async pattern. Emits both a high-priority preload hint (so the browser's
+ * preload scanner fetches the CSS immediately during HTML parse) and a
+ * media="print" link (so CSS never blocks rendering). onload swaps media to
+ * "all" once the file is ready.
  */
 function asyncCssPlugin(): Plugin {
   return {
@@ -17,7 +19,8 @@ function asyncCssPlugin(): Plugin {
     transformIndexHtml(html) {
       return html.replace(
         /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
-        `<link rel="stylesheet" crossorigin href="$1" media="print" onload="this.media='all'">
+        `<link rel="preload" as="style" crossorigin href="$1">
+    <link rel="stylesheet" crossorigin href="$1" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" crossorigin href="$1"></noscript>`
       );
     },

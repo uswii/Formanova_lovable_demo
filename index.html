@@ -120,7 +120,7 @@
     <div id="root">
       <!-- Static hero skeleton: painted before React mounts to eliminate LCP render delay -->
       <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;position:relative;overflow:hidden;">
-        <img src="/hero-diamond-choker.webp" alt="Diamond choker necklace" fetchpriority="high" decoding="sync" loading="eager" width="1920" height="1080" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
+        <img src="/hero-diamond-choker.webp" alt="Diamond choker necklace" fetchpriority="high" decoding="async" loading="eager" width="1920" height="1080" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.8),rgba(0,0,0,.4),rgba(0,0,0,.8));"></div>
         <!-- Header skeleton -->
         <div style="position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;">

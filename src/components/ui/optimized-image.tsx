@@ -25,7 +25,7 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
       <img
         ref={ref}
         loading={priority ? 'eager' : 'lazy'}
-        decoding={priority ? 'sync' : 'async'}
+        decoding="async"
         {...(priority ? { fetchPriority: 'high' as const } : {})}
         {...(width ? { width } : {})}
         {...(height ? { height } : {})}
