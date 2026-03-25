@@ -197,7 +197,9 @@ posthog.capture('category_selected', {
   is_first_selection: boolean,   // sessionStorage flag — true only on first click this session
 })
 // NOTE: category.id in PhotographyStudioCategories is the plural key ('rings', 'earrings', etc.).
-// TO_SINGULAR must be imported or duplicated here so category values match all other events.
+// TO_SINGULAR is currently a private const in UnifiedStudio.tsx:111 — not exported.
+// ⚠️ PREREQUISITE: move TO_SINGULAR to src/lib/jewelry-utils.ts and export it before implementing
+// this event. Import it in both UnifiedStudio.tsx and PhotographyStudioCategories.tsx.
 ```
 
 #### `jewelry_uploaded`
@@ -258,7 +260,7 @@ posthog.capture('paywall_hit', {
 **CAD:** `TextToCAD.tsx` → generate handler, when `balance < cost` (uses `performCreditPreflight` directly — different code pattern from photo studio, same intent).
 ```ts
 posthog.capture('paywall_hit', {
-  category: 'ring',   // hardcoded — CAD only supports rings currently; update when more categories added
+  category: 'ring',   // hardcoded — CAD only supports rings currently; explicitly update when more categories added
   steps_completed: 1,   // user has completed: prompt entry only(1)
 })
 ```
@@ -269,7 +271,7 @@ Fired in: `TextToCAD.tsx` — immediately after `setGlbUrl(glb_url)` when the AP
 `cadGenStartTime` must be declared as `const cadGenStartTime = Date.now()` at the start of the real generation branch (after preflight passes, before the API call). Not inside the `simulateGeneration` branch.
 ```ts
 posthog.capture('cad_generation_completed', {
-  category: 'ring',   // hardcoded — CAD only supports rings currently; update when more categories added
+  category: 'ring',   // hardcoded — CAD only supports rings currently; explicitly update when more categories added
   prompt_length: prompt.trim().length,
   duration_ms: Date.now() - cadGenStartTime,
 })
