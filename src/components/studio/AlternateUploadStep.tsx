@@ -71,10 +71,10 @@ function TestModeGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className={`${canvasH} border border-border/30 p-4 px-8`}>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-6">
+    <div className={`${canvasH} border border-border/30 p-4 px-8 overflow-hidden`}>
+      <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-6 h-full">
         {examples.allowed.slice(0, 4).map((src, i) => (
-          <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
+          <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
             <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
           </div>
         ))}
