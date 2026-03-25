@@ -122,11 +122,37 @@ sessionStorage.setItem(PH_CATEGORY_SELECTED_KEY, '1');
 
 ## Events
 
-### ⚠️ React state trap in handleJewelryUpload (UnifiedStudio.tsx)
+### The jewelry upload flow (read this before implementing upload events)
+
+The upload flow has **two distinct paths** through `UnifiedStudio.tsx`:
+
+**Path A — Accepted upload (worn jewelry)**
+`handleJewelryUpload` → `validateImages()` → `localResult.is_acceptable === true` → user proceeds to step 2 normally.
+
+**Path B — Flagged upload (non-worn: flatlay, product_surface, 3d_render, etc.)**
+`handleJewelryUpload` → `validateImages()` → `localResult.is_acceptable === false` → a dialog appears showing the user what's wrong. The dialog has two buttons:
+- "Go Back & Re-upload" — clears everything, user starts over
+- "Continue Anyway" → calls `handleContinueAnyway()` → user proceeds to step 2 with the non-worn image
+
+`handleContinueAnyway` simply does:
+```ts
+setShowFlaggedDialog(false);
+setCurrentStep('model');
+```
+It does NOT reset `validationResult`. The flagged result stays in state.
+
+**Why this matters for PostHog:** Users who click "Continue Anyway" proceed to generate with a non-worn image. Without tracking this path, PostHog sees them generate but has no upload event — making conversion analysis by upload type impossible.
+
+**Event placement rules:**
+- `jewelry_uploaded` fires in **both** paths (see below) — one event per user who has a ready image, split by `was_flagged`
+- `validation_flagged` fires in path B only, in `handleJewelryUpload` — it's a signal of friction, regardless of what the user does next
+- `generation_completed` fires for both path A and path B users (anyone who generates)
+
+### ⚠️ React state trap in handleJewelryUpload
 
 In `handleJewelryUpload`, validation runs and sets state via `setValidationResult(result.results[0])`. **React state setters are asynchronous** — `validationResult` in scope at that point is still the previous state value (stale/null).
 
-**Always use the local variable `result.results[0]` directly**, never `validationResult`:
+**In `handleJewelryUpload`: always use the local variable `localResult` directly**, never `validationResult`:
 
 ```ts
 const result = await validateImages([normalized], jewelryType);
@@ -135,13 +161,28 @@ if (result && result.results.length > 0) {
   setValidationResult(localResult);
   if (localResult.uploaded_url) setJewelryUploadedUrl(localResult.uploaded_url);
 
-  // Fire PostHog events using localResult
   if (localResult.is_acceptable) {
-    trackJewelryUploaded({ category: jewelryType, upload_type: localResult.label });
+    // Path A: worn image accepted — fire jewelry_uploaded immediately
+    trackJewelryUploaded({ category: jewelryType, upload_type: localResult.category, was_flagged: false });
   } else {
-    trackValidationFlagged({ category: jewelryType, detected_label: localResult.label });
+    // Path B: non-worn image flagged — fire validation_flagged; jewelry_uploaded fires later if user clicks Continue Anyway
+    trackValidationFlagged({ category: jewelryType, detected_label: localResult.category });
   }
 }
+```
+
+**In `handleContinueAnyway`: `validationResult` state IS safe to read** — validation completed before the dialog appeared, so state is fully settled by the time the user clicks Continue Anyway:
+
+```ts
+const handleContinueAnyway = () => {
+  // Fire jewelry_uploaded here for path B users (was_flagged: true)
+  // validationResult state is stable — validation finished before this dialog appeared
+  if (validationResult) {
+    trackJewelryUploaded({ category: jewelryType, upload_type: validationResult.category, was_flagged: true });
+  }
+  setShowFlaggedDialog(false);
+  setCurrentStep('model');
+};
 ```
 
 ---
@@ -158,24 +199,34 @@ posthog.capture('category_selected', {
 ```
 
 #### `jewelry_uploaded`
-Fired in: `UnifiedStudio.tsx` → `handleJewelryUpload`, when `localResult.is_acceptable === true`.
-**Only fires on accepted uploads.** Rejected uploads fire `validation_flagged` instead.
-Use `localResult.label` (local variable), NOT `validationResult` state (stale — see trap above).
+Fires in **two places** — see flow description above.
+
+**Path A (accepted):** `handleJewelryUpload`, when `localResult.is_acceptable === true`. Use `localResult.category` (local variable — stale state trap applies here).
+
+**Path B (continue anyway):** `handleContinueAnyway`, for users who proceed despite the validation warning. Use `validationResult.category` (state IS safe here — see flow description above).
+
+`upload_type` values come directly from the backend classification API:
+- Worn (accepted or continued): `mannequin` | `model` | `body_part`
+- Non-worn (continued anyway): `flatlay` | `product_surface` | `3d_render` | `packshot` | `floating` | `unknown`
+
 ```ts
 posthog.capture('jewelry_uploaded', {
   category: jewelryType,
-  upload_type: localResult.label,  // 'flatlay' | 'product_surface' | '3d_render' | 'packshot' | 'floating'
+  upload_type: string,   // raw backend label — see values above
+  was_flagged: boolean,  // false = accepted normally; true = user clicked "Continue Anyway"
 })
 ```
 
+With `was_flagged` PostHog can answer: do "continue anyway" users generate at the same rate as accepted users? Do they produce worse results?
+
 #### `validation_flagged`
 Fired in: `UnifiedStudio.tsx` → `handleJewelryUpload`, when `localResult.is_acceptable === false`.
-Use `localResult.label` (local variable), NOT `validationResult` state (stale — see trap above).
-Measures friction: PostHog will show what % of users who hit this still reach `model_selected`.
+Use `localResult.category` (local variable — stale state trap applies here, NOT `validationResult` state).
+Fires regardless of whether the user then clicks "Continue Anyway" or "Go Back". Measures how often users hit the friction wall. PostHog will show what % of users who see this still reach `generation_completed`.
 ```ts
 posthog.capture('validation_flagged', {
   category: jewelryType,
-  detected_label: localResult.label,
+  detected_label: localResult.category,  // raw backend label: 'flatlay' | 'product_surface' | etc.
   validation_reason: 'wrong_shot_type',  // static — only reason currently
 })
 ```
@@ -223,12 +274,12 @@ Current signature: `trackGenerationComplete(source: string, durationMs?: number)
 New signature: `trackGenerationComplete(props: GenerationCompleteProps)`
 Update call site in `UnifiedStudio.tsx` when updating this function.
 
-`upload_type` requires threading `validationResult?.label` from state (it IS safe to read from state here — `generation_completed` fires long after `handleJewelryUpload` completed, so state is stable).
+`upload_type` requires reading `validationResult?.category` from state (it IS safe to read from state here — `generation_completed` fires long after `handleJewelryUpload` completed and after the user has potentially clicked "Continue Anyway", so state is fully stable). This will capture both path A (worn, `was_flagged: false`) and path B ("continue anyway", `was_flagged: true`) users in the same event, letting PostHog compare generation outcomes by upload type.
 ```ts
 posthog.capture('generation_completed', {
   source: 'unified-studio',
   category: TO_SINGULAR[jewelryType],
-  upload_type: validationResult?.label ?? null,
+  upload_type: validationResult?.category ?? null,  // raw backend label; null if validation was skipped
   duration_ms: Date.now() - _genStartTime,   // _genStartTime already declared in handleGenerate
   is_first_ever: consumeFirstGeneration(),   // localStorage boolean — true only on very first generation ever
 })
@@ -290,7 +341,7 @@ posthog.capture('payment_success', {
 | `src/main.tsx` | Remove `loadPostHog` fn + timer + interaction listeners; add static `import posthog`; add eager `posthog.init()` with bootstrap before `root.render()`; replace dynamic `import('posthog-js')` in two error handlers with direct `posthog` reference; remove 3-line identify-after-init patch |
 | `src/lib/posthog-events.ts` | Add 5 new event functions; update `trackPaymentSuccess` and `trackGenerationComplete` signatures; add localStorage/sessionStorage counter helpers; update comments throughout |
 | `src/pages/PhotographyStudioCategories.tsx` | Add `category_selected` to `handleCategoryClick`; add posthog-events import |
-| `src/pages/UnifiedStudio.tsx` | Add `jewelry_uploaded`, `validation_flagged`, `model_selected`, `paywall_hit`; enrich `generation_completed`, `regenerate_clicked`, `download_clicked`; add `regenerationCount` state; update `trackGenerationComplete` call site |
+| `src/pages/UnifiedStudio.tsx` | Add `jewelry_uploaded` (in `handleJewelryUpload` for path A + in `handleContinueAnyway` for path B), `validation_flagged`, `model_selected`, `paywall_hit`; enrich `generation_completed`, `regenerate_clicked`, `download_clicked`; add `regenerationCount` state; update `trackGenerationComplete` call site |
 | `src/pages/TextToCAD.tsx` | Add `paywall_hit`; add `cad_generation_completed`; add `cadGenStartTime` ref |
 | `src/pages/PaymentSuccess.tsx` | Update `trackPaymentSuccess` call with new properties; add `useBillingLocale` import |
 
@@ -333,8 +384,10 @@ posthog.capture('payment_success', {
 **Category / Upload:**
 - [ ] Select a category → `category_selected` fires, `is_first_selection: true`
 - [ ] Navigate back and select again same session → `category_selected` fires, `is_first_selection: false`
-- [ ] Upload valid jewelry → `jewelry_uploaded` fires with correct `upload_type` label
-- [ ] Upload invalid jewelry → `validation_flagged` fires; `jewelry_uploaded` does NOT fire
+- [ ] Upload worn jewelry (mannequin/model/body_part) → `jewelry_uploaded` fires with `was_flagged: false` and correct `upload_type`
+- [ ] Upload flatlay/non-worn jewelry → `validation_flagged` fires with correct `detected_label`; `jewelry_uploaded` does NOT fire yet
+- [ ] After flatlay validation dialog → click "Go Back & Re-upload" → no `jewelry_uploaded` fires
+- [ ] After flatlay validation dialog → click "Continue Anyway" → `jewelry_uploaded` fires with `was_flagged: true` and non-worn `upload_type`
 - [ ] Paste an image into step 2 (model upload) → `model_selected` fires with `model_type: 'custom_upload'`
 
 **Model / Generate:**
