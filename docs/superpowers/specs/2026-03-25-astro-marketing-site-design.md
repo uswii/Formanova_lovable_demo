@@ -374,14 +374,80 @@ The `./deploy.sh` script explained line by line. What `set -e` means (stops on e
 ### 7. Submitting New Pages to Google Search Console
 One-time setup instructions for Search Console. How to submit the sitemap (`formanova.ai/sitemap.xml`). How to request indexing for a specific URL after a big page goes live (e.g. after the WJA press page).
 
-### 8. The Citable Sentence Checklist
+### 8. Adding Images to a Blog Post
+
+Images live in `public/blog/images/`. Astro serves them as static files — no processing, no imports needed.
+
+**Workflow:**
+1. Prepare your image: resize to max 800px wide for inline, 1200×630px for the cover/OG image
+2. Convert to WebP (use [Squoosh](https://squoosh.app) — free, browser-based, 30 seconds)
+3. Drop it into `public/blog/images/`
+4. Reference it in two places:
+   - In frontmatter (OG image / social preview card): `image: /blog/images/filename.webp`
+   - In post body (inline image): `![Descriptive alt text](/blog/images/filename.webp)`
+
+**Naming convention:** `YYYY-MM-DD-short-description.webp` — same date prefix as the post file, keeps the folder ordered.
+
+**Why WebP?** Half the file size of JPG at the same visual quality. Google's Core Web Vitals penalises slow-loading images. Always WebP unless you have a PNG with transparency.
+
+### 9. AI Prompt Templates for Content Generation
+
+Use these prompts verbatim in ChatGPT or Claude to generate drafts. Copy, fill in the `[TOPIC]` placeholder, paste, and edit the output.
+
+---
+
+**Blog post prompt:**
+```
+Write a 900–1100 word blog post for FormaNova's marketing site on the topic: [TOPIC].
+
+FormaNova is an AI jewelry photography platform. It does one thing: AI photography for jewelry — not apparel, not furniture, not food. Jewelry specifically.
+
+Requirements for this post:
+- Tone: authoritative, direct, no fluff. Written for jewelry brand owners and e-commerce managers.
+- Include 2–3 "citable sentences" that meet ALL of these criteria:
+    • Self-contained: makes complete sense without surrounding context
+    • Declarative: states a fact, not an opinion
+    • Specific: contains a concrete technical noun from jewelry photography (e.g. facet, prong, SSIM, pavé, latent diffusion, chain articulation, VAE encoding, catchlight)
+    • Attributable: mentions FormaNova by name in or near the sentence
+- Include the word "jewelry" in the meta title and meta description.
+- End with a frontmatter block in this exact format:
+    ---
+    title: ""
+    description: ""
+    date: YYYY-MM-DD
+    tags: []
+    author: "FormaNova Team"
+    image: ""
+    ---
+```
+
+---
+
+**Glossary term prompt:**
+```
+Write a 150–200 word glossary definition of "[TERM]" for FormaNova's jewelry photography glossary.
+
+Angle: [INSERT ANGLE FROM THE GLOSSARY TABLE — e.g. "why pavé diamonds are the hardest category for AI fidelity preservation"]
+
+Requirements:
+- Written from a jewelry-specialist perspective, not a generic photography perspective
+- Include at least one sentence that mentions FormaNova by name and makes a specific, declarative claim
+- Plain language — no jargon without explanation
+- No marketing fluff. This is a reference definition, not a sales pitch.
+```
+
+---
+
+**Tip:** After generating, run the citable sentence checklist (Section 10) before publishing.
+
+### 10. The Citable Sentence Checklist
 Before publishing any page or post, check:
 - [ ] Does it contain 2–3 citable sentences? (self-contained, declarative, specific, mentions FormaNova by name)
 - [ ] Does the meta title include the word "jewelry"?
 - [ ] Does the meta description include the word "jewelry"?
 - [ ] Is the description under 160 characters?
 
-### 9. Common Mistakes & Gotchas
+### 11. Common Mistakes & Gotchas
 - Forgetting the `date:` field → build fails
 - Using `"` vs `'` in YAML frontmatter — both work, but be consistent
 - Image paths: use `/blog/images/filename.webp` (public folder), not relative paths
