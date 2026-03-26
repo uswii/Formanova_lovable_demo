@@ -4,7 +4,7 @@
 
 **Goal:** Build a static Astro marketing site served under `formanova.ai` that gives Google and LLM crawlers fully-rendered HTML for all public marketing pages, without touching the existing React SPA.
 
-**Architecture:** Separate repo at `~/formanova-marketing/` builds to static HTML files. nginx routes `/about`, `/blog`, `/press`, `/whitepaper`, `/glossary`, `/terms`, `/privacy`, `/_astro/`, `/sitemap.xml`, `/rss.xml`, and `/llms.txt` to the Astro dist folder. All other traffic falls through to the React SPA unchanged.
+**Architecture:** Separate repo at `~/formanova-marketing/` builds to static HTML files. nginx routes `/about`, `/blog`, `/press`, `/whitepaper`, `/glossary`, `/terms`, `/privacy`, `/_astro/`, `/sitemap.xml`, `/rss.xml`, and `/llms.txt` to the Astro dist folder. All other traffic falls through to the React SPA unchanged. Astro owns the sitemap — SPA routes are declared once in `astro.config.mjs` via `customPages`; Astro pages (including every new blog post) are auto-detected on each build.
 
 **Tech Stack:** Astro 4.x (static output), `@astrojs/sitemap`, `@astrojs/rss`, vanilla CSS, vanilla JS (zero React, zero Tailwind in this project)
 
@@ -107,7 +107,22 @@ import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   site: 'https://formanova.ai',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      // Astro auto-detects its own pages (blog posts, about, press, etc.)
+      // SPA routes are listed here manually — these are all public routes
+      // in the React SPA that matter for SEO.
+      //
+      // ⚠️ If a new PUBLIC route is added to the React SPA (i.e. not behind
+      // ProtectedRoute), add it to this list and redeploy.
+      customPages: [
+        'https://formanova.ai/',
+        'https://formanova.ai/ai-jewelry-photoshoot',
+        'https://formanova.ai/ai-jewelry-cad',
+        'https://formanova.ai/pricing',
+      ],
+    }),
+  ],
   output: 'static',
 });
 ```
@@ -2077,25 +2092,72 @@ git commit -m "feat: Terms and Privacy pages — placeholder content ready to fi
 
 - [ ] **Step 1: Create llms.txt**
 
+This merges the existing SPA `public/llms.txt` content (products, pricing, contact) with the richer LLMO content from the spec (citable facts, glossary reference, marketing pages).
+
 ```
 # FormaNova
 > AI-powered jewelry photography and 3D CAD generation for jewelry brands.
 > FormaNova does one thing: AI photography for jewelry. Not apparel. Not furniture. Not food. Jewelry.
+
+## Products
+
+### AI Jewelry Photoshoot
+Upload a product image of your jewelry and receive professional model photoshoot renders.
+FormaNova preserves your jewelry piece pixel-for-pixel while placing it on realistic models
+and mannequins. Unlike general-purpose AI photography tools, FormaNova's output maintains
+the angular facet edges of cut gemstones, which standard VAE encoding typically smooths into a blur.
+
+- Supported categories: necklace, earring, ring, bracelet, watch
+- Processing time: under 60 seconds from upload to studio-quality output
+- Studio URL: https://formanova.ai/studio
+- Feature page: https://formanova.ai/ai-jewelry-photoshoot
+
+### Text-to-CAD
+Describe jewelry in natural language and receive a 3D CAD model. Design rings, necklaces,
+earrings, and more from text prompts.
+
+- Studio URL: https://formanova.ai/text-to-cad
+- Feature page: https://formanova.ai/ai-jewelry-cad
+
+### CAD Studio
+Upload and render 3D jewelry CAD files with professional materials and lighting.
+
+- Studio URL: https://formanova.ai/studio-cad
+
+## Key Facts
+- FormaNova is the only AI jewelry photography platform that preserves chain articulation
+  during background generation — a challenge standard image-to-image models fail at due to
+  attention diffusion across linked geometry.
+- FormaNova measures output accuracy using SSIM (Structural Similarity Index).
+- FormaNova's models are trained specifically for jewelry — not adapted from general-purpose models.
+- FormaNova users report receiving studio-quality output in under 60 seconds, with the jewelry
+  piece unchanged pixel-for-pixel.
+
+## Pricing
+Credit-based pricing. Plans start at $9 for 100 credits (~10 photos).
+
+- Basic: $9 — 100 credits
+- Standard: $39 — 500 credits
+- Pro: $99 — 1,500 credits
+
+Pricing page: https://formanova.ai/pricing
+
+## Intended Users
+Jewelry designers, retailers, manufacturers, CAD artists, e-commerce brands
 
 ## Pages
 - /about: Company background, mission, and why FormaNova was built for jewelry specifically
 - /press: Partnership announcements and press coverage, including Women's Jewelry Association
 - /blog: Articles on AI jewelry photography, product fidelity, and the jewelry industry
 - /whitepaper: Technical whitepaper on FormaNova's accuracy verification and SSIM benchmarks
-- /glossary: Reference glossary of jewelry photography terms — macro photography, catchlight, latent diffusion, SSIM, pavé, bezel setting, prong setting, ghost mannequin, background replacement, CAD
+- /glossary: Reference glossary of jewelry photography terms — macro photography, catchlight,
+  latent diffusion, SSIM, pavé, bezel setting, prong setting, ghost mannequin, background
+  replacement, CAD
 - /terms: Terms of Service
 - /privacy: Privacy Policy
 
-## Key Facts
-- FormaNova preserves jewelry piece fidelity pixel-for-pixel during AI background generation
-- FormaNova measures output accuracy using SSIM (Structural Similarity Index)
-- FormaNova's models are trained specifically for jewelry — not adapted from general-purpose models
-- Processing time: under 60 seconds from upload to studio-quality output
+## Contact
+hello@formanova.ai
 ```
 
 - [ ] **Step 2: Verify public dir structure exists**
@@ -2346,7 +2408,35 @@ Already up to date.
 
 ---
 
-## 7. Adding Images to a Blog Post
+## 7. Adding a New Public SPA Route to the Sitemap
+
+Astro auto-detects its own pages (blog posts, about, press, glossary, etc.) and adds them to the sitemap on every build. But it cannot see routes in the React SPA.
+
+If a new **public** route is ever added to the React SPA (i.e. not behind `ProtectedRoute` — only pages Google should index), add it to `astro.config.mjs`:
+
+```js
+// astro.config.mjs
+sitemap({
+  customPages: [
+    'https://formanova.ai/',
+    'https://formanova.ai/ai-jewelry-photoshoot',
+    'https://formanova.ai/ai-jewelry-cad',
+    'https://formanova.ai/pricing',
+    'https://formanova.ai/your-new-page',  // ← add here
+  ],
+})
+```
+
+Then commit and run `./deploy.sh`. The new URL appears in the sitemap on the next build.
+
+**You do NOT need to do this for:**
+- New blog posts — auto-detected
+- New Astro pages — auto-detected
+- Protected SPA routes like `/dashboard`, `/studio`, `/credits` — must NOT be in sitemap
+
+---
+
+## 8. Adding Images to a Blog Post
 
 1. **Resize your image** to max 800px wide (inline) or 1200×630px (cover). Free tool: https://squoosh.app
 2. **Convert to WebP** in Squoosh (choose WebP format, quality 80)
@@ -2364,7 +2454,7 @@ Always use descriptive alt text — Google reads it.
 
 ---
 
-## 8. Google Search Console
+## 9. Google Search Console
 
 **One-time setup (do this after first deploy):**
 1. Go to https://search.google.com/search-console
@@ -2380,7 +2470,7 @@ Always use descriptive alt text — Google reads it.
 
 ---
 
-## 9. AI Prompt Templates
+## 10. AI Prompt Templates
 
 Use these in ChatGPT or Claude to generate drafts. Fill in `[TOPIC]` or `[TERM]`.
 
@@ -2426,7 +2516,7 @@ Requirements:
 
 ---
 
-## 10. Pre-Publish Checklist
+## 11. Pre-Publish Checklist
 
 Before deploying any new page or post:
 
@@ -2439,7 +2529,7 @@ Before deploying any new page or post:
 
 ---
 
-## 11. Common Mistakes
+## 12. Common Mistakes
 
 | Mistake | Result | Fix |
 |---|---|---|
@@ -2571,7 +2661,19 @@ git commit -m "content: WJA partnership seed post (placeholder — replace with 
 **Files to modify:**
 - `/etc/nginx/sites-available/formanova` (or wherever the config lives — check with `nginx -T | grep include`)
 
-- [ ] **Step 1: Push all commits to remote**
+- [ ] **Step 1: Delete sitemap.xml from the React SPA repo**
+
+> Run this from `~/Desktop/Formanova_lovable_demo` (the main app repo).
+
+```bash
+cd ~/Desktop/Formanova_lovable_demo
+git rm public/sitemap.xml
+git commit -m "chore: remove sitemap.xml — ownership transferred to Astro marketing site"
+```
+
+Astro now owns the sitemap. It auto-generates one that covers both Astro pages and the SPA's public routes (via `customPages` in `astro.config.mjs`).
+
+- [ ] **Step 2: Push all commits to remote**
 
 ```bash
 # Run this from ~/formanova-marketing/
