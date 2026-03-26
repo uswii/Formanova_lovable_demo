@@ -1352,7 +1352,7 @@ export default function UnifiedStudio() {
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
                         <input
                           type="text"
-                          placeholder="Search models..."
+                          placeholder="Type a model name…"
                           value={myModelsSearch}
                           onChange={e => setMyModelsSearch(e.target.value)}
                           className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
