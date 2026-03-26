@@ -2,7 +2,7 @@
 // Purely presentational — no data fetching. Restyle freely; keep AssetCardProps stable.
 
 import { useState } from 'react';
-import { Pencil, Check } from 'lucide-react';
+import { Pencil, Check, X } from 'lucide-react';
 import type { UserAsset } from '@/lib/assets-api';
 
 export interface AssetCardProps {
