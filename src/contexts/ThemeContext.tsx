@@ -72,8 +72,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Apply the new theme
     if (theme === 'dark') {
       root.classList.add('dark');
-    } else if (theme !== 'light') {
-      root.setAttribute('data-theme', theme);
+    } else {
+      root.setAttribute('data-theme', theme); // includes 'light' — prevents OS dark mode override
     }
   }, [theme]);
 
