@@ -43,9 +43,9 @@ fi
 echo -e "${GREEN}✓ Service stopped${NC}"
 
 # =============================================================================
-# Step 2: Backup .env files (preserve local config)
+# Step 2: Backup .env files and CLAUDE.md (preserve local config)
 # =============================================================================
-echo -e "${YELLOW}[2/7] Backing up .env files...${NC}"
+echo -e "${YELLOW}[2/7] Backing up .env files and CLAUDE.md...${NC}"
 
 ENV_BACKUP_DIR="$PROJECT_DIR/.env-backup-$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$ENV_BACKUP_DIR"
@@ -59,6 +59,21 @@ if [ -f "$PROJECT_DIR/temporal-backend/.env" ]; then
     cp "$PROJECT_DIR/temporal-backend/.env" "$ENV_BACKUP_DIR/temporal-backend.env"
     echo "  Backed up temporal-backend/.env"
 fi
+
+# Backup CLAUDE.md and record the common ancestor for 3-way merge after pull
+if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
+    cp "$PROJECT_DIR/CLAUDE.md" "$ENV_BACKUP_DIR/CLAUDE.md.ours"
+    CURRENT_BRANCH=$(git branch --show-current)
+    git fetch origin "$CURRENT_BRANCH" -q 2>/dev/null || true
+    MERGE_BASE=$(git merge-base HEAD "origin/$CURRENT_BRANCH" 2>/dev/null)
+    if [ -n "$MERGE_BASE" ]; then
+        git show "$MERGE_BASE:CLAUDE.md" > "$ENV_BACKUP_DIR/CLAUDE.md.base" 2>/dev/null || cp "$ENV_BACKUP_DIR/CLAUDE.md.ours" "$ENV_BACKUP_DIR/CLAUDE.md.base"
+    else
+        cp "$ENV_BACKUP_DIR/CLAUDE.md.ours" "$ENV_BACKUP_DIR/CLAUDE.md.base"
+    fi
+    echo "  Backed up CLAUDE.md"
+fi
+
 echo -e "${GREEN}✓ Environment files backed up to $ENV_BACKUP_DIR${NC}"
 
 # =============================================================================
@@ -95,9 +110,9 @@ else
 fi
 
 # =============================================================================
-# Step 5: Restore .env files
+# Step 5: Restore .env files and merge CLAUDE.md
 # =============================================================================
-echo -e "${YELLOW}[5/7] Restoring .env files...${NC}"
+echo -e "${YELLOW}[5/7] Restoring .env files and merging CLAUDE.md...${NC}"
 
 if [ -f "$ENV_BACKUP_DIR/.env" ]; then
     cp "$ENV_BACKUP_DIR/.env" "$PROJECT_DIR/.env"
@@ -108,6 +123,23 @@ if [ -f "$ENV_BACKUP_DIR/temporal-backend.env" ]; then
     cp "$ENV_BACKUP_DIR/temporal-backend.env" "$PROJECT_DIR/temporal-backend/.env"
     echo "  Restored temporal-backend/.env"
 fi
+
+# 3-way merge CLAUDE.md: base (common ancestor) + ours (pre-pull) + theirs (pulled)
+if [ -f "$ENV_BACKUP_DIR/CLAUDE.md.ours" ] && [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
+    THEIRS="$PROJECT_DIR/CLAUDE.md"
+    OURS="$ENV_BACKUP_DIR/CLAUDE.md.ours"
+    BASE="$ENV_BACKUP_DIR/CLAUDE.md.base"
+    cp "$THEIRS" "$ENV_BACKUP_DIR/CLAUDE.md.theirs"
+    cp "$OURS" "$THEIRS"
+    git merge-file "$THEIRS" "$BASE" "$ENV_BACKUP_DIR/CLAUDE.md.theirs" 2>/dev/null
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo -e "${GREEN}  CLAUDE.md merged cleanly${NC}"
+    elif [ $EXIT_CODE -gt 0 ]; then
+        echo -e "${YELLOW}  CLAUDE.md has merge conflicts — markers left in file, resolve manually${NC}"
+    fi
+fi
+
 rm -rf "$ENV_BACKUP_DIR"
 echo -e "${GREEN}✓ Environment files restored${NC}"
 
