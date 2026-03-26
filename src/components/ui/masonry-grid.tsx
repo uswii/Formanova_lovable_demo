@@ -1,7 +1,7 @@
 // src/components/ui/masonry-grid.tsx
 // True Pinterest-style masonry: shortest-column-first, equal gutters, absolute positioning.
 
-import { useRef, useState, useEffect, useCallback, useMemo, Children, type ReactNode } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, Children, type ReactNode, type ReactElement } from 'react';
 
 interface Breakpoints {
   sm?: number;
@@ -35,6 +35,7 @@ export function MasonryGrid({
 }: MasonryGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const computeRef = useRef<() => void>(() => {});
   const [containerWidth, setContainerWidth] = useState(0);
   const [positions, setPositions] = useState<ItemPos[]>([]);
   const [gridHeight, setGridHeight] = useState(0);
@@ -56,7 +57,7 @@ export function MasonryGrid({
   const effectiveCols = useMemo(() => {
     if (!breakpoints) return columns;
     if (containerWidth >= 1024 && breakpoints.lg != null) return breakpoints.lg;
-    if (containerWidth >= 768 && breakpoints.md != null) return breakpoints.md;
+    if (containerWidth >= 640  && breakpoints.md != null) return breakpoints.md;
     return breakpoints.sm ?? columns;
   }, [containerWidth, columns, breakpoints]);
 
@@ -114,24 +115,23 @@ export function MasonryGrid({
     setVisible(true);
   }, [colWidth, effectiveCols, gap, items.length]);
 
-  // Run layout when items or column width changes; re-run as images finish loading
+  // Keep computeRef current so observers never close over stale compute
+  computeRef.current = compute;
+
+  // Initial compute + per-item ResizeObserver (auto-fires when images load and expand cards)
   useEffect(() => {
     if (!colWidth) return;
 
     compute();
 
-    const el = containerRef.current;
-    if (!el) return;
-    const unloaded = [...el.querySelectorAll<HTMLImageElement>('img')].filter(img => !img.complete);
-    const onLoad = () => compute();
-    unloaded.forEach(img => {
-      img.addEventListener('load', onLoad, { once: true });
-      img.addEventListener('error', onLoad, { once: true });
+    const observers: ResizeObserver[] = [];
+    itemRefs.current.forEach((el) => {
+      const ro = new ResizeObserver(() => computeRef.current());
+      ro.observe(el);
+      observers.push(ro);
     });
-    return () => unloaded.forEach(img => {
-      img.removeEventListener('load', onLoad);
-      img.removeEventListener('error', onLoad);
-    });
+
+    return () => observers.forEach(ro => ro.disconnect());
   }, [items.length, colWidth, compute]);
 
   return (
@@ -147,9 +147,10 @@ export function MasonryGrid({
     >
       {items.map((child, i) => {
         const pos = positions[i];
+        const childKey = (child as ReactElement).key;
         return (
           <div
-            key={i}
+            key={childKey ?? i}
             ref={el => { if (el) itemRefs.current.set(i, el); else itemRefs.current.delete(i); }}
             style={
               pos
