@@ -137,6 +137,7 @@ const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
 const STUDIO_SESSION_KEY = 'formanova_studio_session_v1';
 
 interface StudioSession {
+  jewelryType: string;
   jewelryUploadedUrl: string;
   jewelryAssetId: string | null;
   validationResult: ImageValidationResult | null;
@@ -431,6 +432,12 @@ export default function UnifiedStudio() {
     const session = loadStudioSession();
     if (!session?.jewelryUploadedUrl) return;
 
+    // Don't restore if session belongs to a different jewelry type
+    if (session.jewelryType && session.jewelryType !== jewelryType) {
+      clearStudioSession();
+      return;
+    }
+
     // Derive a displayable URL from the stored Azure URI
     setJewelryImage(azureUriToUrl(session.jewelryUploadedUrl));
     setJewelryUploadedUrl(session.jewelryUploadedUrl);
@@ -448,6 +455,7 @@ export default function UnifiedStudio() {
   useEffect(() => {
     if (!jewelryUploadedUrl) return;
     saveStudioSession({
+      jewelryType,
       jewelryUploadedUrl,
       jewelryAssetId,
       validationResult,
