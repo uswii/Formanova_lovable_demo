@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
+import { MasonryGrid } from '@/components/ui/masonry-grid';
 
 // ── Example images ────────────────────────────────────────────────────────────
 import necklaceAllowed1    from '@/assets/examples/necklace-allowed-1.jpg';
@@ -367,8 +368,8 @@ export function AlternateUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} overflow-y-auto border border-border/30`}>
-                <div className="grid grid-cols-3 gap-2 items-start">
+              <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
+                <MasonryGrid columns={3} gap={8}>
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
                     return (
@@ -376,7 +377,7 @@ export function AlternateUploadStep({
                         key={asset.id}
                         type="button"
                         onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                        className={`flex flex-col relative overflow-hidden border transition-all group
+                        className={`relative overflow-hidden border transition-all group w-full
                           ${isSelected
                             ? 'border-[hsl(var(--formanova-hero-accent))]'
                             : 'border-border/20 hover:border-foreground/30'}`}
@@ -411,7 +412,7 @@ export function AlternateUploadStep({
                       </button>
                     );
                   })}
-                </div>
+                </MasonryGrid>
               </div>
             )}
 
