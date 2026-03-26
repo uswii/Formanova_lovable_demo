@@ -174,12 +174,23 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
 }) {
   const [editing, setEditing] = React.useState(false);
   const [nameInput, setNameInput] = React.useState(model.name);
+  const [saved, setSaved] = React.useState(false);
 
   const commit = () => {
     setEditing(false);
     const trimmed = nameInput.trim();
-    if (trimmed && trimmed !== model.name) onRename(trimmed);
-    else setNameInput(model.name);
+    if (trimmed && trimmed !== model.name) {
+      onRename(trimmed);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } else {
+      setNameInput(model.name);
+    }
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setNameInput(model.name);
   };
 
   return (
@@ -204,27 +215,48 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
       >
         <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
       </button>
-      <div className="px-1 pt-1.5 pb-1 flex items-center justify-center gap-1 min-h-[1.75rem]">
+
+      {/* ── Name area: clear signifier, explicit save/cancel, feedback ── */}
+      <div className="px-2 pt-2 pb-1.5 min-h-[2.25rem]">
         {editing ? (
-          <input
-            autoFocus
-            className="font-mono text-[10px] text-foreground bg-transparent border-b border-formanova-glow outline-none text-center w-full"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value)}
-            onBlur={commit}
-            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setEditing(false); setNameInput(model.name); } }}
-            onClick={e => e.stopPropagation()}
-          />
+          <div className="space-y-1.5" onClick={e => e.stopPropagation()}>
+            <input
+              autoFocus
+              className="font-mono text-xs text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none w-full transition-colors"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
+              placeholder="Enter a name…"
+            />
+            <div className="flex items-center gap-1.5 justify-end">
+              <button
+                onClick={cancel}
+                className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={commit}
+                className="font-mono text-[9px] uppercase tracking-wider text-background bg-foreground hover:bg-foreground/80 px-2 py-0.5 rounded transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         ) : (
           <button
-            className="flex items-center gap-1 group/rename max-w-full"
-            title="Rename"
+            className="flex items-center gap-1.5 group/rename max-w-full w-full text-left rounded px-1 py-0.5 -mx-1 hover:bg-muted/20 transition-colors"
+            title="Click to rename"
             onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(model.name); }}
           >
-            <span className="font-mono text-[10px] text-muted-foreground truncate group-hover/rename:text-foreground transition-colors">
-              {model.name || <span className="italic opacity-50">Unnamed</span>}
+            {saved ? (
+              <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+            ) : (
+              <Pencil className="h-3 w-3 text-muted-foreground/50 group-hover/rename:text-foreground/70 flex-shrink-0 transition-colors" />
+            )}
+            <span className={`font-mono text-xs truncate transition-colors ${saved ? 'text-formanova-success' : 'text-muted-foreground group-hover/rename:text-foreground'}`}>
+              {saved ? 'Saved!' : (model.name || <span className="italic opacity-50">Unnamed — click to name</span>)}
             </span>
-            <Pencil className="h-2.5 w-2.5 text-muted-foreground/40 group-hover/rename:text-foreground flex-shrink-0 transition-colors" />
           </button>
         )}
       </div>
