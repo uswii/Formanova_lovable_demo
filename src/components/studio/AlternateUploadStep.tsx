@@ -158,7 +158,7 @@ export function AlternateUploadStep({
   }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
-  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE);
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, exampleCategoryType);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isEmpty = !isLoading && !error && assets.length === 0;
 
