@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import {
   Check, X, Diamond, Upload, ArrowRight, Loader2,
-  ChevronLeft, ChevronRight, FlaskConical, ImageIcon, Lightbulb,
+  ChevronLeft, ChevronRight, ImageIcon, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
@@ -63,8 +63,8 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
   watches:   { allowed: [watchAllowed1,    watchAllowed2,    watchAllowed3,    watchAllowed4],       notAllowed: [watchNotAllowed1,    watchNotAllowed2,    watchNotAllowed3]    },
 };
 
-// ── Test Mode Guide — 2×2 recommended photos only ─────────────────────────────
-function TestModeGuidePanel({
+// ── Upload Guide — 2×2 recommended photos, shown to users with no uploads yet ──
+function UploadGuidePanel({
   examples,
   canvasH,
 }: {
@@ -113,55 +113,6 @@ function buildPageList(current: number, total: number): (number | '…')[] {
   return pages;
 }
 
-// ── Upload Guide panel (original style) ───────────────────────────────────────
-function UploadGuidePanel({
-  examples,
-  canvasH,
-}: {
-  examples: { allowed: string[]; notAllowed: string[] };
-  canvasH: string;
-}) {
-  return (
-    <div className={`${canvasH} overflow-y-auto border border-border/30 p-4`}>
-    <div className="space-y-5">
-      {/* Accepted */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-            <Check className="w-2.5 h-2.5 text-green-500" />
-          </div>
-          <span className="text-xs font-medium text-foreground">Accepted</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {examples.allowed.map((src, i) => (
-            <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
-              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Not Accepted */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-            <X className="w-2.5 h-2.5 text-destructive" />
-          </div>
-          <span className="text-xs font-medium text-foreground">Not Accepted</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {examples.notAllowed.map((src, i) => (
-            <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
-              <img src={src} alt="" draggable={false} className="w-full h-full object-cover opacity-70" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-    </div>
-  );
-}
-
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface AlternateUploadStepProps {
@@ -200,7 +151,6 @@ export function AlternateUploadStep({
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
 
-  const [testMode, setTestMode] = useState(false);
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
 
   React.useEffect(() => {
@@ -212,8 +162,8 @@ export function AlternateUploadStep({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isEmpty = !isLoading && !error && assets.length === 0;
 
-  // Show guide when: test mode active OR no products exist
-  const showGuide = testMode || isEmpty;
+  // Show guide for users with no uploads yet; show My Products once they have any
+  const showGuide = isEmpty;
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
@@ -331,26 +281,10 @@ export function AlternateUploadStep({
             </p>
           </div>
 
-          {/* Test Mode toggle */}
-          <button
-            type="button"
-            onClick={() => setTestMode((v) => !v)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 border font-mono text-[9px]
-                        tracking-[0.2em] uppercase transition-colors mt-0.5
-                        ${testMode
-                          ? 'border-[hsl(var(--formanova-hero-accent))] text-[hsl(var(--formanova-hero-accent))] bg-[hsl(var(--formanova-hero-accent)/0.08)]'
-                          : 'border-border/40 text-muted-foreground hover:border-foreground/30 hover:text-foreground'}`}
-          >
-            <FlaskConical className="h-3 w-3" />
-            Test
-          </button>
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && (testMode
-          ? <TestModeGuidePanel examples={examples} canvasH={CANVAS_H} />
-          : <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />
-        )}
+        {showGuide && <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />}
 
         {/* ── Product library ── */}
         {!showGuide && (
