@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
+import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
 
 const BASE_URL = 'https://formanova.ai';
 const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
@@ -129,7 +130,31 @@ export function useImageValidation() {
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
-      // 2. POST /api/run/image_classification
+      // 2. Check if already classified — skip workflow if metadata.display_type is set
+      if (uploadedAssetId) {
+        try {
+          const assetsPage = await fetchUserAssets('jewelry_photo', 0, 200);
+          const cached = assetsPage.items.find(a => a.id === uploadedAssetId);
+          if (cached?.metadata?.display_type) {
+            clearTimeout(timeoutId);
+            const is_worn = cached.metadata.is_worn === 'true';
+            console.log('[ImageValidation] Using cached classification for asset:', uploadedAssetId);
+            return {
+              category: cached.metadata.display_type as ClassificationResult['category'],
+              is_worn,
+              confidence: 1,
+              reason: 'cached',
+              flagged: cached.metadata.flagged === 'true',
+              uploaded_url: uploadedUrl,
+              asset_id: uploadedAssetId,
+            };
+          }
+        } catch {
+          // List fetch failed — proceed with classification
+        }
+      }
+
+      // 3. POST /api/run/image_classification
       const authHeaders = getAuthHeaders();
       const classificationPayload = {
         payload: {
@@ -231,6 +256,15 @@ export function useImageValidation() {
         const label = raw.label || 'unknown';
         const reason = raw.reason || '';
         const is_worn = reason === 'worn' || WORN_CATEGORIES.includes(label);
+
+        // Persist result so re-uploads skip classification
+        if (uploadedAssetId) {
+          updateAssetMetadata(uploadedAssetId, {
+            display_type: label,
+            is_worn: String(is_worn),
+            flagged: String(!is_worn),
+          }).catch(() => {});
+        }
 
         clearTimeout(timeoutId);
         return {

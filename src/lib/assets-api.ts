@@ -13,7 +13,7 @@ export interface UserAsset {
   created_at: string;      // ISO string
   thumbnail_url: string;   // SAS URL with 1-hour expiry — use directly in <img src>
   name: string | null;
-  metadata?: { category?: string; name?: string; [key: string]: string | undefined };
+  metadata?: { category?: string; name?: string; display_type?: string; is_worn?: string; flagged?: string; user_override?: string; [key: string]: string | undefined };
 }
 
 export interface AssetsPage {
@@ -40,7 +40,7 @@ export async function fetchUserAssets(
 
 export async function updateAssetMetadata(
   assetId: string,
-  metadata: { category?: string; name?: string },
+  metadata: { category?: string; name?: string; display_type?: string; is_worn?: string; flagged?: string; user_override?: string },
 ): Promise<UserAsset> {
   const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}`, {
     method: 'PATCH',
