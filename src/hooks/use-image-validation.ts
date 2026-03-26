@@ -135,6 +135,7 @@ export function useImageValidation() {
         try {
           const assetsPage = await fetchUserAssets('jewelry_photo', 0, 200);
           const cached = assetsPage.items.find(a => a.id === uploadedAssetId);
+          console.log('[ImageValidation] Cache check — asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
           if (cached?.metadata?.display_type) {
             clearTimeout(timeoutId);
             const is_worn = cached.metadata.is_worn === 'true';
@@ -149,8 +150,8 @@ export function useImageValidation() {
               asset_id: uploadedAssetId,
             };
           }
-        } catch {
-          // List fetch failed — proceed with classification
+        } catch (e) {
+          console.warn('[ImageValidation] Cache check failed:', e);
         }
       }
 
@@ -263,7 +264,11 @@ export function useImageValidation() {
             display_type: label,
             is_worn: String(is_worn),
             flagged: String(!is_worn),
-          }).catch(() => {});
+          }).then(() => {
+            console.log('[ImageValidation] Metadata saved for asset:', uploadedAssetId);
+          }).catch((e) => {
+            console.warn('[ImageValidation] Failed to save metadata:', e);
+          });
         }
 
         clearTimeout(timeoutId);
