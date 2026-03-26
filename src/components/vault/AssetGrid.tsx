@@ -48,9 +48,9 @@ export function AssetGrid({
   }
 
   return (
-    <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
+    <div className="columns-2 sm:columns-3 lg:columns-4 [column-gap:1rem]">
       {assets.map((asset) => (
-        <div key={asset.id} className="break-inside-avoid mb-4">
+        <div key={asset.id} className="break-inside-avoid mb-4 last:mb-0">
           <AssetCard
             asset={asset}
             onReshoot={onReshoot}
