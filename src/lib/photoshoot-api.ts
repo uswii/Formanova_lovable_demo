@@ -74,13 +74,17 @@ export async function startPhotoshoot(
 
   const { input_jewelry_asset_id, input_model_asset_id, ...payload } = request;
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const jewelryId = input_jewelry_asset_id && UUID_RE.test(input_jewelry_asset_id) ? input_jewelry_asset_id : undefined;
+  const modelId = input_model_asset_id && UUID_RE.test(input_model_asset_id) ? input_model_asset_id : undefined;
+
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
       payload,
-      ...(input_jewelry_asset_id ? { input_jewelry_asset_id } : {}),
-      ...(input_model_asset_id ? { input_model_asset_id } : {}),
+      ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
+      ...(modelId ? { input_model_asset_id: modelId } : {}),
     }),
   });
 
