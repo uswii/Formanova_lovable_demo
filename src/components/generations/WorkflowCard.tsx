@@ -15,13 +15,22 @@ const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
+const localDateOnlyFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+});
 function formatLocal(ts: string): string {
-  // Ensure the timestamp is treated as UTC if it lacks a timezone indicator
   let normalized = ts.trim();
   if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
     normalized += 'Z';
   }
   return localDateFmt.format(new Date(normalized));
+}
+function formatLocalDateOnly(ts: string): string {
+  let normalized = ts.trim();
+  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
+    normalized += 'Z';
+  }
+  return localDateOnlyFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
@@ -65,6 +74,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
+  const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   const isEnriching = workflow.screenshots === undefined;
@@ -124,8 +134,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         className="marta-frame overflow-hidden"
       >
         {/* Card header: number + model tier + date */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end sm:justify-between px-4 pt-4 pb-3 gap-2">
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
             <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
               #{index}
             </span>
@@ -135,22 +145,29 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <CreditsBadge credits={workflow.credits_spent} />
-            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-              {dateStr}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="hidden sm:inline-flex"><CreditsBadge credits={workflow.credits_spent} /></span>
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
+              <span className="sm:hidden">{dateOnlyStr}</span>
+              <span className="hidden sm:inline">{dateStr}</span>
             </span>
           </div>
         </div>
 
         {/* ── Interactive 3D GLB Preview ── */}
         {workflow.glb_url && !isFailed && (
-          <div className="mx-3 mb-2">
+          <div className="mx-3 mb-2 relative">
             <GLBPreviewSlot
               id={workflow.workflow_id}
               glbUrl={workflow.glb_url}
               className="w-full aspect-[4/3] bg-background/50 border border-border/30"
             />
+            {workflow.credits_spent != null && (
+              <div className="sm:hidden absolute top-0 left-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border-r border-b border-border/30">
+                <img src={creditCoinIcon} alt="" className="w-3 h-3" />
+                <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
+              </div>
+            )}
           </div>
         )}
         {!workflow.glb_url && !isFailed && isEnriching && (
@@ -277,6 +294,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
+  const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
 
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
@@ -298,6 +316,13 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
             />
+            {/* Credits badge — mobile only, top-left corner */}
+            {workflow.credits_spent != null && (
+              <div className="sm:hidden absolute top-0 left-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border-r border-b border-border/30">
+                <img src={creditCoinIcon} alt="" className="w-3 h-3" />
+                <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
+              </div>
+            )}
             {/* View / enlarge icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
               <div className="bg-background/80 backdrop-blur-sm p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -313,14 +338,15 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         ) : null}
 
         {/* Card footer: index · credits · date */}
-        <div className="flex items-center justify-between px-3 pt-3 pb-3">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
+        <div className="flex items-center justify-end sm:justify-between px-3 pt-3 pb-3 gap-2">
+          <span className="hidden sm:inline font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none min-w-0">
             #{index}
           </span>
-          <div className="flex items-center gap-3">
-            <CreditsBadge credits={workflow.credits_spent} />
-            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-              {dateStr}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="hidden sm:inline-flex"><CreditsBadge credits={workflow.credits_spent} /></span>
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
+              <span className="sm:hidden">{dateOnlyStr}</span>
+              <span className="hidden sm:inline">{dateStr}</span>
             </span>
           </div>
         </div>
