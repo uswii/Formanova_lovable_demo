@@ -163,7 +163,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               className="w-full aspect-[4/3] bg-background/50 border border-border/30"
             />
             {workflow.credits_spent != null && (
-              <div className="sm:hidden absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border border-border/30">
+              <div className="sm:hidden absolute top-0 left-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border-r border-b border-border/30">
                 <img src={creditCoinIcon} alt="" className="w-3 h-3" />
                 <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
               </div>
@@ -318,7 +318,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             />
             {/* Credits badge — mobile only, top-left corner */}
             {workflow.credits_spent != null && (
-              <div className="sm:hidden absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border border-border/30">
+              <div className="sm:hidden absolute top-0 left-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border-r border-b border-border/30">
                 <img src={creditCoinIcon} alt="" className="w-3 h-3" />
                 <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
               </div>
