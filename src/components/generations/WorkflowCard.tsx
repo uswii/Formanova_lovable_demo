@@ -146,7 +146,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <CreditsBadge credits={workflow.credits_spent} />
+            <span className="hidden sm:inline-flex"><CreditsBadge credits={workflow.credits_spent} /></span>
             <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
               <span className="sm:hidden">{dateOnlyStr}</span>
               <span className="hidden sm:inline">{dateStr}</span>
@@ -156,12 +156,18 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
         {/* ── Interactive 3D GLB Preview ── */}
         {workflow.glb_url && !isFailed && (
-          <div className="mx-3 mb-2">
+          <div className="mx-3 mb-2 relative">
             <GLBPreviewSlot
               id={workflow.workflow_id}
               glbUrl={workflow.glb_url}
               className="w-full aspect-[4/3] bg-background/50 border border-border/30"
             />
+            {workflow.credits_spent != null && (
+              <div className="sm:hidden absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border border-border/30">
+                <img src={creditCoinIcon} alt="" className="w-3 h-3" />
+                <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
+              </div>
+            )}
           </div>
         )}
         {!workflow.glb_url && !isFailed && isEnriching && (
@@ -310,6 +316,13 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
             />
+            {/* Credits badge — mobile only, top-left corner */}
+            {workflow.credits_spent != null && (
+              <div className="sm:hidden absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-1.5 py-0.5 border border-border/30">
+                <img src={creditCoinIcon} alt="" className="w-3 h-3" />
+                <span className="font-mono text-[9px] text-foreground">{workflow.credits_spent}</span>
+              </div>
+            )}
             {/* View / enlarge icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
               <div className="bg-background/80 backdrop-blur-sm p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -330,7 +343,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             #{index}
           </span>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <CreditsBadge credits={workflow.credits_spent} />
+            <span className="hidden sm:inline-flex"><CreditsBadge credits={workflow.credits_spent} /></span>
             <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
               <span className="sm:hidden">{dateOnlyStr}</span>
               <span className="hidden sm:inline">{dateStr}</span>
