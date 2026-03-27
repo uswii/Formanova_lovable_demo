@@ -68,15 +68,21 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
 function UploadGuidePanel({
   examples,
   canvasH,
+  categoryType,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
   canvasH: string;
+  categoryType: string;
 }) {
+  const topLabel = categoryType === 'rings'
+    ? 'Recommended input poses for best results'
+    : 'Recommended input photos for best results';
+
   return (
     <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
       {/* Top label */}
       <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
-        Any photo works — these inputs get the best results
+        {topLabel}
       </p>
 
       {/* Grid — padded horizontally to keep images small */}
@@ -286,7 +292,7 @@ export function AlternateUploadStep({
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />}
+        {showGuide && <UploadGuidePanel examples={examples} canvasH={CANVAS_H} categoryType={exampleCategoryType} />}
 
         {/* ── Product library ── */}
         {!showGuide && (
