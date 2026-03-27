@@ -98,7 +98,6 @@ if (
     capture_pageleave: true,
     capture_exceptions: true,
     enable_heatmaps: true,
-    disable_surveys: true,
     bootstrap: storedUser
       ? { distinctID: storedUser.id, isIdentifiedID: true }
       : undefined,
