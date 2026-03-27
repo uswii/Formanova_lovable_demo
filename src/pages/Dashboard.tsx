@@ -1,14 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { isCADEnabled, isAssetMetadataEnabled } from '@/lib/feature-flags';
-import { updateAssetMetadata } from '@/lib/assets-api';
+import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
-import { AssetGrid } from '@/components/vault/AssetGrid';
-import { useUserAssets } from '@/hooks/useUserAssets';
-import type { UserAsset } from '@/lib/assets-api';
 
 // Reuse the same hero imagery
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
@@ -31,68 +27,12 @@ const itemVariants = {
   },
 };
 
-const CATEGORY_ORDER = ['ring', 'necklace', 'earring', 'bracelet', 'watch'];
-
-function MyProductsTab({ showMetadata }: { showMetadata: boolean }) {
-  const navigate = useNavigate();
-  const { assets, isLoading, error } = useUserAssets('jewelry_photo');
-
-  const handleReshoot = (asset: UserAsset) => {
-    navigate('/studio', { state: { preloadedJewelryUrl: asset.thumbnail_url, preloadedJewelryAssetId: asset.id } });
-  };
-
-  const handleRename = async (asset: UserAsset, newName: string) => {
-    try { await updateAssetMetadata(asset.id, { name: newName }); }
-    catch (e) { console.warn('[Dashboard] Rename failed:', e); }
-  };
-
-  if (isLoading) return <AssetGrid assets={[]} isLoading error={null} />;
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
-  if (assets.length === 0) return <p className="text-sm text-muted-foreground py-8 text-center">No jewelry photos yet. Upload a photo to start your first shoot.</p>;
-
-  // Group by metadata.category; uncategorised goes last
-  const groups: Record<string, UserAsset[]> = {};
-  for (const asset of assets) {
-    const cat = asset.metadata?.category ?? '';
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(asset);
-  }
-
-  const orderedKeys = [
-    ...CATEGORY_ORDER.filter(c => groups[c]),
-    ...Object.keys(groups).filter(c => c && !CATEGORY_ORDER.includes(c)).sort(),
-    ...(groups[''] ? [''] : []),
-  ];
-
-  return (
-    <div className="space-y-8">
-      {orderedKeys.map(cat => (
-        <div key={cat || 'uncategorised'}>
-          <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-3 capitalize">
-            {cat || 'Uncategorised'}
-          </span>
-          <AssetGrid
-            assets={groups[cat]}
-            isLoading={false}
-            error={null}
-            onReshoot={handleReshoot}
-            showMetadata={showMetadata}
-            onRename={handleRename}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// MyModelsTab removed — user-uploaded models live exclusively in the "Choose Your Model" page
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
   const cadEnabled = isCADEnabled(user?.email);
-  const metadataEnabled = isAssetMetadataEnabled(user?.email);
 
   // Prefetch generation history in background so it's instant when user opens Generations
   usePrefetchGenerations();
@@ -172,7 +112,7 @@ export default function Dashboard() {
                 CAD Studio
               </h2>
               <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
-                3D CAD to photorealistic catalog
+                Generate 3D CAD renders from text
               </p>
             </div>
 
@@ -185,14 +125,6 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      {/* ── Vault Section ─────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto mt-10">
-        <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-4">
-          My Vault
-        </span>
-
-        <MyProductsTab showMetadata={metadataEnabled} />
-      </div>
     </div>
   );
 }
