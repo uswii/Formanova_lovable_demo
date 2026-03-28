@@ -1258,7 +1258,7 @@ export default function TextToCAD() {
             )}
 
             {showSandbox ? (
-              <CADSandboxCanvas hasModel={hasModel} glbUrl={glbUrl} />
+              <CADSandboxCanvas hasModel={hasModel} glbUrl={glbUrl} onModelReady={handleModelReady} />
             ) : (
               <CADCanvas
                 ref={canvasRef}
