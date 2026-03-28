@@ -219,9 +219,9 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             <div className="flex flex-col items-center gap-4 mb-4">
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
                 <p className="text-destructive text-sm font-medium leading-relaxed">
-                  Google login requires a full browser.<br />
+                  Google login doesn't work inside this app's browser.
                   <span className="text-muted-foreground text-xs mt-1 block">
-                    Tap the ⋮ or share icon above, then choose "Open in Chrome" / "Open in Safari"
+                    Please open this page in Chrome or Safari to sign in.
                   </span>
                 </p>
               </div>
