@@ -36,6 +36,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const preloadedUrlRef = useRef<string | null>(null);
   const processedRef = useRef(false);
   const isInstagram = isInAppBrowser();
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Support ?redirect= query param (from ProtectedRoute guard) AND location.state (from in-app redirects)
   const redirectParam = searchParams.get('redirect') || searchParams.get('next');
