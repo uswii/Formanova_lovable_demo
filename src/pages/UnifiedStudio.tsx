@@ -131,7 +131,18 @@ const LABEL_NAMES: Record<string, string> = {
 };
 
 const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
-const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
+const MY_MODELS_VERSION = 3; // bumped to evict stale entries that persisted SAS URLs
+
+// ─── SAS URL expiry check ─────────────────────────────────────────────────────
+/** Returns true if the URL is a SAS URL whose `se=` expiry timestamp is in the past. */
+function isSasUrlExpired(url: string | null | undefined): boolean {
+  if (!url || !url.startsWith('https')) return false;
+  try {
+    const match = url.match(/[?&]se=([^&]+)/);
+    if (!match) return false;
+    return new Date(decodeURIComponent(match[1])).getTime() < Date.now();
+  } catch { return false; }
+}
 
 // ─── Studio session persistence (survives reloads, cleared on reset) ──────────
 const STUDIO_SESSION_KEY = 'formanova_studio_session_v1';
@@ -201,7 +212,10 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
         onClick={onSelect}
         className={`relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
       >
-        <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
+        {model.url
+          ? <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
+          : <div className="w-full aspect-square bg-muted animate-pulse" />
+        }
         {isActive && (
           <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
             <div className="w-6 h-6 bg-foreground flex items-center justify-center">
@@ -279,12 +293,16 @@ function loadMyModels(): UserModel[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(MY_MODELS_STORAGE_KEY); return []; }
-    return Array.isArray(parsed.models) ? parsed.models : [];
+    // `url` was stripped at save time (SAS URLs must not persist); default to '' so the card shows a placeholder.
+    return Array.isArray(parsed.models) ? parsed.models.map((m: UserModel) => ({ ...m, url: m.url ?? '' })) : [];
   } catch { return []; }
 }
 
 function saveMyModels(models: UserModel[]) {
-  localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
+  // Strip `url` before persisting — SAS URLs expire and must never outlive the session.
+  // The URL is re-fetched from the backend (fresh SAS) on every page load via fetchMyModels().
+  const toSave = models.map(({ url: _url, ...rest }) => rest);
+  localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models: toSave }));
 }
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -443,7 +461,8 @@ export default function UnifiedStudio() {
     setJewelryUploadedUrl(session.jewelryUploadedUrl);
     if (session.jewelryAssetId) setJewelryAssetId(session.jewelryAssetId);
     if (session.validationResult) setValidationResult(session.validationResult);
-    if (session.customModelImage) setCustomModelImage(session.customModelImage);
+    // Only restore the custom model image if the SAS URL hasn't expired yet.
+    if (session.customModelImage && !isSasUrlExpired(session.customModelImage)) setCustomModelImage(session.customModelImage);
     if (session.modelAssetId) setModelAssetId(session.modelAssetId);
     if (session.selectedModelId) {
       const model = ALL_MODELS.find(m => m.id === session.selectedModelId);
