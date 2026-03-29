@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 const PUBLISH_DATE = 'March 29, 2026';
 const READING_TIME = '7 min read';
-const CANONICAL = 'https://formanova.ai/ai-jewelry-photography-comparison';
+const CANONICAL = 'https://formanova.ai/blog/ai-jewelry-photography-comparison';
 
 type Score = 'full' | 'partial' | 'none';
 
@@ -23,6 +23,19 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    name: 'FormaNova',
+    tagline: 'Purpose-built AI for jewelry photography',
+    focus: 'Jewelry photography — rings, necklaces, earrings, bracelets, watches',
+    geometryScore: 'full',
+    designFidelity: 'full',
+    jewelrySpecific: 'full',
+    ringTest: 'full',
+    pricingNote: 'From $9/mo',
+    outputImage: '/comparison/formanova-output.png',
+    note:
+      "FormaNova preserved the ring's defining characteristics: the wide dome silhouette, the scattered baguette diamond placement, and the overall proportions of the original design. The model and scene quality match the other tools — but the jewelry itself is recognizably the same piece. This is the result of jewelry-specific training that treats geometry as a non-negotiable constraint, not a creative variable.",
+  },
   {
     name: 'SellerPic',
     tagline: 'Best for social selling & Shopify DTC',
@@ -75,19 +88,6 @@ const TOOLS: Tool[] = [
     note:
       'The New Black produced a dramatically different output — a wide rectangular brick-shaped ring with large geometric panels, showing no resemblance to the original dome profile. Its generative strength is in fashion concept and apparel direction; intricate jewelry with specific geometry is outside its trained domain.',
   },
-  {
-    name: 'FormaNova',
-    tagline: 'Purpose-built AI for jewelry photography',
-    focus: 'Jewelry photography — rings, necklaces, earrings, bracelets, watches',
-    geometryScore: 'full',
-    designFidelity: 'full',
-    jewelrySpecific: 'full',
-    ringTest: 'full',
-    pricingNote: 'From $9/mo',
-    outputImage: '/comparison/formanova-output.png',
-    note:
-      "FormaNova preserved the ring's defining characteristics: the wide dome silhouette, the scattered baguette diamond placement, and the overall proportions of the original design. The model and scene quality match the other tools — but the jewelry itself is recognizably the same piece. This is the result of jewelry-specific training that treats geometry as a non-negotiable constraint, not a creative variable.",
-  },
 ];
 
 const FAQS = [
@@ -122,16 +122,16 @@ function ScoreIcon({ score }: { score: Score }) {
 }
 
 export default function Comparison() {
-  const formanova = TOOLS.find((t) => t.name === 'FormaNova')!;
-  const competitors = TOOLS.filter((t) => t.name !== 'FormaNova');
+  const formanova = TOOLS[0]; // FormaNova always first
+  const competitors = TOOLS.slice(1);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>7 Best AI Jewelry Photography Tools in 2026 — Compared | FormaNova</title>
+        <title>Best AI Jewelry Photography Tools Comparison 2026 | FormaNova</title>
         <meta
           name="description"
-          content="We tested the best AI jewelry photography tools — Claid, SellerPic, Caimera, The New Black, and FormaNova — on a complex ring. See which ones preserve jewelry geometry and which ones don't."
+          content="We tested the best AI jewelry photography tools — FormaNova, SellerPic, Claid, Caimera, and The New Black — on a complex ring. See which ones preserve jewelry geometry and which ones don't."
         />
         <link rel="canonical" href={CANONICAL} />
         <meta property="og:title" content="Best AI Jewelry Photography Tools 2026 — Compared" />
@@ -146,7 +146,7 @@ export default function Comparison() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'BlogPosting',
-            headline: '7 Best AI Jewelry Photography Tools in 2026 — Compared',
+            headline: '5 Best AI Jewelry Photography Tools in 2026 — Compared',
             description: 'We tested the leading AI photography tools on a complex ring to see which ones preserve jewelry geometry.',
             datePublished: '2026-03-29',
             author: { '@type': 'Organization', name: 'FormaNova' },
@@ -186,7 +186,7 @@ export default function Comparison() {
               </span>
             </div>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide leading-[0.95] mb-8">
-              7 Best AI Jewelry Photography Tools in 2026 — Compared
+              Best AI Jewelry Photography Tools — Comparison 2026
             </h1>
             <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed text-justify">
               AI photography tools have transformed e-commerce — but most were built for clothing.
@@ -236,26 +236,26 @@ export default function Comparison() {
                 <div className="border border-border/30 overflow-hidden">
                   <img
                     src="/comparison/ring-input.png"
-                    alt="Wide dome gold ring with scattered baguette diamonds — the test input used across all five AI photography tools"
+                    alt="Wide dome gold ring with scattered baguette diamonds — original input design"
                     className="w-full object-cover aspect-square"
                   />
                 </div>
                 <p className="font-mono text-[8px] tracking-[0.15em] text-muted-foreground uppercase">
-                  Input — original ring design
+                  Input — original design
                 </p>
               </div>
-              <div className="border border-border/30 p-5 space-y-3 flex flex-col justify-center">
-                {[
-                  'Wide dome profile — distinctive 3D silhouette',
-                  'Brushed gold texture on dome surface',
-                  'Scattered baguette diamonds, varying orientation',
-                  'Polished inner band with engraving',
-                ].map((detail) => (
-                  <div key={detail} className="flex gap-2 items-start">
-                    <div className="w-1 h-1 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                    <p className="font-body text-xs text-muted-foreground leading-relaxed">{detail}</p>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <div className="border border-foreground/25 overflow-hidden">
+                  <img
+                    src={formanova.outputImage}
+                    alt="FormaNova output — dome ring geometry, stone placement, and proportions preserved"
+                    className="w-full object-cover aspect-square"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-formanova-success flex-shrink-0" strokeWidth={1.5} />
+                  <p className="font-mono text-[8px] tracking-[0.15em] uppercase">FormaNova — design preserved</p>
+                </div>
               </div>
             </div>
           </section>
@@ -290,11 +290,54 @@ export default function Comparison() {
               The Tools We Tested
             </h2>
 
+            {/* FormaNova — always first */}
+            <div className="space-y-4">
+              <h3 className="font-display text-2xl uppercase tracking-wide">
+                1. FormaNova — {formanova.tagline}
+              </h3>
+              <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
+                Primary focus: {formanova.focus} · {formanova.pricingNote}
+              </p>
+              <div className="border border-foreground/20 p-1">
+                <div className="grid grid-cols-2 gap-4 not-prose">
+                  <div className="overflow-hidden">
+                    <img
+                      src={formanova.outputImage}
+                      alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original"
+                      className="w-full object-cover aspect-square"
+                    />
+                  </div>
+                  <div className="p-5 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Geometry accuracy', score: formanova.geometryScore },
+                        { label: 'Design fidelity', score: formanova.designFidelity },
+                        { label: 'Jewelry-specific', score: formanova.jewelrySpecific },
+                        { label: 'Ring test', score: formanova.ringTest },
+                      ].map(({ label, score }) => (
+                        <div key={label} className="flex items-center justify-between border-b border-border/20 pb-2">
+                          <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{label}</span>
+                          <ScoreIcon score={score} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-start gap-2 mt-4">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-formanova-success flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <p className="font-mono text-[8px] tracking-[0.1em] uppercase">Design preserved</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
+                {formanova.note}
+              </p>
+            </div>
+
             {/* Competitors */}
             {competitors.map((tool, i) => (
               <div key={tool.name} className="space-y-4">
                 <h3 className="font-display text-2xl uppercase tracking-wide">
-                  {i + 1}. {tool.name} — {tool.tagline}
+                  {i + 2}. {tool.name} — {tool.tagline}
                 </h3>
                 <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
                   Primary focus: {tool.focus} · {tool.pricingNote}
@@ -333,51 +376,6 @@ export default function Comparison() {
                 </p>
               </div>
             ))}
-
-            {/* FormaNova */}
-            <div className="space-y-4">
-              <h3 className="font-display text-2xl uppercase tracking-wide">
-                {competitors.length + 1}. FormaNova — {formanova.tagline}
-              </h3>
-              <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
-                Primary focus: {formanova.focus} · {formanova.pricingNote}
-              </p>
-              <div className="border border-foreground/20 p-1">
-                <div className="grid md:grid-cols-2 gap-4 not-prose">
-                  <div className="overflow-hidden">
-                    <img
-                      src={formanova.outputImage}
-                      alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original"
-                      className="w-full object-cover aspect-square"
-                    />
-                  </div>
-                  <div className="p-5 flex flex-col justify-between">
-                    <div className="space-y-3">
-                      {[
-                        { label: 'Geometry accuracy', score: formanova.geometryScore },
-                        { label: 'Design fidelity', score: formanova.designFidelity },
-                        { label: 'Jewelry-specific', score: formanova.jewelrySpecific },
-                        { label: 'Ring test', score: formanova.ringTest },
-                      ].map(({ label, score }) => (
-                        <div key={label} className="flex items-center justify-between border-b border-border/20 pb-2">
-                          <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{label}</span>
-                          <ScoreIcon score={score} />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-start gap-2 mt-4">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-formanova-success flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                      <p className="font-mono text-[8px] tracking-[0.1em] uppercase">
-                        Design preserved
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
-                {formanova.note}
-              </p>
-            </div>
           </section>
 
           {/* Full comparison table */}
