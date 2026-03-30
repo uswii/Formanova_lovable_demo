@@ -32,16 +32,6 @@ export function markGenerationCompleted(generationId: string, startTime?: number
   window.__activeGenerationId = null;
   window.dispatchEvent(new CustomEvent('generation:complete'));
 
-  import('posthog-js')
-    .then(({ default: posthog }) => {
-      if (posthog.__loaded) {
-        posthog.capture('generation_completed', {
-          generation_id: generationId,
-          ...(startTime ? { duration_ms: Date.now() - startTime } : {}),
-        });
-      }
-    })
-    .catch(() => {});
 }
 
 export function markGenerationFailed(generationId: string, errorMessage?: string, startTime?: number) {
