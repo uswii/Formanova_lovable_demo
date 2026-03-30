@@ -53,17 +53,27 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
     })();
   }, [workflowId, workflowStatus]);
 
-  const handleDownloadGlb = () => {
+  const handleDownloadGlb = async () => {
     if (!glbUrl) return;
     const fileName = `ring-${workflowId?.slice(0, 8)}.glb`;
     import('@/lib/posthog-events').then((m) =>
       m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-cad-modal' })
     );
-    const a = document.createElement('a');
-    a.href = glbUrl;
-    a.download = fileName;
-    a.target = '_blank';
-    a.click();
+
+    try {
+      const needsAuth = AUTHENTICATED_IMAGES_ENABLED && glbUrl.includes('/artifacts/');
+      const resp = needsAuth ? await authenticatedFetch(glbUrl) : await fetch(glbUrl);
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[CadWorkflowModal] GLB download error:', err);
+    }
   };
 
   return (
