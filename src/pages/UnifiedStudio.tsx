@@ -231,6 +231,7 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   onDelete: () => void;
   onRename: (name: string) => void;
 }) {
+  const resolvedSrc = useAuthenticatedImage(model.url);
   const [editing, setEditing] = React.useState(false);
   const [nameInput, setNameInput] = React.useState(model.name);
   const [saved, setSaved] = React.useState(false);
@@ -259,7 +260,7 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
         onClick={onSelect}
         className={`relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
       >
-        <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
+        <img src={resolvedSrc ?? undefined} alt={model.name} className="w-full block" loading="lazy" />
         {isActive && (
           <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
             <div className="w-6 h-6 bg-foreground flex items-center justify-center">
