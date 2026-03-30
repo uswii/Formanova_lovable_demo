@@ -180,11 +180,10 @@ export function AlternateUploadStep({
   const PAGE_SIZE = 10;
   const category = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
   const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, category);
-  const { total: allTotal, isLoading: allLoading } = useUserAssets('jewelry_photo', 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Only show upload guide if user has never uploaded anything across any category
-  const showGuide = !allLoading && allTotal === 0;
+  // Show upload guide if user has no uploads in the current category
+  const showGuide = !isLoading && total === 0;
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
