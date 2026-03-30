@@ -15,6 +15,9 @@ import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 const GLBPreviewSlot = React.lazy(() =>
   import('./ScissorGLBGrid').then((m) => ({ default: m.GLBPreviewSlot }))
 );
+const ScissorGLBGrid = React.lazy(() =>
+  import('./ScissorGLBGrid').then((m) => ({ default: m.ScissorGLBGrid }))
+);
 
 interface CadWorkflowModalProps {
   workflowId: string | null;
@@ -125,11 +128,13 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
                   </div>
                 }
               >
-                <GLBPreviewSlot
-                  id={workflowId || 'modal'}
-                  glbUrl={glbUrl}
-                  className="w-full aspect-square max-h-[450px] bg-background/50 border border-border/30 rounded-sm mb-4"
-                />
+                <ScissorGLBGrid>
+                  <GLBPreviewSlot
+                    id={workflowId || 'modal'}
+                    glbUrl={glbUrl}
+                    className="w-full aspect-square max-h-[450px] bg-background/50 border border-border/30 rounded-sm mb-4"
+                  />
+                </ScissorGLBGrid>
               </Suspense>
 
               <div className="flex flex-wrap gap-3">
