@@ -85,7 +85,6 @@ function UploadGuidePanel({
   categoryType,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
-  canvasH: string;
   categoryType: string;
 }) {
   const topLabel = categoryType === 'rings'
@@ -93,17 +92,17 @@ function UploadGuidePanel({
     : 'Recommended input photos for best results';
 
   return (
-    <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
+    <div className="border border-border/30 flex flex-col overflow-hidden">
       {/* Top label */}
       <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
         {topLabel}
       </p>
 
       {/* Grid — padded horizontally to keep images small */}
-      <div className="flex-1 px-12 overflow-hidden min-h-0">
-        <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
+      <div className="px-12 overflow-hidden">
+        <div className="grid grid-cols-2 gap-4">
           {examples.allowed.slice(0, 4).map((src, i) => (
-            <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
+            <div key={`rec-${i}`} className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
               <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
             </div>
           ))}
@@ -243,6 +242,21 @@ export function AlternateUploadStep({
             </Button>
             <input ref={jewelryInputRef} type="file" accept="image/*" className="hidden"
                    onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); }} />
+
+            {!showGuide && isViewGuideEnabled(userEmail) && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setGuideDialogOpen(true); }}
+                className="absolute top-3 right-3 flex items-center gap-1.5 border border-border/40
+                           bg-background/80 backdrop-blur-sm px-2.5 py-1
+                           font-mono text-[10px] tracking-widest uppercase
+                           text-muted-foreground hover:text-foreground hover:border-foreground/40
+                           transition-colors"
+              >
+                <Lightbulb className="h-3 w-3" />
+                View Guide
+              </button>
+            )}
           </div>
         )}
 
@@ -251,6 +265,21 @@ export function AlternateUploadStep({
           <div className="space-y-4">
             <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 border-border/30 ${CANVAS_H}`}>
               <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-full object-contain" />
+
+              {!showGuide && isViewGuideEnabled(userEmail) && (
+                <button
+                  type="button"
+                  onClick={() => setGuideDialogOpen(true)}
+                  className="absolute top-3 right-12 flex items-center gap-1.5 border border-border/40
+                             bg-background/80 backdrop-blur-sm px-2.5 py-1
+                             font-mono text-[10px] tracking-widest uppercase
+                             text-muted-foreground hover:text-foreground hover:border-foreground/40
+                             transition-colors z-10"
+                >
+                  <Lightbulb className="h-3 w-3" />
+                  View Guide
+                </button>
+              )}
 
               <button onClick={onClearImage}
                       className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm
@@ -305,23 +334,10 @@ export function AlternateUploadStep({
             </p>
           </div>
 
-          {!showGuide && isViewGuideEnabled(userEmail) && (
-            <button
-              type="button"
-              onClick={() => setGuideDialogOpen(true)}
-              className="mt-auto mb-0.5 flex items-center gap-1.5 border border-border/40
-                         px-2.5 py-1 font-mono text-[10px] tracking-widest uppercase
-                         text-muted-foreground hover:text-foreground hover:border-foreground/40
-                         transition-colors flex-shrink-0"
-            >
-              <Lightbulb className="h-3 w-3" />
-              View Guide
-            </button>
-          )}
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && <UploadGuidePanel examples={examples} canvasH={CANVAS_H} categoryType={exampleCategoryType} />}
+        {showGuide && <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />}
 
         {/* ── Product library ── */}
         {!showGuide && (
@@ -459,7 +475,7 @@ export function AlternateUploadStep({
           </div>
           {/* Guide content */}
           <div className="px-6 pb-6">
-            <UploadGuidePanel examples={examples} canvasH="h-[360px]" categoryType={exampleCategoryType} />
+            <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />
           </div>
         </div>
       </div>
