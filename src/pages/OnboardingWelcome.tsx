@@ -1,6 +1,6 @@
 import { useState, useEffect, useId, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2, ExternalLink, X } from 'lucide-react';
+import { CheckCircle2, Loader2, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
@@ -287,30 +287,12 @@ export default function OnboardingWelcome() {
               </p>
 
               <div className="grid grid-cols-2 gap-6 sm:gap-8">
-                {/* Screenshots */}
-                <div className="flex flex-col gap-3">
-                  <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
-                  <div className="flex items-start gap-2">
-                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="text-xs leading-relaxed sm:text-sm">
-                      <span className="font-medium text-foreground">Social media screenshots. </span>
-                      <span className="text-muted-foreground">Screenshots are compressed and often cropped. Submit the original photo file instead.</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Multiple / packed */}
-                <div className="flex flex-col gap-3">
-                  <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
-                  <div className="flex items-start gap-2">
-                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="text-xs leading-relaxed sm:text-sm">
-                      <span className="font-medium text-foreground">Multiple items or packed jewelry. </span>
-                      <span className="text-muted-foreground">Not supported yet. Packaging and multiple pieces may not produce accurate results.</span>
-                    </span>
-                  </div>
-                </div>
+                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
+                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
               </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Input similar to these may not produce accurate results.
+              </p>
             </div>
 
           </div>
