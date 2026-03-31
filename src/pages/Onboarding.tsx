@@ -15,11 +15,12 @@ import {
 // Role options
 // ---------------------------------------------------------------------------
 
-const ROLE_OPTIONS: { value: UserType; label: string; icon: string }[] = [
-  { value: 'jewelry_brand',      label: 'Jewelry Brand',       icon: '/jewelry-brand.svg' },
-  { value: 'freelancer',         label: 'Freelancer',          icon: '/freelancer.svg' },
+// mono: true → black SVG, needs dark:invert for dark mode visibility
+const ROLE_OPTIONS: { value: UserType; label: string; icon: string; mono?: boolean }[] = [
+  { value: 'jewelry_brand',      label: 'Jewelry Brand',        icon: '/jewelry-brand.svg',              mono: true },
+  { value: 'freelancer',         label: 'Freelancer',           icon: '/freelancer.svg',                 mono: true },
   { value: 'researcher_student', label: 'Researcher / Student', icon: '/ai_researcher_illustration.svg' },
-  { value: 'content_creator',    label: 'Content Creator',     icon: '/content_creator.svg' },
+  { value: 'content_creator',    label: 'Content Creator',      icon: '/content_creator.svg' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -30,11 +31,12 @@ interface RoleCardProps {
   value: UserType;
   label: string;
   icon: string;
+  mono?: boolean;
   selected: boolean;
   onSelect: () => void;
 }
 
-function RoleCard({ label, icon, selected, onSelect }: RoleCardProps) {
+function RoleCard({ label, icon, mono, selected, onSelect }: RoleCardProps) {
   return (
     <button
       type="button"
@@ -42,7 +44,7 @@ function RoleCard({ label, icon, selected, onSelect }: RoleCardProps) {
       aria-pressed={selected}
       className={cn(
         'relative flex aspect-square w-full flex-col items-center justify-center gap-2 sm:gap-3',
-        'rounded-xl border-2 p-3 sm:p-5',
+        'border-2 p-3 sm:p-5',
         'transition-all duration-200 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected
@@ -59,7 +61,10 @@ function RoleCard({ label, icon, selected, onSelect }: RoleCardProps) {
         src={icon}
         alt=""
         draggable={false}
-        className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+        className={cn(
+          'h-10 w-10 sm:h-12 sm:w-12 object-contain',
+          mono && 'opacity-75 dark:invert dark:opacity-90',
+        )}
       />
       <span className={cn(
         'text-center text-xs font-medium leading-tight sm:text-sm',
