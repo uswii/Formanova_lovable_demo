@@ -194,7 +194,7 @@ export default function OnboardingWelcome() {
 
         {/* ── Header ── */}
         <div className="mb-10 text-center sm:mb-12">
-          <h1 className="font-display text-4xl leading-tight tracking-wide sm:text-5xl lg:text-6xl">
+          <h1 className="font-display text-4xl leading-tight tracking-wide [text-shadow:none] sm:text-5xl lg:text-6xl">
             Welcome to Formanova
           </h1>
           <p className="mt-3 text-sm text-muted-foreground sm:text-base">
@@ -204,7 +204,7 @@ export default function OnboardingWelcome() {
 
         {/* ── Section 1: Photo guidelines ── */}
         <section className="mb-10 sm:mb-12">
-          <h2 className="font-display mb-6 text-2xl tracking-wide sm:text-3xl">
+          <h2 className="font-display mb-8 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
             Getting your photos right
           </h2>
 
@@ -212,10 +212,10 @@ export default function OnboardingWelcome() {
 
             {/* ── We recommend ── */}
             <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We recommend
               </p>
-              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
+              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
                 Upload images of jewelry worn on the body
               </h3>
 
@@ -247,10 +247,10 @@ export default function OnboardingWelcome() {
 
             {/* ── We do not recommend: product shots ── */}
             <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
-              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
+              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
                 Product shots, jewelry flat on surfaces or display trays
               </h3>
 
@@ -278,7 +278,7 @@ export default function OnboardingWelcome() {
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
             <div className="rounded-md border border-border bg-card p-5 sm:p-6 isolate">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
               <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
@@ -317,7 +317,7 @@ export default function OnboardingWelcome() {
 
         {/* ── Section 2: Model photo ── */}
         <section className="mb-10 sm:mb-12">
-          <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+          <h2 className="font-display mb-6 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
             You control how the final result looks
           </h2>
           <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -358,7 +358,7 @@ export default function OnboardingWelcome() {
 
         {/* ── Section 3: What to expect ── */}
         <section className="mb-10 sm:mb-12">
-          <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+          <h2 className="font-display mb-6 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
             What to expect
           </h2>
           <div className="rounded-md border border-border bg-card p-5 sm:p-6">
