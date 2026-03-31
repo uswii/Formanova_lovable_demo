@@ -60,15 +60,23 @@ export function SnapshotPreviewModal({
     URL.revokeObjectURL(objectUrl);
   };
 
-  const handleDownloadGlb = () => {
+  const handleDownloadGlb = async () => {
     if (!glbUrl) return;
     const fileName = glbFilename || 'model.glb';
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-snapshot' }));
-    const a = document.createElement('a');
-    a.href = glbUrl;
-    a.download = fileName;
-    a.target = '_blank';
-    a.click();
+    try {
+      const resp = await authenticatedFetch(glbUrl);
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[SnapshotPreviewModal] GLB download error:', err);
+    }
   };
 
   return (
