@@ -127,9 +127,9 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 function ClickableImage({
-  src, alt, onClick,
+  src, alt, onClick, objectPosition = 'object-cover',
 }: {
-  src: string; alt: string; onClick: (src: string) => void;
+  src: string; alt: string; onClick: (src: string) => void; objectPosition?: string;
 }) {
   return (
     <div
@@ -140,7 +140,7 @@ function ClickableImage({
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(src); }}
       aria-label={`Enlarge: ${alt}`}
     >
-      <img src={src} alt={alt} className="aspect-square w-full object-cover" loading="lazy" />
+      <img src={src} alt={alt} className={`aspect-square w-full object-cover ${objectPosition}`} loading="lazy" />
     </div>
   );
 }
@@ -178,11 +178,11 @@ function BeforeAfterBlock({
     <div className="rounded-md border border-border bg-card p-4 sm:p-5">
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1">
-          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} />
+          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} objectPosition="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{beforeLabel}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} />
+          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} objectPosition="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{afterLabel}</p>
         </div>
       </div>
