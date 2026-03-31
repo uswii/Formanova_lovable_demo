@@ -236,7 +236,7 @@ function RoleCard({ label, Icon, selected, onSelect }: RoleCardProps) {
           <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
         </span>
       )}
-      <Icon className="h-16 w-16 text-primary sm:h-24 sm:w-24 lg:h-28 lg:w-28" />
+      <Icon className="h-20 w-20 text-primary sm:h-32 sm:w-32 lg:h-40 lg:w-40" />
       <span className={cn(
         'line-clamp-2 w-full text-center text-xs font-medium leading-tight sm:text-sm',
         selected ? 'text-foreground' : 'text-muted-foreground',
@@ -290,7 +290,7 @@ export default function Onboarding() {
         </p>
       </div>
 
-      <div className="grid w-full max-w-sm grid-cols-2 gap-5 sm:max-w-2xl sm:gap-6 lg:max-w-5xl lg:grid-cols-4 lg:gap-8">
+      <div className="grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-3xl sm:gap-6 lg:max-w-6xl lg:grid-cols-4 lg:gap-8">
         {ROLE_OPTIONS.map((option) => (
           <RoleCard
             key={option.value}
