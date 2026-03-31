@@ -59,7 +59,7 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
         >
           <X className="h-4 w-4" />
         </button>
-        <img src={src} alt="Enlarged view" className="max-h-[85vh] w-auto rounded-md object-contain" />
+        <img src={src} alt="Enlarged view" className="max-h-[85vh] w-auto object-contain" />
       </div>
     </div>
   );
@@ -76,7 +76,7 @@ function ClickableImage({
 }) {
   return (
     <div
-      className="overflow-hidden rounded border border-border cursor-pointer"
+      className="overflow-hidden border border-border cursor-pointer"
       onClick={() => onClick(src)}
       role="button"
       tabIndex={0}
@@ -118,7 +118,7 @@ function BeforeAfterBlock({
   onImageClick: (src: string) => void;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+    <div className="border border-border bg-card p-4 sm:p-5">
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1">
           <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} imgClass="object-top" />
@@ -212,7 +212,7 @@ export default function OnboardingWelcome() {
           <div className="flex flex-col gap-6">
 
             {/* ── We recommend ── */}
-            <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+            <div className="border border-border bg-card p-6 sm:p-8">
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We recommend
               </p>
@@ -247,7 +247,7 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* ── We do not recommend: product shots ── */}
-            <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+            <div className="border border-border bg-card p-6 sm:p-8">
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
@@ -278,7 +278,7 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
-            <div className="rounded-md border border-border bg-card p-5 sm:p-6 isolate">
+            <div className="border border-border bg-card p-5 sm:p-6 isolate">
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
@@ -310,7 +310,7 @@ export default function OnboardingWelcome() {
           </p>
 
           <div className="flex flex-col gap-5">
-            <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+            <div className="border border-border bg-card p-4 sm:p-5">
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Synthetic input
               </p>
@@ -323,7 +323,7 @@ export default function OnboardingWelcome() {
                 onImageClick={openLightbox}
               />
             </div>
-            <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+            <div className="border border-border bg-card p-4 sm:p-5">
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Realistic input
               </p>
@@ -344,7 +344,7 @@ export default function OnboardingWelcome() {
           <h2 className="font-display mb-6 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
             What to expect
           </h2>
-          <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+          <div className="border border-border bg-card p-5 sm:p-6">
             <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
               Your results depend on the quality and type of input you submit. We cannot guarantee
               quality output for inputs that do not follow these guidelines. Low-quality inputs
@@ -359,7 +359,7 @@ export default function OnboardingWelcome() {
         </section>
 
         {/* ── ToS acknowledgment ── */}
-        <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+        <div className="border border-border bg-card p-5 sm:p-6">
           <div className="mb-4 flex items-start gap-3">
             <Checkbox
               id={tosCheckboxId}
