@@ -27,7 +27,7 @@ export function extractPhotoThumbnail(steps: any[]): string | null {
   const out = genStep.output as any;
   const b64: string | undefined = out?.image_b64 ?? out?.result?.image_b64;
   const mime: string = out?.mime_type ?? out?.result?.mime_type ?? 'image/jpeg';
-  if (b64) return `data:${mime};base64,${b64}`;
+  if (typeof b64 === 'string') return `data:${mime};base64,${b64}`;
   const outputUrl: string | undefined = out?.output_url ?? out?.result?.output_url;
   if (typeof outputUrl === 'string' && outputUrl.startsWith('https://')) return outputUrl;
   return null;
