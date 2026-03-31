@@ -26,6 +26,8 @@ import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 
 import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 interface Props {
   state: StudioState;
@@ -41,6 +43,12 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
+
+  const resolvedFlux        = useAuthenticatedImage(state.fluxResult ?? null);
+  const resolvedGemini      = useAuthenticatedImage(state.geminiResult ?? null);
+  const resolvedFidelity    = useAuthenticatedImage(state.fidelityViz ?? null);
+  const resolvedFidelityGem = useAuthenticatedImage(state.fidelityVizGemini ?? null);
+  const resolvedFullscreen  = useAuthenticatedImage(fullscreenImage?.url ?? null);
 
   const handleGenerate = async () => {
     if (!state.originalImage || !state.maskBinary) {
@@ -175,14 +183,23 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
     updateState({ isGenerating: false });
   };
 
-  const handleDownload = (imageUrl: string, filename: string) => {
+  const handleDownload = async (imageUrl: string, filename: string) => {
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: 'png', context: 'step-generate' }));
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (imageUrl.includes('/artifacts/')) {
+      const resp = await authenticatedFetch(imageUrl);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } else {
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      a.download = filename;
+      a.click();
+    }
   };
 
   const StatusBadge = ({ status }: { status: 'good' | 'bad' | null }) => {
@@ -231,9 +248,9 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && (
-                <img 
-                  src={fullscreenImage.url} 
-                  alt={fullscreenImage.title} 
+                <img
+                  src={resolvedFullscreen ?? undefined}
+                  alt={fullscreenImage.title}
                   className="max-w-full max-h-[80vh] object-contain rounded-lg"
                 />
               )}
@@ -321,7 +338,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                           className="rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer group relative"
                           onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
                         >
-                          <img src={state.fluxResult} alt="Standard result" className="w-full h-auto" />
+                          <img src={resolvedFlux ?? undefined} alt="Standard result" className="w-full h-auto" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                             <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
@@ -349,7 +366,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                             {state.fidelityViz ? (
                               <div className="space-y-3">
                                 <div className="rounded-lg overflow-hidden border-2 border-primary/20 shadow-md">
-                                  <img src={state.fidelityViz} alt="Accuracy visualization" className="w-full h-auto" />
+                                  <img src={resolvedFidelity ?? undefined} alt="Accuracy visualization" className="w-full h-auto" />
                                 </div>
                                 <div className="flex justify-center gap-3 text-xs">
                                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
@@ -412,7 +429,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                           onClick={() => setFullscreenImage({ url: state.geminiResult || state.fluxResult!, title: 'Enhanced Result' })}
                         >
                           <img
-                            src={state.geminiResult || state.fluxResult!}
+                            src={resolvedGemini ?? resolvedFlux ?? undefined}
                             alt="Enhanced result"
                             className="w-full h-auto"
                           />
@@ -443,7 +460,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
                             {state.fidelityVizGemini ? (
                               <div className="space-y-3">
                                 <div className="rounded-lg overflow-hidden border-2 border-primary/20 shadow-md">
-                                  <img src={state.fidelityVizGemini} alt="Accuracy visualization" className="w-full h-auto" />
+                                  <img src={resolvedFidelityGem ?? undefined} alt="Accuracy visualization" className="w-full h-auto" />
                                 </div>
                                 <div className="flex justify-center gap-3 text-xs">
                                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
