@@ -48,8 +48,12 @@ const DO_TIPS: { point: string; why: string }[] = [
     why:   'Ensures the AI focuses on exactly the right piece with no ambiguity.',
   },
   {
-    point: 'Clear, sharp, well-lit at HD resolution or higher',
-    why:   'The AI generates output based on what it can see. More detail in means more detail out.',
+    point: 'Clear, even lighting',
+    why:   'Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture — all detail the AI reads to produce accurate output.',
+  },
+  {
+    point: 'HD resolution or higher',
+    why:   'The AI generates output at the quality level of the input. More detail in means more detail out.',
   },
   {
     point: 'Standard pose for the category',
@@ -77,6 +81,10 @@ const AVOID_TIPS: { point: string; why: string }[] = [
   {
     point: 'Social media screenshots',
     why:   'Screenshots are compressed, often cropped, and may carry overlaid text, filters, or borders. Compression alone destroys the fine edge and surface detail the AI relies on.',
+  },
+  {
+    point: 'Poor lighting — harsh shadows, low light, or strong flash glare',
+    why:   'Bad lighting hides metal finish, stone clarity, and surface texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
   },
 ];
 
