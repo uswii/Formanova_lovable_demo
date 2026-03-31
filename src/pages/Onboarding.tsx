@@ -223,7 +223,7 @@ function RoleCard({ label, Icon, selected, onSelect }: RoleCardProps) {
       aria-pressed={selected}
       className={cn(
         'relative flex aspect-square w-full flex-col items-center justify-center gap-3 sm:gap-4',
-        'border-2 p-4 sm:p-6 lg:p-8',
+        'overflow-hidden border-2 p-4 sm:p-6 lg:p-8',
         'transition-all duration-200 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected
@@ -238,7 +238,7 @@ function RoleCard({ label, Icon, selected, onSelect }: RoleCardProps) {
       )}
       <Icon className="h-16 w-16 text-primary sm:h-24 sm:w-24 lg:h-28 lg:w-28" />
       <span className={cn(
-        'text-center text-sm font-medium leading-tight sm:text-base',
+        'line-clamp-2 w-full text-center text-xs font-medium leading-tight sm:text-sm',
         selected ? 'text-foreground' : 'text-muted-foreground',
       )}>
         {label}
