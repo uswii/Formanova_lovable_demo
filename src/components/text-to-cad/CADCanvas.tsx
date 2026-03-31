@@ -21,6 +21,8 @@ import type { GemMode } from "./GemInstanceRenderer";
 export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
@@ -342,7 +344,7 @@ const LoadedModel = forwardRef<
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
-  // Load GLB via server-side blob-proxy to avoid CORS issues with Azure
+  // Fetch GLB — uses authenticatedFetch for /artifacts/ proxy URLs, plain fetch otherwise
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
@@ -351,7 +353,8 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const response = await fetch(url);
+        const needsAuth = AUTHENTICATED_IMAGES_ENABLED && url.includes('/artifacts/');
+        const response = needsAuth ? await authenticatedFetch(url) : await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch GLB: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
 
@@ -648,7 +651,8 @@ const LoadedModel = forwardRef<
       mergedUrlsRef.current.add(partUrl);
       (async () => {
         try {
-          const resp = await fetch(partUrl);
+          const needsAuth = AUTHENTICATED_IMAGES_ENABLED && partUrl.includes('/artifacts/');
+          const resp = needsAuth ? await authenticatedFetch(partUrl) : await fetch(partUrl);
           if (!resp.ok) throw new Error(`Failed to fetch GLB: ${resp.status}`);
           const arrayBuffer = await resp.arrayBuffer();
 

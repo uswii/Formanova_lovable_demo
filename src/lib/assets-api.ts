@@ -11,7 +11,7 @@ export interface UserAsset {
   id: string;
   asset_type: AssetType;
   created_at: string;      // ISO string
-  thumbnail_url: string;   // SAS URL with 1-hour expiry — use directly in <img src>
+  thumbnail_url: string;   // Artifact proxy URL — always load via useAuthenticatedImage, never use directly in <img src>
   name: string | null;
   metadata?: { category?: string; name?: string; display_type?: string; is_worn?: string; flagged?: string; user_override?: string; [key: string]: string | undefined };
 }

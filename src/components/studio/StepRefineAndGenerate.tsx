@@ -28,6 +28,8 @@ import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 interface Props {
   state: StudioState;
@@ -167,6 +169,12 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     });
   };
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
+
+  const resolvedFlux        = useAuthenticatedImage(state.fluxResult ?? null);
+  const resolvedGemini      = useAuthenticatedImage(state.geminiResult ?? null);
+  const resolvedFidelity    = useAuthenticatedImage(state.fidelityViz ?? null);
+  const resolvedFidelityGem = useAuthenticatedImage(state.fidelityVizGemini ?? null);
+  const resolvedFullscreen  = useAuthenticatedImage(fullscreenImage?.url ?? null);
 
   // Debug view state removed - no longer needed
 
@@ -358,14 +366,24 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setCurrentView('refine');
   };
 
-  const handleDownload = (imageUrl: string, filename: string) => {
+  const handleDownload = async (imageUrl: string, filename: string) => {
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: 'png', context: 'step-refine' }));
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (imageUrl.includes('/artifacts/')) {
+      const resp = await authenticatedFetch(imageUrl);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } else {
+      // data: URLs (mask overlays) — plain anchor
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      a.download = filename;
+      a.click();
+    }
   };
 
   // Use dynamically generated overlay (with selected color) or fall back to state
@@ -445,9 +463,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
               </div>
               <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
                 {fullscreenImage && (
-                  <img 
-                    src={fullscreenImage.url} 
-                    alt={fullscreenImage.title} 
+                  <img
+                    src={resolvedFullscreen ?? undefined}
+                    alt={fullscreenImage.title}
                     className="max-w-full max-h-[80vh] object-contain rounded-lg"
                   />
                 )}
@@ -489,7 +507,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
                         onClick={() => setFullscreenImage({ url: state.fluxResult!, title: 'Standard Result' })}
                       >
-                        <img src={state.fluxResult} alt="Standard result" className="max-w-full max-h-full object-contain" />
+                        <img src={resolvedFlux ?? undefined} alt="Standard result" className="max-w-full max-h-full object-contain" />
                         <div className="absolute top-3 right-3 z-10 flex gap-2">
                           <button
                             className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
@@ -513,7 +531,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
                           <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
                           <div className="overflow-hidden border border-border/50 rounded-lg">
-                            <img src={state.fidelityViz} alt="Jewelry Accuracy" className="w-full h-auto" />
+                            <img src={resolvedFidelity ?? undefined} alt="Jewelry Accuracy" className="w-full h-auto" />
                           </div>
                           <div className="flex flex-wrap gap-6 text-base pt-2">
                             <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
@@ -546,7 +564,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         className="h-full overflow-hidden border border-border cursor-pointer relative flex items-center justify-center bg-muted/20"
                         onClick={() => setFullscreenImage({ url: state.geminiResult!, title: 'Enhanced Result' })}
                       >
-                        <img src={state.geminiResult} alt="Enhanced result" className="max-w-full max-h-full object-contain" />
+                        <img src={resolvedGemini ?? undefined} alt="Enhanced result" className="max-w-full max-h-full object-contain" />
                         <div className="absolute top-3 right-3 z-10 flex gap-2">
                           <button
                             className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
@@ -570,7 +588,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                         <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
                           <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
                           <div className="overflow-hidden border border-border/50 rounded">
-                            <img src={state.fidelityVizGemini} alt="Jewelry Accuracy" className="w-full h-auto" />
+                            <img src={resolvedFidelityGem ?? undefined} alt="Jewelry Accuracy" className="w-full h-auto" />
                           </div>
                           <div className="flex flex-wrap gap-4 text-sm">
                             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
@@ -604,7 +622,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   onClick={() => state.fluxResult && setFullscreenImage({ url: state.fluxResult, title: 'Generated Result' })}
                 >
                   {state.fluxResult && (
-                    <img src={state.fluxResult} alt="Generated result" className="max-w-full max-h-full object-contain" />
+                    <img src={resolvedFlux ?? undefined} alt="Generated result" className="max-w-full max-h-full object-contain" />
                   )}
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
                     <button
@@ -629,7 +647,7 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   <div className="border border-border bg-card/50 p-6 space-y-5 rounded-xl">
                     <h4 className="font-display text-xl uppercase tracking-tight text-foreground">Jewelry Accuracy</h4>
                     <div className="overflow-hidden border border-border/50 rounded-lg">
-                      <img src={state.fidelityViz} alt="Jewelry Accuracy" className="w-full h-auto" />
+                      <img src={resolvedFidelity ?? undefined} alt="Jewelry Accuracy" className="w-full h-auto" />
                     </div>
                     <div className="flex flex-wrap gap-6 text-base pt-2">
                       <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-green-500" /><span className="text-foreground font-medium">Original</span></div>
@@ -678,9 +696,9 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
           <div className="relative w-full h-full">
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {fullscreenImage && (
-                <img 
-                  src={fullscreenImage.url} 
-                  alt={fullscreenImage.title} 
+                <img
+                  src={resolvedFullscreen ?? undefined}
+                  alt={fullscreenImage.title}
                   className="max-w-full max-h-[85vh] object-contain"
                 />
               )}

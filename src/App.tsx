@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
@@ -67,7 +67,6 @@ const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
-const Comparison = lazyWithRetry(() => import("./pages/Comparison"));
 const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
 
 const PageLoader = () => (
@@ -150,7 +149,7 @@ const App = () => (
                   <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
                   <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
-                  <Route path="/ai-jewelry-photography-comparison" element={<Comparison />} />
+                  <Route path="/ai-jewelry-photography-comparison" element={<Navigate to="/blog/ai-jewelry-photography-comparison" replace />} />
                   <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   

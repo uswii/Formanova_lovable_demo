@@ -11,6 +11,7 @@ import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -111,15 +112,23 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     setIsRenaming(false);
   };
 
-  const handleDownloadGlb = (e: React.MouseEvent) => {
+  const handleDownloadGlb = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workflow.glb_url) return;
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: shownFilename, file_type: 'glb', context: 'generations' }));
-    const a = document.createElement('a');
-    a.href = workflow.glb_url;
-    a.download = shownFilename;
-    a.target = '_blank';
-    a.click();
+    try {
+      const resp = await authenticatedFetch(workflow.glb_url);
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = shownFilename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[WorkflowCard] GLB download error:', err);
+    }
   };
 
   const handleLoadInStudio = (e: React.MouseEvent) => {
