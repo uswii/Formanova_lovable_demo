@@ -1058,6 +1058,7 @@ export default function UnifiedStudio() {
                   clearValidation();
                   if ((currentStep as string) === 'model') setCurrentStep('upload');
                 }}
+                userEmail={user?.email}
                 onNextStep={handleNextStep}
                 onForceNextStep={handleContinueAnyway}
                 onProductSelect={(thumbnailUrl, assetId) => {

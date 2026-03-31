@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
+import { isViewGuideEnabled } from '@/lib/feature-flags';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
@@ -150,6 +151,7 @@ export interface AlternateUploadStepProps {
   /** Bypasses the flag check — used by "Continue Anyway". */
   onForceNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
+  userEmail?: string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -168,10 +170,12 @@ export function AlternateUploadStep({
   onNextStep,
   onForceNextStep,
   onProductSelect,
+  userEmail,
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
 
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
+  const [guideDialogOpen, setGuideDialogOpen] = useState(false);
 
   React.useEffect(() => {
     setFlagAcknowledged(false);
@@ -301,6 +305,19 @@ export function AlternateUploadStep({
             </p>
           </div>
 
+          {!showGuide && isViewGuideEnabled(userEmail) && (
+            <button
+              type="button"
+              onClick={() => setGuideDialogOpen(true)}
+              className="mt-auto mb-0.5 flex items-center gap-1.5 border border-border/40
+                         px-2.5 py-1 font-mono text-[10px] tracking-widest uppercase
+                         text-muted-foreground hover:text-foreground hover:border-foreground/40
+                         transition-colors flex-shrink-0"
+            >
+              <Lightbulb className="h-3 w-3" />
+              View Guide
+            </button>
+          )}
         </div>
 
         {/* ── Upload Guide ── */}
@@ -420,6 +437,33 @@ export function AlternateUploadStep({
     </div>
 
     {/* ── Flagged image popup — centered overlay ── */}
+
+    {guideDialogOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+        <div className="bg-background border border-border/30 shadow-2xl max-w-md w-full mx-4 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
+            <div>
+              <h4 className="font-display text-2xl uppercase tracking-tight">Upload Guide</h4>
+              <p className="text-muted-foreground text-sm mt-0.5">For best results, follow the guidelines below.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setGuideDialogOpen(false)}
+              className="w-7 h-7 flex items-center justify-center border border-border/40
+                         hover:bg-foreground/5 transition-colors flex-shrink-0"
+              aria-label="Close guide"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {/* Guide content */}
+          <div className="px-6 pb-6">
+            <UploadGuidePanel examples={examples} canvasH="h-[360px]" categoryType={exampleCategoryType} />
+          </div>
+        </div>
+      </div>
+    )}
 
     {showFlagWarning && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">

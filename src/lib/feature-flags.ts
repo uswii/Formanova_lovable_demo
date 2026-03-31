@@ -66,6 +66,17 @@ export function isAssetMetadataEnabled(_email: string | undefined | null): boole
 }
 
 /**
+ * "View Guide" button on the My Products panel in the upload step.
+ * Gated until ready for all users.
+ */
+const VIEW_GUIDE_EMAILS = ['uswa@raresense.so'];
+
+export function isViewGuideEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return VIEW_GUIDE_EMAILS.includes(email.toLowerCase());
+}
+
+/**
  * Authenticated image fetching via blob URLs for /artifacts/ paths.
  * Set to true when the backend proxy is confirmed stable in production.
  */
