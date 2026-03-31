@@ -10,23 +10,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import ringA1      from '@/assets/examples/ring-allowed-1.webp';
 import ringA2      from '@/assets/examples/ring-allowed-2.webp';
 import ringA3      from '@/assets/examples/ring-allowed-3.webp';
-import ringA4      from '@/assets/examples/ring-allowed-4.webp';
 import earringA1   from '@/assets/examples/earring-allowed-1.webp';
 import earringA2   from '@/assets/examples/earring-allowed-2.webp';
 import earringA3   from '@/assets/examples/earring-allowed-3.webp';
-import earringA4   from '@/assets/examples/earring-allowed-4.webp';
 import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
 import necklaceA2  from '@/assets/examples/necklace-allowed-2.webp';
 import necklaceA3  from '@/assets/examples/necklace-allowed-3.webp';
-import necklaceA4  from '@/assets/examples/necklace-allowed-4.webp';
 import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
 import braceletA2  from '@/assets/examples/bracelet-allowed-2.webp';
 import braceletA3  from '@/assets/examples/bracelet-allowed-3.webp';
-import braceletA4  from '@/assets/examples/bracelet-allowed-4.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
 import watchA2     from '@/assets/examples/watch-allowed-2.webp';
 import watchA3     from '@/assets/examples/watch-allowed-3.webp';
-import watchA4     from '@/assets/examples/watch-allowed-4.webp';
 
 // Not allowed (product shots) — 3 per category
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
@@ -81,11 +76,6 @@ const DO_IMAGES: { src: string; alt: string }[] = [
   { src: necklaceA3, alt: 'Necklace worn on neck 3'  },
   { src: braceletA3, alt: 'Bracelet worn on wrist 3' },
   { src: watchA3,    alt: 'Watch worn on wrist 3'    },
-  { src: ringA4,     alt: 'Ring worn on finger 4'    },
-  { src: earringA4,  alt: 'Earring worn on ear 4'    },
-  { src: necklaceA4, alt: 'Necklace worn on neck 4'  },
-  { src: braceletA4, alt: 'Bracelet worn on wrist 4' },
-  { src: watchA4,    alt: 'Watch worn on wrist 4'    },
 ];
 
 const AVOID_IMAGES: { src: string; alt: string }[] = [
@@ -284,7 +274,7 @@ export default function OnboardingWelcome() {
           fitting room: a ring on a finger tells the AI far more than a ring sitting on a table.
         </p>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
 
           {/* DO column */}
           <div className="flex flex-col gap-3">
