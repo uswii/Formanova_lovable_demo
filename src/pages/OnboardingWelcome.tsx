@@ -399,7 +399,6 @@ export default function OnboardingWelcome() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
               .
-              <span className="ml-1 text-xs text-muted-foreground">(Opens in a new tab. Return here to complete your acknowledgment.)</span>
             </label>
           </div>
 
