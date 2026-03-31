@@ -1,6 +1,6 @@
 import { useState, useEffect, useId, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, X } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
@@ -118,7 +118,7 @@ function BeforeAfterBlock({
   onImageClick: (src: string) => void;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card/60 p-4 sm:p-5">
+    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1">
           <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} imgClass="object-top" />
@@ -211,119 +211,104 @@ export default function OnboardingWelcome() {
           <div className="flex flex-col gap-6">
 
             {/* ── We recommend ── */}
-            <div className="rounded-md border border-formanova-success/40 bg-card p-5 sm:p-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+            <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We recommend
               </p>
-              <h3 className="mb-4 text-base font-semibold text-foreground sm:text-lg">
+              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
                 Upload images of jewelry worn on the body.
               </h3>
 
               <ImageGrid images={DO_IMAGES} onImageClick={openLightbox} />
 
-              <p className="mt-4 mb-4 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p className="mt-5 mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Worn context is how the AI understands real-world scale, fit, and proportions.
-                A ring on a finger, an earring on an ear — this is the single biggest factor
+                A ring on a finger, an earring on an ear. This is the single biggest factor
                 in result quality.
               </p>
 
-              <ul className="flex flex-col gap-2.5">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
+              <ul className="flex flex-col gap-3">
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="text-xs leading-relaxed sm:text-sm">
                     <span className="font-medium text-foreground">Clear, even lighting. </span>
-                    <span className="text-muted-foreground">Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture — all the detail the AI reads to produce accurate output.</span>
+                    <span className="text-muted-foreground">Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture, all the detail the AI reads to produce accurate output.</span>
                   </span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="text-xs leading-relaxed sm:text-sm">
                     <span className="font-medium text-foreground">HD resolution or higher, in sharp focus. </span>
                     <span className="text-muted-foreground">The AI generates output at the quality level of the input. More detail in means more detail out.</span>
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
-                  <span className="text-xs leading-relaxed sm:text-sm">
-                    <span className="font-medium text-foreground">One jewelry item per photo, in a standard pose. </span>
-                    <span className="text-muted-foreground">Hand flat or slightly angled for rings. Profile or front-facing for earrings. Straight-on for necklaces and bracelets.</span>
                   </span>
                 </li>
               </ul>
             </div>
 
             {/* ── We do not recommend: product shots ── */}
-            <div className="rounded-md border border-destructive/40 bg-card p-5 sm:p-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-destructive">
+            <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
-              <h3 className="mb-4 text-base font-semibold text-foreground sm:text-lg">
-                Product shots — jewelry flat on surfaces or display trays.
+              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
+                Product shots, jewelry flat on surfaces or display trays.
               </h3>
 
               <ImageGrid images={AVOID_IMAGES} onImageClick={openLightbox} />
 
-              <p className="mt-4 mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p className="mt-5 mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Without a body reference the AI cannot determine real-world scale. Ring size,
-                pendant drop length, earring proportions on the face — all become guesswork,
-                leading to sizing errors. Poor lighting and blurry or low-resolution photos
-                fall into the same category: the AI cannot reconstruct detail it cannot see.
+                pendant drop length, earring proportions on the face, all become guesswork,
+                leading to sizing errors.
               </p>
 
-              {/* Scale before/after — sits right here, where it's being talked about */}
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                What a product shot actually produces
+              {/* Scale before/after — right here where it is being discussed */}
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                When jewelry is not worn
               </p>
               <BeforeAfterBlock
                 before={scaleBefore}
                 after={scaleAfter}
-                beforeLabel="Input: product shot"
-                afterLabel="Output: wrong proportions"
-                note="When the AI has no body reference it guesses scale. The result is often a ring that looks oversized or an earring that is out of proportion. Worn inputs minimize this guesswork."
+                beforeLabel="Input: earrings not worn"
+                afterLabel="Output: proportions are off"
+                note="In this example the earrings were not worn. The output looks visually pretty but the proportions are wrong, so this may or may not work for you."
                 onImageClick={openLightbox}
               />
             </div>
 
-            {/* ── We do not recommend: screenshots ── */}
-            <div className="rounded-md border border-destructive/40 bg-card p-5 sm:p-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-destructive">
-                We do not recommend
-              </p>
-              <h3 className="mb-4 text-base font-semibold text-foreground sm:text-lg">
-                Social media screenshots.
-              </h3>
-
-              <div className="mb-4 w-1/5 min-w-[80px]">
-                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
-              </div>
-
-              <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Screenshots are compressed, often cropped, and may carry overlaid text, filters,
-                or borders. Compression alone destroys the fine edge and surface detail the AI
-                relies on. Always submit the original, uncompressed photo file.
-              </p>
-            </div>
-
-            {/* ── Not supported yet: multiple / packed ── */}
+            {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
             <div className="rounded-md border border-border bg-card p-5 sm:p-6">
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Not supported yet
+                We do not recommend
               </p>
-              <h3 className="mb-4 text-base font-semibold text-foreground sm:text-lg">
-                Multiple items in one frame, or jewelry packed in bags.
+              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
+                Social media screenshots, or multiple items and packed jewelry.
               </h3>
 
-              <div className="mb-4 w-1/5 min-w-[80px]">
-                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
-              </div>
+              <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                {/* Screenshots */}
+                <div className="flex flex-col gap-3">
+                  <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
+                  <div className="flex items-start gap-2">
+                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="text-xs leading-relaxed sm:text-sm">
+                      <span className="font-medium text-foreground">Social media screenshots. </span>
+                      <span className="text-muted-foreground">Screenshots are compressed and often cropped. Submit the original photo file instead.</span>
+                    </span>
+                  </div>
+                </div>
 
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-warning" />
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  The AI generates one item per image. Multiple pieces cause it to pick the wrong one,
-                  blend them together, or fail entirely. Packaging obscures shape, surface detail, and
-                  material. These inputs may not produce accurate results.
-                </p>
+                {/* Multiple / packed */}
+                <div className="flex flex-col gap-3">
+                  <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
+                  <div className="flex items-start gap-2">
+                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="text-xs leading-relaxed sm:text-sm">
+                      <span className="font-medium text-foreground">Multiple items or packed jewelry. </span>
+                      <span className="text-muted-foreground">Not supported yet. Packaging and multiple pieces may not produce accurate results.</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -333,19 +318,17 @@ export default function OnboardingWelcome() {
         {/* ── Section 2: Model photo ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-            Choose your model photo carefully.
+            You control how the final result looks.
           </h2>
           <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Think of it like casting for a shoot. The model photo sets the realism and mood of
-            your output. A photorealistic model produces a photorealistic result. A synthetic render
-            or illustration will match that style. For hyperrealistic output, use a real model photo
-            or choose one from Formanova's built-in library. The lighting and mood carry over too.
-            Upload with intention.
+            Submit a synthetic or illustrated model and the output will match that style. Submit a
+            real photo and the output will be photorealistic. The lighting and mood of your model
+            carry through to the result. Upload with intention.
           </p>
 
           <div className="flex flex-col gap-5">
-            <div className="rounded-md border border-destructive/40 bg-card p-4 sm:p-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-destructive">
+            <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Synthetic input
               </p>
               <BeforeAfterBlock
@@ -357,16 +340,16 @@ export default function OnboardingWelcome() {
                 onImageClick={openLightbox}
               />
             </div>
-            <div className="rounded-md border border-formanova-success/40 bg-card p-4 sm:p-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+            <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Realistic input
               </p>
               <BeforeAfterBlock
                 before={realisticBefore}
                 after={realisticAfter}
                 beforeLabel="Input: real model photo"
-                afterLabel="Output: photorealistic result"
-                note="A real, well-lit model photo gives the AI what it needs to produce a hyperrealistic, natural-looking result."
+                afterLabel="Output: realistic-looking result"
+                note="A real, well-lit model photo gives the AI what it needs to produce a realistic-looking, natural result."
                 onImageClick={openLightbox}
               />
             </div>
@@ -376,7 +359,7 @@ export default function OnboardingWelcome() {
         {/* ── Section 3: What to expect ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-            What to expect.
+            What to expect
           </h2>
           <div className="rounded-md border border-border bg-card p-5 sm:p-6">
             <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
