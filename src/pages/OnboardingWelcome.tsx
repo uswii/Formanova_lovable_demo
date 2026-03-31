@@ -190,6 +190,7 @@ export default function OnboardingWelcome() {
     <>
       {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
 
+      <div className="relative bg-background">
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
 
         {/* ── Header ── */}
@@ -211,13 +212,13 @@ export default function OnboardingWelcome() {
           <div className="flex flex-col gap-6">
 
             {/* ── We recommend ── */}
-            <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We recommend
               </p>
-              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
+              <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
                 Upload images of jewelry worn on the body
-              </h3>
+              </p>
 
               <ImageGrid images={DO_IMAGES} onImageClick={openLightbox} />
 
@@ -246,13 +247,13 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* ── We do not recommend: product shots ── */}
-            <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
-              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
+              <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
                 Product shots, jewelry flat on surfaces or display trays
-              </h3>
+              </p>
 
               <ImageGrid images={AVOID_IMAGES} onImageClick={openLightbox} />
 
@@ -278,12 +279,12 @@ export default function OnboardingWelcome() {
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
             <div className="rounded-md border border-border bg-card p-5 sm:p-6 isolate">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
-              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
+              <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
                 Social media screenshots, or multiple items and packed jewelry
-              </h3>
+              </p>
 
               <div className="grid grid-cols-2 gap-6 sm:gap-8">
                 {/* Screenshots */}
@@ -418,6 +419,7 @@ export default function OnboardingWelcome() {
           </Button>
         </div>
 
+      </div>
       </div>
     </>
   );
