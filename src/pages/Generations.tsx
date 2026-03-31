@@ -59,7 +59,7 @@ function saveCache(workflows: WorkflowSummary[], enriched: Record<string, Partia
 
 /** Preload an image into browser cache */
 function preloadImage(url: string) {
-  if (!url || url.startsWith('data:')) return;
+  if (!url || url.startsWith('data:') || url.includes('/artifacts/')) return;
   const img = new Image();
   img.src = url;
 }
