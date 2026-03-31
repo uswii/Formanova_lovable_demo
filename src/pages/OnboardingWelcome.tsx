@@ -355,7 +355,7 @@ export default function OnboardingWelcome() {
               after={scaleAfter}
               beforeLabel="Input: product shot"
               afterLabel="Output: wrong proportions"
-              note="When the AI has no body reference it guesses scale. The result is often a ring that looks oversized, an earring that is out of proportion, or a necklace that does not sit naturally. Worn inputs eliminate this guesswork."
+              note="When the AI has no body reference it guesses scale. The result is often a ring that looks oversized or an earring that is out of proportion. Worn inputs minimize this guesswork."
               onImageClick={openLightbox}
             />
 
