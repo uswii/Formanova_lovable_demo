@@ -215,7 +215,17 @@ function ResultImageItem({ url, index, workflowId, jewelryType }: {
           variant="outline"
           size="icon"
           className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
-          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); }}
+          onClick={async (e) => {
+            e.stopPropagation();
+            try {
+              const resp = await authenticatedFetch(url);
+              if (!resp.ok) throw new Error('Fetch failed');
+              const blob = await resp.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              window.open(blobUrl, '_blank', 'noopener,noreferrer');
+              // Do not revoke — new tab loads the URL asynchronously
+            } catch { /* silent — tab simply won't open */ }
+          }}
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
