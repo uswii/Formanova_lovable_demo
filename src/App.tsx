@@ -72,6 +72,7 @@ const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotosh
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
 const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const OnboardingWelcome = lazyWithRetry(() => import("./pages/OnboardingWelcome"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -119,7 +120,7 @@ function OnboardingRedirectHandler() {
   useEffect(() => {
     if (initializing) return;
     if (!user) return;
-    if (location.pathname === '/onboarding') return;
+    if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
     if (!isOnboardingEnabled(user.email)) return;
     if (isOnboardingComplete(user.id)) return;
     const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
@@ -186,6 +187,8 @@ const App = () => (
                   
                   {/* Onboarding — one-time role picker, gated by feature flag */}
                   <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                  {/* Onboarding welcome — shown once after role selection; contains ToS gate */}
+                  <Route path="/onboarding-welcome" element={<ProtectedRoute><OnboardingWelcome /></ProtectedRoute>} />
 
                   {/* Protected routes - require sign in */}
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

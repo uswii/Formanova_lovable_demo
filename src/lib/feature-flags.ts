@@ -67,13 +67,20 @@ export function isAssetMetadataEnabled(_email: string | undefined | null): boole
 
 /**
  * "View Guide" button on the My Products panel in the upload step.
- * Gated until ready for all users.
  */
-const VIEW_GUIDE_EMAILS = ['uswa@raresense.so'];
+export function isViewGuideEnabled(_email: string | undefined | null): boolean {
+  return true;
+}
 
-export function isViewGuideEnabled(email: string | undefined | null): boolean {
+/**
+ * Onboarding welcome screen — input quality guidelines + Terms of Service gate.
+ * Gated to specific emails until ready for all users.
+ */
+const ONBOARDING_WELCOME_EMAILS = ['uswa@raresense.so'];
+
+export function isOnboardingWelcomeEnabled(email: string | undefined | null): boolean {
   if (!email) return false;
-  return VIEW_GUIDE_EMAILS.includes(email.toLowerCase());
+  return ONBOARDING_WELCOME_EMAILS.includes(email.toLowerCase());
 }
 
 /**

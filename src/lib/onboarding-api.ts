@@ -34,3 +34,33 @@ export async function saveUserType(userType: UserType): Promise<void> {
     throw new Error(`Failed to save user type: ${res.status}`);
   }
 }
+
+/**
+ * GET /api/user/agreements — returns all agreements the user has signed.
+ * Returns true if tos_v1 is already signed.
+ *
+ *   Response 200: { "agreements": [{ "agreement_type": "tos_v1", "signed_at": "..." }] }
+ */
+export async function checkTosAgreement(): Promise<boolean> {
+  const res = await authenticatedFetch('/api/user/agreements');
+  if (!res.ok) throw new Error(`Failed to fetch agreements: ${res.status}`);
+  const data = await res.json();
+  return (data.agreements as { agreement_type: string }[]).some(
+    (a) => a.agreement_type === 'tos_v1',
+  );
+}
+
+/**
+ * POST /api/user/agreements — records that the user has signed tos_v1.
+ *
+ *   Body: { "agreement_type": "tos_v1" }
+ *   Response 201: { "agreement_type": "tos_v1", "signed_at": "..." }
+ */
+export async function signTosAgreement(): Promise<void> {
+  const res = await authenticatedFetch('/api/user/agreements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agreement_type: 'tos_v1' }),
+  });
+  if (!res.ok) throw new Error(`Failed to sign agreement: ${res.status}`);
+}

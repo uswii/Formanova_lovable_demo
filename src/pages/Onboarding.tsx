@@ -10,6 +10,7 @@ import {
   markOnboardingComplete,
   saveUserType,
 } from '@/lib/onboarding-api';
+import { isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — all use currentColor so they adapt to any theme.
@@ -272,7 +273,8 @@ export default function Onboarding() {
     try {
       await saveUserType(selected);
       markOnboardingComplete(user.id);
-      navigate('/studio', { replace: true });
+      const dest = isOnboardingWelcomeEnabled(user.email) ? '/onboarding-welcome' : '/studio';
+      navigate(dest, { replace: true });
     } catch {
       setSubmitting(false);
       setError('Something went wrong. Please try again.');
