@@ -54,22 +54,23 @@ export async function checkTosAgreement(): Promise<boolean> {
   const res = await authenticatedFetch('/api/user/agreements');
   if (!res.ok) throw new Error(`Failed to fetch agreements: ${res.status}`);
   const data = await res.json();
-  return (data.agreements as { agreement_type: string }[]).some(
-    (a) => a.agreement_type === 'tos_v1',
+  return (data.agreements as { agreement_type: string; version: string }[]).some(
+    (a) => a.agreement_type === 'tos' && a.version === '1.0',
   );
 }
 
 /**
- * POST /api/user/agreements — records that the user has signed tos_v1.
+ * POST /api/user/agreements — records that the user has signed tos v1.0.
  *
- *   Body: { "agreement_type": "tos_v1" }
- *   Response 201: { "agreement_type": "tos_v1", "signed_at": "..." }
+ *   Body: { "agreement_type": "tos", "version": "1.0" }
+ *   Response 201: { "agreement_type": "tos", "version": "1.0", "signed_at": "..." }
+ *   Response 200: same (idempotent — safe to call multiple times)
  */
 export async function signTosAgreement(): Promise<void> {
   const res = await authenticatedFetch('/api/user/agreements', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agreement_type: 'tos_v1' }),
+    body: JSON.stringify({ agreement_type: 'tos', version: '1.0' }),
   });
   if (!res.ok) throw new Error(`Failed to sign agreement: ${res.status}`);
 }
