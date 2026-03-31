@@ -398,8 +398,8 @@ export default function OnboardingWelcome() {
                 Terms of Service
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
-              .
-              <span className="mt-1 block text-xs text-muted-foreground">Return here to complete your acknowledgment.</span>
+
+              <span className="ml-1 text-xs text-muted-foreground">Return here to complete your acknowledgment.</span>
             </label>
           </div>
 
