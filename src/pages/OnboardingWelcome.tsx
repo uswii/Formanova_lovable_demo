@@ -13,6 +13,7 @@ import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
 
 import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
+import screenshotExample from '@/assets/examples/screenshot.webp';
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
 import earringN1   from '@/assets/examples/earring-notallowed-1.webp';
 import necklaceN1  from '@/assets/examples/necklace-notallowed-1.webp';
@@ -330,7 +331,10 @@ export default function OnboardingWelcome() {
                     <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
                     <p className="truncate text-center text-[10px] text-muted-foreground">Multiple / packed</p>
                   </div>
-                  {/* Screenshot example — add src here when available */}
+                  <div className="flex flex-col gap-1 col-span-1">
+                    <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
+                    <p className="truncate text-center text-[10px] text-muted-foreground">Screenshot</p>
+                  </div>
                 </div>
               </div>
             </div>
