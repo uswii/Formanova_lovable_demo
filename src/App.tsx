@@ -10,8 +10,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
-import { isOnboardingEnabled } from '@/lib/feature-flags';
-import { isOnboardingComplete } from '@/lib/onboarding-api';
+import { isOnboardingEnabled, isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
+import { isOnboardingComplete, isTosAgreed } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
@@ -111,6 +111,27 @@ const ONBOARDING_PUBLIC_PATHS = [
   '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
 ];
 
+/** Redirects gated users to /onboarding-welcome until they accept the ToS. */
+function TosRedirectHandler() {
+  const { user, initializing } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (initializing) return;
+    if (!user) return;
+    if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
+    if (!isOnboardingWelcomeEnabled(user.email)) return;
+    if (isTosAgreed(user.id)) return;
+    const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
+      || location.pathname.startsWith('/blog/');
+    if (isPublic) return;
+    navigate('/onboarding-welcome', { replace: true });
+  }, [initializing, user?.id, location.pathname, navigate]);
+
+  return null;
+}
+
 /** Redirects gated users to /onboarding before their first protected-page visit. */
 function OnboardingRedirectHandler() {
   const { user, initializing } = useAuth();
@@ -158,6 +179,7 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <OnboardingRedirectHandler />
+            <TosRedirectHandler />
             <VersionBanner />
             
             <DeferredDecorations>

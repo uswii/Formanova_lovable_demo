@@ -7,6 +7,7 @@ export type UserType =
   | 'content_creator';
 
 const KEY_PREFIX = 'formanova_onboarding_';
+const TOS_KEY_PREFIX = 'formanova_tos_';
 
 export function isOnboardingComplete(userId: string): boolean {
   return localStorage.getItem(KEY_PREFIX + userId) === 'true';
@@ -14,6 +15,14 @@ export function isOnboardingComplete(userId: string): boolean {
 
 export function markOnboardingComplete(userId: string): void {
   localStorage.setItem(KEY_PREFIX + userId, 'true');
+}
+
+export function isTosAgreed(userId: string): boolean {
+  return localStorage.getItem(TOS_KEY_PREFIX + userId) === 'true';
+}
+
+export function markTosAgreed(userId: string): void {
+  localStorage.setItem(TOS_KEY_PREFIX + userId, 'true');
 }
 
 /**

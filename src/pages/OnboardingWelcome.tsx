@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { checkTosAgreement, signTosAgreement } from '@/lib/onboarding-api';
+import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ---------------------------------------------------------------------------
 // Content
@@ -46,6 +47,7 @@ const AVOID_TIPS = [
 
 export default function OnboardingWelcome() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const tosCheckboxId = useId();
 
   const [checking, setChecking] = useState(true);
@@ -56,11 +58,15 @@ export default function OnboardingWelcome() {
   useEffect(() => {
     checkTosAgreement()
       .then((signed) => {
-        if (signed) navigate('/studio', { replace: true });
-        else setChecking(false);
+        if (signed) {
+          if (user) markTosAgreed(user.id);
+          navigate('/studio', { replace: true });
+        } else {
+          setChecking(false);
+        }
       })
       .catch(() => setChecking(false));
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleAcknowledge = async () => {
     if (!agreed || submitting) return;
@@ -68,6 +74,7 @@ export default function OnboardingWelcome() {
     setError(null);
     try {
       await signTosAgreement();
+      if (user) markTosAgreed(user.id);
       navigate('/studio', { replace: true });
     } catch {
       setSubmitting(false);
