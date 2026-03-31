@@ -29,63 +29,91 @@ import realisticBefore  from '@/assets/examples/realistic-model-input.webp';
 import realisticAfter   from '@/assets/examples/realistic-output.webp';
 
 // ---------------------------------------------------------------------------
-// Data
+// Data — each topic owns its images and its do/avoid explanation
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = ['Ring', 'Earring', 'Necklace', 'Bracelet', 'Watch'];
-
-const DO_IMAGES  = [ringA1, earringA1, necklaceA1, braceletA1, watchA1];
-const AVOID_IMAGES = [ringN1, earringN1, necklaceN1, braceletN1, watchN1];
-
-const DO_TIPS: { point: string; why: string }[] = [
+const TOPICS = [
   {
-    point: 'Jewelry worn on the body',
-    why:   'A ring on a finger, an earring on an ear. Worn context is how the AI understands real-world scale, fit, and proportions. This is the single biggest factor in result quality.',
+    id: 'worn',
+    title: 'Worn jewelry, not product shots',
+    do: {
+      img: ringA1,
+      label: 'Ring worn on finger',
+      point: 'Jewelry worn on the body.',
+      why: 'A ring on a finger, an earring on an ear. Worn context is how the AI understands real-world scale, fit, and proportions. This is the single biggest factor in result quality.',
+    },
+    avoid: {
+      img: ringN1,
+      label: 'Ring flat on a surface',
+      point: 'Product shots flat on surfaces or display trays.',
+      why: 'Without a body reference the AI cannot determine real-world scale. Ring size, pendant drop length, earring proportions on the face — all become guesswork, leading to sizing errors.',
+    },
   },
   {
-    point: 'Clear, even lighting',
-    why:   'Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture. All detail the AI reads to produce accurate output.',
+    id: 'lighting',
+    title: 'Clear, even lighting',
+    do: {
+      img: earringA1,
+      label: 'Soft, even light',
+      point: 'Natural daylight or soft studio light.',
+      why: 'Good lighting reveals metal finish, stone clarity, and surface texture — all the detail the AI reads to produce accurate output.',
+    },
+    avoid: {
+      img: earringN1,
+      label: 'Harsh shadows or glare',
+      point: 'Harsh shadows, low light, or strong flash glare.',
+      why: 'Bad lighting hides finish and texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
+    },
   },
   {
-    point: 'HD resolution or higher',
-    why:   'The AI generates output at the quality level of the input. More detail in means more detail out.',
+    id: 'resolution',
+    title: 'Sharp, high-resolution photos',
+    do: {
+      img: necklaceA1,
+      label: 'HD, in-focus photo',
+      point: 'HD resolution or higher, in sharp focus.',
+      why: 'The AI generates output at the quality level of the input. More detail in means more detail out.',
+    },
+    avoid: {
+      img: necklaceN1,
+      label: 'Blurry or low-resolution',
+      point: 'Blurry, out-of-focus, or low-resolution photos.',
+      why: 'Blurry input produces blurry, inaccurate output. Always submit the sharpest, highest-resolution photo you have.',
+    },
   },
   {
-    point: 'One jewelry item per photo',
-    why:   'Ensures the AI focuses on exactly the right piece with no ambiguity.',
+    id: 'single',
+    title: 'One item per photo',
+    do: {
+      img: braceletA1,
+      label: 'Single bracelet, clearly visible',
+      point: 'One jewelry item per photo, in a clear standard pose.',
+      why: 'Ensures the AI focuses on exactly the right piece with no ambiguity. Hand flat or slightly angled for rings. Profile or front-facing for earrings. Straight-on for necklaces and bracelets.',
+    },
+    avoid: {
+      img: multipleAndPacked,
+      label: 'Multiple or packed pieces',
+      point: 'Multiple pieces in one frame, or jewelry packed in bags.',
+      why: 'Multiple pieces cause the AI to pick the wrong one, blend them, or fail entirely. Packaging obscures shape, surface detail, and material — remove packaging and photograph each piece separately.',
+    },
   },
   {
-    point: 'Standard pose for the category',
-    why:   'Hand flat or slightly angled for rings. Profile or front-facing for earrings. Straight-on for necklaces and bracelets.',
+    id: 'screenshot',
+    title: 'Original photos, not screenshots',
+    do: {
+      img: watchA1,
+      label: 'Original photo file',
+      point: 'Submit the original, uncompressed photo.',
+      why: 'Original files retain full resolution and all the fine edge and surface detail the AI relies on.',
+    },
+    avoid: {
+      img: screenshotExample,
+      label: 'Social media screenshot',
+      point: 'Social media screenshots.',
+      why: 'Screenshots are compressed, often cropped, and may carry overlaid text, filters, or borders. Compression alone destroys the fine edge and surface detail the AI relies on.',
+    },
   },
-];
-
-const AVOID_TIPS: { point: string; why: string }[] = [
-  {
-    point: 'Product shots flat on surfaces or display trays',
-    why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face. All become guesswork, leading to sizing errors.',
-  },
-  {
-    point: 'Poor lighting, including harsh shadows, low light, or strong flash glare',
-    why:   'Bad lighting hides metal finish, stone clarity, and surface texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
-  },
-  {
-    point: 'Blurry, out-of-focus, or low-resolution photos',
-    why:   'The AI reconstructs detail from what it sees. Blurry input produces blurry, inaccurate output. Always submit the sharpest, highest-resolution photo you have.',
-  },
-  {
-    point: 'Jewelry packed in bags or containers',
-    why:   'Packaging obscures true shape, surface detail, and material. The AI tries to reconstruct what is hidden and produces inaccurate textures and form. Remove it and photograph clearly. A translucent bag may still work, but unpacking gives better results.',
-  },
-  {
-    point: 'Multiple jewelry items in a single frame',
-    why:   'The AI generates one item per image. Multiple pieces cause it to pick the wrong one, blend them together, or fail entirely. Not supported yet.',
-  },
-  {
-    point: 'Social media screenshots',
-    why:   'Screenshots are compressed, often cropped, and may carry overlaid text, filters, or borders. Compression alone destroys the fine edge and surface detail the AI relies on.',
-  },
-];
+] as const;
 
 // ---------------------------------------------------------------------------
 // Lightbox
@@ -147,22 +175,56 @@ function ClickableImage({
   );
 }
 
-function ExampleGrid({
-  images, onImageClick,
+/** A self-contained card: paired DO/AVOID image + both explanations together. */
+function TopicCard({
+  topic,
+  onImageClick,
 }: {
-  images: string[]; onImageClick: (src: string) => void;
+  topic: typeof TOPICS[number];
+  onImageClick: (src: string) => void;
 }) {
   return (
-    <div>
-      <div className="mb-1 grid grid-cols-5 gap-2">
-        {CATEGORIES.map((cat) => (
-          <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">{cat}</p>
-        ))}
+    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-widest text-foreground sm:text-xs">
+        {topic.title}
+      </h3>
+      {/* Images side by side */}
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="relative">
+            <ClickableImage src={topic.do.img} alt={topic.do.label} onClick={onImageClick} />
+            <span className="absolute left-1.5 top-1.5 rounded bg-formanova-success/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              Do
+            </span>
+          </div>
+          <p className="text-center text-[10px] leading-snug text-muted-foreground">{topic.do.label}</p>
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="relative">
+            <ClickableImage src={topic.avoid.img} alt={topic.avoid.label} onClick={onImageClick} />
+            <span className="absolute left-1.5 top-1.5 rounded bg-destructive/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              Avoid
+            </span>
+          </div>
+          <p className="text-center text-[10px] leading-snug text-muted-foreground">{topic.avoid.label}</p>
+        </div>
       </div>
-      <div className="grid grid-cols-5 gap-2">
-        {images.map((src, i) => (
-          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} />
-        ))}
+      {/* Explanations — same card, right below the images */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-start gap-2">
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
+          <span className="text-xs leading-relaxed sm:text-sm">
+            <span className="font-medium text-foreground">{topic.do.point} </span>
+            <span className="text-muted-foreground">{topic.do.why}</span>
+          </span>
+        </div>
+        <div className="flex items-start gap-2">
+          <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+          <span className="text-xs leading-relaxed sm:text-sm">
+            <span className="font-medium text-foreground">{topic.avoid.point} </span>
+            <span className="text-muted-foreground">{topic.avoid.why}</span>
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -258,7 +320,7 @@ export default function OnboardingWelcome() {
     <>
       {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
 
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
 
         {/* ── Header ── */}
         <div className="mb-10 text-center sm:mb-12">
@@ -270,90 +332,38 @@ export default function OnboardingWelcome() {
           </p>
         </div>
 
-        {/* ── Section 1: Wear it, don't stage it ── */}
+        {/* ── Section 1: Photo guidelines ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-            Wear it. Don't stage it.
+            Getting your photos right.
           </h2>
           <p className="mb-6 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Worn images give the AI what it needs to understand real-world scale and proportions.
-            Product flats leave it guessing, which is where sizing errors come from, especially for
-            rings and earrings where gem and band proportions are critical. Think of it like a
-            fitting room: a ring on a finger tells the AI far more than a ring sitting on a table.
+            The quality of your output depends almost entirely on the quality of what you submit.
+            These guidelines exist because of how the AI reads your input — not arbitrary rules.
+            Each one is explained below with a paired example.
           </p>
 
-          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
+          <div className="flex flex-col gap-4">
 
-            {/* DO column */}
-            <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 sm:p-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-formanova-success">
-                Do this
-              </p>
-              <ExampleGrid images={DO_IMAGES} onImageClick={openLightbox} />
-              <ul className="flex flex-col gap-3 pt-1">
-                {DO_TIPS.map(({ point, why }) => (
-                  <li key={point} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
-                    <span className="text-xs leading-relaxed sm:text-sm">
-                      <span className="font-medium text-foreground">{point}. </span>
-                      <span className="text-muted-foreground">{why}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Topic 1: Worn vs product shot */}
+            <TopicCard topic={TOPICS[0]} onImageClick={openLightbox} />
 
-            {/* AVOID column */}
-            <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 sm:p-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-destructive">
-                Avoid
-              </p>
-              <ExampleGrid images={AVOID_IMAGES} onImageClick={openLightbox} />
-              <ul className="flex flex-col gap-3 pt-1">
-                {AVOID_TIPS.map(({ point, why }) => (
-                  <li key={point} className="flex items-start gap-2">
-                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                    <span className="text-xs leading-relaxed sm:text-sm">
-                      <span className="font-medium text-foreground">{point}. </span>
-                      <span className="text-muted-foreground">{why}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Additional avoid examples — multiple/packed, screenshot */}
-              <div className="pt-1">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  More examples
-                </p>
-                <div className="grid grid-cols-5 gap-2">
-                  <div className="flex flex-col gap-1 col-span-1">
-                    <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
-                    <p className="truncate text-center text-[10px] text-muted-foreground">Multiple / packed</p>
-                  </div>
-                  <div className="flex flex-col gap-1 col-span-1">
-                    <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
-                    <p className="truncate text-center text-[10px] text-muted-foreground">Screenshot</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Scale before/after */}
-          <div className="mt-6">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              What a product shot actually produces
-            </p>
+            {/* Scale before/after — lives right after the worn vs product shot topic */}
             <BeforeAfterBlock
+              heading="What a product shot actually produces"
               before={scaleBefore}
               after={scaleAfter}
-              beforeLabel="Before: product shot input"
-              afterLabel="After: wrong proportions"
+              beforeLabel="Input: product shot"
+              afterLabel="Output: wrong proportions"
               note="When the AI has no body reference it guesses scale. The result is often a ring that looks oversized, an earring that is out of proportion, or a necklace that does not sit naturally. Worn inputs eliminate this guesswork."
               onImageClick={openLightbox}
             />
+
+            {/* Remaining topics */}
+            {TOPICS.slice(1).map((topic) => (
+              <TopicCard key={topic.id} topic={topic} onImageClick={openLightbox} />
+            ))}
+
           </div>
         </section>
 
@@ -370,14 +380,14 @@ export default function OnboardingWelcome() {
             Upload with intention.
           </p>
 
-          <div className="flex flex-col gap-4 sm:gap-6">
+          <div className="flex flex-col gap-4 sm:gap-5">
             <BeforeAfterBlock
               heading="Synthetic input"
               headingColor="text-destructive"
               before={syntheticBefore}
               after={syntheticAfter}
-              beforeLabel="Before: synthetic model"
-              afterLabel="After: stylized output"
+              beforeLabel="Input: synthetic model"
+              afterLabel="Output: synthetic-style, not photorealistic"
               note="A synthetic or illustration-style model produces output in that same style. It will not look photorealistic."
               onImageClick={openLightbox}
             />
@@ -386,8 +396,8 @@ export default function OnboardingWelcome() {
               headingColor="text-formanova-success"
               before={realisticBefore}
               after={realisticAfter}
-              beforeLabel="Before: real model photo"
-              afterLabel="After: photorealistic output"
+              beforeLabel="Input: real model photo"
+              afterLabel="Output: photorealistic result"
               note="A real, well-lit model photo gives the AI what it needs to produce a hyperrealistic, natural-looking result."
               onImageClick={openLightbox}
             />
