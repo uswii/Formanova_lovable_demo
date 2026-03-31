@@ -1,75 +1,48 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Allowed (worn) — 4 per category, cols stay category-aligned in grid-cols-5
 import ringA1      from '@/assets/examples/ring-allowed-1.webp';
-import ringA2      from '@/assets/examples/ring-allowed-2.webp';
-import ringA3      from '@/assets/examples/ring-allowed-3.webp';
 import earringA1   from '@/assets/examples/earring-allowed-1.webp';
 import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
 import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
 
-// Not allowed (product shots) — 3 per category
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
 import earringN1   from '@/assets/examples/earring-notallowed-1.webp';
 import necklaceN1  from '@/assets/examples/necklace-notallowed-1.webp';
 import braceletN1  from '@/assets/examples/bracelet-notallowed-1.webp';
 import watchN1     from '@/assets/examples/watch-notallowed-1.webp';
 
-// Multiple / packed avoid example
-import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
-
-// Scale before/after comparison
 import scaleBefore from '@/assets/examples/not_worn_scale_before.webp';
 import scaleAfter  from '@/assets/examples/not-wonr-scale-output.webp';
 
-// Model photo comparisons
 import syntheticBefore  from '@/assets/examples/synthetic-before.webp';
 import syntheticAfter   from '@/assets/examples/synthetic-after.webp';
 import realisticBefore  from '@/assets/examples/realistic-model-input.webp';
 import realisticAfter   from '@/assets/examples/realistic-output.webp';
 
 // ---------------------------------------------------------------------------
-// Image grids — each row = [ring, earring, necklace, bracelet, watch]
-// so columns stay category-aligned in a grid-cols-5 layout
+// Data
 // ---------------------------------------------------------------------------
 
 const CATEGORIES = ['Ring', 'Earring', 'Necklace', 'Bracelet', 'Watch'];
 
-const DO_IMAGES: { src: string; alt: string }[] = [
-  { src: ringA1,     alt: 'Ring worn on finger 1'    },
-  { src: earringA1,  alt: 'Earring worn on ear 1'    },
-  { src: necklaceA1, alt: 'Necklace worn on neck 1'  },
-  { src: braceletA1, alt: 'Bracelet worn on wrist 1' },
-  { src: watchA1,    alt: 'Watch worn on wrist 1'    },
-];
-
-const AVOID_IMAGES: { src: string; alt: string }[] = [
-  { src: ringN1,     alt: 'Ring product shot 1'     },
-  { src: earringN1,  alt: 'Earring on display 1'    },
-  { src: necklaceN1, alt: 'Necklace product shot 1' },
-  { src: braceletN1, alt: 'Bracelet product shot 1' },
-  { src: watchN1,    alt: 'Watch product shot 1'    },
-];
-
-// ---------------------------------------------------------------------------
-// Tips
-// ---------------------------------------------------------------------------
+const DO_IMAGES  = [ringA1, earringA1, necklaceA1, braceletA1, watchA1];
+const AVOID_IMAGES = [ringN1, earringN1, necklaceN1, braceletN1, watchN1];
 
 const DO_TIPS: { point: string; why: string }[] = [
   {
     point: 'Jewelry worn on the body',
-    why:   'A ring on a finger, an earring on an ear — worn context is how the AI understands real-world scale, fit, and proportions. This is the single biggest factor in result quality.',
+    why:   'A ring on a finger, an earring on an ear. Worn context is how the AI understands real-world scale, fit, and proportions. This is the single biggest factor in result quality.',
   },
   {
     point: 'Clear, even lighting',
-    why:   'Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture — all detail the AI reads to produce accurate output.',
+    why:   'Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture. All detail the AI reads to produce accurate output.',
   },
   {
     point: 'HD resolution or higher',
@@ -85,13 +58,13 @@ const DO_TIPS: { point: string; why: string }[] = [
   },
 ];
 
-const AVOID_TIPS: { point: string; why: string; img?: string }[] = [
+const AVOID_TIPS: { point: string; why: string }[] = [
   {
     point: 'Product shots flat on surfaces or display trays',
-    why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face — all become guesswork, leading to sizing errors.',
+    why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face. All become guesswork, leading to sizing errors.',
   },
   {
-    point: 'Poor lighting — harsh shadows, low light, or strong flash glare',
+    point: 'Poor lighting, including harsh shadows, low light, or strong flash glare',
     why:   'Bad lighting hides metal finish, stone clarity, and surface texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
   },
   {
@@ -105,7 +78,6 @@ const AVOID_TIPS: { point: string; why: string; img?: string }[] = [
   {
     point: 'Multiple jewelry items in a single frame',
     why:   'The AI generates one item per image. Multiple pieces cause it to pick the wrong one, blend them together, or fail entirely. Not supported yet.',
-    img:   multipleAndPacked,
   },
   {
     point: 'Social media screenshots',
@@ -114,50 +86,109 @@ const AVOID_TIPS: { point: string; why: string; img?: string }[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Lightbox
+// ---------------------------------------------------------------------------
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-full max-w-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute -right-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground hover:bg-accent"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <img
+          src={src}
+          alt="Enlarged view"
+          className="max-h-[85vh] w-auto rounded-md object-contain"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ExampleGrid({ images }: { images: { src: string; alt: string }[] }) {
+function ClickableImage({
+  src, alt, onClick,
+}: {
+  src: string; alt: string; onClick: (src: string) => void;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded border border-border cursor-pointer"
+      onClick={() => onClick(src)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick(src); }}
+      aria-label={`Enlarge: ${alt}`}
+    >
+      <img src={src} alt={alt} className="aspect-square w-full object-cover" loading="lazy" />
+    </div>
+  );
+}
+
+function ExampleGrid({
+  images, onImageClick,
+}: {
+  images: string[]; onImageClick: (src: string) => void;
+}) {
   return (
     <div>
-      <div className="mb-1 grid grid-cols-5 gap-1.5 sm:gap-2">
+      <div className="mb-1 grid grid-cols-5 gap-2">
         {CATEGORIES.map((cat) => (
-          <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">
-            {cat}
-          </p>
+          <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">{cat}</p>
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-        {images.map(({ src, alt }) => (
-          <div key={alt} className="overflow-hidden rounded border border-border">
-            <img src={src} alt={alt} className="aspect-square w-full object-cover" loading="lazy" />
-          </div>
+      <div className="grid grid-cols-5 gap-2">
+        {images.map((src, i) => (
+          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} />
         ))}
       </div>
     </div>
   );
 }
 
-function BeforeAfter({
-  before, after, beforeLabel, afterLabel,
+function BeforeAfterBlock({
+  before, after, beforeLabel, afterLabel, note, onImageClick,
 }: {
-  before: string; after: string; beforeLabel: string; afterLabel: string;
+  before: string; after: string;
+  beforeLabel: string; afterLabel: string;
+  note: string;
+  onImageClick: (src: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
-      <div className="flex-1">
-        <div className="overflow-hidden rounded border border-border">
-          <img src={before} alt={beforeLabel} className="aspect-square w-full object-cover" loading="lazy" />
+    <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="flex flex-col gap-1">
+          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} />
+          <p className="text-center text-[11px] font-medium text-muted-foreground">{beforeLabel}</p>
         </div>
-        <p className="mt-1 text-center text-[10px] text-muted-foreground">{beforeLabel}</p>
-      </div>
-      <span className="shrink-0 text-sm text-muted-foreground">→</span>
-      <div className="flex-1">
-        <div className="overflow-hidden rounded border border-border">
-          <img src={after} alt={afterLabel} className="aspect-square w-full object-cover" loading="lazy" />
+        <div className="flex flex-col gap-1">
+          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} />
+          <p className="text-center text-[11px] font-medium text-muted-foreground">{afterLabel}</p>
         </div>
-        <p className="mt-1 text-center text-[10px] text-muted-foreground">{afterLabel}</p>
       </div>
+      <p className="mt-3 text-justify text-xs leading-relaxed text-muted-foreground sm:text-sm">
+        {note}
+      </p>
     </div>
   );
 }
@@ -175,6 +206,9 @@ export default function OnboardingWelcome() {
   const [agreed, setAgreed]         = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
+  const [lightbox, setLightbox]     = useState<string | null>(null);
+
+  const openLightbox = useCallback((src: string) => setLightbox(src), []);
 
   useEffect(() => {
     checkTosAgreement()
@@ -212,207 +246,197 @@ export default function OnboardingWelcome() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    <>
+      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
 
-      {/* ── Header ── */}
-      <div className="mb-10 text-center sm:mb-12">
-        <h1 className="font-display text-4xl leading-tight tracking-wide sm:text-5xl lg:text-6xl">
-          Welcome to Formanova
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-          Read through, then confirm at the bottom to continue.
-        </p>
-      </div>
+      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
 
-      {/* ── Section 1: Wear it, don't stage it ── */}
-      <section className="mb-10 sm:mb-12">
-        <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-          Wear it. Don't stage it.
-        </h2>
-        <p className="mb-6 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Worn images give the AI what it needs to understand real-world scale and proportions.
-          Product flats leave it guessing, which is where sizing errors come from, especially for
-          rings and earrings where gem and band proportions are critical. Think of it like a
-          fitting room: a ring on a finger tells the AI far more than a ring sitting on a table.
-        </p>
-
-        <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
-
-          {/* DO column */}
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-formanova-success">
-              Do this
-            </p>
-            <ExampleGrid images={DO_IMAGES} />
-            <ul className="flex flex-col gap-3 pt-1">
-              {DO_TIPS.map(({ point, why }) => (
-                <li key={point} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
-                  <span className="text-xs leading-relaxed sm:text-sm">
-                    <span className="font-medium text-foreground">{point}. </span>
-                    <span className="text-muted-foreground">{why}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* AVOID column */}
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-destructive">
-              Avoid
-            </p>
-            <ExampleGrid images={AVOID_IMAGES} />
-            <ul className="flex flex-col gap-3 pt-1">
-              {AVOID_TIPS.map(({ point, why, img }) => (
-                <li key={point} className="flex items-start gap-2">
-                  <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                  <span className="flex-1 text-xs leading-relaxed sm:text-sm">
-                    <span className="font-medium text-foreground">{point}. </span>
-                    <span className="text-muted-foreground">{why}</span>
-                    {img && (
-                      <div className="mt-2 w-20 overflow-hidden rounded border border-border">
-                        <img src={img} alt={point} className="aspect-square w-full object-cover" loading="lazy" />
-                      </div>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
+        {/* ── Header ── */}
+        <div className="mb-10 text-center sm:mb-12">
+          <h1 className="font-display text-4xl leading-tight tracking-wide sm:text-5xl lg:text-6xl">
+            Welcome to Formanova
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            Read through, then confirm at the bottom to continue.
+          </p>
         </div>
 
-        {/* Scale before/after */}
-        <div className="mt-6 rounded-md border border-border bg-card p-4 sm:p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            What a product shot actually produces
+        {/* ── Section 1: Wear it, don't stage it ── */}
+        <section className="mb-10 sm:mb-12">
+          <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+            Wear it. Don't stage it.
+          </h2>
+          <p className="mb-6 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Worn images give the AI what it needs to understand real-world scale and proportions.
+            Product flats leave it guessing, which is where sizing errors come from, especially for
+            rings and earrings where gem and band proportions are critical. Think of it like a
+            fitting room: a ring on a finger tells the AI far more than a ring sitting on a table.
           </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-            <BeforeAfter
+
+          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
+
+            {/* DO column */}
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-formanova-success">
+                Do this
+              </p>
+              <ExampleGrid images={DO_IMAGES} onImageClick={openLightbox} />
+              <ul className="flex flex-col gap-3 pt-1">
+                {DO_TIPS.map(({ point, why }) => (
+                  <li key={point} className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-formanova-success" />
+                    <span className="text-xs leading-relaxed sm:text-sm">
+                      <span className="font-medium text-foreground">{point}. </span>
+                      <span className="text-muted-foreground">{why}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* AVOID column */}
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-destructive">
+                Avoid
+              </p>
+              <ExampleGrid images={AVOID_IMAGES} onImageClick={openLightbox} />
+              <ul className="flex flex-col gap-3 pt-1">
+                {AVOID_TIPS.map(({ point, why }) => (
+                  <li key={point} className="flex items-start gap-2">
+                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                    <span className="text-xs leading-relaxed sm:text-sm">
+                      <span className="font-medium text-foreground">{point}. </span>
+                      <span className="text-muted-foreground">{why}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </div>
+
+          {/* Scale before/after */}
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              What a product shot actually produces
+            </p>
+            <BeforeAfterBlock
               before={scaleBefore}
               after={scaleAfter}
-              beforeLabel="Input: not worn"
-              afterLabel="Output: wrong proportions"
+              beforeLabel="Before: product shot input"
+              afterLabel="After: wrong proportions"
+              note="When the AI has no body reference it guesses scale. The result is often a ring that looks oversized, an earring that is out of proportion, or a necklace that does not sit naturally. Worn inputs eliminate this guesswork."
+              onImageClick={openLightbox}
             />
-            <p className="text-justify text-xs leading-relaxed text-muted-foreground sm:flex-1 sm:text-sm">
-              When the AI has no body reference, it guesses scale. The result is often
-              a ring that looks oversized, an earring that is out of proportion, or a
-              necklace that doesn't sit naturally. Worn inputs eliminate this guesswork.
+          </div>
+        </section>
+
+        {/* ── Section 2: Model photo ── */}
+        <section className="mb-10 sm:mb-12">
+          <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+            Choose your model photo carefully.
+          </h2>
+          <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Think of it like casting for a shoot. The model photo sets the realism and mood of
+            your output. A photorealistic model produces a photorealistic result. A synthetic render
+            or illustration will match that style. For hyperrealistic output, use a real model photo
+            or choose one from Formanova's built-in library. The lighting and mood carry over too.
+            Upload with intention.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-destructive">
+                Synthetic input
+              </p>
+              <BeforeAfterBlock
+                before={syntheticBefore}
+                after={syntheticAfter}
+                beforeLabel="Before: synthetic model"
+                afterLabel="After: stylized output"
+                note="A synthetic or illustration-style model produces output in that same style. It will not look photorealistic."
+                onImageClick={openLightbox}
+              />
+            </div>
+
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+                Realistic input
+              </p>
+              <BeforeAfterBlock
+                before={realisticBefore}
+                after={realisticAfter}
+                beforeLabel="Before: real model photo"
+                afterLabel="After: photorealistic output"
+                note="A real, well-lit model photo gives the AI what it needs to produce a hyperrealistic, natural-looking result."
+                onImageClick={openLightbox}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Section 3: What to expect ── */}
+        <section className="mb-10 sm:mb-12">
+          <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+            What to expect.
+          </h2>
+          <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+            <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
+              Your results depend on the quality and type of input you submit. We cannot guarantee
+              quality output for inputs that do not follow these guidelines. Low-quality inputs
+              produce low-quality results, and inputs we do not recommend may produce
+              unpredictable results.
+            </p>
+            <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+              AI can make mistakes. We are constantly working to make Formanova better for you
+              and we take every case of incorrect output seriously.
             </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Section 2: Model photo ── */}
-      <section className="mb-10 sm:mb-12">
-        <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-          Choose your model photo carefully.
-        </h2>
-        <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Think of it like casting for a shoot. The model photo sets the realism and mood of
-          your output. A photorealistic model produces a photorealistic result. A synthetic render
-          or illustration will match that style. For hyperrealistic output, use a real model photo
-          or choose one from Formanova's built-in library. The lighting and mood carry over too.
-          Upload with intention.
-        </p>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-          <div className="rounded-md border border-border bg-card p-4 sm:p-5">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-destructive">
-              Synthetic input
-            </p>
-            <BeforeAfter
-              before={syntheticBefore}
-              after={syntheticAfter}
-              beforeLabel="Synthetic / render"
-              afterLabel="Stylized output"
-            />
-            <p className="mt-3 text-justify text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              A synthetic or illustration-style model produces output in that same style.
-              It will not look photorealistic.
-            </p>
-          </div>
-
-          <div className="rounded-md border border-border bg-card p-4 sm:p-5">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-              Realistic input
-            </p>
-            <BeforeAfter
-              before={realisticBefore}
-              after={realisticAfter}
-              beforeLabel="Real model photo"
-              afterLabel="Photorealistic output"
-            />
-            <p className="mt-3 text-justify text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              A real, well-lit model photo gives the AI what it needs to produce
-              a hyperrealistic, natural-looking result.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Section 3: What to expect ── */}
-      <section className="mb-10 sm:mb-12">
-        <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-          What to expect.
-        </h2>
+        {/* ── ToS acknowledgment ── */}
         <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-          <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
-            Your results depend on the quality and type of input you submit. We cannot guarantee
-            quality output for inputs that do not follow these guidelines. Low-quality inputs
-            produce low-quality results, and inputs we do not recommend may produce
-            unpredictable results.
-          </p>
-          <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-            AI can make mistakes. We are constantly working to make Formanova better for you
-            and we take every case of incorrect output seriously.
-          </p>
-        </div>
-      </section>
-
-      {/* ── ToS acknowledgment ── */}
-      <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-        <div className="mb-4 flex items-start gap-3">
-          <Checkbox
-            id={tosCheckboxId}
-            checked={agreed}
-            onCheckedChange={(v) => setAgreed(v === true)}
-            className="mt-0.5 shrink-0"
-          />
-          <label
-            htmlFor={tosCheckboxId}
-            className="text-sm leading-relaxed text-foreground sm:text-base"
-          >
-            I have read and agree to Formanova&rsquo;s{' '}
-            <a
-              href="https://formanova.ai/terms/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-primary underline underline-offset-2 hover:opacity-80"
+          <div className="mb-4 flex items-start gap-3">
+            <Checkbox
+              id={tosCheckboxId}
+              checked={agreed}
+              onCheckedChange={(v) => setAgreed(v === true)}
+              className="mt-0.5 shrink-0"
+            />
+            <label
+              htmlFor={tosCheckboxId}
+              className="text-sm leading-relaxed text-foreground sm:text-base"
             >
-              Terms of Service
-              <ExternalLink className="h-3 w-3 shrink-0" />
-            </a>
-            .
-          </label>
+              I have read and agree to Formanova&rsquo;s{' '}
+              <a
+                href="https://formanova.ai/terms/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                Terms of Service
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </a>
+              .
+            </label>
+          </div>
+
+          {error && (
+            <p className="mb-3 text-sm text-destructive">{error}</p>
+          )}
+
+          <Button
+            size="lg"
+            className="w-full sm:w-auto sm:min-w-[220px] sm:px-10"
+            disabled={!agreed || submitting}
+            onClick={handleAcknowledge}
+          >
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            I Acknowledge
+          </Button>
         </div>
 
-        {error && (
-          <p className="mb-3 text-sm text-destructive">{error}</p>
-        )}
-
-        <Button
-          size="lg"
-          className="w-full sm:w-auto sm:min-w-[220px] sm:px-10"
-          disabled={!agreed || submitting}
-          onClick={handleAcknowledge}
-        >
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          I Acknowledge
-        </Button>
       </div>
-
-    </div>
+    </>
   );
 }
