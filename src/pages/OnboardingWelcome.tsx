@@ -127,9 +127,9 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 function ClickableImage({
-  src, alt, onClick, objectPosition = 'object-cover',
+  src, alt, onClick, imgClass = '',
 }: {
-  src: string; alt: string; onClick: (src: string) => void; objectPosition?: string;
+  src: string; alt: string; onClick: (src: string) => void; imgClass?: string;
 }) {
   return (
     <div
@@ -140,7 +140,7 @@ function ClickableImage({
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(src); }}
       aria-label={`Enlarge: ${alt}`}
     >
-      <img src={src} alt={alt} className={`aspect-square w-full object-cover ${objectPosition}`} loading="lazy" />
+      <img src={src} alt={alt} className={`aspect-square w-full object-cover ${imgClass}`} loading="lazy" />
     </div>
   );
 }
@@ -167,22 +167,29 @@ function ExampleGrid({
 }
 
 function BeforeAfterBlock({
-  before, after, beforeLabel, afterLabel, note, onImageClick,
+  before, after, beforeLabel, afterLabel, note, onImageClick, heading, headingColor,
 }: {
   before: string; after: string;
   beforeLabel: string; afterLabel: string;
   note: string;
   onImageClick: (src: string) => void;
+  heading?: string;
+  headingColor?: string;
 }) {
   return (
     <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+      {heading && (
+        <p className={`mb-3 text-xs font-semibold uppercase tracking-widest ${headingColor ?? 'text-muted-foreground'}`}>
+          {heading}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1">
-          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} objectPosition="object-top" />
+          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} imgClass="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{beforeLabel}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} objectPosition="object-top" />
+          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} imgClass="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{afterLabel}</p>
         </div>
       </div>
@@ -345,33 +352,26 @@ export default function OnboardingWelcome() {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-destructive">
-                Synthetic input
-              </p>
-              <BeforeAfterBlock
-                before={syntheticBefore}
-                after={syntheticAfter}
-                beforeLabel="Before: synthetic model"
-                afterLabel="After: stylized output"
-                note="A synthetic or illustration-style model produces output in that same style. It will not look photorealistic."
-                onImageClick={openLightbox}
-              />
-            </div>
-
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-                Realistic input
-              </p>
-              <BeforeAfterBlock
-                before={realisticBefore}
-                after={realisticAfter}
-                beforeLabel="Before: real model photo"
-                afterLabel="After: photorealistic output"
-                note="A real, well-lit model photo gives the AI what it needs to produce a hyperrealistic, natural-looking result."
-                onImageClick={openLightbox}
-              />
-            </div>
+            <BeforeAfterBlock
+              heading="Synthetic input"
+              headingColor="text-destructive"
+              before={syntheticBefore}
+              after={syntheticAfter}
+              beforeLabel="Before: synthetic model"
+              afterLabel="After: stylized output"
+              note="A synthetic or illustration-style model produces output in that same style. It will not look photorealistic."
+              onImageClick={openLightbox}
+            />
+            <BeforeAfterBlock
+              heading="Realistic input"
+              headingColor="text-formanova-success"
+              before={realisticBefore}
+              after={realisticAfter}
+              beforeLabel="Before: real model photo"
+              afterLabel="After: photorealistic output"
+              note="A real, well-lit model photo gives the AI what it needs to produce a hyperrealistic, natural-looking result."
+              onImageClick={openLightbox}
+            />
           </div>
         </section>
 
