@@ -6,27 +6,27 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Allowed (worn) — 4 per category, ordered by category so grid cols align
+// Allowed (worn) — 4 per category, cols stay category-aligned in grid-cols-5
 import ringA1      from '@/assets/examples/ring-allowed-1.webp';
 import ringA2      from '@/assets/examples/ring-allowed-2.webp';
 import ringA3      from '@/assets/examples/ring-allowed-3.webp';
-import ringA4      from '@/assets/examples/ring-allowed-4.jpg';
+import ringA4      from '@/assets/examples/ring-allowed-4.webp';
 import earringA1   from '@/assets/examples/earring-allowed-1.webp';
 import earringA2   from '@/assets/examples/earring-allowed-2.webp';
 import earringA3   from '@/assets/examples/earring-allowed-3.webp';
-import earringA4   from '@/assets/examples/earring-allowed-4.jpg';
+import earringA4   from '@/assets/examples/earring-allowed-4.webp';
 import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
 import necklaceA2  from '@/assets/examples/necklace-allowed-2.webp';
 import necklaceA3  from '@/assets/examples/necklace-allowed-3.webp';
-import necklaceA4  from '@/assets/examples/necklace-allowed-4.jpg';
+import necklaceA4  from '@/assets/examples/necklace-allowed-4.webp';
 import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
 import braceletA2  from '@/assets/examples/bracelet-allowed-2.webp';
 import braceletA3  from '@/assets/examples/bracelet-allowed-3.webp';
-import braceletA4  from '@/assets/examples/bracelet-allowed-4.jpg';
+import braceletA4  from '@/assets/examples/bracelet-allowed-4.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
 import watchA2     from '@/assets/examples/watch-allowed-2.webp';
 import watchA3     from '@/assets/examples/watch-allowed-3.webp';
-import watchA4     from '@/assets/examples/watch-allowed-4.jpg';
+import watchA4     from '@/assets/examples/watch-allowed-4.webp';
 
 // Not allowed (product shots) — 3 per category
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
@@ -45,33 +45,42 @@ import watchN1     from '@/assets/examples/watch-notallowed-1.webp';
 import watchN2     from '@/assets/examples/watch-notallowed-2.webp';
 import watchN3     from '@/assets/examples/watch-notallowed-3.webp';
 
+// Multiple / packed avoid example
+import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
+
+// Scale before/after comparison
+import scaleBefore from '@/assets/examples/not_worn_scale_before.webp';
+import scaleAfter  from '@/assets/examples/not-wonr-scale-output.webp';
+
+// Model photo comparisons
+import syntheticBefore  from '@/assets/examples/synthetic-before.webp';
+import syntheticAfter   from '@/assets/examples/synthetic-after.webp';
+import realisticBefore  from '@/assets/examples/realistic-model-input.webp';
+import realisticAfter   from '@/assets/examples/realistic-output.webp';
+
 // ---------------------------------------------------------------------------
-// Image grids — each row is [ring, earring, necklace, bracelet, watch]
+// Image grids — each row = [ring, earring, necklace, bracelet, watch]
 // so columns stay category-aligned in a grid-cols-5 layout
 // ---------------------------------------------------------------------------
 
 const CATEGORIES = ['Ring', 'Earring', 'Necklace', 'Bracelet', 'Watch'];
 
-// 20 images, 4 rows × 5 categories
 const DO_IMAGES: { src: string; alt: string }[] = [
   { src: ringA1,     alt: 'Ring worn on finger 1'    },
   { src: earringA1,  alt: 'Earring worn on ear 1'    },
   { src: necklaceA1, alt: 'Necklace worn on neck 1'  },
   { src: braceletA1, alt: 'Bracelet worn on wrist 1' },
   { src: watchA1,    alt: 'Watch worn on wrist 1'    },
-
   { src: ringA2,     alt: 'Ring worn on finger 2'    },
   { src: earringA2,  alt: 'Earring worn on ear 2'    },
   { src: necklaceA2, alt: 'Necklace worn on neck 2'  },
   { src: braceletA2, alt: 'Bracelet worn on wrist 2' },
   { src: watchA2,    alt: 'Watch worn on wrist 2'    },
-
   { src: ringA3,     alt: 'Ring worn on finger 3'    },
   { src: earringA3,  alt: 'Earring worn on ear 3'    },
   { src: necklaceA3, alt: 'Necklace worn on neck 3'  },
   { src: braceletA3, alt: 'Bracelet worn on wrist 3' },
   { src: watchA3,    alt: 'Watch worn on wrist 3'    },
-
   { src: ringA4,     alt: 'Ring worn on finger 4'    },
   { src: earringA4,  alt: 'Earring worn on ear 4'    },
   { src: necklaceA4, alt: 'Necklace worn on neck 4'  },
@@ -79,20 +88,17 @@ const DO_IMAGES: { src: string; alt: string }[] = [
   { src: watchA4,    alt: 'Watch worn on wrist 4'    },
 ];
 
-// 15 images, 3 rows × 5 categories
 const AVOID_IMAGES: { src: string; alt: string }[] = [
   { src: ringN1,     alt: 'Ring product shot 1'     },
   { src: earringN1,  alt: 'Earring on display 1'    },
   { src: necklaceN1, alt: 'Necklace product shot 1' },
   { src: braceletN1, alt: 'Bracelet product shot 1' },
   { src: watchN1,    alt: 'Watch product shot 1'    },
-
   { src: ringN2,     alt: 'Ring product shot 2'     },
   { src: earringN2,  alt: 'Earring on display 2'    },
   { src: necklaceN2, alt: 'Necklace product shot 2' },
   { src: braceletN2, alt: 'Bracelet product shot 2' },
   { src: watchN2,    alt: 'Watch product shot 2'    },
-
   { src: ringN3,     alt: 'Ring product shot 3'     },
   { src: earringN3,  alt: 'Earring on display 3'    },
   { src: necklaceN3, alt: 'Necklace product shot 3' },
@@ -127,7 +133,7 @@ const DO_TIPS: { point: string; why: string }[] = [
   },
 ];
 
-const AVOID_TIPS: { point: string; why: string }[] = [
+const AVOID_TIPS: { point: string; why: string; img?: string }[] = [
   {
     point: 'Product shots flat on surfaces or display trays',
     why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face — all become guesswork, leading to sizing errors.',
@@ -147,6 +153,7 @@ const AVOID_TIPS: { point: string; why: string }[] = [
   {
     point: 'Multiple jewelry items in a single frame',
     why:   'The AI generates one item per image. Multiple pieces cause it to pick the wrong one, blend them together, or fail entirely. Not supported yet.',
+    img:   multipleAndPacked,
   },
   {
     point: 'Social media screenshots',
@@ -155,13 +162,12 @@ const AVOID_TIPS: { point: string; why: string }[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Sub-component: image grid with category column headers
+// Sub-components
 // ---------------------------------------------------------------------------
 
 function ExampleGrid({ images }: { images: { src: string; alt: string }[] }) {
   return (
     <div>
-      {/* Category column headers */}
       <div className="mb-1 grid grid-cols-5 gap-1.5 sm:gap-2">
         {CATEGORIES.map((cat) => (
           <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">
@@ -169,18 +175,36 @@ function ExampleGrid({ images }: { images: { src: string; alt: string }[] }) {
           </p>
         ))}
       </div>
-      {/* Image grid — cols stay category-aligned */}
       <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
         {images.map(({ src, alt }) => (
           <div key={alt} className="overflow-hidden rounded border border-border">
-            <img
-              src={src}
-              alt={alt}
-              className="aspect-square w-full object-cover"
-              loading="lazy"
-            />
+            <img src={src} alt={alt} className="aspect-square w-full object-cover" loading="lazy" />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function BeforeAfter({
+  before, after, beforeLabel, afterLabel,
+}: {
+  before: string; after: string; beforeLabel: string; afterLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex-1">
+        <div className="overflow-hidden rounded border border-border">
+          <img src={before} alt={beforeLabel} className="aspect-square w-full object-cover" loading="lazy" />
+        </div>
+        <p className="mt-1 text-center text-[10px] text-muted-foreground">{beforeLabel}</p>
+      </div>
+      <span className="shrink-0 text-sm text-muted-foreground">→</span>
+      <div className="flex-1">
+        <div className="overflow-hidden rounded border border-border">
+          <img src={after} alt={afterLabel} className="aspect-square w-full object-cover" loading="lazy" />
+        </div>
+        <p className="mt-1 text-center text-[10px] text-muted-foreground">{afterLabel}</p>
       </div>
     </div>
   );
@@ -288,12 +312,17 @@ export default function OnboardingWelcome() {
             </p>
             <ExampleGrid images={AVOID_IMAGES} />
             <ul className="flex flex-col gap-3 pt-1">
-              {AVOID_TIPS.map(({ point, why }) => (
+              {AVOID_TIPS.map(({ point, why, img }) => (
                 <li key={point} className="flex items-start gap-2">
                   <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                  <span className="text-xs leading-relaxed sm:text-sm">
+                  <span className="flex-1 text-xs leading-relaxed sm:text-sm">
                     <span className="font-medium text-foreground">{point}. </span>
                     <span className="text-muted-foreground">{why}</span>
+                    {img && (
+                      <div className="mt-2 w-20 overflow-hidden rounded border border-border">
+                        <img src={img} alt={point} className="aspect-square w-full object-cover" loading="lazy" />
+                      </div>
+                    )}
                   </span>
                 </li>
               ))}
@@ -301,31 +330,82 @@ export default function OnboardingWelcome() {
           </div>
 
         </div>
+
+        {/* Scale before/after */}
+        <div className="mt-6 rounded-md border border-border bg-card p-4 sm:p-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            What a product shot actually produces
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+            <BeforeAfter
+              before={scaleBefore}
+              after={scaleAfter}
+              beforeLabel="Input: not worn"
+              afterLabel="Output: wrong proportions"
+            />
+            <p className="text-justify text-xs leading-relaxed text-muted-foreground sm:flex-1 sm:text-sm">
+              When the AI has no body reference, it guesses scale. The result is often
+              a ring that looks oversized, an earring that is out of proportion, or a
+              necklace that doesn't sit naturally. Worn inputs eliminate this guesswork.
+            </p>
+          </div>
+        </div>
       </section>
 
-      {/* ── Sections 2 & 3 side by side ── */}
-      <div className="mb-10 grid grid-cols-1 items-stretch gap-4 sm:mb-12 sm:grid-cols-2 sm:gap-6">
+      {/* ── Section 2: Model photo ── */}
+      <section className="mb-10 sm:mb-12">
+        <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+          Choose your model photo carefully.
+        </h2>
+        <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
+          Think of it like casting for a shoot. The model photo sets the realism and mood of
+          your output. A photorealistic model produces a photorealistic result. A synthetic render
+          or illustration will match that style. For hyperrealistic output, use a real model photo
+          or choose one from Formanova's built-in library. The lighting and mood carry over too.
+          Upload with intention.
+        </p>
 
-        <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-          <h2 className="font-display mb-3 text-xl tracking-wide sm:text-2xl">
-            Choose your model photo carefully.
-          </h2>
-          <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
-            Think of it like casting for a shoot. The model photo sets the realism and mood of
-            your output. A photorealistic model photo produces a photorealistic result. A synthetic
-            render or illustration will match that style. For hyperrealistic output, use a real
-            model photo or choose one from Formanova's built-in library.
-          </p>
-          <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-            The lighting and mood of your model photo carry over into the final image. Upload
-            with intention.
-          </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+          <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-destructive">
+              Synthetic input
+            </p>
+            <BeforeAfter
+              before={syntheticBefore}
+              after={syntheticAfter}
+              beforeLabel="Synthetic / render"
+              afterLabel="Stylized output"
+            />
+            <p className="mt-3 text-justify text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              A synthetic or illustration-style model produces output in that same style.
+              It will not look photorealistic.
+            </p>
+          </div>
+
+          <div className="rounded-md border border-border bg-card p-4 sm:p-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+              Realistic input
+            </p>
+            <BeforeAfter
+              before={realisticBefore}
+              after={realisticAfter}
+              beforeLabel="Real model photo"
+              afterLabel="Photorealistic output"
+            />
+            <p className="mt-3 text-justify text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              A real, well-lit model photo gives the AI what it needs to produce
+              a hyperrealistic, natural-looking result.
+            </p>
+          </div>
         </div>
+      </section>
 
+      {/* ── Section 3: What to expect ── */}
+      <section className="mb-10 sm:mb-12">
+        <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
+          What to expect.
+        </h2>
         <div className="rounded-md border border-border bg-card p-5 sm:p-6">
-          <h2 className="font-display mb-3 text-xl tracking-wide sm:text-2xl">
-            What to expect.
-          </h2>
           <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
             Your results depend on the quality and type of input you submit. We cannot guarantee
             quality output for inputs that do not follow these guidelines. Low-quality inputs
@@ -337,8 +417,7 @@ export default function OnboardingWelcome() {
             and we take every case of incorrect output seriously.
           </p>
         </div>
-
-      </div>
+      </section>
 
       {/* ── ToS acknowledgment ── */}
       <div className="rounded-md border border-border bg-card p-5 sm:p-6">

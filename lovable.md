@@ -20,6 +20,10 @@ Follow UX best practices as established by designers like Don Norman:
 - **Cursor affordance (NNG standard)**: `cursor-pointer` (hand) is reserved for links and navigation elements only. Buttons and action controls use the default cursor — their visual design is their affordance. Drop zones and drag targets may use `cursor-pointer`. Never add `cursor-pointer` to `<button>` elements or the base Button component.
 - **Cross-device & cross-browser compatibility**: Every UI element must be designed mobile-first using responsive prefixes (`sm:`, `md:`, `lg:`). All layouts must be functional across all screen sizes, all major browsers (Chrome, Firefox, Safari, Edge), and all device types (mobile, tablet, desktop). No layout, interaction, or feature may break at any viewport size.
 
+## Asset Rules
+
+- **Always use WebP for images**: All images used in the app must be in `.webp` format. If an asset is provided as `.jpg`, `.jpeg`, or `.png`, convert it to `.webp` first before importing or using it. Never reference `.jpg`, `.jpeg`, or `.png` files directly in components or styles.
+
 ## Engineering Rules
 
 - **Minimal blast radius**: Before fixing a bug or adding a feature, check if it can be done with the smallest possible change. Avoid touching unrelated code. Prefer surgical edits to avoid regressions.

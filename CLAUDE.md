@@ -21,6 +21,10 @@ VITE_PIPELINE_ADMIN_SECRET=
 VITE_ADMIN_EMAILS=   # Comma-separated list of admin emails
 ```
 
+## Asset Rules
+
+- **Always use WebP for images**: All images used in the app must be in `.webp` format. If an asset is provided as `.jpg`, `.jpeg`, or `.png`, convert it to `.webp` first (`cwebp -q 82 input.jpg -o output.webp`) before importing or referencing it. Never import `.jpg`, `.jpeg`, or `.png` files directly in components.
+
 ## UI & Design Principles
 
 Follow UX best practices as established by designers like Don Norman:
