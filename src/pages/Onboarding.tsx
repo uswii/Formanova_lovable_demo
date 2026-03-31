@@ -222,7 +222,7 @@ function RoleCard({ label, Icon, selected, onSelect }: RoleCardProps) {
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'relative flex h-full w-full flex-col items-center justify-center gap-3 sm:gap-4',
+        'relative flex aspect-square w-full flex-col items-center justify-center gap-3 sm:gap-4',
         'border-2 p-4 sm:p-6 lg:p-8',
         'transition-all duration-200 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -280,8 +280,8 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center overflow-hidden px-5 py-6 sm:px-10 sm:py-8 lg:px-16 lg:py-10">
-      <div className="w-full shrink-0 pb-5 text-center sm:pb-7">
+    <div className="flex h-screen flex-col items-center justify-center overflow-hidden px-5 py-8 sm:px-10 sm:py-10 lg:px-16 lg:py-12">
+      <div className="w-full shrink-0 pb-6 text-center sm:pb-8">
         <h1 className="font-display text-3xl leading-tight tracking-wide sm:text-4xl lg:text-5xl">
           What best describes you?
         </h1>
@@ -290,7 +290,7 @@ export default function Onboarding() {
         </p>
       </div>
 
-      <div className="grid min-h-0 w-full flex-1 grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+      <div className="grid w-full max-w-sm grid-cols-2 gap-5 sm:max-w-2xl sm:gap-6 lg:max-w-5xl lg:grid-cols-4 lg:gap-8">
         {ROLE_OPTIONS.map((option) => (
           <RoleCard
             key={option.value}
@@ -301,7 +301,7 @@ export default function Onboarding() {
         ))}
       </div>
 
-      <div className="w-full shrink-0 pt-5 flex flex-col items-center sm:pt-7">
+      <div className="w-full shrink-0 pt-6 pb-4 flex flex-col items-center sm:pt-8 sm:pb-8">
         {error && (
           <p className="mb-3 text-center text-sm text-destructive">{error}</p>
         )}
