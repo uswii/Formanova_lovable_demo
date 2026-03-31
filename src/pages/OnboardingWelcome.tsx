@@ -283,7 +283,7 @@ export default function OnboardingWelcome() {
           <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
 
             {/* DO column */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 sm:p-5">
               <p className="text-xs font-semibold uppercase tracking-widest text-formanova-success">
                 Do this
               </p>
@@ -302,7 +302,7 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* AVOID column */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 sm:p-5">
               <p className="text-xs font-semibold uppercase tracking-widest text-destructive">
                 Avoid
               </p>
