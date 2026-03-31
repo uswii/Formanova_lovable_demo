@@ -247,10 +247,10 @@ export function AlternateUploadStep({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setGuideDialogOpen(true); }}
-                className="absolute top-3 right-3 flex items-center gap-1.5 border border-border/40
-                           bg-background/80 backdrop-blur-sm px-2.5 py-1
+                className="absolute top-3 right-3 flex items-center gap-1.5 border border-foreground/30
+                           bg-muted px-2.5 py-1
                            font-mono text-[10px] tracking-widest uppercase
-                           text-muted-foreground hover:text-foreground hover:border-foreground/40
+                           text-foreground hover:bg-foreground/10 hover:border-foreground/60
                            transition-colors"
               >
                 <Lightbulb className="h-3 w-3" />
@@ -270,10 +270,10 @@ export function AlternateUploadStep({
                 <button
                   type="button"
                   onClick={() => setGuideDialogOpen(true)}
-                  className="absolute top-3 right-12 flex items-center gap-1.5 border border-border/40
-                             bg-background/80 backdrop-blur-sm px-2.5 py-1
+                  className="absolute top-3 right-12 flex items-center gap-1.5 border border-foreground/30
+                             bg-muted px-2.5 py-1
                              font-mono text-[10px] tracking-widest uppercase
-                             text-muted-foreground hover:text-foreground hover:border-foreground/40
+                             text-foreground hover:bg-foreground/10 hover:border-foreground/60
                              transition-colors z-10"
                 >
                   <Lightbulb className="h-3 w-3" />
