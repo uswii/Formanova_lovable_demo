@@ -25,6 +25,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Box } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 const __DEV__ = import.meta.env.DEV;
 
@@ -293,7 +295,10 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
       promise = (async () => {
-        const resp = await fetch(card.glbUrl);
+        const needsAuth = AUTHENTICATED_IMAGES_ENABLED && card.glbUrl.includes('/artifacts/');
+        const resp = needsAuth
+          ? await authenticatedFetch(card.glbUrl)
+          : await fetch(card.glbUrl);
         if (!resp.ok) throw new Error(`Failed to fetch GLB: ${resp.status}`);
         const arrayBuffer = await resp.arrayBuffer();
 
