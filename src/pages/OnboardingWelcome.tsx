@@ -6,46 +6,108 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
 import { useAuth } from '@/contexts/AuthContext';
 
-import ringAllowed      from '@/assets/examples/ring-allowed-1.webp';
-import earringAllowed   from '@/assets/examples/earring-allowed-1.webp';
-import necklaceAllowed  from '@/assets/examples/necklace-allowed-1.webp';
-import braceletAllowed  from '@/assets/examples/bracelet-allowed-1.webp';
-import watchAllowed     from '@/assets/examples/watch-allowed-1.webp';
+// Allowed (worn) — 4 per category, ordered by category so grid cols align
+import ringA1      from '@/assets/examples/ring-allowed-1.webp';
+import ringA2      from '@/assets/examples/ring-allowed-2.webp';
+import ringA3      from '@/assets/examples/ring-allowed-3.webp';
+import ringA4      from '@/assets/examples/ring-allowed-4.jpg';
+import earringA1   from '@/assets/examples/earring-allowed-1.webp';
+import earringA2   from '@/assets/examples/earring-allowed-2.webp';
+import earringA3   from '@/assets/examples/earring-allowed-3.webp';
+import earringA4   from '@/assets/examples/earring-allowed-4.jpg';
+import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
+import necklaceA2  from '@/assets/examples/necklace-allowed-2.webp';
+import necklaceA3  from '@/assets/examples/necklace-allowed-3.webp';
+import necklaceA4  from '@/assets/examples/necklace-allowed-4.jpg';
+import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
+import braceletA2  from '@/assets/examples/bracelet-allowed-2.webp';
+import braceletA3  from '@/assets/examples/bracelet-allowed-3.webp';
+import braceletA4  from '@/assets/examples/bracelet-allowed-4.jpg';
+import watchA1     from '@/assets/examples/watch-allowed-1.webp';
+import watchA2     from '@/assets/examples/watch-allowed-2.webp';
+import watchA3     from '@/assets/examples/watch-allowed-3.webp';
+import watchA4     from '@/assets/examples/watch-allowed-4.jpg';
 
-import ringNotAllowed     from '@/assets/examples/ring-notallowed-1.webp';
-import earringNotAllowed  from '@/assets/examples/earring-notallowed-1.webp';
-import necklaceNotAllowed from '@/assets/examples/necklace-notallowed-1.webp';
-import braceletNotAllowed from '@/assets/examples/bracelet-notallowed-1.webp';
-import watchNotAllowed    from '@/assets/examples/watch-notallowed-1.webp';
+// Not allowed (product shots) — 3 per category
+import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
+import ringN2      from '@/assets/examples/ring-notallowed-2.webp';
+import ringN3      from '@/assets/examples/ring-notallowed-3.webp';
+import earringN1   from '@/assets/examples/earring-notallowed-1.webp';
+import earringN2   from '@/assets/examples/earring-notallowed-2.webp';
+import earringN3   from '@/assets/examples/earring-notallowed-3.webp';
+import necklaceN1  from '@/assets/examples/necklace-notallowed-1.webp';
+import necklaceN2  from '@/assets/examples/necklace-notallowed-2.webp';
+import necklaceN3  from '@/assets/examples/necklace-notallowed-3.webp';
+import braceletN1  from '@/assets/examples/bracelet-notallowed-1.webp';
+import braceletN2  from '@/assets/examples/bracelet-notallowed-2.webp';
+import braceletN3  from '@/assets/examples/bracelet-notallowed-3.webp';
+import watchN1     from '@/assets/examples/watch-notallowed-1.webp';
+import watchN2     from '@/assets/examples/watch-notallowed-2.webp';
+import watchN3     from '@/assets/examples/watch-notallowed-3.webp';
 
 // ---------------------------------------------------------------------------
-// Content
+// Image grids — each row is [ring, earring, necklace, bracelet, watch]
+// so columns stay category-aligned in a grid-cols-5 layout
 // ---------------------------------------------------------------------------
 
-const DO_IMAGES = [
-  { src: ringAllowed,     alt: 'Ring worn on finger',    label: 'Ring'     },
-  { src: earringAllowed,  alt: 'Earring worn on ear',    label: 'Earring'  },
-  { src: necklaceAllowed, alt: 'Necklace worn on neck',  label: 'Necklace' },
-  { src: braceletAllowed, alt: 'Bracelet worn on wrist', label: 'Bracelet' },
-  { src: watchAllowed,    alt: 'Watch worn on wrist',    label: 'Watch'    },
+const CATEGORIES = ['Ring', 'Earring', 'Necklace', 'Bracelet', 'Watch'];
+
+// 20 images, 4 rows × 5 categories
+const DO_IMAGES: { src: string; alt: string }[] = [
+  { src: ringA1,     alt: 'Ring worn on finger 1'    },
+  { src: earringA1,  alt: 'Earring worn on ear 1'    },
+  { src: necklaceA1, alt: 'Necklace worn on neck 1'  },
+  { src: braceletA1, alt: 'Bracelet worn on wrist 1' },
+  { src: watchA1,    alt: 'Watch worn on wrist 1'    },
+
+  { src: ringA2,     alt: 'Ring worn on finger 2'    },
+  { src: earringA2,  alt: 'Earring worn on ear 2'    },
+  { src: necklaceA2, alt: 'Necklace worn on neck 2'  },
+  { src: braceletA2, alt: 'Bracelet worn on wrist 2' },
+  { src: watchA2,    alt: 'Watch worn on wrist 2'    },
+
+  { src: ringA3,     alt: 'Ring worn on finger 3'    },
+  { src: earringA3,  alt: 'Earring worn on ear 3'    },
+  { src: necklaceA3, alt: 'Necklace worn on neck 3'  },
+  { src: braceletA3, alt: 'Bracelet worn on wrist 3' },
+  { src: watchA3,    alt: 'Watch worn on wrist 3'    },
+
+  { src: ringA4,     alt: 'Ring worn on finger 4'    },
+  { src: earringA4,  alt: 'Earring worn on ear 4'    },
+  { src: necklaceA4, alt: 'Necklace worn on neck 4'  },
+  { src: braceletA4, alt: 'Bracelet worn on wrist 4' },
+  { src: watchA4,    alt: 'Watch worn on wrist 4'    },
 ];
 
-const AVOID_IMAGES = [
-  { src: ringNotAllowed,     alt: 'Ring product shot',     label: 'Ring'     },
-  { src: earringNotAllowed,  alt: 'Earring on display',    label: 'Earring'  },
-  { src: necklaceNotAllowed, alt: 'Necklace product shot', label: 'Necklace' },
-  { src: braceletNotAllowed, alt: 'Bracelet product shot', label: 'Bracelet' },
-  { src: watchNotAllowed,    alt: 'Watch product shot',    label: 'Watch'    },
+// 15 images, 3 rows × 5 categories
+const AVOID_IMAGES: { src: string; alt: string }[] = [
+  { src: ringN1,     alt: 'Ring product shot 1'     },
+  { src: earringN1,  alt: 'Earring on display 1'    },
+  { src: necklaceN1, alt: 'Necklace product shot 1' },
+  { src: braceletN1, alt: 'Bracelet product shot 1' },
+  { src: watchN1,    alt: 'Watch product shot 1'    },
+
+  { src: ringN2,     alt: 'Ring product shot 2'     },
+  { src: earringN2,  alt: 'Earring on display 2'    },
+  { src: necklaceN2, alt: 'Necklace product shot 2' },
+  { src: braceletN2, alt: 'Bracelet product shot 2' },
+  { src: watchN2,    alt: 'Watch product shot 2'    },
+
+  { src: ringN3,     alt: 'Ring product shot 3'     },
+  { src: earringN3,  alt: 'Earring on display 3'    },
+  { src: necklaceN3, alt: 'Necklace product shot 3' },
+  { src: braceletN3, alt: 'Bracelet product shot 3' },
+  { src: watchN3,    alt: 'Watch product shot 3'    },
 ];
+
+// ---------------------------------------------------------------------------
+// Tips
+// ---------------------------------------------------------------------------
 
 const DO_TIPS: { point: string; why: string }[] = [
   {
     point: 'Jewelry worn on the body',
     why:   'A ring on a finger, an earring on an ear — worn context is how the AI understands real-world scale, fit, and proportions. This is the single biggest factor in result quality.',
-  },
-  {
-    point: 'One jewelry item per photo',
-    why:   'Ensures the AI focuses on exactly the right piece with no ambiguity.',
   },
   {
     point: 'Clear, even lighting',
@@ -56,6 +118,10 @@ const DO_TIPS: { point: string; why: string }[] = [
     why:   'The AI generates output at the quality level of the input. More detail in means more detail out.',
   },
   {
+    point: 'One jewelry item per photo',
+    why:   'Ensures the AI focuses on exactly the right piece with no ambiguity.',
+  },
+  {
     point: 'Standard pose for the category',
     why:   'Hand flat or slightly angled for rings. Profile or front-facing for earrings. Straight-on for necklaces and bracelets.',
   },
@@ -64,7 +130,15 @@ const DO_TIPS: { point: string; why: string }[] = [
 const AVOID_TIPS: { point: string; why: string }[] = [
   {
     point: 'Product shots flat on surfaces or display trays',
-    why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face — all become guesswork, and sizing errors follow.',
+    why:   'Without a body reference, the AI cannot determine real-world scale. Ring size, pendant drop length, earring scale on the face — all become guesswork, leading to sizing errors.',
+  },
+  {
+    point: 'Poor lighting — harsh shadows, low light, or strong flash glare',
+    why:   'Bad lighting hides metal finish, stone clarity, and surface texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
+  },
+  {
+    point: 'Blurry, out-of-focus, or low-resolution photos',
+    why:   'The AI reconstructs detail from what it sees. Blurry input produces blurry, inaccurate output. Always submit the sharpest, highest-resolution photo you have.',
   },
   {
     point: 'Jewelry packed in bags or containers',
@@ -75,18 +149,42 @@ const AVOID_TIPS: { point: string; why: string }[] = [
     why:   'The AI generates one item per image. Multiple pieces cause it to pick the wrong one, blend them together, or fail entirely. Not supported yet.',
   },
   {
-    point: 'Blurry, out-of-focus, or low-resolution photos',
-    why:   'The AI reconstructs detail from what it sees. Blurry input produces blurry, inaccurate output. Always submit the sharpest, highest-resolution photo you have.',
-  },
-  {
     point: 'Social media screenshots',
     why:   'Screenshots are compressed, often cropped, and may carry overlaid text, filters, or borders. Compression alone destroys the fine edge and surface detail the AI relies on.',
   },
-  {
-    point: 'Poor lighting — harsh shadows, low light, or strong flash glare',
-    why:   'Bad lighting hides metal finish, stone clarity, and surface texture. The AI cannot reconstruct detail it cannot see. Overexposed or underexposed shots produce washed-out or muddy results.',
-  },
 ];
+
+// ---------------------------------------------------------------------------
+// Sub-component: image grid with category column headers
+// ---------------------------------------------------------------------------
+
+function ExampleGrid({ images }: { images: { src: string; alt: string }[] }) {
+  return (
+    <div>
+      {/* Category column headers */}
+      <div className="mb-1 grid grid-cols-5 gap-1.5 sm:gap-2">
+        {CATEGORIES.map((cat) => (
+          <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">
+            {cat}
+          </p>
+        ))}
+      </div>
+      {/* Image grid — cols stay category-aligned */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+        {images.map(({ src, alt }) => (
+          <div key={alt} className="overflow-hidden rounded border border-border">
+            <img
+              src={src}
+              alt={alt}
+              className="aspect-square w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Page
@@ -162,7 +260,6 @@ export default function OnboardingWelcome() {
           fitting room: a ring on a finger tells the AI far more than a ring sitting on a table.
         </p>
 
-        {/* ── Image comparison: 2 equal columns ── */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
 
           {/* DO column */}
@@ -170,21 +267,7 @@ export default function OnboardingWelcome() {
             <p className="text-xs font-semibold uppercase tracking-widest text-formanova-success">
               Do this
             </p>
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {DO_IMAGES.map(({ src, alt, label }) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <div className="overflow-hidden rounded border border-border">
-                    <img
-                      src={src}
-                      alt={alt}
-                      className="aspect-square w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <p className="truncate text-center text-[10px] text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
+            <ExampleGrid images={DO_IMAGES} />
             <ul className="flex flex-col gap-3 pt-1">
               {DO_TIPS.map(({ point, why }) => (
                 <li key={point} className="flex items-start gap-2">
@@ -203,21 +286,7 @@ export default function OnboardingWelcome() {
             <p className="text-xs font-semibold uppercase tracking-widest text-destructive">
               Avoid
             </p>
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {AVOID_IMAGES.map(({ src, alt, label }) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <div className="overflow-hidden rounded border border-border">
-                    <img
-                      src={src}
-                      alt={alt}
-                      className="aspect-square w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <p className="truncate text-center text-[10px] text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
+            <ExampleGrid images={AVOID_IMAGES} />
             <ul className="flex flex-col gap-3 pt-1">
               {AVOID_TIPS.map(({ point, why }) => (
                 <li key={point} className="flex items-start gap-2">
@@ -244,7 +313,7 @@ export default function OnboardingWelcome() {
           <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
             Think of it like casting for a shoot. The model photo sets the realism and mood of
             your output. A photorealistic model photo produces a photorealistic result. A synthetic
-            render or illustration will match that style — for hyperrealistic output, use a real
+            render or illustration will match that style. For hyperrealistic output, use a real
             model photo or choose one from Formanova's built-in library.
           </p>
           <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
