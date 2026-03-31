@@ -11,34 +11,16 @@ import ringA1      from '@/assets/examples/ring-allowed-1.webp';
 import ringA2      from '@/assets/examples/ring-allowed-2.webp';
 import ringA3      from '@/assets/examples/ring-allowed-3.webp';
 import earringA1   from '@/assets/examples/earring-allowed-1.webp';
-import earringA2   from '@/assets/examples/earring-allowed-2.webp';
-import earringA3   from '@/assets/examples/earring-allowed-3.webp';
 import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
-import necklaceA2  from '@/assets/examples/necklace-allowed-2.webp';
-import necklaceA3  from '@/assets/examples/necklace-allowed-3.webp';
 import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
-import braceletA2  from '@/assets/examples/bracelet-allowed-2.webp';
-import braceletA3  from '@/assets/examples/bracelet-allowed-3.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
-import watchA2     from '@/assets/examples/watch-allowed-2.webp';
-import watchA3     from '@/assets/examples/watch-allowed-3.webp';
 
 // Not allowed (product shots) — 3 per category
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
-import ringN2      from '@/assets/examples/ring-notallowed-2.webp';
-import ringN3      from '@/assets/examples/ring-notallowed-3.webp';
 import earringN1   from '@/assets/examples/earring-notallowed-1.webp';
-import earringN2   from '@/assets/examples/earring-notallowed-2.webp';
-import earringN3   from '@/assets/examples/earring-notallowed-3.webp';
 import necklaceN1  from '@/assets/examples/necklace-notallowed-1.webp';
-import necklaceN2  from '@/assets/examples/necklace-notallowed-2.webp';
-import necklaceN3  from '@/assets/examples/necklace-notallowed-3.webp';
 import braceletN1  from '@/assets/examples/bracelet-notallowed-1.webp';
-import braceletN2  from '@/assets/examples/bracelet-notallowed-2.webp';
-import braceletN3  from '@/assets/examples/bracelet-notallowed-3.webp';
 import watchN1     from '@/assets/examples/watch-notallowed-1.webp';
-import watchN2     from '@/assets/examples/watch-notallowed-2.webp';
-import watchN3     from '@/assets/examples/watch-notallowed-3.webp';
 
 // Multiple / packed avoid example
 import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
@@ -66,16 +48,6 @@ const DO_IMAGES: { src: string; alt: string }[] = [
   { src: necklaceA1, alt: 'Necklace worn on neck 1'  },
   { src: braceletA1, alt: 'Bracelet worn on wrist 1' },
   { src: watchA1,    alt: 'Watch worn on wrist 1'    },
-  { src: ringA2,     alt: 'Ring worn on finger 2'    },
-  { src: earringA2,  alt: 'Earring worn on ear 2'    },
-  { src: necklaceA2, alt: 'Necklace worn on neck 2'  },
-  { src: braceletA2, alt: 'Bracelet worn on wrist 2' },
-  { src: watchA2,    alt: 'Watch worn on wrist 2'    },
-  { src: ringA3,     alt: 'Ring worn on finger 3'    },
-  { src: earringA3,  alt: 'Earring worn on ear 3'    },
-  { src: necklaceA3, alt: 'Necklace worn on neck 3'  },
-  { src: braceletA3, alt: 'Bracelet worn on wrist 3' },
-  { src: watchA3,    alt: 'Watch worn on wrist 3'    },
 ];
 
 const AVOID_IMAGES: { src: string; alt: string }[] = [
@@ -84,16 +56,6 @@ const AVOID_IMAGES: { src: string; alt: string }[] = [
   { src: necklaceN1, alt: 'Necklace product shot 1' },
   { src: braceletN1, alt: 'Bracelet product shot 1' },
   { src: watchN1,    alt: 'Watch product shot 1'    },
-  { src: ringN2,     alt: 'Ring product shot 2'     },
-  { src: earringN2,  alt: 'Earring on display 2'    },
-  { src: necklaceN2, alt: 'Necklace product shot 2' },
-  { src: braceletN2, alt: 'Bracelet product shot 2' },
-  { src: watchN2,    alt: 'Watch product shot 2'    },
-  { src: ringN3,     alt: 'Ring product shot 3'     },
-  { src: earringN3,  alt: 'Earring on display 3'    },
-  { src: necklaceN3, alt: 'Necklace product shot 3' },
-  { src: braceletN3, alt: 'Bracelet product shot 3' },
-  { src: watchN3,    alt: 'Watch product shot 3'    },
 ];
 
 // ---------------------------------------------------------------------------
