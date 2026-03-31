@@ -205,7 +205,7 @@ export default function OnboardingWelcome() {
         {/* ── Section 1: Photo guidelines ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-6 text-2xl tracking-wide sm:text-3xl">
-            Getting your photos right.
+            Getting your photos right
           </h2>
 
           <div className="flex flex-col gap-6">
@@ -216,7 +216,7 @@ export default function OnboardingWelcome() {
                 We recommend
               </p>
               <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
-                Upload images of jewelry worn on the body.
+                Upload images of jewelry worn on the body
               </h3>
 
               <ImageGrid images={DO_IMAGES} onImageClick={openLightbox} />
@@ -251,7 +251,7 @@ export default function OnboardingWelcome() {
                 We do not recommend
               </p>
               <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
-                Product shots, jewelry flat on surfaces or display trays.
+                Product shots, jewelry flat on surfaces or display trays
               </h3>
 
               <ImageGrid images={AVOID_IMAGES} onImageClick={openLightbox} />
@@ -277,15 +277,15 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
-            <div className="rounded-md border border-border bg-card p-5 sm:p-6">
+            <div className="rounded-md border border-border bg-card p-5 sm:p-6 isolate">
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 We do not recommend
               </p>
-              <h3 className="mb-5 text-base font-semibold text-foreground sm:text-lg">
-                Social media screenshots, or multiple items and packed jewelry.
+              <h3 className="mb-6 text-base font-semibold text-foreground [text-shadow:none] sm:text-lg">
+                Social media screenshots, or multiple items and packed jewelry
               </h3>
 
-              <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 gap-6 sm:gap-8">
                 {/* Screenshots */}
                 <div className="flex flex-col gap-3">
                   <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
@@ -318,7 +318,7 @@ export default function OnboardingWelcome() {
         {/* ── Section 2: Model photo ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-3 text-2xl tracking-wide sm:text-3xl">
-            You control how the final result looks.
+            You control how the final result looks
           </h2>
           <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
             Submit a synthetic or illustrated model and the output will match that style. Submit a
@@ -347,7 +347,7 @@ export default function OnboardingWelcome() {
               <BeforeAfterBlock
                 before={realisticBefore}
                 after={realisticAfter}
-                beforeLabel="Input: real model photo"
+                beforeLabel="Input: realistic model photo"
                 afterLabel="Output: realistic-looking result"
                 note="A real, well-lit model photo gives the AI what it needs to produce a realistic-looking, natural result."
                 onImageClick={openLightbox}
@@ -399,6 +399,7 @@ export default function OnboardingWelcome() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
               .
+              <span className="mt-1 block text-xs text-muted-foreground">Return here to complete your acknowledgment.</span>
             </label>
           </div>
 
