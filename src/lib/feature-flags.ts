@@ -48,6 +48,17 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 }
 
 /**
+ * Users shown the "What best describes you?" onboarding screen.
+ * Gated to specific emails until ready for all users.
+ */
+const ONBOARDING_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
+
+export function isOnboardingEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return ONBOARDING_EMAILS.includes(email.toLowerCase());
+}
+
+/**
  * Asset metadata (category label, inline model rename) — enabled for all users.
  */
 export function isAssetMetadataEnabled(_email: string | undefined | null): boolean {

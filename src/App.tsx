@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
@@ -9,6 +9,9 @@ import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
+import { useAuth } from '@/contexts/AuthContext';
+import { isOnboardingEnabled } from '@/lib/feature-flags';
+import { isOnboardingComplete } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
@@ -68,6 +71,7 @@ const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
 const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -101,6 +105,32 @@ function PostReloadHandler() {
   return null;
 }
 
+const ONBOARDING_PUBLIC_PATHS = [
+  '/', '/login', '/oauth-callback', '/feedback', '/link',
+  '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
+];
+
+/** Redirects gated users to /onboarding before their first protected-page visit. */
+function OnboardingRedirectHandler() {
+  const { user, initializing } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (initializing) return;
+    if (!user) return;
+    if (location.pathname === '/onboarding') return;
+    if (!isOnboardingEnabled(user.email)) return;
+    if (isOnboardingComplete(user.id)) return;
+    const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
+      || location.pathname.startsWith('/blog/');
+    if (isPublic) return;
+    navigate('/onboarding', { replace: true });
+  }, [initializing, user?.id, location.pathname, navigate]);
+
+  return null;
+}
+
 /** Version-aware update banner wired into the router context */
 function VersionBanner() {
   const { updateAvailable, refresh, dismiss } = useVersionPolling();
@@ -126,6 +156,7 @@ const App = () => (
           <BrowserRouter>
             <PostHogPageView />
             <PostReloadHandler />
+            <OnboardingRedirectHandler />
             <VersionBanner />
             
             <DeferredDecorations>
@@ -153,6 +184,9 @@ const App = () => (
                   <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   
+                  {/* Onboarding — one-time role picker, gated by feature flag */}
+                  <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+
                   {/* Protected routes - require sign in */}
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
