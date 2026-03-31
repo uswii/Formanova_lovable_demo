@@ -12,6 +12,7 @@ import necklaceA1  from '@/assets/examples/necklace-allowed-1.webp';
 import braceletA1  from '@/assets/examples/bracelet-allowed-1.webp';
 import watchA1     from '@/assets/examples/watch-allowed-1.webp';
 
+import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
 import ringN1      from '@/assets/examples/ring-notallowed-1.webp';
 import earringN1   from '@/assets/examples/earring-notallowed-1.webp';
 import necklaceN1  from '@/assets/examples/necklace-notallowed-1.webp';
@@ -318,6 +319,20 @@ export default function OnboardingWelcome() {
                   </li>
                 ))}
               </ul>
+
+              {/* Additional avoid examples — multiple/packed, screenshot */}
+              <div className="pt-1">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  More examples
+                </p>
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="flex flex-col gap-1 col-span-1">
+                    <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
+                    <p className="truncate text-center text-[10px] text-muted-foreground">Multiple / packed</p>
+                  </div>
+                  {/* Screenshot example — add src here when available */}
+                </div>
+              </div>
             </div>
 
           </div>
@@ -418,6 +433,7 @@ export default function OnboardingWelcome() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
               .
+              <span className="ml-1 text-xs text-muted-foreground">(Opens in a new tab. Return here to complete your acknowledgment.)</span>
             </label>
           </div>
 
