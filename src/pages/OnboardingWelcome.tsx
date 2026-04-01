@@ -292,7 +292,7 @@ export default function OnboardingWelcome() {
                 <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Input similar to these may not produce accurate results. These could be the reason if you see a change in your design.
+                Input similar to these may not produce accurate results.
               </p>
             </div>
 
