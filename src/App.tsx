@@ -67,6 +67,7 @@ const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 const PaymentSuccess = lazyWithRetry(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazyWithRetry(() => import("./pages/PaymentCancel"));
 const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
+const AdminFeedbackPage = lazyWithRetry(() => import("./pages/AdminFeedbackPage"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
@@ -232,6 +233,7 @@ const App = () => (
                   
                   {/* Admin routes */}
                   <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
+                  <Route path="/admin/feedback" element={<AdminRouteGuard><AdminFeedbackPage /></AdminRouteGuard>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
