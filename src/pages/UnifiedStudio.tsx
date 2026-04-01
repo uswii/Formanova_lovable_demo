@@ -1742,8 +1742,11 @@ export default function UnifiedStudio() {
                 open={feedbackOpen}
                 onClose={() => setFeedbackOpen(false)}
                 workflowId={workflowId}
-                jewelryImageUrl={jewelryUploadedUrl}
-                jewelryDisplayUrl={jewelryImage}
+                jewelryImageUrl={
+                  jewelryUploadedUrl?.startsWith('azure://')
+                    ? `https://snapwear.blob.core.windows.net/${jewelryUploadedUrl.replace('azure://', '')}`
+                    : jewelryUploadedUrl
+                }
                 modelImageUrl={activeModelUrl}
                 resultImageUrl={resultImages[0] ?? null}
                 category={(TO_SINGULAR[jewelryType] ?? 'other') as FeedbackCategory}

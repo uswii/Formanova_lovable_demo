@@ -52,8 +52,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   workflowId: string | null;
-  jewelryImageUrl: string | null;   // Azure/API URL — used in the feedback payload
-  jewelryDisplayUrl: string | null; // Local data/blob URL — used for the thumbnail
+  jewelryImageUrl: string | null;
   modelImageUrl: string | null;
   resultImageUrl: string | null;
   category: FeedbackCategory;
@@ -64,7 +63,6 @@ export function FeedbackModal({
   onClose,
   workflowId,
   jewelryImageUrl,
-  jewelryDisplayUrl,
   modelImageUrl,
   resultImageUrl,
   category,
@@ -123,7 +121,7 @@ export function FeedbackModal({
     }
   };
 
-  const hasImages = jewelryDisplayUrl || modelImageUrl || resultImageUrl;
+  const hasImages = jewelryImageUrl || modelImageUrl || resultImageUrl;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -164,7 +162,7 @@ export function FeedbackModal({
             {/* Images */}
             {hasImages && (
               <div className="flex gap-3">
-                <Thumbnail url={jewelryDisplayUrl} label="Jewelry input" />
+                <Thumbnail url={jewelryImageUrl} label="Jewelry input" />
                 <Thumbnail url={modelImageUrl} label="Model input" />
                 <Thumbnail url={resultImageUrl} label="Result" />
               </div>
