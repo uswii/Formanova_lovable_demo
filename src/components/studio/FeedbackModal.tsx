@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { submitFeedback, type FeedbackCategory } from '@/lib/feedback-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { trackFeedbackSubmitted } from '@/lib/posthog-events';
 
 // ─── Profanity filter ─────────────────────────────────────────────────────────
 const BLOCKED_WORDS = [
@@ -114,6 +115,12 @@ export function FeedbackModal({
         output_image_url: resultImageUrl,
         complaint: text.trim(),
         category,
+      });
+      trackFeedbackSubmitted({
+        category,
+        generation_type: 'photoshoot',
+        complaint_length: text.trim().length,
+        workflow_id: workflowId,
       });
       setSubmitted(true);
     } catch {

@@ -21,6 +21,7 @@ import {
   trackTosViewed,
   trackTosSigned,
   trackUserTypeSelected,
+  trackFeedbackSubmitted,
 } from './posthog-events'
 
 beforeEach(() => {
@@ -241,6 +242,35 @@ describe('trackTosSigned', () => {
   it('captures tos_signed', () => {
     trackTosSigned()
     expect(posthog.capture).toHaveBeenCalledWith('tos_signed', undefined)
+  })
+})
+
+describe('trackFeedbackSubmitted', () => {
+  it('captures feedback_submitted with correct shape', () => {
+    trackFeedbackSubmitted({
+      category: 'ring',
+      generation_type: 'photoshoot',
+      complaint_length: 42,
+      workflow_id: 'wf-123',
+    })
+    expect(posthog.capture).toHaveBeenCalledWith('feedback_submitted', {
+      category: 'ring',
+      generation_type: 'photoshoot',
+      complaint_length: 42,
+      workflow_id: 'wf-123',
+    })
+  })
+
+  it('accepts null workflow_id', () => {
+    trackFeedbackSubmitted({
+      category: 'necklace',
+      generation_type: 'photoshoot',
+      complaint_length: 10,
+      workflow_id: null,
+    })
+    expect(posthog.capture).toHaveBeenCalledWith('feedback_submitted', expect.objectContaining({
+      workflow_id: null,
+    }))
   })
 })
 

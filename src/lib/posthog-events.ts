@@ -75,6 +75,19 @@ export interface UserTypeSelectedProps {
   user_type: UserType;
 }
 
+export interface FeedbackSubmittedProps {
+  category: string;
+  generation_type: string;
+  complaint_length: number;
+  workflow_id: string | null;
+}
+
+// ═══════ Feedback ═══════════════════════════════════════════════════
+
+export function trackFeedbackSubmitted(props: FeedbackSubmittedProps) {
+  capture('feedback_submitted', { ...props });
+}
+
 // ═══════ Onboarding / ToS ═══════════════════════════════════════════
 
 export function trackTosViewed() {
