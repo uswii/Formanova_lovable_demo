@@ -11,6 +11,7 @@ import {
   saveUserType,
 } from '@/lib/onboarding-api';
 import { isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
+import { trackUserTypeSelected } from '@/lib/posthog-events';
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — all use currentColor so they adapt to any theme.
@@ -303,6 +304,7 @@ export default function Onboarding() {
     setError(null);
     try {
       await saveUserType(selected);
+      trackUserTypeSelected({ user_type: selected });
       markOnboardingComplete(user.id);
       const dest = isOnboardingWelcomeEnabled(user.email) ? '/onboarding-welcome' : '/studio';
       navigate(dest, { replace: true });

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock posthog-js BEFORE importing posthog-events
 vi.mock('posthog-js', () => ({
-  default: { capture: vi.fn(), __loaded: true },
+  default: { capture: vi.fn(), setPersonProperties: vi.fn(), __loaded: true },
 }))
 
 import posthog from 'posthog-js'
@@ -18,6 +18,9 @@ import {
   trackDownloadClicked,
   trackRegenerateClicked,
   trackPaymentSuccess,
+  trackTosViewed,
+  trackTosSigned,
+  trackUserTypeSelected,
 } from './posthog-events'
 
 beforeEach(() => {
@@ -221,6 +224,42 @@ describe('trackPaymentSuccess', () => {
       package: '$9',
       amount_usd: 9,
       currency_shown: 'USD',
+    })
+  })
+})
+
+// ── Onboarding / ToS ───────────────────────────────────────────────
+
+describe('trackTosViewed', () => {
+  it('captures tos_viewed', () => {
+    trackTosViewed()
+    expect(posthog.capture).toHaveBeenCalledWith('tos_viewed', undefined)
+  })
+})
+
+describe('trackTosSigned', () => {
+  it('captures tos_signed', () => {
+    trackTosSigned()
+    expect(posthog.capture).toHaveBeenCalledWith('tos_signed', undefined)
+  })
+})
+
+describe('trackUserTypeSelected', () => {
+  it('captures user_type_selected event', () => {
+    trackUserTypeSelected({ user_type: 'jewelry_brand' })
+    expect(posthog.capture).toHaveBeenCalledWith('user_type_selected', { user_type: 'jewelry_brand' })
+  })
+
+  it('persists user_type as a person property', () => {
+    trackUserTypeSelected({ user_type: 'freelancer' })
+    expect((posthog as any).setPersonProperties).toHaveBeenCalledWith({ user_type: 'freelancer' })
+  })
+
+  it('works for all user types', () => {
+    const types = ['jewelry_brand', 'freelancer', 'researcher_student', 'content_creator'] as const
+    types.forEach((user_type) => {
+      trackUserTypeSelected({ user_type })
+      expect(posthog.capture).toHaveBeenCalledWith('user_type_selected', { user_type })
     })
   })
 })

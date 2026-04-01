@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import type { UserType } from '@/lib/onboarding-api';
 
 /** Safe wrapper — only fires when PostHog is loaded */
 function capture(event: string, properties?: Record<string, unknown>) {
@@ -68,6 +69,25 @@ export interface PaymentSuccessProps {
   package: string;
   amount_usd: number;
   currency_shown: string;
+}
+
+export interface UserTypeSelectedProps {
+  user_type: UserType;
+}
+
+// ═══════ Onboarding / ToS ═══════════════════════════════════════════
+
+export function trackTosViewed() {
+  capture('tos_viewed');
+}
+
+export function trackTosSigned() {
+  capture('tos_signed');
+}
+
+export function trackUserTypeSelected(props: UserTypeSelectedProps) {
+  capture('user_type_selected', { ...props });
+  if (posthog.__loaded) posthog.setPersonProperties({ user_type: props.user_type });
 }
 
 // ═══════ Auth Events ════════════════════════════════════════════════
