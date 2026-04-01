@@ -35,6 +35,8 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
+import { fetchPresetModels, type PresetModel } from '@/lib/models-api';
+import { useQuery } from '@tanstack/react-query';
 import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
@@ -51,7 +53,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
@@ -358,6 +360,44 @@ function saveMyModels(models: UserModel[]) {
   localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
 }
 
+function PresetModelThumb({ model, isSelected, onSelect }: {
+  model: PresetModel;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const resolvedSrc = useAuthenticatedImage(model.url);
+  return (
+    <div className="break-inside-avoid mb-2">
+      <button
+        onClick={onSelect}
+        className={`group relative overflow-hidden border transition-all duration-200 w-full ${
+          isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+        }`}
+      >
+        {resolvedSrc ? (
+          <img
+            src={resolvedSrc}
+            alt={model.label}
+            className="w-full block group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full aspect-[2/3] bg-muted/30 flex items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
+          </div>
+        )}
+        {isSelected && (
+          <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+            <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+              <Check className="h-3.5 w-3.5 text-background" />
+            </div>
+          </div>
+        )}
+      </button>
+    </div>
+  );
+}
+
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
 function getStepFromQuery(stepParam: string | null): StudioStep {
@@ -383,7 +423,7 @@ export default function UnifiedStudio() {
   const [jewelryFile, setJewelryFile] = useState<File | null>(null);
 
   // Model selection
-  const [selectedModel, setSelectedModel] = useState<ModelImage | null>(null);
+  const [selectedModel, setSelectedModel] = useState<PresetModel | null>(null);
   const [customModelImage, setCustomModelImage] = useState<string | null>(null);
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -393,7 +433,39 @@ export default function UnifiedStudio() {
   const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
   const [myModelsLoading, setMyModelsLoading] = useState(true);
   const [myModelsSearch, setMyModelsSearch] = useState('');
-  const [formanovaCategory, setFormanovaCategory] = useState<'ecom' | 'editorial'>('ecom');
+  const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
+
+  // Fetch preset models from API (feature-flagged)
+  const modelsApiEnabled = isModelsApiEnabled(user?.email);
+  const { data: presetModelsData } = useQuery({
+    queryKey: ['preset-models'],
+    queryFn: fetchPresetModels,
+    enabled: modelsApiEnabled,
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+
+  // Derive unique categories and filtered models from API data
+  const presetCategories = useMemo<string[]>(() => {
+    if (!presetModelsData) return [];
+    const seen = new Set<string>();
+    const cats: string[] = [];
+    for (const m of presetModelsData) {
+      if (!seen.has(m.category)) { seen.add(m.category); cats.push(m.category); }
+    }
+    return cats;
+  }, [presetModelsData]);
+
+  // Auto-select first available category when API data first loads
+  useEffect(() => {
+    if (presetCategories.length > 0 && !presetCategories.includes(formanovaCategory)) {
+      setFormanovaCategory(presetCategories[0]);
+    }
+  }, [presetCategories]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const presetModelsForCategory = useMemo<PresetModel[]>(() => {
+    if (!presetModelsData) return [];
+    return presetModelsData.filter(m => m.category === formanovaCategory);
+  }, [presetModelsData, formanovaCategory]);
 
   // Fetch user-uploaded models from backend API
   const fetchMyModels = useCallback(async () => {
@@ -519,8 +591,12 @@ export default function UnifiedStudio() {
     if (session.customModelImage) setCustomModelImage(session.customModelImage);
     if (session.modelAssetId) setModelAssetId(session.modelAssetId);
     if (session.selectedModelId) {
-      const model = ALL_MODELS.find(m => m.id === session.selectedModelId);
-      if (model) setSelectedModel(model);
+      // When API is enabled, the model data hasn't loaded yet — skip restore here;
+      // the effect below will pick it up once presetModelsData is available.
+      if (!modelsApiEnabled) {
+        const model = ALL_MODELS.find(m => m.id === session.selectedModelId);
+        if (model) setSelectedModel(model);
+      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -537,6 +613,15 @@ export default function UnifiedStudio() {
       modelAssetId,
     });
   }, [jewelryUploadedUrl, jewelryAssetId, validationResult, selectedModel, customModelImage, modelAssetId]);
+
+  // ─── Second-pass model restore when API data loads ────────────────
+  useEffect(() => {
+    if (!modelsApiEnabled || !presetModelsData || selectedModel) return;
+    const session = loadStudioSession();
+    if (!session?.selectedModelId) return;
+    const model = presetModelsData.find(m => m.id === session.selectedModelId);
+    if (model) setSelectedModel(model);
+  }, [presetModelsData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
@@ -636,7 +721,7 @@ export default function UnifiedStudio() {
     }
   }, [toast]);
 
-  const handleSelectLibraryModel = (model: ModelImage) => {
+  const handleSelectLibraryModel = (model: PresetModel) => {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
@@ -1509,54 +1594,62 @@ export default function UnifiedStudio() {
                         and images fill the remaining space below them and in columns 2 & 3.
                       */}
                       <div className="columns-3 gap-2">
-                        {/* Category buttons — naturally occupy the top of column 1 */}
-                        {([
-                          { key: 'ecom' as const, label: 'E-Commerce' },
-                          { key: 'editorial' as const, label: 'Editorial' },
-                        ]).map((cat) => (
-                          <div key={cat.key} className="break-inside-avoid mb-2">
+                        {/* Category buttons */}
+                        {(modelsApiEnabled ? presetCategories : ['ecom', 'editorial']).map((cat) => (
+                          <div key={cat} className="break-inside-avoid mb-2">
                             <button
-                              onClick={() => setFormanovaCategory(cat.key)}
+                              onClick={() => setFormanovaCategory(cat)}
                               className={`w-full px-3 py-3 text-center transition-all duration-200 ${
-                                formanovaCategory === cat.key
+                                formanovaCategory === cat
                                   ? 'bg-foreground text-background'
                                   : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                               }`}
                             >
                               <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
-                                {cat.label}
+                                {cat === 'ecom' ? 'E-Commerce' : cat.charAt(0).toUpperCase() + cat.slice(1)}
                               </span>
                             </button>
                           </div>
                         ))}
-                        {/* Model thumbnails — flow into remaining space in col 1 then cols 2 & 3 */}
-                        {(formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
-                          const isSelected = selectedModel?.id === model.id && !customModelImage;
-                          return (
-                            <div key={model.id} className="break-inside-avoid mb-2">
-                              <button
-                                onClick={() => handleSelectLibraryModel(model)}
-                                className={`group relative overflow-hidden border transition-all duration-200 w-full ${
-                                  isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-                                }`}
-                              >
-                                <img
-                                  src={model.url}
-                                  alt={model.label}
-                                  className="w-full block group-hover:scale-105 transition-transform duration-300"
-                                  loading="lazy"
-                                />
-                                {isSelected && (
-                                  <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                                      <Check className="h-3.5 w-3.5 text-background" />
+                        {/* Model thumbnails */}
+                        {modelsApiEnabled ? (
+                          presetModelsForCategory.map((model) => (
+                            <PresetModelThumb
+                              key={model.id}
+                              model={model}
+                              isSelected={selectedModel?.id === model.id && !customModelImage}
+                              onSelect={() => handleSelectLibraryModel(model)}
+                            />
+                          ))
+                        ) : (
+                          (formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
+                            const isSelected = selectedModel?.id === model.id && !customModelImage;
+                            return (
+                              <div key={model.id} className="break-inside-avoid mb-2">
+                                <button
+                                  onClick={() => handleSelectLibraryModel(model)}
+                                  className={`group relative overflow-hidden border transition-all duration-200 w-full ${
+                                    isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+                                  }`}
+                                >
+                                  <img
+                                    src={model.url}
+                                    alt={model.label}
+                                    className="w-full block group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                  />
+                                  {isSelected && (
+                                    <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                                      <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                                        <Check className="h-3.5 w-3.5 text-background" />
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                              </button>
-                            </div>
-                          );
-                        })}
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </TabsContent>
