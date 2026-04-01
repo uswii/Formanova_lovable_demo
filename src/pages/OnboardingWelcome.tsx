@@ -312,7 +312,8 @@ export default function OnboardingWelcome() {
 
           <div className="flex flex-col gap-5">
             <div className="border border-border bg-card p-4 sm:p-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
                 Synthetic input
               </p>
               <BeforeAfterBlock
@@ -325,7 +326,8 @@ export default function OnboardingWelcome() {
               />
             </div>
             <div className="border border-border bg-card p-4 sm:p-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-formanova-success" />
                 Realistic input
               </p>
               <BeforeAfterBlock
