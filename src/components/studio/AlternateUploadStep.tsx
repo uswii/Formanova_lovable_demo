@@ -176,6 +176,8 @@ export function AlternateUploadStep({
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
 
+  const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
+
   React.useEffect(() => {
     setFlagAcknowledged(false);
   }, [jewelryImage]);
@@ -264,7 +266,7 @@ export function AlternateUploadStep({
         {jewelryImage && (
           <div className="space-y-4">
             <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 border-border/30 ${CANVAS_H}`}>
-              <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-full object-contain" />
+              <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-full object-contain" />
 
               {!showGuide && isViewGuideEnabled(userEmail) && (
                 <button
@@ -491,7 +493,7 @@ export function AlternateUploadStep({
             <div className="flex flex-col gap-1.5">
               <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
                 {jewelryImage && (
-                  <img src={jewelryImage} alt="Your photo" className="w-full h-full object-contain" />
+                  <img src={resolvedJewelryImage ?? undefined} alt="Your photo" className="w-full h-full object-contain" />
                 )}
               </div>
               <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">

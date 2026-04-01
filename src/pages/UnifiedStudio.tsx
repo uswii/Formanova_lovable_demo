@@ -524,6 +524,7 @@ export default function UnifiedStudio() {
   useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
+  const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
   // Validation
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
@@ -1226,7 +1227,7 @@ export default function UnifiedStudio() {
                   /* Uploaded state — image preview */
                   <div className="space-y-4">
                     <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[500px] md:min-h-[640px] border-border/30">
-                      <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
+                      <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
                         onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
@@ -1353,7 +1354,7 @@ export default function UnifiedStudio() {
               <div className="space-y-2">
                 <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
                 <div className="relative border-2 border-destructive/40 overflow-hidden aspect-[3/4] bg-muted/30 rounded-sm">
-                  {jewelryImage && <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />}
+                  {jewelryImage && <img src={resolvedJewelryImage ?? undefined} alt="Flagged" className="w-full h-full object-cover" />}
                   <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
                     <X className="h-4 w-4 text-destructive-foreground" />
                   </div>
@@ -1705,7 +1706,7 @@ export default function UnifiedStudio() {
               <div className="flex gap-4">
                 {jewelryImage && (
                   <div className="w-16 h-16 border border-border/30 overflow-hidden">
-                    <img src={jewelryImage} alt="Jewelry" className="w-full h-full object-cover opacity-50" />
+                    <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="w-full h-full object-cover opacity-50" />
                   </div>
                 )}
                 {activeModelUrl && (
