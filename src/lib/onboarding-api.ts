@@ -7,6 +7,13 @@ export type UserType =
   | 'content_creator'
   | 'other';
 
+export type UserProfile = {
+  id: string;
+  email: string;
+  external_user_id: string;
+  user_type: UserType | null;
+};
+
 const KEY_PREFIX = 'formanova_onboarding_';
 const TOS_KEY_PREFIX = 'formanova_tos_';
 
@@ -24,6 +31,16 @@ export function isTosAgreed(userId: string): boolean {
 
 export function markTosAgreed(userId: string): void {
   localStorage.setItem(TOS_KEY_PREFIX + userId, 'true');
+}
+
+/**
+ * GET /api/user/profile — returns the current user's profile.
+ * user_type is null if onboarding has not been completed.
+ */
+export async function getUserProfile(): Promise<UserProfile> {
+  const res = await authenticatedFetch('/api/user/profile');
+  if (!res.ok) throw new Error(`Failed to fetch profile: ${res.status}`);
+  return res.json();
 }
 
 /**
