@@ -345,12 +345,6 @@ export default function OnboardingWelcome() {
             What to expect
           </h2>
           <div className="border border-border bg-card p-5 sm:p-6">
-            <p className="mb-3 text-justify text-sm leading-relaxed text-foreground sm:text-base">
-              Your results depend on the quality and type of input you submit. We cannot guarantee
-              quality output for inputs that do not follow these guidelines. Low-quality inputs
-              produce low-quality results, and inputs we do not recommend may produce
-              unpredictable results.
-            </p>
             <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
               AI can make mistakes. We are constantly working to make Formanova better for you
               and we take every case of incorrect output seriously.
@@ -382,7 +376,6 @@ export default function OnboardingWelcome() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
 
-              <span className="ml-1 text-xs text-muted-foreground">Return here to complete your acknowledgment.</span>
             </label>
           </div>
 
