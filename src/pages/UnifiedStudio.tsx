@@ -51,7 +51,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled } from '@/lib/feature-flags';
+import { FeedbackModal } from '@/components/studio/FeedbackModal';
+import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 import {
@@ -466,6 +468,7 @@ export default function UnifiedStudio() {
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [regenerationCount, setRegenerationCount] = useState(0);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
@@ -1720,6 +1723,31 @@ export default function UnifiedStudio() {
                 </span>
               </Button>
             </div>
+
+            {isFeedbackEnabled(user?.email) && (
+              <p className="text-center text-xs text-muted-foreground">
+                Not happy with the result?{' '}
+                <button
+                  type="button"
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
+                  onClick={() => setFeedbackOpen(true)}
+                >
+                  Tell us what went wrong
+                </button>
+              </p>
+            )}
+
+            {isFeedbackEnabled(user?.email) && (
+              <FeedbackModal
+                open={feedbackOpen}
+                onClose={() => setFeedbackOpen(false)}
+                workflowId={workflowId}
+                jewelryImageUrl={jewelryUploadedUrl}
+                modelImageUrl={activeModelUrl}
+                resultImageUrl={resultImages[0] ?? null}
+                category={(TO_SINGULAR[jewelryType] ?? 'other') as FeedbackCategory}
+              />
+            )}
 
           </motion.div>
         )}

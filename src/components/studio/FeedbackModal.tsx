@@ -1,0 +1,204 @@
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, CheckCircle2 } from 'lucide-react';
+import { submitFeedback, type FeedbackCategory } from '@/lib/feedback-api';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+
+// ─── Profanity filter ─────────────────────────────────────────────────────────
+const BLOCKED_WORDS = [
+  'fuck', 'shit', 'cunt', 'bitch', 'asshole', 'bastard',
+  'dick', 'cock', 'pussy', 'whore', 'slut', 'nigger', 'faggot',
+  'suck my', 'motherfuck',
+];
+
+const BLOCKED_RE = new RegExp(
+  BLOCKED_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'i',
+);
+
+function hasProfanity(text: string): boolean {
+  return BLOCKED_RE.test(text);
+}
+
+// ─── Thumbnail ────────────────────────────────────────────────────────────────
+function Thumbnail({ url, label }: { url: string | null; label: string }) {
+  const resolved = useAuthenticatedImage(url);
+  if (!url) return null;
+  return (
+    <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+      <div className="w-full aspect-square border border-border overflow-hidden bg-muted/30 flex items-center justify-center">
+        {resolved ? (
+          <img src={resolved} alt={label} className="w-full h-full object-contain" />
+        ) : (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+        )}
+      </div>
+      <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground truncate w-full text-center">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  workflowId: string | null;
+  jewelryImageUrl: string | null;
+  modelImageUrl: string | null;
+  resultImageUrl: string | null;
+  category: FeedbackCategory;
+}
+
+export function FeedbackModal({
+  open,
+  onClose,
+  workflowId,
+  jewelryImageUrl,
+  modelImageUrl,
+  resultImageUrl,
+  category,
+}: Props) {
+  const [text, setText] = useState('');
+  const [profanityError, setProfanityError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClose = () => {
+    if (submitting) return;
+    setText('');
+    setProfanityError(false);
+    setSubmitted(false);
+    setError(null);
+    onClose();
+  };
+
+  const handleChange = (v: string) => {
+    setText(v);
+    if (profanityError && !hasProfanity(v)) setProfanityError(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!text.trim() || submitting) return;
+    if (hasProfanity(text)) {
+      setProfanityError(true);
+      return;
+    }
+    if (!workflowId || !resultImageUrl) {
+      setError('Generation data is missing — please try refreshing and submitting again.');
+      return;
+    }
+
+    const inputUrls: string[] = [];
+    if (jewelryImageUrl) inputUrls.push(jewelryImageUrl);
+    if (modelImageUrl) inputUrls.push(modelImageUrl);
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await submitFeedback({
+        workflow_id: workflowId,
+        generation_type: 'photoshoot',
+        input_image_urls: inputUrls,
+        output_image_url: resultImageUrl,
+        complaint: text.trim(),
+        category,
+      });
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const hasImages = jewelryImageUrl || modelImageUrl || resultImageUrl;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-md w-full">
+        {submitted ? (
+          /* ── Success state ── */
+          <div className="flex flex-col items-center gap-4 py-4 text-center">
+            <CheckCircle2 className="h-9 w-9 text-formanova-success" />
+            <div className="space-y-1">
+              <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
+                Feedback received
+              </DialogTitle>
+              <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground">
+                We take every case seriously. Your report goes directly to the team and
+                we use it to make our results better.
+              </DialogDescription>
+            </div>
+            <Button className="mt-1 w-full sm:w-auto sm:min-w-[140px]" onClick={handleClose}>
+              Close
+            </Button>
+          </div>
+        ) : (
+          /* ── Feedback form ── */
+          <div className="space-y-5">
+            {/* Header */}
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
+                Report an issue
+              </p>
+              <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
+                What went wrong?
+              </DialogTitle>
+              <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground mt-1">
+                Describe the problem with the result. We review every report.
+              </DialogDescription>
+            </div>
+
+            {/* Images */}
+            {hasImages && (
+              <div className="flex gap-3">
+                <Thumbnail url={jewelryImageUrl} label="Jewelry input" />
+                <Thumbnail url={modelImageUrl} label="Model input" />
+                <Thumbnail url={resultImageUrl} label="Result" />
+              </div>
+            )}
+
+            {/* Text input */}
+            <div className="space-y-1.5">
+              <Textarea
+                placeholder="What problem do you see in the result?"
+                value={text}
+                onChange={(e) => handleChange(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+              {profanityError && (
+                <p className="text-xs text-destructive">
+                  Please keep your feedback constructive — we can't act on abusive language.
+                </p>
+              )}
+              {error && (
+                <p className="text-xs text-destructive">{error}</p>
+              )}
+            </div>
+
+            {/* Submit */}
+            <Button
+              className="w-full"
+              disabled={!text.trim() || submitting}
+              onClick={handleSubmit}
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send feedback
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

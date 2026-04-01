@@ -88,3 +88,14 @@ export function isOnboardingWelcomeEnabled(email: string | undefined | null): bo
  * Set to true when the backend proxy is confirmed stable in production.
  */
 export const AUTHENTICATED_IMAGES_ENABLED = true;
+
+/**
+ * "Not satisfied?" feedback widget on the result screen.
+ * Gated to specific emails until ready for all users.
+ */
+const FEEDBACK_EMAILS = ['uswaashfaque@gmail.com'];
+
+export function isFeedbackEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return FEEDBACK_EMAILS.includes(email.toLowerCase());
+}
