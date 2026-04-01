@@ -8,8 +8,8 @@ const AZURE_UPLOAD_URL = `${import.meta.env.VITE_PIPELINE_API_URL}/upload`;
 // ========== Azure Upload ==========
 export interface AzureUploadResponse {
   uri: string;  // azure:// format for microservices
-  sas_url: string;  // SAS URL for direct browser access
-  https_url: string;  // Plain HTTPS URL (won't work for private containers)
+  sas_url: string;  // Proxy URL: https://formanova.ai/api/artifacts/<sha256> — use this everywhere
+  https_url: string;  // Direct blob URL (no auth, avoid using)
   asset_id?: string | null;  // set by backend registration; null if fail-open triggered
 }
 
