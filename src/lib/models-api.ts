@@ -3,19 +3,31 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 export interface PresetModel {
   id: string;
   label: string;
-  /** Proxy URL: https://formanova.ai/api/artifacts/<sha256> */
+  /** Proxy URL: https://formanova.ai/api/artifacts/<sha256> — fetch with auth headers */
   url: string;
-  category: string;
+  metadata?: Record<string, string> | null;
+  /** Category id — present on legacy ModelImage, absent on API models */
+  category?: string;
+}
+
+export interface PresetCategory {
+  /** Stable lowercase id — use as React key and tab identifier */
+  id: string;
+  /** Human-readable tab title (e.g. "Ecom", "Editorial") */
+  label: string;
+  models: PresetModel[];
+}
+
+export interface PresetModelsResponse {
+  categories: PresetCategory[];
 }
 
 /**
- * GET /api/models — returns the list of preset models registered in the backend.
+ * GET /api/models — returns preset models grouped by category.
  * Auth: Bearer <jwt>
- * Response: { models: PresetModel[] } or PresetModel[]
  */
-export async function fetchPresetModels(): Promise<PresetModel[]> {
+export async function fetchPresetModels(): Promise<PresetModelsResponse> {
   const res = await authenticatedFetch('/api/models');
   if (!res.ok) throw new Error(`Failed to fetch preset models: ${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data : (data.models ?? []);
+  return res.json();
 }

@@ -35,7 +35,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
-import { fetchPresetModels, type PresetModel } from '@/lib/models-api';
+import { fetchPresetModels, type PresetModel, type PresetModelsResponse } from '@/lib/models-api';
 import { useQuery } from '@tanstack/react-query';
 import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
@@ -437,34 +437,28 @@ export default function UnifiedStudio() {
 
   // Fetch preset models from API (feature-flagged)
   const modelsApiEnabled = isModelsApiEnabled(user?.email);
-  const { data: presetModelsData } = useQuery({
+  const { data: presetModelsData } = useQuery<PresetModelsResponse>({
     queryKey: ['preset-models'],
     queryFn: fetchPresetModels,
     enabled: modelsApiEnabled,
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  // Derive unique categories and filtered models from API data
-  const presetCategories = useMemo<string[]>(() => {
-    if (!presetModelsData) return [];
-    const seen = new Set<string>();
-    const cats: string[] = [];
-    for (const m of presetModelsData) {
-      if (!seen.has(m.category)) { seen.add(m.category); cats.push(m.category); }
-    }
-    return cats;
+  // Derive category ids for auto-select logic
+  const presetCategoryIds = useMemo<string[]>(() => {
+    return presetModelsData?.categories.map(c => c.id) ?? [];
   }, [presetModelsData]);
 
   // Auto-select first available category when API data first loads
   useEffect(() => {
-    if (presetCategories.length > 0 && !presetCategories.includes(formanovaCategory)) {
-      setFormanovaCategory(presetCategories[0]);
+    if (presetCategoryIds.length > 0 && !presetCategoryIds.includes(formanovaCategory)) {
+      setFormanovaCategory(presetCategoryIds[0]);
     }
-  }, [presetCategories]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [presetCategoryIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const presetModelsForCategory = useMemo<PresetModel[]>(() => {
-    if (!presetModelsData) return [];
-    return presetModelsData.filter(m => m.category === formanovaCategory);
+    const cat = presetModelsData?.categories.find(c => c.id === formanovaCategory);
+    return cat?.models ?? [];
   }, [presetModelsData, formanovaCategory]);
 
   // Fetch user-uploaded models from backend API
@@ -621,7 +615,7 @@ export default function UnifiedStudio() {
     if (!modelsApiEnabled || !presetModelsData || selectedModel) return;
     const session = loadStudioSession();
     if (!session?.selectedModelId) return;
-    const model = presetModelsData.find(m => m.id === session.selectedModelId);
+    const model = presetModelsData.categories.flatMap(c => c.models).find(m => m.id === session.selectedModelId);
     if (model) setSelectedModel(model);
   }, [presetModelsData]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1597,18 +1591,21 @@ export default function UnifiedStudio() {
                       */}
                       <div className="columns-3 gap-2">
                         {/* Category buttons */}
-                        {(modelsApiEnabled ? presetCategories : ['ecom', 'editorial']).map((cat) => (
-                          <div key={cat} className="break-inside-avoid mb-2">
+                        {(modelsApiEnabled
+                          ? (presetModelsData?.categories ?? [])
+                          : [{ id: 'ecom', label: 'E-Commerce' }, { id: 'editorial', label: 'Editorial' }]
+                        ).map((cat) => (
+                          <div key={cat.id} className="break-inside-avoid mb-2">
                             <button
-                              onClick={() => setFormanovaCategory(cat)}
+                              onClick={() => setFormanovaCategory(cat.id)}
                               className={`w-full px-3 py-3 text-center transition-all duration-200 ${
-                                formanovaCategory === cat
+                                formanovaCategory === cat.id
                                   ? 'bg-foreground text-background'
                                   : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                               }`}
                             >
                               <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
-                                {cat === 'ecom' ? 'E-Commerce' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                {cat.label}
                               </span>
                             </button>
                           </div>
