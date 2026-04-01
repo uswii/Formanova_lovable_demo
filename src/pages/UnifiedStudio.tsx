@@ -525,6 +525,7 @@ export default function UnifiedStudio() {
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
+  const resolvedActiveModelUrl = useAuthenticatedImage(activeModelUrl);
 
   // Validation
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
@@ -1424,7 +1425,7 @@ export default function UnifiedStudio() {
                   {activeModelUrl ? (
                     <>
                       <img
-                        src={activeModelUrl}
+                        src={resolvedActiveModelUrl ?? undefined}
                         alt="Selected model"
                         className="max-w-full max-h-[520px] object-contain"
                       />
@@ -1711,7 +1712,7 @@ export default function UnifiedStudio() {
                 )}
                 {activeModelUrl && (
                   <div className="w-16 h-16 border border-border/30 overflow-hidden">
-                    <img src={activeModelUrl} alt="Model" className="w-full h-full object-cover opacity-50" />
+                    <img src={resolvedActiveModelUrl ?? undefined} alt="Model" className="w-full h-full object-cover opacity-50" />
                   </div>
                 )}
               </div>
