@@ -31,7 +31,7 @@ export function markTosAgreed(userId: string): void {
  * Required backend endpoint:
  *   PATCH /api/user/profile
  *   Auth: Bearer <token>
- *   Body: { "user_type": "jewelry_brand" | "freelancer" | "researcher_student" | "content_creator" }
+ *   Body: { "user_type": "jewelry_brand" | "freelancer" | "researcher_student" | "content_creator" | "other" }
  *   Response 200: { "success": true }
  */
 export async function saveUserType(userType: UserType): Promise<void> {
