@@ -232,15 +232,13 @@ export default function OnboardingWelcome() {
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="text-xs leading-relaxed sm:text-sm">
-                    <span className="font-medium text-foreground">Clear, even lighting. </span>
-                    <span className="text-muted-foreground">Natural daylight or soft studio light works best. Good lighting reveals metal finish, stone clarity, and surface texture, all the detail the AI reads to produce accurate output.</span>
+                    <span className="font-medium text-foreground">Clear, even or diffuse light. </span>
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="text-xs leading-relaxed sm:text-sm">
                     <span className="font-medium text-foreground">HD resolution or higher, in sharp focus. </span>
-                    <span className="text-muted-foreground">The AI generates output at the quality level of the input. More detail in means more detail out.</span>
                   </span>
                 </li>
               </ul>
@@ -301,7 +299,7 @@ export default function OnboardingWelcome() {
         {/* ── Section 2: Model photo ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-6 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
-            You control how the final result looks
+            Fake looking models produce fake looking results
           </h2>
           <p className="mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
             Submit a synthetic or illustrated model and the output will match that style. Submit a
@@ -342,7 +340,7 @@ export default function OnboardingWelcome() {
         {/* ── Section 3: What to expect ── */}
         <section className="mb-10 sm:mb-12">
           <h2 className="font-display mb-6 text-2xl tracking-wide [text-shadow:none] sm:text-3xl">
-            What to expect
+            Low quality input, low quality result
           </h2>
           <div className="border border-border bg-card p-5 sm:p-6">
             <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
