@@ -1743,7 +1743,7 @@ export default function UnifiedStudio() {
                 onClose={() => setFeedbackOpen(false)}
                 workflowId={workflowId}
                 jewelryImageUrl={jewelryUploadedUrl}
-                jewelryDisplayUrl={jewelryImage}
+                jewelryDisplayUrl={azureUriToUrl(jewelryUploadedUrl) || jewelryImage}
                 modelImageUrl={activeModelUrl}
                 resultImageUrl={resultImages[0] ?? null}
                 category={(TO_SINGULAR[jewelryType] ?? 'other') as FeedbackCategory}
