@@ -323,7 +323,7 @@ export default function Onboarding() {
         </p>
       </div>
 
-      <div className="grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-3xl sm:grid-cols-3 sm:gap-6 lg:max-w-7xl lg:grid-cols-5 lg:gap-8">
+      <div className="grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-3xl sm:gap-6 lg:max-w-7xl lg:grid-cols-5 lg:gap-8">
         {ROLE_OPTIONS.map((option) => (
           <RoleCard
             key={option.value}
