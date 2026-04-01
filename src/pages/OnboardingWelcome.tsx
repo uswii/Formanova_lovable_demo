@@ -292,7 +292,7 @@ export default function OnboardingWelcome() {
                 <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Input similar to these may not produce accurate results.
+                Input similar to these may change your design.
               </p>
             </div>
 
