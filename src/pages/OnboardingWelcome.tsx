@@ -1,6 +1,6 @@
 import { useState, useEffect, useId, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, ExternalLink, X } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
@@ -213,7 +213,8 @@ export default function OnboardingWelcome() {
 
             {/* ── We recommend ── */}
             <div className="border border-border bg-card p-6 sm:p-8">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-formanova-success" />
                 We recommend
               </p>
               <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
@@ -223,7 +224,7 @@ export default function OnboardingWelcome() {
               <ImageGrid images={DO_IMAGES} onImageClick={openLightbox} />
 
               <p className="mt-5 mb-5 text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Worn context is how the AI understands real-world scale, fit, and proportions.
+                Worn jewelry is how the AI understands real-world scale, fit, and proportions.
                 A ring on a finger, an earring on an ear. This is the single biggest factor
                 in result quality.
               </p>
@@ -246,7 +247,8 @@ export default function OnboardingWelcome() {
 
             {/* ── We do not recommend: product shots ── */}
             <div className="border border-border bg-card p-6 sm:p-8">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
                 We do not recommend
               </p>
               <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
@@ -277,7 +279,8 @@ export default function OnboardingWelcome() {
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
             <div className="border border-border bg-card p-5 sm:p-6 isolate">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
                 We do not recommend
               </p>
               <p className="mb-6 mt-1 text-base font-semibold leading-snug text-foreground sm:text-lg">
