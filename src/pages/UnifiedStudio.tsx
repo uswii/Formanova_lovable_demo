@@ -727,10 +727,7 @@ export default function UnifiedStudio() {
       setGenerationProgress(5);
       let jewelryUrl: string;
       if (jewelryUploadedUrl) {
-        // jewelryUploadedUrl is azure:// from validation — convert to HTTPS
-        jewelryUrl = jewelryUploadedUrl.startsWith('azure://')
-          ? `https://snapwear.blob.core.windows.net/${jewelryUploadedUrl.replace('azure://', '')}`
-          : jewelryUploadedUrl;
+        jewelryUrl = jewelryUploadedUrl;
         setGenerationProgress(20);
       } else {
         setGenerationStep('Uploading jewelry image...');
