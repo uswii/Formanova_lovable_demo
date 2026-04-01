@@ -4,7 +4,8 @@ export type UserType =
   | 'jewelry_brand'
   | 'freelancer'
   | 'researcher_student'
-  | 'content_creator';
+  | 'content_creator'
+  | 'other';
 
 const KEY_PREFIX = 'formanova_onboarding_';
 const TOS_KEY_PREFIX = 'formanova_tos_';

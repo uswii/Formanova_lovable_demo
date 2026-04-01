@@ -193,6 +193,36 @@ function ContentCreatorIcon({ className }: IconProps) {
   );
 }
 
+function OtherIcon({ className }: IconProps) {
+  return (
+    <svg width="100%" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      {/* Background blob */}
+      <circle cx="340" cy="340" r="200" fill="currentColor" fillOpacity="0.08" />
+      {/* Outer ring */}
+      <circle cx="340" cy="340" r="180" fill="none" stroke="currentColor" strokeWidth="6" strokeOpacity="0.18" />
+      {/* Large question mark circle */}
+      <circle cx="340" cy="340" r="130" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="5" strokeOpacity="0.35" />
+      {/* Question mark */}
+      <text x="340" y="340" fontSize="160" fontWeight="700" fontFamily="Georgia, serif" fill="currentColor" fillOpacity="0.75" textAnchor="middle" dominantBaseline="central">?</text>
+      {/* Decorative dots */}
+      <circle cx="180" cy="190" r="12" fill="currentColor" fillOpacity="0.45" />
+      <circle cx="500" cy="180" r="8"  fill="currentColor" fillOpacity="0.35" />
+      <circle cx="520" cy="490" r="14" fill="currentColor" fillOpacity="0.4"  />
+      <circle cx="160" cy="500" r="9"  fill="currentColor" fillOpacity="0.3"  />
+      {/* Decorative diamonds */}
+      <polygon points="340,105 350,120 340,135 330,120" fill="currentColor" fillOpacity="0.55" />
+      <polygon points="340,545 350,560 340,575 330,560" fill="currentColor" fillOpacity="0.55" />
+      <polygon points="105,340 120,350 135,340 120,330" fill="currentColor" fillOpacity="0.55" />
+      <polygon points="545,340 560,350 575,340 560,330" fill="currentColor" fillOpacity="0.55" />
+      {/* Small cross decorations */}
+      <rect x="595" y="220" width="8" height="26" rx="4" fill="currentColor" fillOpacity="0.5" />
+      <rect x="582" y="233" width="26" height="8" rx="4" fill="currentColor" fillOpacity="0.5" />
+      <rect x="78"  y="430" width="8" height="26" rx="4" fill="currentColor" fillOpacity="0.45" />
+      <rect x="65"  y="443" width="26" height="8" rx="4" fill="currentColor" fillOpacity="0.45" />
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Role options
 // ---------------------------------------------------------------------------
@@ -202,6 +232,7 @@ const ROLE_OPTIONS: { value: UserType; label: string; Icon: (p: IconProps) => JS
   { value: 'freelancer',         label: 'Freelancer',           Icon: FreelancerIcon     },
   { value: 'researcher_student', label: 'Researcher / Student', Icon: AIResearcherIcon   },
   { value: 'content_creator',    label: 'Content Creator',      Icon: ContentCreatorIcon },
+  { value: 'other',              label: 'Other',                Icon: OtherIcon          },
 ];
 
 // ---------------------------------------------------------------------------
