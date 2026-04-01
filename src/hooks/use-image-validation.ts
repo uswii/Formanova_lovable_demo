@@ -19,6 +19,8 @@ export interface ClassificationResult {
   flagged: boolean;
   /** URL of the uploaded image — reuse to avoid double uploads */
   uploaded_url?: string;
+  /** SAS URL for browser display (short-lived signed URL) */
+  sas_url?: string;
   /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
@@ -34,6 +36,8 @@ export interface ImageValidationResult {
   category: string;
   /** URL of the uploaded image — reuse for photoshoot generation */
   uploaded_url?: string;
+  /** SAS URL for browser display (short-lived signed URL) */
+  sas_url?: string;
   /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
@@ -127,6 +131,7 @@ export function useImageValidation() {
       // 1. Upload to Azure to get a URL
       const azureResult = await uploadToAzure(base64DataUri, 'image/jpeg', 'jewelry_photo', metadata);
       const uploadedUrl = azureResult.uri; // azure:// URI for backend services
+      const uploadedSasUrl = azureResult.sas_url; // signed URL for browser display
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
@@ -148,6 +153,7 @@ export function useImageValidation() {
               reason: userOverride ? 'user_override' : 'cached',
               flagged: !is_worn,
               uploaded_url: uploadedUrl,
+              sas_url: uploadedSasUrl,
               asset_id: uploadedAssetId,
             };
           }
@@ -217,7 +223,7 @@ export function useImageValidation() {
             console.warn('[ImageValidation] Workflow failed. Error:', statusData.error || statusData.message || JSON.stringify(statusData));
             clearTimeout(timeoutId);
             // On failure, return uploaded_url but flag as not-worn so user reviews
-            return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, asset_id: uploadedAssetId };
+            return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
           }
         }
       }
@@ -247,7 +253,7 @@ export function useImageValidation() {
       if (!resultData) {
         console.warn('[ImageValidation] Could not fetch result');
         clearTimeout(timeoutId);
-        return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_result', flagged: true, uploaded_url: uploadedUrl, asset_id: uploadedAssetId };
+        return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_result', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
       }
 
       console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
@@ -280,13 +286,14 @@ export function useImageValidation() {
           reason,
           flagged: !is_worn,
           uploaded_url: uploadedUrl,
+          sas_url: uploadedSasUrl,
           asset_id: uploadedAssetId,
         };
       }
 
       console.warn('[ImageValidation] No image_captioning in result');
       clearTimeout(timeoutId);
-      return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl, asset_id: uploadedAssetId };
+      return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
@@ -341,6 +348,7 @@ export function useImageValidation() {
           message: result.reason,
           category: result.category,
           uploaded_url: result.uploaded_url,
+          sas_url: result.sas_url,
           asset_id: result.asset_id,
         };
       });

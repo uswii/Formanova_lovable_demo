@@ -457,6 +457,7 @@ export default function UnifiedStudio() {
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
   const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
+  const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
   const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
   const [modelAssetId, setModelAssetId] = useState<string | null>(null);
 
@@ -547,6 +548,7 @@ export default function UnifiedStudio() {
     const normalized = await normalizeImageFile(file);
     setJewelryFile(normalized);
     setJewelryUploadedUrl(null);
+    setJewelrySasUrl(null);
     setJewelryAssetId(null);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -561,6 +563,7 @@ export default function UnifiedStudio() {
       setValidationResult(localResult);
       if (localResult.uploaded_url) {
         setJewelryUploadedUrl(localResult.uploaded_url);
+        setJewelrySasUrl(localResult.sas_url ?? null);
         setJewelryAssetId(localResult.asset_id ?? null);
       }
 
@@ -889,6 +892,7 @@ export default function UnifiedStudio() {
     setJewelryImage(null);
     setJewelryFile(null);
     setJewelryUploadedUrl(null);
+    setJewelrySasUrl(null);
     setJewelryAssetId(null);
     setSelectedModel(null);
     setCustomModelImage(null);
@@ -1143,7 +1147,7 @@ export default function UnifiedStudio() {
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
-                        onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                        onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -1288,7 +1292,7 @@ export default function UnifiedStudio() {
             <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
               <Button
                 variant="outline"
-                onClick={() => { setShowFlaggedDialog(false); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); }}
+                onClick={() => { setShowFlaggedDialog(false); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); clearValidation(); }}
                 className="gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -1743,7 +1747,7 @@ export default function UnifiedStudio() {
                 onClose={() => setFeedbackOpen(false)}
                 workflowId={workflowId}
                 jewelryImageUrl={jewelryUploadedUrl}
-                jewelryDisplayUrl={jewelryImage}
+                jewelryDisplayUrl={jewelrySasUrl || jewelryImage}
                 modelImageUrl={activeModelUrl}
                 resultImageUrl={resultImages[0] ?? null}
                 category={(TO_SINGULAR[jewelryType] ?? 'other') as FeedbackCategory}
