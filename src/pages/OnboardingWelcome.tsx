@@ -1,6 +1,6 @@
 import { useState, useEffect, useId, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2, ExternalLink, X } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ExternalLink, X, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
@@ -341,6 +341,14 @@ export default function OnboardingWelcome() {
                 note="A real, well-lit model photo gives the AI what it needs to produce a realistic-looking, natural result."
                 onImageClick={openLightbox}
               />
+            </div>
+
+            {/* Tip callout */}
+            <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-4 sm:p-5">
+              <Lightbulb className="h-5 w-5 shrink-0 text-primary mt-0.5" />
+              <p className="text-sm leading-relaxed text-foreground sm:text-base">
+                Make sure your model is not already wearing the jewelry type you are shooting for.
+              </p>
             </div>
           </div>
         </section>
