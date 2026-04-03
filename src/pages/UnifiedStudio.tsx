@@ -19,7 +19,7 @@ import {
   ExternalLink,
   Search,
   Pencil,
-  BookOpen,
+  Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -426,7 +426,7 @@ export default function UnifiedStudio() {
   const [modelGuideOpen, setModelGuideOpen] = useState(false);
   useEffect(() => {
     if (initializing || !user) return;
-    if (isStudioOnboardingEnabled(user.email) && !isTosAgreed(user.id)) {
+    if (isStudioOnboardingEnabled(user.email)) {
       setOnboardingOpen(true);
     }
   }, [initializing, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1437,6 +1437,20 @@ export default function UnifiedStudio() {
                         alt="Selected model"
                         className="max-w-full max-h-[520px] object-contain"
                       />
+                      {isStudioOnboardingEnabled(user?.email) && (
+                        <button
+                          type="button"
+                          onClick={() => setModelGuideOpen(true)}
+                          className="absolute top-3 right-12 flex items-center gap-1.5 border border-foreground/30
+                                     bg-muted px-2.5 py-1
+                                     font-mono text-[10px] tracking-widest uppercase
+                                     text-foreground hover:bg-foreground/10 hover:border-foreground/60
+                                     transition-colors z-10"
+                        >
+                          <Lightbulb className="h-3 w-3" />
+                          View Guide
+                        </button>
+                      )}
                       <button
                         onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); setModelAssetId(null); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm border border-border/40 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
@@ -1447,11 +1461,25 @@ export default function UnifiedStudio() {
                     </>
                   ) : (
                     <div
-                      className="text-center w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors"
+                      className="text-center w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors relative"
                       onClick={() => modelInputRef.current?.click()}
                       onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                       onDragOver={(e) => e.preventDefault()}
                     >
+                      {isStudioOnboardingEnabled(user?.email) && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setModelGuideOpen(true); }}
+                          className="absolute top-3 right-3 flex items-center gap-1.5 border border-foreground/30
+                                     bg-muted px-2.5 py-1
+                                     font-mono text-[10px] tracking-widest uppercase
+                                     text-foreground hover:bg-foreground/10 hover:border-foreground/60
+                                     transition-colors"
+                        >
+                          <Lightbulb className="h-3 w-3" />
+                          View Guide
+                        </button>
+                      )}
                       {/* Model silhouette sketch — theme-aware subtle fill */}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1670,23 +1698,6 @@ export default function UnifiedStudio() {
                 </Tabs>
               </div>
 
-                {/* ── Model guide card (gated) — matches Upload Guide sidebar style ── */}
-                {isStudioOnboardingEnabled(user?.email) && (
-                  <div>
-                    <span className="marta-label mb-2 block">Guide</span>
-                    <h3 className="font-display text-2xl uppercase tracking-tight">Model Guide</h3>
-                    <p className="text-muted-foreground text-sm mt-1 mb-4">
-                      Learn what makes a great model photo.
-                    </p>
-                    <button
-                      onClick={() => setModelGuideOpen(true)}
-                      className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border/40 px-4 py-2.5 hover:border-border/80"
-                    >
-                      <BookOpen className="h-3.5 w-3.5" />
-                      View Guide
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
