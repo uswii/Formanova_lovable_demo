@@ -1497,7 +1497,8 @@ export default function UnifiedStudio() {
                 </div>
               </div>
 
-              {/* Right 1/3 — Model Selection Sidebar, height locked to canvas */}
+              {/* Right 1/3 — Model Selection Sidebar */}
+              <div className="space-y-7">
               <div className="h-[480px] md:h-[540px] flex flex-col">
                 <Tabs defaultValue="formanova" className="w-full flex-1 flex flex-col min-h-0">
                   <TabsList className="w-full grid grid-cols-2 mb-3 bg-muted/30 h-11 flex-shrink-0">
@@ -1667,10 +1668,11 @@ export default function UnifiedStudio() {
                     </div>
                   </TabsContent>
                 </Tabs>
+              </div>
 
-                {/* ── Model guide card (gated) ── */}
+                {/* ── Model guide card (gated) — matches Upload Guide sidebar style ── */}
                 {isStudioOnboardingEnabled(user?.email) && (
-                  <div className="mt-7">
+                  <div>
                     <span className="marta-label mb-2 block">Guide</span>
                     <h3 className="font-display text-2xl uppercase tracking-tight">Model Guide</h3>
                     <p className="text-muted-foreground text-sm mt-1 mb-4">
