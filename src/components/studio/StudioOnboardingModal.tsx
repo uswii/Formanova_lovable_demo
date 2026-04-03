@@ -304,13 +304,13 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
             <div className="flex items-center gap-2">
               {step > 0 && (
-                <Button variant="ghost" size="sm" onClick={() => setStep(s => s - 1)}>
+                <Button variant="ghost" size="default" className="min-w-[80px]" onClick={() => setStep(s => s - 1)}>
                   Back
                 </Button>
               )}
               <Button
-                size="sm"
-                className="min-w-[72px]"
+                size="default"
+                className="min-w-[80px]"
                 onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
               >
                 {step === TOTAL - 1 ? 'Got it' : 'Next'}
