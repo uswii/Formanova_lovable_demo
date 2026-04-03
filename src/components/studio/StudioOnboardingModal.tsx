@@ -52,29 +52,50 @@ function Img({
 
 function Step1({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* DO */}
-      <div className="flex flex-col gap-3">
+    <div className="space-y-3">
+      {/* Labels row */}
+      <div className="grid grid-cols-2 gap-4">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
           Do this
         </p>
-        <p className="text-sm font-medium text-foreground leading-snug">
-          Jewelry worn on the body
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+          <XCircle className="h-3.5 w-3.5 shrink-0" />
+          Avoid this
         </p>
-        <div className="grid grid-cols-2 gap-1.5">
+      </div>
+
+      {/* Image container — fixed height, same as all other steps */}
+      <div className="h-[200px] grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 h-full">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
             <button
               key={i}
               type="button"
               onClick={() => onZoom(src)}
-              className="h-20 w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
+              className="h-full w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
             >
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
           ))}
         </div>
-        <ul className="space-y-1.5 mt-auto">
+        <div className="grid grid-cols-2 gap-3 h-full">
+          {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onZoom(src)}
+              className="h-full w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
+            >
+              <img src={src} alt="" className="w-full h-full object-contain" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Text below */}
+      <div className="grid grid-cols-2 gap-4">
+        <ul className="space-y-1">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Clear, even or diffuse light</span>
@@ -84,30 +105,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
             <span className="text-xs text-muted-foreground leading-relaxed">HD resolution, sharp focus</span>
           </li>
         </ul>
-      </div>
-
-      {/* DON'T */}
-      <div className="flex flex-col gap-3">
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-          <XCircle className="h-3.5 w-3.5 shrink-0" />
-          Avoid this
-        </p>
-        <p className="text-sm font-medium text-foreground leading-snug">
-          Product shots on surfaces or trays
-        </p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onZoom(src)}
-              className="h-20 w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
-            >
-              <img src={src} alt="" className="w-full h-full object-contain" />
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-justify text-muted-foreground leading-relaxed mt-auto">
+        <p className="text-xs text-justify text-muted-foreground leading-relaxed">
           Without a body reference, AI guesses scale. Proportions become unreliable.
         </p>
       </div>
@@ -119,27 +117,24 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step2({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        Worn jewelry is how the AI understands real-world scale, fit, and proportions.
-        Here is what happens when it cannot.
-      </p>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Img src={scaleBefore} alt="Input: earrings not worn" onZoom={onZoom} />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+    <div className="space-y-3">
+      <div className="h-[200px] grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={scaleBefore} alt="Input: earrings not worn" onZoom={onZoom} h="h-full" />
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">
             Input: earrings not worn
           </p>
         </div>
-        <div className="space-y-2">
-          <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} h="h-full" />
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">
             Output: proportions are off
           </p>
         </div>
       </div>
-      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The output looks visually pretty but the proportions are wrong. This may or may not work for you.
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        Worn jewelry is how the AI understands real-world scale, fit, and proportions.
+        The output looks visually pretty but the proportions are wrong.
       </p>
     </div>
   );
@@ -149,17 +144,17 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step3({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+    <div className="space-y-3">
+      <div className="h-[200px] grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} h="h-full" />
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">
             Social media screenshot
           </p>
         </div>
-        <div className="space-y-2">
-          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} h="h-full" />
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">
             Multiple or packed jewelry
           </p>
         </div>
@@ -175,31 +170,29 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="h-[200px] grid grid-cols-4 gap-4">
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} h="h-full" />
+          <p className="text-[9px] text-center font-mono tracking-widest text-destructive uppercase shrink-0">Synthetic in</p>
+        </div>
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} h="h-full" />
+          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">Synthetic out</p>
+        </div>
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} h="h-full" />
+          <p className="text-[9px] text-center font-mono tracking-widest text-formanova-success uppercase shrink-0">Realistic in</p>
+        </div>
+        <div className="flex flex-col gap-2 h-full">
+          <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} h="h-full" />
+          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase shrink-0">Realistic out</p>
+        </div>
+      </div>
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
         Submit a synthetic or illustrated model and the output will match that style. Submit a
         real photo and the output will be photorealistic. Upload with intention.
       </p>
-
-      <div className="grid grid-cols-4 gap-2">
-        <div className="space-y-1.5">
-          <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-destructive uppercase">Synthetic in</p>
-        </div>
-        <div className="space-y-1.5">
-          <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Synthetic out</p>
-        </div>
-        <div className="space-y-1.5">
-          <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-formanova-success uppercase">Realistic in</p>
-        </div>
-        <div className="space-y-1.5">
-          <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Realistic out</p>
-        </div>
-      </div>
-
       <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
         <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
         <p className="text-xs leading-relaxed text-foreground">
