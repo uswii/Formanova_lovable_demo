@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, Loader2, ExternalLink, X, Lightbulb } from 'luci
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
+import { isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackTosViewed, trackTosSigned } from '@/lib/posthog-events';
 
@@ -416,7 +417,7 @@ export default function OnboardingWelcome() {
       </div>
       </div>
 
-      {user?.email?.toLowerCase() === 'uswa@raresense.so' && (
+      {isStudioOnboardingEnabled(user?.email) && (
         <button
           type="button"
           onClick={() => {

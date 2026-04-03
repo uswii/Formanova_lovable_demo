@@ -10,7 +10,7 @@ import {
   markOnboardingComplete,
   saveUserType,
 } from '@/lib/onboarding-api';
-import { isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
+import { isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { trackUserTypeSelected } from '@/lib/posthog-events';
 
 // ---------------------------------------------------------------------------
@@ -351,7 +351,7 @@ export default function Onboarding() {
         </Button>
       </div>
 
-      {user?.email?.toLowerCase() === 'uswa@raresense.so' && (
+      {isStudioOnboardingEnabled(user?.email) && (
         <button
           type="button"
           onClick={() => {

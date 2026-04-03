@@ -1897,7 +1897,7 @@ export default function UnifiedStudio() {
         <>
           <StudioOnboardingModal
             open={onboardingOpen}
-            isTest={user?.email?.toLowerCase() === 'uswa@raresense.so'}
+            isTest={isStudioOnboardingEnabled(user?.email)}
             onClose={() => {
               setOnboardingOpen(false);
               if (user) markTosAgreed(user.id);
