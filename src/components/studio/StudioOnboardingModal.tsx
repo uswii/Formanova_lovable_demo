@@ -50,7 +50,7 @@ function Step1() {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* DO */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
           Do this
@@ -65,7 +65,7 @@ function Step1() {
             </div>
           ))}
         </div>
-        <ul className="space-y-1.5">
+        <ul className="space-y-1.5 mt-auto">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Clear, even or diffuse light</span>
@@ -78,7 +78,7 @@ function Step1() {
       </div>
 
       {/* DON'T */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
           <XCircle className="h-3.5 w-3.5 shrink-0" />
           Avoid this
@@ -93,8 +93,8 @@ function Step1() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-          Without a body reference the AI guesses scale — ring sizes, pendant lengths, earring proportions all become unreliable.
+        <p className="text-xs text-justify text-muted-foreground leading-relaxed mt-auto">
+          Without a body reference, AI guesses scale — proportions become unreliable.
         </p>
       </div>
     </div>
