@@ -717,11 +717,11 @@ export default function UnifiedStudio() {
     }
   }, [toast]);
 
-  const handleSelectLibraryModel = (model: PresetModel) => {
+  const handleSelectLibraryModel = (model: PresetModel, isApiModel = false) => {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
-    setModelAssetId(model.id); // e.g. "ecom-A" — backend distinguishes from UUIDs
+    setModelAssetId(isApiModel ? null : model.id); // API preset models must not send input_model_asset_id
     trackModelSelected({
       category: TO_SINGULAR[jewelryType] ?? jewelryType,
       model_type: 'catalog',
@@ -1617,7 +1617,7 @@ export default function UnifiedStudio() {
                               key={model.id}
                               model={model}
                               isSelected={selectedModel?.id === model.id && !customModelImage}
-                              onSelect={() => handleSelectLibraryModel(model)}
+                              onSelect={() => handleSelectLibraryModel(model, true)}
                             />
                           ))
                         ) : (
