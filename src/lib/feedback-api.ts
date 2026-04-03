@@ -115,7 +115,7 @@ export async function listAdminFeedback(params: AdminFeedbackListParams = {}): P
 }
 
 export async function getAdminFeedbackById(id: string): Promise<AdminFeedbackItem> {
-  const res = await authenticatedFetch(`/api/feedback/${id}`);
+  const res = await authenticatedFetch(`/api/feedback?id=${id}`);
   if (!res.ok) throw new Error(`Failed to fetch feedback: ${res.status}`);
   return res.json();
 }
