@@ -10,7 +10,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
-import { isOnboardingEnabled, isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
+import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { isOnboardingComplete, isTosAgreed } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
@@ -123,6 +123,7 @@ function TosRedirectHandler() {
     if (!user) return;
     if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
     if (!isOnboardingWelcomeEnabled(user.email)) return;
+    if (isStudioOnboardingEnabled(user.email)) return; // handled by in-studio popup
     if (isTosAgreed(user.id)) return;
     const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
       || location.pathname.startsWith('/blog/');

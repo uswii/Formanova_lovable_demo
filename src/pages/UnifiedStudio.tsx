@@ -19,6 +19,7 @@ import {
   ExternalLink,
   Search,
   Pencil,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -53,8 +54,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
+import { isTosAgreed, markTosAgreed } from '@/lib/onboarding-api';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
+import { StudioOnboardingModal } from '@/components/studio/StudioOnboardingModal';
+import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
@@ -411,11 +415,21 @@ export default function UnifiedStudio() {
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
+
+  // ── Studio onboarding popup + model guide (gated) ────────────────────────
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [modelGuideOpen, setModelGuideOpen] = useState(false);
+  useEffect(() => {
+    if (initializing || !user) return;
+    if (isStudioOnboardingEnabled(user.email) && !isTosAgreed(user.id)) {
+      setOnboardingOpen(true);
+    }
+  }, [initializing, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Jewelry image
   const jewelryInputRef = useRef<HTMLInputElement>(null);
@@ -1399,14 +1413,25 @@ export default function UnifiedStudio() {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             {/* Step 2 Header */}
-            <div className="mb-6">
-              <span className="marta-label">Step 2</span>
-              <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                Choose or Upload Model
-              </h2>
-              <p className="text-muted-foreground mt-1.5 text-sm">
-                Choose a model from our library or upload your own
-              </p>
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <span className="marta-label">Step 2</span>
+                <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
+                  Choose or Upload Model
+                </h2>
+                <p className="text-muted-foreground mt-1.5 text-sm">
+                  Choose a model from our library or upload your own
+                </p>
+              </div>
+              {isStudioOnboardingEnabled(user?.email) && (
+                <button
+                  onClick={() => setModelGuideOpen(true)}
+                  className="shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  View Guide
+                </button>
+              )}
             </div>
 
             {modelFileInput}
@@ -1846,6 +1871,23 @@ export default function UnifiedStudio() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Studio onboarding popup (gated) ── */}
+      {isStudioOnboardingEnabled(user?.email) && (
+        <>
+          <StudioOnboardingModal
+            open={onboardingOpen}
+            onClose={() => {
+              setOnboardingOpen(false);
+              if (user) markTosAgreed(user.id);
+            }}
+          />
+          <ModelGuideModal
+            open={modelGuideOpen}
+            onClose={() => setModelGuideOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

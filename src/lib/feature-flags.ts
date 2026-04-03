@@ -100,3 +100,16 @@ export function isFeedbackEnabled(_email: string | undefined | null): boolean {
 export function isModelsApiEnabled(_email: string | undefined | null): boolean {
   return true;
 }
+
+/**
+ * In-studio onboarding popup (multi-step) + model guide button on the model canvas.
+ * For these users, the /onboarding-welcome redirect is skipped and the popup
+ * is shown inside UnifiedStudio instead.
+ * Gated until ready to roll out to everyone.
+ */
+const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
+
+export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return STUDIO_ONBOARDING_EMAILS.includes(email.toLowerCase());
+}
