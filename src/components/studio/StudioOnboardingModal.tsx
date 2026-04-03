@@ -265,7 +265,7 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-      <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col max-h-[90vh] overflow-hidden gap-0">
+      <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
@@ -283,7 +283,7 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
         </div>
 
         {/* Scrollable content */}
-        <div className="h-[460px] overflow-y-auto px-6 py-5">
+        <div className="px-6 py-5">
           {step === 0 && <Step1 />}
           {step === 1 && <Step2 />}
           {step === 2 && <Step3 />}
