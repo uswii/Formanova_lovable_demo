@@ -5,11 +5,11 @@ import { CheckCircle2, XCircle, Lightbulb, X as XIcon } from 'lucide-react';
 
 import ringA1            from '@/assets/examples/ring-allowed-1.webp';
 import earringA1         from '@/assets/examples/earring-allowed-1.webp';
-import necklaceA1        from '@/assets/examples/necklace-allowed-1.webp';
+import watchA1           from '@/assets/examples/watch-allowed-1.webp';
 import braceletA1        from '@/assets/examples/bracelet-allowed-1.webp';
 import ringN1            from '@/assets/examples/ring-notallowed-1.webp';
 import earringN1         from '@/assets/examples/earring-notallowed-1.webp';
-import necklaceN1        from '@/assets/examples/necklace-notallowed-1.webp';
+import watchN1           from '@/assets/examples/watch-notallowed-1.webp';
 import braceletN1        from '@/assets/examples/bracelet-notallowed-1.webp';
 import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
 import screenshotExample from '@/assets/examples/screenshot.webp';
@@ -63,7 +63,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           Jewelry worn on the body
         </p>
         <div className="grid grid-cols-2 gap-1.5">
-          {[ringA1, earringA1, necklaceA1, braceletA1].map((src, i) => (
+          {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
             <button
               key={i}
               type="button"
@@ -96,7 +96,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           Product shots on surfaces or trays
         </p>
         <div className="grid grid-cols-2 gap-1.5">
-          {[ringN1, earringN1, necklaceN1, braceletN1].map((src, i) => (
+          {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
             <button
               key={i}
               type="button"
