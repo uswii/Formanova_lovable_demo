@@ -72,20 +72,20 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 function ClickableImage({
-  src, alt, onClick, imgClass = '',
+  src, alt, onClick, h = 'h-32', imgClass = '',
 }: {
-  src: string; alt: string; onClick: (src: string) => void; imgClass?: string;
+  src: string; alt: string; onClick: (src: string) => void; h?: string; imgClass?: string;
 }) {
   return (
     <div
-      className="overflow-hidden border border-border cursor-pointer"
+      className={`${h} w-full overflow-hidden border border-border cursor-pointer`}
       onClick={() => onClick(src)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(src); }}
       aria-label={`Enlarge: ${alt}`}
     >
-      <img src={src} alt={alt} className={`aspect-square w-full object-cover ${imgClass}`} loading="lazy" />
+      <img src={src} alt={alt} className={`w-full h-full object-cover ${imgClass}`} loading="lazy" />
     </div>
   );
 }
@@ -97,14 +97,14 @@ function ImageGrid({
 }) {
   return (
     <div>
-      <div className="mb-1 grid grid-cols-5 gap-2">
+      <div className="mb-1 grid grid-cols-5 gap-3">
         {CATEGORIES.map((cat) => (
           <p key={cat} className="truncate text-center text-[10px] text-muted-foreground">{cat}</p>
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-3">
         {images.map((src, i) => (
-          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} />
+          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} h="h-32" />
         ))}
       </div>
     </div>
@@ -121,13 +121,13 @@ function BeforeAfterBlock({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} imgClass="object-top" />
+          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} h="h-52" imgClass="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{beforeLabel}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} imgClass="object-top" />
+          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} h="h-52" imgClass="object-top" />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{afterLabel}</p>
         </div>
       </div>
@@ -291,9 +291,9 @@ export default function OnboardingWelcome() {
                 Social media screenshots, or multiple items and packed jewelry
               </p>
 
-              <div className="grid grid-cols-2 gap-6 sm:gap-8">
-                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
-                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
+              <div className="grid grid-cols-2 gap-3">
+                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} h="h-52" />
+                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} h="h-52" />
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Input similar to these may change your design.
