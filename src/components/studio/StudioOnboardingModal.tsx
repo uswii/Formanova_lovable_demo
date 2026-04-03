@@ -255,7 +255,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0" onKeyDown={handleKey}>
+        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
 
           {/* Header */}
           <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
