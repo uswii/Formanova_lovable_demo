@@ -53,45 +53,43 @@ function Img({
 function Step1({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="space-y-3">
-      {/* Image container — same h-[200px] structure as Steps 2/3/4 */}
+      {/* Labels row */}
+      <div className="grid grid-cols-2 gap-4">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          Do this
+        </p>
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+          <XCircle className="h-3.5 w-3.5 shrink-0" />
+          Avoid this
+        </p>
+      </div>
+
+      {/* Image container — fixed height, same as all other steps */}
       <div className="h-[200px] grid grid-cols-2 gap-4">
-        {/* DO column */}
-        <div className="flex flex-col gap-2 h-full min-h-0">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success shrink-0">
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            Do this
-          </p>
-          <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
-            {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onZoom(src)}
-                className="h-full w-full overflow-hidden border border-border/30 bg-muted/10 focus:outline-none"
-              >
-                <img src={src} alt="" className="w-full h-full object-contain" />
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-3 h-full">
+          {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onZoom(src)}
+              className="h-full w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
+            >
+              <img src={src} alt="" className="w-full h-full object-contain" />
+            </button>
+          ))}
         </div>
-        {/* DON'T column */}
-        <div className="flex flex-col gap-2 h-full min-h-0">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive shrink-0">
-            <XCircle className="h-3.5 w-3.5 shrink-0" />
-            Avoid this
-          </p>
-          <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
-            {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onZoom(src)}
-                className="h-full w-full overflow-hidden border border-border/30 bg-muted/10 focus:outline-none"
-              >
-                <img src={src} alt="" className="w-full h-full object-contain" />
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-3 h-full">
+          {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onZoom(src)}
+              className="h-full w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
+            >
+              <img src={src} alt="" className="w-full h-full object-contain" />
+            </button>
+          ))}
         </div>
       </div>
 
