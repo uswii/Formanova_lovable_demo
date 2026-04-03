@@ -28,7 +28,6 @@ import {
   type AdminFeedbackListResponse,
   type FeedbackStatus,
   listAdminFeedback,
-  getAdminFeedbackStats,
   getAdminFeedbackById,
   updateAdminFeedback,
   uploadRevisedOutput,
@@ -359,11 +358,6 @@ export default function AdminFeedbackPage() {
 
   const queryKey = ['admin-feedback', { search, statusFilter, categoryFilter, fromDate, toDate, page }];
 
-  const statsQuery = useQuery({
-    queryKey: ['admin-feedback-stats'],
-    queryFn: getAdminFeedbackStats,
-  });
-
   const listQuery = useQuery({
     queryKey,
     queryFn: () => listAdminFeedback({
@@ -385,7 +379,6 @@ export default function AdminFeedbackPage() {
     onSuccess: () => {
       setSelected(new Set());
       queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-feedback-stats'] });
       toast({ title: 'Updated' });
     },
     onError: () => toast({ variant: 'destructive', title: 'Bulk update failed' }),
@@ -394,7 +387,6 @@ export default function AdminFeedbackPage() {
   const items = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const stats = statsQuery.data;
   const allOnPageSelected = items.length > 0 && items.every(i => selected.has(i.id));
   const hasFilters = !!(searchInput || statusFilter || categoryFilter || fromDate || toDate);
 
@@ -429,35 +421,10 @@ export default function AdminFeedbackPage() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Admin</p>
-            <h1 className="font-display text-3xl sm:text-4xl tracking-wide [text-shadow:none]">Feedback</h1>
-          </div>
-          {stats && (
-            <div className="text-right">
-              <p className="font-display text-3xl sm:text-4xl [text-shadow:none]">{stats.total}</p>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">total</p>
-            </div>
-          )}
+        <div className="mb-8">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Admin</p>
+          <h1 className="font-display text-3xl sm:text-4xl tracking-wide [text-shadow:none]">Feedback</h1>
         </div>
-
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            {(Object.keys(STATUS_CFG) as FeedbackStatus[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
-                className={`border p-4 sm:p-5 text-left transition-colors ${statusFilter === s ? 'border-foreground' : 'border-border hover:border-foreground/40'}`}
-              >
-                <p className="font-display text-2xl sm:text-3xl [text-shadow:none] mb-2">{stats[s]}</p>
-                <StatusBadge status={s} />
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-2 mb-5">
