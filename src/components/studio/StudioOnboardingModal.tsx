@@ -48,7 +48,7 @@ function Step1() {
       </p>
       <div className="grid grid-cols-5 gap-2 mb-4">
         {[ringA1, earringA1, necklaceA1, braceletA1, watchA1].map((src, i) => (
-          <div key={i} className="aspect-square overflow-hidden border border-border/30 bg-muted/20">
+          <div key={i} className="h-16 overflow-hidden border border-border/30 bg-muted/20">
             <img src={src} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
@@ -89,7 +89,7 @@ function Step2() {
         </p>
         <div className="grid grid-cols-5 gap-2 mb-4">
           {[ringN1, earringN1, necklaceN1, braceletN1, watchN1].map((src, i) => (
-            <div key={i} className="aspect-square overflow-hidden border border-border/30 bg-muted/20">
+            <div key={i} className="h-16 overflow-hidden border border-border/30 bg-muted/20">
               <img src={src} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
@@ -107,16 +107,16 @@ function Step2() {
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={scaleBefore} alt="Input: earrings not worn" className="w-full object-cover" />
+            <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={scaleBefore} alt="Input: earrings not worn" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Input: earrings not worn
             </p>
           </div>
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={scaleAfter} alt="Output: proportions are off" className="w-full object-cover" />
+            <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={scaleAfter} alt="Output: proportions are off" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Output: proportions are off
@@ -143,11 +143,11 @@ function Step3() {
         Social media screenshots, or multiple items and packed jewelry
       </p>
       <div className="grid grid-cols-2 gap-4 mb-3">
-        <div className="overflow-hidden border border-border/30 bg-muted/20">
-          <img src={screenshotExample} alt="Social media screenshot" className="w-full object-contain" />
+        <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
+          <img src={screenshotExample} alt="Social media screenshot" className="w-full h-full object-cover" />
         </div>
-        <div className="overflow-hidden border border-border/30 bg-muted/20">
-          <img src={multipleAndPacked} alt="Multiple and packed jewelry" className="w-full object-contain" />
+        <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
+          <img src={multipleAndPacked} alt="Multiple and packed jewelry" className="w-full h-full object-cover" />
         </div>
       </div>
       <p className="text-sm leading-relaxed text-muted-foreground">
@@ -173,16 +173,16 @@ function Step4() {
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={syntheticBefore} alt="Input: synthetic model" className="w-full object-cover" />
+            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={syntheticBefore} alt="Input: synthetic model" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Input: synthetic model
             </p>
           </div>
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={syntheticAfter} alt="Output: synthetic-style, not photorealistic" className="w-full object-cover" />
+            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={syntheticAfter} alt="Output: synthetic-style, not photorealistic" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Output: synthetic-style, not photorealistic
@@ -201,16 +201,16 @@ function Step4() {
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={realisticBefore} alt="Input: realistic model photo" className="w-full object-cover" />
+            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={realisticBefore} alt="Input: realistic model photo" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Input: realistic model photo
             </p>
           </div>
           <div className="space-y-1.5">
-            <div className="overflow-hidden border border-border/30 bg-muted/20">
-              <img src={realisticAfter} alt="Output: realistic-looking result" className="w-full object-cover" />
+            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
+              <img src={realisticAfter} alt="Output: realistic-looking result" className="w-full h-full object-cover" />
             </div>
             <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
               Output: realistic-looking result

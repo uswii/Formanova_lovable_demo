@@ -1413,25 +1413,14 @@ export default function UnifiedStudio() {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             {/* Step 2 Header */}
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <span className="marta-label">Step 2</span>
-                <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                  Choose or Upload Model
-                </h2>
-                <p className="text-muted-foreground mt-1.5 text-sm">
-                  Choose a model from our library or upload your own
-                </p>
-              </div>
-              {isStudioOnboardingEnabled(user?.email) && (
-                <button
-                  onClick={() => setModelGuideOpen(true)}
-                  className="shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  View Guide
-                </button>
-              )}
+            <div className="mb-6">
+              <span className="marta-label">Step 2</span>
+              <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
+                Choose or Upload Model
+              </h2>
+              <p className="text-muted-foreground mt-1.5 text-sm">
+                Choose a model from our library or upload your own
+              </p>
             </div>
 
             {modelFileInput}
@@ -1678,6 +1667,24 @@ export default function UnifiedStudio() {
                     </div>
                   </TabsContent>
                 </Tabs>
+
+                {/* ── Model guide card (gated) ── */}
+                {isStudioOnboardingEnabled(user?.email) && (
+                  <div className="mt-7">
+                    <span className="marta-label mb-2 block">Guide</span>
+                    <h3 className="font-display text-2xl uppercase tracking-tight">Model Guide</h3>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">
+                      Learn what makes a great model photo.
+                    </p>
+                    <button
+                      onClick={() => setModelGuideOpen(true)}
+                      className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border/40 px-4 py-2.5 hover:border-border/80"
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                      View Guide
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
