@@ -266,7 +266,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5">
+          <div className="px-6 py-5 h-[360px] overflow-y-auto">
             {step === 0 && <Step1 onZoom={setLightbox} />}
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}
@@ -327,14 +327,6 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
-          <button
-            type="button"
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border border-border/40 bg-background hover:bg-foreground/5 transition-colors"
-            aria-label="Close"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
           <img
             src={lightbox}
             alt=""
