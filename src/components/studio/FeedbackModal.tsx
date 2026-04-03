@@ -134,7 +134,7 @@ export function FeedbackModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-md w-full">
+      <DialogContent className="max-w-md w-full shadow-none">
         {submitted ? (
           /* ── Success state ── */
           <div className="flex flex-col items-center gap-4 py-4 text-center">
@@ -145,7 +145,7 @@ export function FeedbackModal({
               </DialogTitle>
               <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground">
                 We take every case seriously. Your report goes directly to the team and
-                we use it to make our results better.
+                we use it to make our results better. We may get back to you.
               </DialogDescription>
             </div>
             <Button className="mt-1 w-full sm:w-auto sm:min-w-[140px]" onClick={handleClose}>
