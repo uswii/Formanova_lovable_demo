@@ -107,7 +107,7 @@ export function isModelsApiEnabled(_email: string | undefined | null): boolean {
  * is shown inside UnifiedStudio instead.
  * Gated until ready to roll out to everyone.
  */
-const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com', 'uswiii307@gmail.com'];
+const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com', 'uswii69@gmail.com'];
 
 export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
   if (!email) return false;
