@@ -339,6 +339,7 @@ export default function AdminFeedbackPage() {
     queryFn: () => getAdminFeedbackById(deepLinkId!),
     enabled: !!deepLinkId,
     staleTime: Infinity,
+    retry: false,
   });
   useEffect(() => {
     if (deepLinkQuery.data) {
