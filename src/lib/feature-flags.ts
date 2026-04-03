@@ -88,13 +88,9 @@ export const AUTHENTICATED_IMAGES_ENABLED = true;
 
 /**
  * "Not satisfied?" feedback widget on the result screen.
- * Gated to specific emails until ready for all users.
  */
-const FEEDBACK_EMAILS = ['uswaashfaque@gmail.com'];
-
-export function isFeedbackEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return FEEDBACK_EMAILS.includes(email.toLowerCase());
+export function isFeedbackEnabled(_email: string | undefined | null): boolean {
+  return true;
 }
 
 /**
