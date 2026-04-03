@@ -245,10 +245,17 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
     onClose();
   };
 
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (lightbox) return;
+    if (e.key === 'ArrowRight' && step < TOTAL - 1) setStep(s => s + 1);
+    if (e.key === 'ArrowLeft' && step > 0) setStep(s => s - 1);
+    if (e.key === 'Enter' && step === TOTAL - 1) close();
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0">
+        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0" onKeyDown={handleKey}>
 
           {/* Header */}
           <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
@@ -288,7 +295,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {step > 0 && (
                 <Button variant="ghost" size="default" className="min-w-[80px]" onClick={() => setStep(s => s - 1)}>
                   Back
