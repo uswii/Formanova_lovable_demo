@@ -50,14 +50,14 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
       onClick={onClose}
     >
       <div className="relative max-h-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={onClose}
-          className="absolute -right-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground hover:bg-accent"
+          className="absolute -right-4 -top-4 flex h-8 w-8 items-center justify-center border border-border bg-background text-foreground hover:bg-accent shadow-md"
         >
           <X className="h-4 w-4" />
         </button>
