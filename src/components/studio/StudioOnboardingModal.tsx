@@ -150,9 +150,6 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
 function Step3({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        Input similar to these may change your design in unpredictable ways.
-      </p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} />
@@ -167,8 +164,8 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
           </p>
         </div>
       </div>
-      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        Screenshots introduce compression, UI overlays, and inconsistent lighting. Multiple items confuse the AI about which piece to use. One item, clearly photographed.
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        Input similar to these may change your design in unpredictable ways.
       </p>
     </div>
   );
