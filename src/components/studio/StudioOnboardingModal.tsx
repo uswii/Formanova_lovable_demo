@@ -22,209 +22,205 @@ import syntheticAfter    from '@/assets/examples/synthetic-after.webp';
 import realisticBefore   from '@/assets/examples/realistic-model-input.webp';
 import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
-// ─── Step titles ──────────────────────────────────────────────────────────────
+// ─── Steps ────────────────────────────────────────────────────────────────────
 
-const STEP_TITLES = [
-  'Getting your photos right',
-  'What not to upload — product shots',
-  'What not to upload — screenshots & multiple',
-  'Fake looking models produce fake looking results',
-  'Low quality input, low quality result',
+const STEPS = [
+  { title: 'Wear your jewelry — always' },
+  { title: 'Without a body, scale breaks' },
+  { title: 'Screenshots and packed shots fail too' },
+  { title: 'Your model is your result' },
+  { title: 'Low quality input, low quality result' },
 ] as const;
 
-const TOTAL = STEP_TITLES.length;
+const TOTAL = STEPS.length;
 
-// ─── Step content ─────────────────────────────────────────────────────────────
+// ─── Shared image cell ────────────────────────────────────────────────────────
 
-function Step1() {
+function ImgCell({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="border border-border bg-card p-5">
-      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-formanova-success" />
-        We recommend
-      </p>
-      <p className="mb-4 mt-1 text-base font-semibold leading-snug text-foreground">
-        Upload images of jewelry worn on the body
-      </p>
-      <div className="grid grid-cols-5 gap-2 mb-4">
-        {[ringA1, earringA1, necklaceA1, braceletA1, watchA1].map((src, i) => (
-          <div key={i} className="h-16 overflow-hidden border border-border/30 bg-muted/20">
-            <img src={src} alt="" className="w-full h-full object-contain" />
-          </div>
-        ))}
-      </div>
-      <p className="text-justify text-sm leading-relaxed text-muted-foreground">
-        Worn jewelry is how the AI understands real-world scale, fit, and proportions.
-        A ring on a finger, an earring on an ear. This is the single biggest factor
-        in result quality.
-      </p>
-      <ul className="mt-3 flex flex-col gap-2">
-        <li className="flex items-start gap-2.5">
-          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs leading-relaxed sm:text-sm">
-            <span className="font-medium text-foreground">Clear, even or diffuse light.</span>
-          </span>
-        </li>
-        <li className="flex items-start gap-2.5">
-          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs leading-relaxed sm:text-sm">
-            <span className="font-medium text-foreground">HD resolution or higher, in sharp focus.</span>
-          </span>
-        </li>
-      </ul>
+    <div className="overflow-hidden border border-border/30 bg-muted/10">
+      <img src={src} alt={alt} className="w-full h-full object-contain" />
     </div>
   );
 }
 
-function Step2() {
+// ─── Step 1: Do / Don't side by side ─────────────────────────────────────────
+
+function Step1() {
   return (
-    <div className="space-y-5">
-      <div className="border border-border bg-card p-5">
-        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
-          We do not recommend
+    <div className="grid grid-cols-2 gap-4">
+      {/* DO */}
+      <div className="space-y-3">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          Do this
         </p>
-        <p className="mb-4 mt-1 text-base font-semibold leading-snug text-foreground">
-          Product shots, jewelry flat on surfaces or display trays
+        <p className="text-sm font-medium text-foreground leading-snug">
+          Jewelry worn on the body
         </p>
-        <div className="grid grid-cols-5 gap-2 mb-4">
-          {[ringN1, earringN1, necklaceN1, braceletN1, watchN1].map((src, i) => (
-            <div key={i} className="h-16 overflow-hidden border border-border/30 bg-muted/20">
+        <div className="grid grid-cols-2 gap-1.5">
+          {[ringA1, earringA1, necklaceA1, braceletA1].map((src, i) => (
+            <div key={i} className="h-20 overflow-hidden border border-formanova-success/20 bg-muted/10">
               <img src={src} alt="" className="w-full h-full object-contain" />
             </div>
           ))}
         </div>
-        <p className="text-justify text-sm leading-relaxed text-muted-foreground">
-          Without a body reference the AI cannot determine real-world scale. Ring size,
-          pendant drop length, earring proportions on the face, all become guesswork,
-          leading to sizing errors.
-        </p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground leading-relaxed">Clear, even or diffuse light</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground leading-relaxed">HD resolution, sharp focus</span>
+          </li>
+        </ul>
       </div>
 
-      <div>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          When jewelry is not worn
+      {/* DON'T */}
+      <div className="space-y-3">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+          <XCircle className="h-3.5 w-3.5 shrink-0" />
+          Avoid this
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={scaleBefore} alt="Input: earrings not worn" className="w-full h-full object-contain" />
+        <p className="text-sm font-medium text-foreground leading-snug">
+          Product shots on surfaces or trays
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {[ringN1, earringN1, necklaceN1, braceletN1].map((src, i) => (
+            <div key={i} className="h-20 overflow-hidden border border-destructive/20 bg-muted/10">
+              <img src={src} alt="" className="w-full h-full object-contain" />
             </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Input: earrings not worn
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={scaleAfter} alt="Output: proportions are off" className="w-full h-full object-contain" />
-            </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Output: proportions are off
-            </p>
-          </div>
+          ))}
         </div>
-        <p className="mt-2 text-xs text-justify leading-relaxed text-muted-foreground">
-          In this example the earrings were not worn. The output looks visually pretty but the
-          proportions are wrong, so this may or may not work for you.
+        <p className="text-xs text-justify text-muted-foreground leading-relaxed">
+          Without a body reference the AI guesses scale — ring sizes, pendant lengths, earring proportions all become unreliable.
         </p>
       </div>
     </div>
   );
 }
+
+// ─── Step 2: Scale consequence ────────────────────────────────────────────────
+
+function Step2() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        Worn jewelry is how the AI understands real-world scale, fit, and proportions.
+        Here is what happens when it cannot.
+      </p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="h-48 overflow-hidden border border-border/30 bg-muted/10">
+            <img src={scaleBefore} alt="Input: earrings not worn" className="w-full h-full object-contain" />
+          </div>
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+            Input — earrings not worn
+          </p>
+        </div>
+        <div className="space-y-2">
+          <div className="h-48 overflow-hidden border border-border/30 bg-muted/10">
+            <img src={scaleAfter} alt="Output: proportions are off" className="w-full h-full object-contain" />
+          </div>
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+            Output — proportions are off
+          </p>
+        </div>
+      </div>
+      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
+        The output looks visually pretty but the proportions are wrong. This may or may not work for you — it depends on how accurate you need the sizing to be.
+      </p>
+    </div>
+  );
+}
+
+// ─── Step 3: Screenshots + multiple ──────────────────────────────────────────
 
 function Step3() {
   return (
-    <div className="border border-border bg-card p-5">
-      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
-        We do not recommend
+    <div className="space-y-4">
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        Input similar to these may change your design in unpredictable ways.
       </p>
-      <p className="mb-4 mt-1 text-base font-semibold leading-snug text-foreground">
-        Social media screenshots, or multiple items and packed jewelry
-      </p>
-      <div className="grid grid-cols-2 gap-4 mb-3">
-        <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
-          <img src={screenshotExample} alt="Social media screenshot" className="w-full h-full object-contain" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="h-48 overflow-hidden border border-destructive/20 bg-muted/10">
+            <img src={screenshotExample} alt="Social media screenshot" className="w-full h-full object-contain" />
+          </div>
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+            Social media screenshot
+          </p>
         </div>
-        <div className="h-28 overflow-hidden border border-border/30 bg-muted/20">
-          <img src={multipleAndPacked} alt="Multiple and packed jewelry" className="w-full h-full object-contain" />
+        <div className="space-y-2">
+          <div className="h-48 overflow-hidden border border-destructive/20 bg-muted/10">
+            <img src={multipleAndPacked} alt="Multiple and packed jewelry" className="w-full h-full object-contain" />
+          </div>
+          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
+            Multiple or packed jewelry
+          </p>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Input similar to these may change your design.
+      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
+        Screenshots introduce compression, UI overlays, and inconsistent lighting. Multiple items confuse the AI about which piece to use. One item, clearly photographed.
       </p>
     </div>
   );
 }
+
+// ─── Step 4: Synthetic vs realistic model ────────────────────────────────────
 
 function Step4() {
   return (
     <div className="space-y-4">
-      <p className="text-justify text-sm leading-relaxed text-muted-foreground">
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
         Submit a synthetic or illustrated model and the output will match that style. Submit a
-        real photo and the output will be photorealistic. The lighting and mood of your model
-        carry through to the result. Upload with intention.
+        real photo and the output will be photorealistic. Upload with intention.
       </p>
 
-      <div className="border border-border bg-card p-4">
-        <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
-          Synthetic input
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={syntheticBefore} alt="Input: synthetic model" className="w-full h-full object-contain" />
+      <div className="grid grid-cols-2 gap-4">
+        {/* Synthetic */}
+        <div className="space-y-2">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-destructive">
+            <XCircle className="h-3 w-3 shrink-0" />
+            Synthetic input
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="h-24 overflow-hidden border border-destructive/20 bg-muted/10">
+              <img src={syntheticBefore} alt="Synthetic model" className="w-full h-full object-contain" />
             </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Input: synthetic model
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={syntheticAfter} alt="Output: synthetic-style, not photorealistic" className="w-full h-full object-contain" />
+            <div className="h-24 overflow-hidden border border-destructive/20 bg-muted/10">
+              <img src={syntheticAfter} alt="Synthetic output" className="w-full h-full object-contain" />
             </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Output: synthetic-style, not photorealistic
-            </p>
           </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Produces a synthetic-style result — not photorealistic.
+          </p>
         </div>
-        <p className="mt-2 text-xs text-justify leading-relaxed text-muted-foreground">
-          A synthetic or illustration-style model produces output in that same style. It will not look photorealistic.
-        </p>
+
+        {/* Realistic */}
+        <div className="space-y-2">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-formanova-success">
+            <CheckCircle2 className="h-3 w-3 shrink-0" />
+            Realistic input
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="h-24 overflow-hidden border border-formanova-success/20 bg-muted/10">
+              <img src={realisticBefore} alt="Realistic model" className="w-full h-full object-contain" />
+            </div>
+            <div className="h-24 overflow-hidden border border-formanova-success/20 bg-muted/10">
+              <img src={realisticAfter} alt="Realistic output" className="w-full h-full object-contain" />
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Produces a photorealistic, natural-looking result.
+          </p>
+        </div>
       </div>
 
-      <div className="border border-border bg-card p-4">
-        <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-formanova-success" />
-          Realistic input
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={realisticBefore} alt="Input: realistic model photo" className="w-full h-full object-contain" />
-            </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Input: realistic model photo
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <div className="h-24 overflow-hidden border border-border/30 bg-muted/20">
-              <img src={realisticAfter} alt="Output: realistic-looking result" className="w-full h-full object-contain" />
-            </div>
-            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-              Output: realistic-looking result
-            </p>
-          </div>
-        </div>
-        <p className="mt-2 text-xs text-justify leading-relaxed text-muted-foreground">
-          A real, well-lit model photo gives the AI what it needs to produce a realistic-looking, natural result.
-        </p>
-      </div>
-
-      <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-4">
-        <Lightbulb className="h-5 w-5 shrink-0 text-primary mt-0.5" />
-        <p className="text-sm leading-relaxed text-foreground">
+      <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
+        <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <p className="text-xs leading-relaxed text-foreground">
           Make sure your model is not already wearing the jewelry type you are shooting for.
         </p>
       </div>
@@ -232,15 +228,17 @@ function Step4() {
   );
 }
 
+// ─── Step 5: Low quality in / low quality out ─────────────────────────────────
+
 function Step5() {
   return (
-    <div className="border border-border bg-card p-5">
-      <p className="mb-3 text-justify text-sm leading-relaxed text-foreground">
+    <div className="space-y-4">
+      <p className="text-sm text-justify text-foreground leading-relaxed">
         We cannot guarantee quality output for inputs that do not follow these guidelines.
         Low-quality inputs produce low-quality results, and inputs we do not recommend may
         produce unpredictable results.
       </p>
-      <p className="text-justify text-sm leading-relaxed text-muted-foreground">
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
         AI can make mistakes. We are constantly working to make Formanova better for you
         and we take every case of incorrect output seriously.
       </p>
@@ -274,7 +272,7 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
               Read this to get started
             </p>
             <DialogTitle className="font-display text-xl sm:text-2xl tracking-wide [text-shadow:none]">
-              {STEP_TITLES[step]}
+              {STEPS[step].title}
             </DialogTitle>
           </div>
           <span className="font-mono text-sm text-muted-foreground shrink-0 ml-6 mt-1">
@@ -282,7 +280,7 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
           </span>
         </div>
 
-        {/* Scrollable content */}
+        {/* Content */}
         <div className="px-6 py-5">
           {step === 0 && <Step1 />}
           {step === 1 && <Step2 />}
@@ -293,7 +291,6 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
-          {/* Progress dots */}
           <div className="flex items-center gap-1.5">
             {Array.from({ length: TOTAL }).map((_, i) => (
               <div
