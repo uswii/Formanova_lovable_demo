@@ -1,4 +1,4 @@
-import { X, Lightbulb } from 'lucide-react';
+import { X, Lightbulb, CheckCircle2, XCircle } from 'lucide-react';
 
 import syntheticBefore from '@/assets/examples/synthetic-before.webp';
 import syntheticAfter  from '@/assets/examples/synthetic-after.webp';
@@ -35,63 +35,60 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-6 pb-6">
-          <div className="border border-border/30 flex flex-col overflow-hidden">
+        <div className="px-6 pb-6 space-y-4">
 
-            {/* Synthetic row */}
-            <p className="px-4 pt-3 pb-2 text-[11px] font-mono uppercase tracking-widest text-muted-foreground flex-shrink-0">
-              Synthetic input → synthetic result
+          {/* Synthetic */}
+          <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-destructive">
+              <XCircle className="h-3 w-3 shrink-0" />
+              Synthetic input
             </p>
-            <div className="px-4 overflow-hidden">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <div className="relative aspect-square overflow-hidden border border-border/30 bg-muted/20">
-                    <img src={syntheticBefore} alt="Synthetic model input" draggable={false} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <div className="aspect-[3/4] overflow-hidden">
+                  <img src={syntheticBefore} alt="Input: synthetic model" draggable={false} className="w-full h-full object-cover" />
                 </div>
-                <div className="space-y-1">
-                  <div className="relative aspect-square overflow-hidden border border-border/30 bg-muted/20">
-                    <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input: synthetic model</p>
+              </div>
+              <div className="space-y-1">
+                <div className="aspect-[3/4] overflow-hidden">
+                  <img src={syntheticAfter} alt="Output: synthetic-style, not photorealistic" draggable={false} className="w-full h-full object-cover" />
                 </div>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output: synthetic-style, not photorealistic</p>
               </div>
             </div>
-
-            {/* Divider */}
-            <div className="mx-4 my-3 border-t border-border/20" />
-
-            {/* Realistic row */}
-            <p className="px-4 pb-2 text-[11px] font-mono uppercase tracking-widest text-muted-foreground flex-shrink-0">
-              Real photo → photorealistic result
-            </p>
-            <div className="px-4 overflow-hidden">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <div className="relative aspect-square overflow-hidden border border-border/30 bg-muted/20">
-                    <img src={realisticBefore} alt="Realistic model input" draggable={false} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="relative aspect-square overflow-hidden border border-border/30 bg-muted/20">
-                    <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Tip */}
-            <div className="px-4 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
-              <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="font-bold text-foreground">Pro Tip:</span> Make sure your model is not already wearing the jewelry type you are shooting for.
-              </p>
-            </div>
-
           </div>
+
+          {/* Realistic */}
+          <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-formanova-success">
+              <CheckCircle2 className="h-3 w-3 shrink-0" />
+              Realistic input
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <div className="aspect-[3/4] overflow-hidden">
+                  <img src={realisticBefore} alt="Input: realistic model photo" draggable={false} className="w-full h-full object-cover" />
+                </div>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input: realistic model photo</p>
+              </div>
+              <div className="space-y-1">
+                <div className="aspect-[3/4] overflow-hidden">
+                  <img src={realisticAfter} alt="Output: realistic-looking result" draggable={false} className="w-full h-full object-cover" />
+                </div>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output: realistic-looking result</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="flex items-start gap-2">
+            <Lightbulb className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Make sure your model is not already wearing the jewelry type you are shooting for.
+            </p>
+          </div>
+
         </div>
 
       </div>
