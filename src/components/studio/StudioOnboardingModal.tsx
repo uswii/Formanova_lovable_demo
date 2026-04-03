@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb, X as XIcon } from 'lucide-react';
 
 import ringA1            from '@/assets/examples/ring-allowed-1.webp';
 import earringA1         from '@/assets/examples/earring-allowed-1.webp';
 import necklaceA1        from '@/assets/examples/necklace-allowed-1.webp';
 import braceletA1        from '@/assets/examples/bracelet-allowed-1.webp';
-import watchA1           from '@/assets/examples/watch-allowed-1.webp';
 import ringN1            from '@/assets/examples/ring-notallowed-1.webp';
 import earringN1         from '@/assets/examples/earring-notallowed-1.webp';
 import necklaceN1        from '@/assets/examples/necklace-notallowed-1.webp';
 import braceletN1        from '@/assets/examples/bracelet-notallowed-1.webp';
-import watchN1           from '@/assets/examples/watch-notallowed-1.webp';
 import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
 import screenshotExample from '@/assets/examples/screenshot.webp';
 import scaleBefore       from '@/assets/examples/not_worn_scale_before.webp';
@@ -25,28 +23,34 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { title: 'Wear your jewelry — always' },
+  { title: 'Wear your jewelry. Always.' },
   { title: 'Without a body, scale breaks' },
   { title: 'Screenshots and packed shots fail too' },
-  { title: 'Your model is your result' },
+  { title: 'Fake looking models, fake looking results' },
   { title: 'Low quality input, low quality result' },
 ] as const;
 
 const TOTAL = STEPS.length;
 
-// ─── Shared image cell ────────────────────────────────────────────────────────
+// ─── Shared clickable image cell ──────────────────────────────────────────────
 
-function ImgCell({ src, alt }: { src: string; alt: string }) {
+function Img({
+  src, alt, h = 'h-48', onZoom,
+}: { src: string; alt: string; h?: string; onZoom: (s: string) => void }) {
   return (
-    <div className="overflow-hidden border border-border/30 bg-muted/10">
+    <button
+      type="button"
+      onClick={() => onZoom(src)}
+      className={`${h} w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none`}
+    >
       <img src={src} alt={alt} className="w-full h-full object-contain" />
-    </div>
+    </button>
   );
 }
 
 // ─── Step 1: Do / Don't side by side ─────────────────────────────────────────
 
-function Step1() {
+function Step1({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* DO */}
@@ -60,9 +64,14 @@ function Step1() {
         </p>
         <div className="grid grid-cols-2 gap-1.5">
           {[ringA1, earringA1, necklaceA1, braceletA1].map((src, i) => (
-            <div key={i} className="h-20 overflow-hidden border border-formanova-success/20 bg-muted/10">
+            <button
+              key={i}
+              type="button"
+              onClick={() => onZoom(src)}
+              className="h-20 w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
+            >
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </div>
+            </button>
           ))}
         </div>
         <ul className="space-y-1.5 mt-auto">
@@ -88,13 +97,18 @@ function Step1() {
         </p>
         <div className="grid grid-cols-2 gap-1.5">
           {[ringN1, earringN1, necklaceN1, braceletN1].map((src, i) => (
-            <div key={i} className="h-20 overflow-hidden border border-destructive/20 bg-muted/10">
+            <button
+              key={i}
+              type="button"
+              onClick={() => onZoom(src)}
+              className="h-20 w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
+            >
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </div>
+            </button>
           ))}
         </div>
         <p className="text-xs text-justify text-muted-foreground leading-relaxed mt-auto">
-          Without a body reference, AI guesses scale — proportions become unreliable.
+          Without a body reference, AI guesses scale. Proportions become unreliable.
         </p>
       </div>
     </div>
@@ -103,7 +117,7 @@ function Step1() {
 
 // ─── Step 2: Scale consequence ────────────────────────────────────────────────
 
-function Step2() {
+function Step2({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
@@ -112,24 +126,20 @@ function Step2() {
       </p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <div className="h-48 overflow-hidden border border-border/30 bg-muted/10">
-            <img src={scaleBefore} alt="Input: earrings not worn" className="w-full h-full object-contain" />
-          </div>
+          <Img src={scaleBefore} alt="Input: earrings not worn" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Input — earrings not worn
+            Input: earrings not worn
           </p>
         </div>
         <div className="space-y-2">
-          <div className="h-48 overflow-hidden border border-border/30 bg-muted/10">
-            <img src={scaleAfter} alt="Output: proportions are off" className="w-full h-full object-contain" />
-          </div>
+          <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Output — proportions are off
+            Output: proportions are off
           </p>
         </div>
       </div>
       <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The output looks visually pretty but the proportions are wrong. This may or may not work for you — it depends on how accurate you need the sizing to be.
+        The output looks visually pretty but the proportions are wrong. This may or may not work for you. It depends on how accurate you need the sizing to be.
       </p>
     </div>
   );
@@ -137,7 +147,7 @@ function Step2() {
 
 // ─── Step 3: Screenshots + multiple ──────────────────────────────────────────
 
-function Step3() {
+function Step3({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
@@ -145,17 +155,13 @@ function Step3() {
       </p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <div className="h-48 overflow-hidden border border-destructive/20 bg-muted/10">
-            <img src={screenshotExample} alt="Social media screenshot" className="w-full h-full object-contain" />
-          </div>
+          <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Social media screenshot
           </p>
         </div>
         <div className="space-y-2">
-          <div className="h-48 overflow-hidden border border-destructive/20 bg-muted/10">
-            <img src={multipleAndPacked} alt="Multiple and packed jewelry" className="w-full h-full object-contain" />
-          </div>
+          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Multiple or packed jewelry
           </p>
@@ -170,7 +176,7 @@ function Step3() {
 
 // ─── Step 4: Synthetic vs realistic model ────────────────────────────────────
 
-function Step4() {
+function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
@@ -178,43 +184,39 @@ function Step4() {
         real photo and the output will be photorealistic. Upload with intention.
       </p>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Synthetic */}
-        <div className="space-y-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-destructive">
-            <XCircle className="h-3 w-3 shrink-0" />
-            Synthetic input
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="h-24 overflow-hidden border border-destructive/20 bg-muted/10">
-              <img src={syntheticBefore} alt="Synthetic model" className="w-full h-full object-contain" />
-            </div>
-            <div className="h-24 overflow-hidden border border-destructive/20 bg-muted/10">
-              <img src={syntheticAfter} alt="Synthetic output" className="w-full h-full object-contain" />
-            </div>
+      {/* Synthetic row */}
+      <div className="space-y-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-destructive">
+          <XCircle className="h-3 w-3 shrink-0" />
+          Synthetic input
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} />
+            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
           </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed">
-            Produces a synthetic-style result — not photorealistic.
-          </p>
+          <div className="space-y-1.5">
+            <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} />
+            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
+          </div>
         </div>
+      </div>
 
-        {/* Realistic */}
-        <div className="space-y-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-formanova-success">
-            <CheckCircle2 className="h-3 w-3 shrink-0" />
-            Realistic input
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="h-24 overflow-hidden border border-formanova-success/20 bg-muted/10">
-              <img src={realisticBefore} alt="Realistic model" className="w-full h-full object-contain" />
-            </div>
-            <div className="h-24 overflow-hidden border border-formanova-success/20 bg-muted/10">
-              <img src={realisticAfter} alt="Realistic output" className="w-full h-full object-contain" />
-            </div>
+      {/* Realistic row */}
+      <div className="space-y-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-formanova-success">
+          <CheckCircle2 className="h-3 w-3 shrink-0" />
+          Realistic input
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} />
+            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
           </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed">
-            Produces a photorealistic, natural-looking result.
-          </p>
+          <div className="space-y-1.5">
+            <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} />
+            <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
+          </div>
         </div>
       </div>
 
@@ -255,6 +257,7 @@ interface Props {
 
 export function StudioOnboardingModal({ open, onClose }: Props) {
   const [step, setStep] = useState(0);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const close = () => {
     setStep(0);
@@ -262,67 +265,92 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-      <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0">
+    <>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
+        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0">
 
-        {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
-              Read this to get started
-            </p>
-            <DialogTitle className="font-display text-xl sm:text-2xl tracking-wide [text-shadow:none]">
-              {STEPS[step].title}
-            </DialogTitle>
-          </div>
-          <span className="font-mono text-sm text-muted-foreground shrink-0 ml-6 mt-1">
-            {step + 1} / {TOTAL}
-          </span>
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-5">
-          {step === 0 && <Step1 />}
-          {step === 1 && <Step2 />}
-          {step === 2 && <Step3 />}
-          {step === 3 && <Step4 />}
-          {step === 4 && <Step5 />}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: TOTAL }).map((_, i) => (
-              <div
-                key={i}
-                className={`rounded-full transition-all duration-200 ${
-                  i === step
-                    ? 'w-5 h-1.5 bg-foreground'
-                    : i < step
-                    ? 'w-1.5 h-1.5 bg-foreground/40'
-                    : 'w-1.5 h-1.5 bg-muted-foreground/25'
-                }`}
-              />
-            ))}
+          {/* Header */}
+          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
+                Read this to get started
+              </p>
+              <DialogTitle className="font-display text-xl sm:text-2xl tracking-wide [text-shadow:none]">
+                {STEPS[step].title}
+              </DialogTitle>
+            </div>
+            <span className="font-mono text-sm text-muted-foreground shrink-0 ml-6 mt-1">
+              {step + 1} / {TOTAL}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {step > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => setStep(s => s - 1)}>
-                Back
+          {/* Content */}
+          <div className="px-6 py-5">
+            {step === 0 && <Step1 onZoom={setLightbox} />}
+            {step === 1 && <Step2 onZoom={setLightbox} />}
+            {step === 2 && <Step3 onZoom={setLightbox} />}
+            {step === 3 && <Step4 onZoom={setLightbox} />}
+            {step === 4 && <Step5 />}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: TOTAL }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`rounded-full transition-all duration-200 ${
+                    i === step
+                      ? 'w-5 h-1.5 bg-foreground'
+                      : i < step
+                      ? 'w-1.5 h-1.5 bg-foreground/40'
+                      : 'w-1.5 h-1.5 bg-muted-foreground/25'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {step > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => setStep(s => s - 1)}>
+                  Back
+                </Button>
+              )}
+              <Button
+                size="sm"
+                className="min-w-[72px]"
+                onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
+              >
+                {step === TOTAL - 1 ? 'Got it' : 'Next'}
               </Button>
-            )}
-            <Button
-              size="sm"
-              className="min-w-[72px]"
-              onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
-            >
-              {step === TOTAL - 1 ? 'Got it' : 'Next'}
-            </Button>
+            </div>
           </div>
-        </div>
 
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border border-border/40 bg-background hover:bg-foreground/5 transition-colors"
+            aria-label="Close"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+          <img
+            src={lightbox}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
