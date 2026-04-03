@@ -100,11 +100,7 @@ export function isFeedbackEnabled(email: string | undefined | null): boolean {
 /**
  * Dynamic preset model library — fetches models from GET /api/models
  * instead of using hardcoded public Azure blob URLs.
- * Gated until the backend sync (POST /admin/models/sync) is confirmed done.
  */
-const MODELS_API_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
-
-export function isModelsApiEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return MODELS_API_EMAILS.includes(email.toLowerCase());
+export function isModelsApiEnabled(_email: string | undefined | null): boolean {
+  return true;
 }
