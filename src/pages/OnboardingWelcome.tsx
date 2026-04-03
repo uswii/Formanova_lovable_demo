@@ -72,20 +72,20 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 function ClickableImage({
-  src, alt, onClick, h = 'h-32', imgClass = '',
+  src, alt, onClick,
 }: {
-  src: string; alt: string; onClick: (src: string) => void; h?: string; imgClass?: string;
+  src: string; alt: string; onClick: (src: string) => void;
 }) {
   return (
     <div
-      className={`${h} w-full overflow-hidden border border-border cursor-pointer`}
+      className="aspect-square w-full overflow-hidden border border-border cursor-pointer bg-muted/10"
       onClick={() => onClick(src)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(src); }}
       aria-label={`Enlarge: ${alt}`}
     >
-      <img src={src} alt={alt} className={`w-full h-full object-cover ${imgClass}`} loading="lazy" />
+      <img src={src} alt={alt} className="w-full h-full object-contain" loading="lazy" />
     </div>
   );
 }
@@ -104,7 +104,7 @@ function ImageGrid({
       </div>
       <div className="grid grid-cols-5 gap-3">
         {images.map((src, i) => (
-          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} h="h-32" />
+          <ClickableImage key={src} src={src} alt={CATEGORIES[i]} onClick={onImageClick} />
         ))}
       </div>
     </div>
@@ -123,11 +123,11 @@ function BeforeAfterBlock({
     <div>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} h="h-52" imgClass="object-top" />
+          <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{beforeLabel}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} h="h-52" imgClass="object-top" />
+          <ClickableImage src={after} alt={afterLabel} onClick={onImageClick} />
           <p className="text-center text-[11px] font-medium text-muted-foreground">{afterLabel}</p>
         </div>
       </div>
@@ -282,7 +282,7 @@ export default function OnboardingWelcome() {
             </div>
 
             {/* ── We do not recommend: screenshots + multiple/packed (combined) ── */}
-            <div className="border border-border bg-card p-5 sm:p-6 isolate">
+            <div className="border border-border bg-card p-5 sm:p-6">
               <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
                 We do not recommend
@@ -292,8 +292,8 @@ export default function OnboardingWelcome() {
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} h="h-52" />
-                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} h="h-52" />
+                <ClickableImage src={screenshotExample} alt="Social media screenshot" onClick={openLightbox} />
+                <ClickableImage src={multipleAndPacked} alt="Multiple and packed jewelry" onClick={openLightbox} />
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Input similar to these may change your design.
