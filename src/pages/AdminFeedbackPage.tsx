@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search, Download, X, ChevronLeft, ChevronRight,
@@ -28,6 +29,7 @@ import {
   type FeedbackStatus,
   listAdminFeedback,
   getAdminFeedbackStats,
+  getAdminFeedbackById,
   updateAdminFeedback,
   uploadRevisedOutput,
 } from '@/lib/feedback-api';
@@ -317,6 +319,7 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
 export default function AdminFeedbackPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -328,6 +331,21 @@ export default function AdminFeedbackPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeItem, setActiveItem] = useState<AdminFeedbackItem | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Deep-link: ?id=<uuid> opens that feedback row directly
+  const deepLinkId = searchParams.get('id');
+  const deepLinkQuery = useQuery({
+    queryKey: ['admin-feedback-by-id', deepLinkId],
+    queryFn: () => getAdminFeedbackById(deepLinkId!),
+    enabled: !!deepLinkId,
+    staleTime: Infinity,
+  });
+  useEffect(() => {
+    if (deepLinkQuery.data) {
+      setActiveItem(deepLinkQuery.data);
+      setSheetOpen(true);
+    }
+  }, [deepLinkQuery.data]);
 
   // Debounce search
   useEffect(() => {
