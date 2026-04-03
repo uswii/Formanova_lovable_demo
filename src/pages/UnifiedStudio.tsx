@@ -1500,7 +1500,7 @@ export default function UnifiedStudio() {
                 <div className="flex items-center justify-between pt-2">
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="lg"
                     onClick={() => setCurrentStep('upload')}
                     className="gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
                   >
