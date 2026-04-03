@@ -350,6 +350,22 @@ export default function Onboarding() {
           {submitting ? 'Continuing…' : 'Press to Continue'}
         </Button>
       </div>
+
+      {user?.email?.toLowerCase() === 'uswa@raresense.so' && (
+        <button
+          type="button"
+          onClick={() => {
+            if (user) {
+              localStorage.removeItem('formanova_onboarding_' + user.id);
+              localStorage.removeItem('formanova_tos_' + user.id);
+            }
+            window.location.reload();
+          }}
+          className="fixed bottom-4 left-4 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+        >
+          ↩ reset test
+        </button>
+      )}
     </div>
   );
 }

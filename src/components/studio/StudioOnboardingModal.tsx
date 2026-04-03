@@ -233,9 +233,10 @@ function Step5() {
 interface Props {
   open: boolean;
   onClose: () => void;
+  isTest?: boolean;
 }
 
-export function StudioOnboardingModal({ open, onClose }: Props) {
+export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   const [step, setStep] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -275,19 +276,30 @@ export function StudioOnboardingModal({ open, onClose }: Props) {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: TOTAL }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`rounded-full transition-all duration-200 ${
-                    i === step
-                      ? 'w-5 h-1.5 bg-foreground'
-                      : i < step
-                      ? 'w-1.5 h-1.5 bg-foreground/40'
-                      : 'w-1.5 h-1.5 bg-muted-foreground/25'
-                  }`}
-                />
-              ))}
+            <div className="flex items-center gap-3">
+              {isTest && (
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  ↩ restart
+                </button>
+              )}
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: TOTAL }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-full transition-all duration-200 ${
+                      i === step
+                        ? 'w-5 h-1.5 bg-foreground'
+                        : i < step
+                        ? 'w-1.5 h-1.5 bg-foreground/40'
+                        : 'w-1.5 h-1.5 bg-muted-foreground/25'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
