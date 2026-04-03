@@ -120,7 +120,7 @@ function BeforeAfterBlock({
   onImageClick: (src: string) => void;
 }) {
   return (
-    <div className="border border-border bg-card p-4 sm:p-5">
+    <div>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1">
           <ClickableImage src={before} alt={beforeLabel} onClick={onImageClick} imgClass="object-top" />
