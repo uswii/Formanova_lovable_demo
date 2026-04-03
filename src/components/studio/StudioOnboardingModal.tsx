@@ -139,7 +139,7 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
         </div>
       </div>
       <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The output looks visually pretty but the proportions are wrong. This may or may not work for you. It depends on how accurate you need the sizing to be.
+        The output looks visually pretty but the proportions are wrong. This may or may not work for you.
       </p>
     </div>
   );
