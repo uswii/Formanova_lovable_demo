@@ -267,7 +267,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5">
+          <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden">
             {step === 0 && <Step1 onZoom={setLightbox} />}
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}

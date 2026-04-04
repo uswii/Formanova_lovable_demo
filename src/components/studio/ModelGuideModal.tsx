@@ -28,7 +28,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden space-y-4">
 
           <div className="grid grid-cols-4 gap-3">
             {[
