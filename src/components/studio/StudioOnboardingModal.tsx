@@ -346,24 +346,14 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
                   Back
                 </Button>
               )}
-              {step === 0 ? (
-                <Button
-                  size="default"
-                  className="min-w-[130px] gap-2"
-                  onClick={() => setStep(s => s + 1)}
-                >
-                  Show me how <ArrowRight className="h-4 w-4 shrink-0" />
-                </Button>
-              ) : (
-                <Button
-                  size="default"
-                  className="min-w-[130px]"
-                  disabled={step === TOTAL - 1 && !checked}
-                  onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
-                >
-                  {step === TOTAL - 1 ? "Let's go" : 'Next'}
-                </Button>
-              )}
+              <Button
+                size="default"
+                className="min-w-[130px]"
+                disabled={step === TOTAL - 1 && !checked}
+                onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
+              >
+                {step === TOTAL - 1 ? "Let's go" : 'Next'}
+              </Button>
             </div>
           </div>
 
