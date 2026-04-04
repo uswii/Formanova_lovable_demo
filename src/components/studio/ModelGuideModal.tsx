@@ -41,13 +41,13 @@ export function ModelGuideModal({ open, onClose }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <div className="h-32 w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="h-32 w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
@@ -65,13 +65,13 @@ export function ModelGuideModal({ open, onClose }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <div className="h-32 w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="h-32 w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>

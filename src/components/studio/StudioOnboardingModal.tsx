@@ -41,7 +41,7 @@ function Img({
     <button
       type="button"
       onClick={() => onZoom(src)}
-      className="h-32 w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none"
+      className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none"
     >
       <img src={src} alt={alt} className="w-full h-full object-contain" />
     </button>
@@ -64,7 +64,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         <div className="grid grid-cols-2 gap-3">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
             <button key={i} type="button" onClick={() => onZoom(src)}
-              className="h-32 w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
+              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
           ))}
@@ -92,7 +92,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         <div className="grid grid-cols-2 gap-3">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
             <button key={i} type="button" onClick={() => onZoom(src)}
-              className="h-32 w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
+              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
           ))}
