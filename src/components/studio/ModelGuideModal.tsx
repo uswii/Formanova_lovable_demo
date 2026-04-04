@@ -2,12 +2,8 @@ import { Lightbulb, CheckCircle2, XCircle, X } from 'lucide-react';
 
 import fakeModelInput  from '@/assets/examples/fake-model-input.webp';
 import fakeModelOutput from '@/assets/examples/fake-model-output.webp';
-import syntheticBefore from '@/assets/examples/synthetic-before.webp';
-import syntheticAfter  from '@/assets/examples/synthetic-after.webp';
 import realModelInput  from '@/assets/examples/real-model-input-2.webp';
 import realModelOutput from '@/assets/examples/real-model-output-2.webp';
-import realisticBefore from '@/assets/examples/realistic-model-input.webp';
-import realisticAfter  from '@/assets/examples/realistic-output.webp';
 
 interface Props {
   open: boolean;
@@ -41,7 +37,6 @@ export function ModelGuideModal({ open, onClose }: Props) {
         <div className="px-6 pb-3">
           <div className="border border-border/30 flex flex-col overflow-hidden">
 
-            {/* Grid */}
             <div className="px-4 pt-3 pb-2">
               <div className="grid grid-cols-2 gap-4">
 
@@ -51,7 +46,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
                     <XCircle className="h-3 w-3 shrink-0" /> Fake model
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {[fakeModelInput, fakeModelOutput, syntheticBefore, syntheticAfter].map((src, i) => (
+                    {[fakeModelInput, fakeModelOutput].map((src, i) => (
                       <div key={i} className="relative aspect-square overflow-hidden border border-destructive/20 bg-muted/20">
                         <img src={src} alt="" draggable={false} className="w-full h-full object-contain" />
                       </div>
@@ -65,7 +60,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
                     <CheckCircle2 className="h-3 w-3 shrink-0" /> Real photo
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {[realModelInput, realModelOutput, realisticBefore, realisticAfter].map((src, i) => (
+                    {[realModelInput, realModelOutput].map((src, i) => (
                       <div key={i} className="relative aspect-square overflow-hidden border border-formanova-success/20 bg-muted/20">
                         <img src={src} alt="" draggable={false} className="w-full h-full object-contain" />
                       </div>
