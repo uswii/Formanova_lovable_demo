@@ -52,29 +52,24 @@ function Img({
 
 function Step1({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-4 h-full">
       {/* DO */}
-      <div className="flex flex-col gap-3">
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-          Do this
-        </p>
-        <p className="text-sm font-medium text-foreground leading-snug">
-          Jewelry worn on the body
-        </p>
+      <div className="flex flex-col gap-2">
+        <div className="min-h-[2.75rem] shrink-0">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Do this
+          </p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry worn on the body</p>
+        </div>
         <div className="grid grid-cols-2 gap-1.5">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
-            >
+            <button key={i} type="button" onClick={() => onZoom(src)}
+              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
           ))}
         </div>
-        <ul className="space-y-1.5 mt-auto">
+        <ul className="mt-auto space-y-1.5 shrink-0">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Clear, even or diffuse light</span>
@@ -87,27 +82,22 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
       </div>
 
       {/* DON'T */}
-      <div className="flex flex-col gap-3">
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-          <XCircle className="h-3.5 w-3.5 shrink-0" />
-          Avoid this
-        </p>
-        <p className="text-sm font-medium text-foreground leading-snug">
-          Product shots on surfaces or trays
-        </p>
+      <div className="flex flex-col gap-2">
+        <div className="min-h-[2.75rem] shrink-0">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+            <XCircle className="h-3.5 w-3.5 shrink-0" /> Avoid this
+          </p>
+          <p className="text-sm font-medium text-foreground leading-snug">Product shots on surfaces or trays</p>
+        </div>
         <div className="grid grid-cols-2 gap-1.5">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
-            >
+            <button key={i} type="button" onClick={() => onZoom(src)}
+              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
           ))}
         </div>
-        <p className="text-xs text-justify text-muted-foreground leading-relaxed mt-auto">
+        <p className="mt-auto text-xs text-justify text-muted-foreground leading-relaxed shrink-0">
           Without a body reference, AI guesses scale. Proportions become unreliable.
         </p>
       </div>
@@ -119,26 +109,28 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step2({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        Worn jewelry is how the AI understands real-world scale, fit, and proportions.
-        Here is what happens when it cannot.
-      </p>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+    <div className="flex flex-col h-full gap-3">
+      <div className="min-h-[2.75rem] shrink-0">
+        <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+          Worn jewelry is how the AI understands real-world scale, fit, and proportions.
+          Here is what happens when it cannot.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4 shrink-0">
+        <div className="space-y-1.5">
           <Img src={scaleBefore} alt="Input: earrings not worn" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Input: earrings not worn
           </p>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Output: proportions are off
           </p>
         </div>
       </div>
-      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
+      <p className="mt-auto text-xs text-justify text-muted-foreground leading-relaxed shrink-0">
         The output looks visually pretty but the proportions are wrong. This may or may not work for you.
       </p>
     </div>
@@ -149,24 +141,26 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step3({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+    <div className="flex flex-col h-full gap-3">
+      <div className="min-h-[2.75rem] shrink-0">
+        <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+          Input similar to these may change your design in unpredictable ways.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4 shrink-0">
+        <div className="space-y-1.5">
           <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Social media screenshot
           </p>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Multiple or packed jewelry
           </p>
         </div>
       </div>
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        Input similar to these may change your design in unpredictable ways.
-      </p>
     </div>
   );
 }
@@ -175,13 +169,14 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        Submit a synthetic or illustrated model and the output will match that style. Submit a
-        real photo and the output will be photorealistic. Upload with intention.
-      </p>
-
-      <div className="grid grid-cols-4 gap-2">
+    <div className="flex flex-col h-full gap-3">
+      <div className="min-h-[2.75rem] shrink-0">
+        <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+          Submit a synthetic or illustrated model and the output will match that style. Submit a
+          real photo and the output will be photorealistic. Upload with intention.
+        </p>
+      </div>
+      <div className="grid grid-cols-4 gap-2 shrink-0">
         <div className="space-y-1.5">
           <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} />
           <p className="text-[9px] text-center font-mono tracking-widest text-destructive uppercase">Synthetic in</p>
@@ -199,8 +194,7 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
           <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Realistic out</p>
         </div>
       </div>
-
-      <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
+      <div className="mt-auto flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5 shrink-0">
         <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
         <p className="text-xs leading-relaxed text-foreground">
           Make sure your model is not already wearing the jewelry type you are shooting for.
@@ -214,7 +208,7 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step5() {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full justify-center gap-4">
       <p className="text-sm text-justify text-foreground leading-relaxed">
         We cannot guarantee quality output for inputs that do not follow these guidelines.
         Low-quality inputs produce low-quality results, and inputs we do not recommend may
@@ -273,12 +267,14 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5 h-[50vw] max-h-[360px] min-h-[220px] overflow-y-auto">
-            {step === 0 && <Step1 onZoom={setLightbox} />}
-            {step === 1 && <Step2 onZoom={setLightbox} />}
-            {step === 2 && <Step3 onZoom={setLightbox} />}
-            {step === 3 && <Step4 onZoom={setLightbox} />}
-            {step === 4 && <Step5 />}
+          <div className="px-6 py-5 h-[50vw] max-h-[360px] min-h-[220px] overflow-y-auto flex flex-col">
+            <div className="flex-1 min-h-0">
+              {step === 0 && <Step1 onZoom={setLightbox} />}
+              {step === 1 && <Step2 onZoom={setLightbox} />}
+              {step === 2 && <Step3 onZoom={setLightbox} />}
+              {step === 3 && <Step4 onZoom={setLightbox} />}
+              {step === 4 && <Step5 />}
+            </div>
           </div>
 
           {/* Footer */}
