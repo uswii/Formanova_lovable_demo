@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Lightbulb, X as XIcon } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb, X as XIcon, ArrowRight } from 'lucide-react';
 
 import ringA1            from '@/assets/examples/ring-allowed-1.webp';
 import earringA1         from '@/assets/examples/earring-allowed-1.webp';
@@ -342,18 +342,28 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
             <div className="flex items-center gap-4">
               {step > 0 && (
-                <Button variant="ghost" size="default" className="min-w-[100px]" onClick={() => setStep(s => s - 1)}>
+                <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>
                   Back
                 </Button>
               )}
-              <Button
-                size="default"
-                className="min-w-[100px]"
-                disabled={step === TOTAL - 1 && !checked}
-                onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
-              >
-                {step === TOTAL - 1 ? "Let's go" : step === 0 ? 'Show me how' : 'Next'}
-              </Button>
+              {step === 0 ? (
+                <Button
+                  size="default"
+                  className="min-w-[130px] gap-2"
+                  onClick={() => setStep(s => s + 1)}
+                >
+                  Show me how <ArrowRight className="h-4 w-4 shrink-0" />
+                </Button>
+              ) : (
+                <Button
+                  size="default"
+                  className="min-w-[130px]"
+                  disabled={step === TOTAL - 1 && !checked}
+                  onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
+                >
+                  {step === TOTAL - 1 ? "Let's go" : 'Next'}
+                </Button>
+              )}
             </div>
           </div>
 
