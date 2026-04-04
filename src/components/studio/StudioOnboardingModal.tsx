@@ -100,11 +100,11 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         <ul className="space-y-1.5">
           <li className="flex items-start gap-2">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">No body = AI can't tell how big the jewelry is</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Harsh or uneven light</span>
           </li>
           <li className="flex items-start gap-2">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">The size will look wrong in the result</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Blurry or low-res photo</span>
           </li>
         </ul>
       </div>
