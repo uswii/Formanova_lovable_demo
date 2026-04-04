@@ -23,7 +23,7 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { title: 'Wear your jewelry. Always.' },
+  { title: 'The photo must show jewelry worn on a body' },
   { title: 'Not worn? Size will be off' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
   { title: 'Fake models give fake results' },
