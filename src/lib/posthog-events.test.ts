@@ -294,3 +294,19 @@ describe('trackUserTypeSelected', () => {
     })
   })
 })
+
+// ── setUserProfession ──────────────────────────────────────────────
+
+describe('setUserProfession', () => {
+  it('calls setPersonProperties with profession', () => {
+    setUserProfession('jewelry_brand')
+    expect((posthog as any).setPersonProperties).toHaveBeenCalledWith({ profession: 'jewelry_brand' })
+  })
+
+  it('does not call setPersonProperties when __loaded is false', () => {
+    ;(posthog as any).__loaded = false
+    setUserProfession('freelancer')
+    expect((posthog as any).setPersonProperties).not.toHaveBeenCalled()
+    ;(posthog as any).__loaded = true
+  })
+})
