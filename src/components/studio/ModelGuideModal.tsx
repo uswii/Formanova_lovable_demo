@@ -28,9 +28,9 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 h-[50vw] max-h-[360px] min-h-[220px] overflow-y-auto space-y-4">
+        <div className="px-6 py-5 space-y-4">
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {[
               { src: syntheticBefore, label: 'Synthetic input',  caption: 'Input: synthetic model',           color: 'text-destructive',       icon: <XCircle className="h-3 w-3 shrink-0" /> },
               { src: syntheticAfter,  label: 'Synthetic output', caption: 'Output: not photorealistic',       color: 'text-muted-foreground',  icon: null },
