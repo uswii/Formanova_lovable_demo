@@ -15,10 +15,10 @@ import multipleAndPacked from '@/assets/examples/multile-and-packed.webp';
 import screenshotExample from '@/assets/examples/screenshot.webp';
 import scaleBefore       from '@/assets/examples/not_worn_scale_before.webp';
 import scaleAfter        from '@/assets/examples/not-wonr-scale-output.webp';
-import syntheticBefore   from '@/assets/examples/synthetic-before.webp';
-import syntheticAfter    from '@/assets/examples/synthetic-after.webp';
-import realisticBefore   from '@/assets/examples/realistic-model-input.webp';
-import realisticAfter    from '@/assets/examples/realistic-output.webp';
+import fakeModelInput    from '@/assets/examples/fake-model-input.webp';
+import fakeModelOutput   from '@/assets/examples/fake-model-output.webp';
+import realModelInput    from '@/assets/examples/real-model-input-2.webp';
+import realModelOutput   from '@/assets/examples/real-model-output-2.webp';
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
@@ -51,19 +51,12 @@ function Img({
 
 // ─── Step 0: Intro ────────────────────────────────────────────────────────────
 
-function Step0({ onNext }: { onNext: () => void }) {
+function Step0() {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+    <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+      <p className="text-sm text-muted-foreground leading-relaxed">
         The better your photo, the better the result.
       </p>
-      <button
-        type="button"
-        onClick={onNext}
-        className="self-start flex items-center gap-1.5 text-sm font-medium text-primary hover:opacity-70 transition-opacity focus:outline-none"
-      >
-        Show me how →
-      </button>
     </div>
   );
 }
@@ -192,35 +185,29 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   return (
-    <div className="flex flex-col gap-3 h-full">
-      <div className="grid grid-cols-2 gap-3">
-        {/* Synthetic */}
-        <div className="flex flex-col gap-2">
-          <div className="min-h-[2.75rem]">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-              <XCircle className="h-3.5 w-3.5 shrink-0" /> Fake model
-            </p>
-            <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-            <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-          </div>
+    <div className="grid grid-cols-2 gap-3">
+      {/* Fake model */}
+      <div className="flex flex-col gap-2">
+        <div className="min-h-[2.75rem]">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+            <XCircle className="h-3.5 w-3.5 shrink-0" /> Fake model
+          </p>
+          <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
         </div>
+        <Img src={fakeModelInput} alt="Fake model input" onZoom={onZoom} />
+        <Img src={fakeModelOutput} alt="Fake model output" onZoom={onZoom} />
+      </div>
 
-        {/* Realistic */}
-        <div className="flex flex-col gap-2">
-          <div className="min-h-[2.75rem]">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Real photo
-            </p>
-            <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-            <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-          </div>
+      {/* Real photo */}
+      <div className="flex flex-col gap-2">
+        <div className="min-h-[2.75rem]">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Real photo
+          </p>
+          <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
         </div>
+        <Img src={realModelInput} alt="Real model input" onZoom={onZoom} />
+        <Img src={realModelOutput} alt="Real model output" onZoom={onZoom} />
       </div>
     </div>
   );
@@ -230,16 +217,16 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
-      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+    <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
+      <p className="text-sm text-muted-foreground leading-relaxed">
         Thanks for reading. Now go get some great shots.
       </p>
       <button
         type="button"
         onClick={onCheck}
-        className="flex items-start gap-3 text-left focus:outline-none group"
+        className="flex items-center gap-3 focus:outline-none group"
       >
-        <div className={`mt-0.5 h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : 'border-border group-hover:border-primary/60'}`}>
+        <div className={`h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : 'border-border group-hover:border-primary/60'}`}>
           {checked && (
             <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
               <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -286,20 +273,29 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
 
           {/* Header */}
-          <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
-            <div className="min-w-0">
-<DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
+          {(step === 0 || step === TOTAL - 1) ? (
+            <div className="flex flex-col items-center text-center px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
+              <span className="font-mono text-xs text-muted-foreground mb-1">{step + 1} / {TOTAL}</span>
+              <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                 {STEPS[step].title}
               </DialogTitle>
             </div>
-            <span className="font-mono text-sm text-muted-foreground shrink-0 ml-4 mt-1">
-              {step + 1} / {TOTAL}
-            </span>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
+              <div className="min-w-0">
+                <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
+                  {STEPS[step].title}
+                </DialogTitle>
+              </div>
+              <span className="font-mono text-sm text-muted-foreground shrink-0 ml-4 mt-1">
+                {step + 1} / {TOTAL}
+              </span>
+            </div>
+          )}
 
           {/* Content */}
           <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden">
-            {step === 0 && <Step0 onNext={() => setStep(1)} />}
+            {step === 0 && <Step0 />}
             {step === 1 && <Step1 onZoom={setLightbox} />}
             {step === 2 && <Step2 onZoom={setLightbox} />}
             {step === 3 && <Step3 onZoom={setLightbox} />}
