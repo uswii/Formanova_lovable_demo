@@ -21,7 +21,6 @@ export function ModelGuideModal({ open, onClose }: Props) {
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div>
             <h4 className="font-display text-2xl uppercase tracking-tight">Model Guide</h4>
-            <p className="text-muted-foreground text-sm mt-0.5">Fake models give fake results.</p>
           </div>
           <button
             type="button"
@@ -37,25 +36,22 @@ export function ModelGuideModal({ open, onClose }: Props) {
         <div className="px-6 pb-6">
           <div className="border border-border/30 flex flex-col overflow-hidden">
 
-            {/* Top label — same class as UploadGuidePanel */}
+            {/* Top label */}
             <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
-              Fake model vs real photo
+              Fake models give fake results
             </p>
 
             {/* Grid — px-12, grid-cols-2, gap-4, aspect-square, object-cover */}
             <div className="px-12 overflow-hidden">
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { src: fakeModelInput,  label: 'Fake model input',  border: 'border-destructive/30' },
-                  { src: fakeModelOutput, label: 'Fake model output', border: 'border-destructive/30' },
-                  { src: realModelInput,  label: 'Real model input',  border: 'border-green-500/30' },
-                  { src: realModelOutput, label: 'Real model output', border: 'border-green-500/30' },
-                ].map(({ src, label, border }) => (
-                  <div key={label} className={`relative aspect-square overflow-hidden border ${border} bg-muted/20`}>
-                    <img src={src} alt={label} draggable={false} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-1 left-1 right-1 text-[8px] font-mono uppercase tracking-widest bg-background/75 px-1 py-px truncate">
-                      {label}
-                    </span>
+                  { src: fakeModelInput,  border: 'border-destructive' },
+                  { src: fakeModelOutput, border: 'border-destructive' },
+                  { src: realModelInput,  border: 'border-green-500' },
+                  { src: realModelOutput, border: 'border-green-500' },
+                ].map(({ src, border }, i) => (
+                  <div key={i} className={`relative aspect-square overflow-hidden border-[3px] ${border} bg-muted/20`}>
+                    <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
