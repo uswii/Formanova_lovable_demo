@@ -88,12 +88,12 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
             </button>
           ))}
         </div>
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2 min-h-[2rem]">
+        <ul className="space-y-1.5 mt-1">
+          <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Clear, diffuse light</span>
           </li>
-          <li className="flex items-start gap-2 min-h-[2rem]">
+          <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Sharp, HD photo</span>
           </li>
@@ -116,12 +116,12 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
             </button>
           ))}
         </div>
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2 min-h-[2rem]">
+        <ul className="space-y-1.5 mt-1">
+          <li className="flex items-start gap-2">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Harsh, uneven light</span>
           </li>
-          <li className="flex items-start gap-2 min-h-[2rem]">
+          <li className="flex items-start gap-2">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Blurry, low res</span>
           </li>
@@ -235,25 +235,25 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
 
 function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => void; shake: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
+    <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-2">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">You are ready</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
         Thanks for reading. Now go get some great shots.
       </p>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-2 w-full max-w-xs sm:max-w-sm">
         <button
           type="button"
           onClick={onCheck}
-          className={`flex items-start gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
+          className={`flex items-center gap-3 w-full focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
         >
-          <div className={`h-4 w-4 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-foreground/50 group-hover:border-primary'}`}>
+          <div className={`h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-foreground group-hover:border-primary'}`}>
             {checked && (
-              <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">
                 <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </div>
-          <span className={`text-sm leading-snug ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
+          <span className={`text-sm leading-snug text-left ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
             I understand bad photos give bad results.
           </span>
         </button>
@@ -323,7 +323,7 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-y-auto">
             {step === 0 && <Step0 />}
             {step === 1 && <Step1 onZoom={setLightbox} />}
             {step === 2 && <Step2 onZoom={setLightbox} />}
@@ -366,24 +366,24 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
       {/* Lightbox — rendered via portal so it sits above the Radix dialog in DOM order */}
       {lightbox && createPortal(
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm p-10"
           onClick={() => setLightbox(null)}
         >
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={lightbox}
-              alt=""
-              className="max-h-[90vh] max-w-[90vw] object-contain"
-            />
-            <button
-              type="button"
-              onClick={() => setLightbox(null)}
-              className="absolute -top-3 -right-3 flex items-center justify-center h-7 w-7 bg-background border border-border/50 text-foreground hover:bg-muted transition-colors focus:outline-none"
-              aria-label="Close"
-            >
-              <XIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          {/* Close button — fixed top-right of screen, always reachable */}
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="fixed top-4 right-4 flex items-center justify-center h-9 w-9 bg-background border border-border text-foreground hover:bg-muted transition-colors focus:outline-none z-[201]"
+            aria-label="Close"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+          <img
+            src={lightbox}
+            alt=""
+            className="max-h-[75vh] max-w-[80vw] sm:max-h-[80vh] sm:max-w-[75vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>,
         document.body
       )}
