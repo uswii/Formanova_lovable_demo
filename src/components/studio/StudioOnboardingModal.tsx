@@ -290,7 +290,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   const triggerShake = () => {
     if (shakeTimer.current) clearTimeout(shakeTimer.current);
     setShake(true);
-    shakeTimer.current = setTimeout(() => setShake(false), 600);
+    shakeTimer.current = setTimeout(() => setShake(false), 1200);
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -378,20 +378,21 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
-          <button
-            type="button"
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 flex items-center justify-center h-8 w-8 bg-background/80 border border-border/50 text-foreground hover:bg-background transition-colors focus:outline-none"
-            aria-label="Close"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-          <img
-            src={lightbox}
-            alt=""
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightbox}
+              alt=""
+              className="max-h-[90vh] max-w-[90vw] object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              className="absolute -top-3 -right-3 flex items-center justify-center h-7 w-7 bg-background border border-border/50 text-foreground hover:bg-muted transition-colors focus:outline-none"
+              aria-label="Close"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>,
         document.body
       )}
