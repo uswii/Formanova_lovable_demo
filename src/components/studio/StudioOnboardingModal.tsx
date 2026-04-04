@@ -176,22 +176,39 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
           real photo and the output will be photorealistic. Upload with intention.
         </p>
       </div>
-      <div className="grid grid-cols-4 gap-3">
-        <div className="space-y-1.5">
-          <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-destructive uppercase">Synthetic in</p>
+      <div className="grid grid-cols-2 gap-3">
+        {/* Synthetic */}
+        <div className="flex flex-col gap-2">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+            <XCircle className="h-3.5 w-3.5 shrink-0" /> Synthetic model
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} />
+              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
+            </div>
+            <div className="space-y-1.5">
+              <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} />
+              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Synthetic out</p>
-        </div>
-        <div className="space-y-1.5">
-          <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-formanova-success uppercase">Realistic in</p>
-        </div>
-        <div className="space-y-1.5">
-          <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} />
-          <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Realistic out</p>
+
+        {/* Realistic */}
+        <div className="flex flex-col gap-2">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Realistic model
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} />
+              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
+            </div>
+            <div className="space-y-1.5">
+              <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} />
+              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
+            </div>
+          </div>
         </div>
       </div>
       <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">

@@ -30,24 +30,48 @@ export function ModelGuideModal({ open, onClose }: Props) {
         {/* Content */}
         <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden space-y-4">
 
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { src: syntheticBefore, label: 'Synthetic input',  caption: 'Input: synthetic model',           color: 'text-destructive',       icon: <XCircle className="h-3 w-3 shrink-0" /> },
-              { src: syntheticAfter,  label: 'Synthetic output', caption: 'Output: not photorealistic',       color: 'text-muted-foreground',  icon: null },
-              { src: realisticBefore, label: 'Realistic input',  caption: 'Input: realistic model photo',     color: 'text-formanova-success', icon: <CheckCircle2 className="h-3 w-3 shrink-0" /> },
-              { src: realisticAfter,  label: 'Realistic output', caption: 'Output: realistic-looking result', color: 'text-muted-foreground',  icon: null },
-            ].map(({ src, label, caption, color, icon }) => (
-              <div key={label} className="space-y-1.5">
-                <p className={`flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest ${color}`}>
-                  {icon}
-                  {label}
-                </p>
-                <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
-                  <img src={src} alt={caption} draggable={false} className="w-full h-full object-cover" />
+          <div className="grid grid-cols-2 gap-3">
+            {/* Synthetic */}
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-destructive">
+                <XCircle className="h-3 w-3 shrink-0" /> Synthetic model
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
+                    <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
-                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">{caption}</p>
+                <div className="space-y-1.5">
+                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
+                    <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Realistic */}
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-formanova-success">
+                <CheckCircle2 className="h-3 w-3 shrink-0" /> Realistic model
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
+                    <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
+                    <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
