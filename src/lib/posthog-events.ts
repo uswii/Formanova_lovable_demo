@@ -213,6 +213,12 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
   }
 }
 
+export function setUserProfession(profession: UserProfession) {
+  if (posthog.__loaded) {
+    posthog.setPersonProperties({ profession });
+  }
+}
+
 /** Fire experiment exposure after identify() so PostHog enrolls the user under
  *  their identified UUID, not the cached anonymous variant.
  *  onFeatureFlags() waits for the post-identify flag reload to complete before

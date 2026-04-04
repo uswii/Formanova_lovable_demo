@@ -22,6 +22,7 @@ import {
   trackTosSigned,
   trackUserTypeSelected,
   trackFeedbackSubmitted,
+  setUserProfession,
 } from './posthog-events'
 
 beforeEach(() => {
