@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +12,9 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
-import { isOnboardingComplete, isTosAgreed } from '@/lib/onboarding-api';
+import { isOnboardingComplete, isTosAgreed, markTosAgreed, checkTosAgreement, signTosAgreement, markUploadInstructionsSeen } from '@/lib/onboarding-api';
+import { trackTosViewed, trackTosSigned } from '@/lib/posthog-events';
+import { StudioOnboardingModal } from '@/components/studio/StudioOnboardingModal';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
@@ -156,6 +158,62 @@ function OnboardingRedirectHandler() {
   return null;
 }
 
+const ONBOARDING_SKIP_PATHS = [
+  '/', '/login', '/oauth-callback', '/feedback', '/link',
+  '/onboarding', '/onboarding-welcome',
+  '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
+];
+
+/** Shows the studio onboarding modal once to every new user who hasn't agreed to ToS.
+ *  Runs globally so it appears regardless of which page the user lands on first. */
+function GlobalOnboardingGate() {
+  const { user, initializing } = useAuth();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const hasChecked = useRef(false);
+
+  useEffect(() => {
+    if (initializing || !user || hasChecked.current) return;
+    if (!isStudioOnboardingEnabled(user.email)) return;
+    const isSkip = ONBOARDING_SKIP_PATHS.includes(location.pathname) || location.pathname.startsWith('/blog/');
+    if (isSkip) return;
+
+    hasChecked.current = true;
+
+    // Fast path — localStorage says already agreed
+    if (isTosAgreed(user.id)) return;
+
+    // API check for cross-device accuracy
+    checkTosAgreement()
+      .then((agreed) => {
+        if (agreed) {
+          markTosAgreed(user.id); // sync localStorage
+        } else {
+          setOpen(true);
+          trackTosViewed();
+        }
+      })
+      .catch(() => {
+        // Fail open — don't block users if API is unreachable
+        if (!isTosAgreed(user.id)) {
+          setOpen(true);
+          trackTosViewed();
+        }
+      });
+  }, [initializing, user?.id, location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClose = () => {
+    setOpen(false);
+    if (!user) return;
+    markTosAgreed(user.id);
+    trackTosSigned();
+    signTosAgreement().catch(() => {});
+    markUploadInstructionsSeen().catch(() => {});
+  };
+
+  return <StudioOnboardingModal open={open} onClose={handleClose} />;
+}
+
 /** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
 function VersionBanner() {
   const { updateAvailable, refresh, dismiss } = useVersionPolling();
@@ -186,6 +244,7 @@ const App = () => (
             <PostReloadHandler />
             <OnboardingRedirectHandler />
             <TosRedirectHandler />
+            <GlobalOnboardingGate />
             <VersionBanner />
             
             <DeferredDecorations>

@@ -302,8 +302,13 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent
+          className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden"
+          onKeyDown={handleKey}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
 
           {/* Header */}
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
@@ -336,25 +341,23 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
-              {step > 0 && (
-                <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>
-                  Back
-                </Button>
-              )}
-              <Button
-                size="default"
-                className="min-w-[130px]"
-                onClick={() => {
-                  if (step < TOTAL - 1) setStep(s => s + 1);
-                  else if (!checked) triggerShake();
-                  else close();
-                }}
-              >
-                {step === TOTAL - 1 ? "Let's go" : 'Next'}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-end gap-4 shrink-0">
+            {step > 0 && (
+              <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>
+                Back
               </Button>
-            </div>
+            )}
+            <Button
+              size="default"
+              className="min-w-[130px]"
+              onClick={() => {
+                if (step < TOTAL - 1) setStep(s => s + 1);
+                else if (!checked) triggerShake();
+                else close();
+              }}
+            >
+              {step === TOTAL - 1 ? "Let's go" : 'Next'}
+            </Button>
           </div>
 
         </DialogContent>
