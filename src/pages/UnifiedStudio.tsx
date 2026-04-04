@@ -424,10 +424,12 @@ export default function UnifiedStudio() {
   // ── Studio onboarding popup + model guide (gated) ────────────────────────
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [modelGuideOpen, setModelGuideOpen] = useState(false);
+  const hasOpenedOnboarding = useRef(false);
   useEffect(() => {
-    if (initializing || !user) return;
+    if (initializing || !user || hasOpenedOnboarding.current) return;
     if (isStudioOnboardingEnabled(user.email)) {
       setOnboardingOpen(true);
+      hasOpenedOnboarding.current = true;
     }
   }, [initializing, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

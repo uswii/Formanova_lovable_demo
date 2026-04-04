@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb, X as XIcon, ArrowRight } from 'lucide-react';
@@ -232,29 +232,34 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
 
 // ─── Step 5: Ready ────────────────────────────────────────────────────────────
 
-function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) {
+function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => void; shake: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">You are ready</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
         Thanks for reading. Now go get some great shots.
       </p>
-      <button
-        type="button"
-        onClick={onCheck}
-        className="flex items-center gap-3 focus:outline-none group"
-      >
-        <div className={`h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : 'border-border group-hover:border-primary/60'}`}>
-          {checked && (
-            <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
-              <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
-        <span className="text-sm text-foreground leading-snug">
-          I understand bad photos give bad results.
-        </span>
-      </button>
+      <div className="flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={onCheck}
+          className={`flex items-center gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
+        >
+          <div className={`h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-border group-hover:border-primary/60'}`}>
+            {checked && (
+              <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          <span className={`text-sm leading-snug ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
+            I understand bad photos give bad results.
+          </span>
+        </button>
+        <p className={`text-xs text-destructive transition-opacity duration-200 ${shake && !checked ? 'opacity-100' : 'opacity-0'}`}>
+          Please confirm to continue.
+        </p>
+      </div>
     </div>
   );
 }
@@ -271,11 +276,20 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   const [step, setStep] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [shake, setShake] = useState(false);
+  const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const close = () => {
     setStep(0);
     setChecked(false);
+    setShake(false);
     onClose();
+  };
+
+  const triggerShake = () => {
+    if (shakeTimer.current) clearTimeout(shakeTimer.current);
+    setShake(true);
+    shakeTimer.current = setTimeout(() => setShake(false), 600);
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -292,15 +306,11 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
           {/* Header */}
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
-            {(step === 0 || step === TOTAL - 1) ? (
-              <DialogTitle className="sr-only">{STEPS[step].title}</DialogTitle>
-            ) : (
-              <div className="min-w-0">
-                <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
-                  {STEPS[step].title}
-                </DialogTitle>
-              </div>
-            )}
+            <div className="min-w-0 h-[3rem] sm:h-[4rem] overflow-hidden">
+              <DialogTitle aria-hidden={(step === 0 || step === TOTAL - 1) || undefined} className={`font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none] ${(step === 0 || step === TOTAL - 1) ? 'invisible' : ''}`}>
+                {STEPS[step].title}
+              </DialogTitle>
+            </div>
             <span className="font-mono text-sm text-muted-foreground shrink-0 ml-auto">
               {step + 1} / {TOTAL}
             </span>
@@ -313,18 +323,16 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
             {step === 2 && <Step2 onZoom={setLightbox} />}
             {step === 3 && <Step3 onZoom={setLightbox} />}
             {step === 4 && <Step4 onZoom={setLightbox} />}
-            {step === 5 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} />}
+            {step === 5 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} shake={shake} />}
           </div>
 
-          {/* Step 4 tip — overlaps footer border */}
-          {step === 4 && (
-            <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y border-primary/30 bg-primary/5 py-3">
-              <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-              <p className="text-xs leading-relaxed text-foreground">
-                Make sure your model is not already wearing the same type of jewelry you want to add.
-              </p>
-            </div>
-          )}
+          {/* Tip — always takes space, visible only on step 4 */}
+          <div className={`px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-3 ${step === 4 ? 'border-primary/30 bg-primary/5' : 'border-transparent'}`}>
+            <Lightbulb className={`h-4 w-4 shrink-0 mt-0.5 ${step === 4 ? 'text-primary' : 'invisible'}`} />
+            <p className={`text-xs leading-relaxed ${step === 4 ? 'text-foreground' : 'invisible'}`}>
+              Make sure your model is not already wearing the same type of jewelry you want to add.
+            </p>
+          </div>
 
           {/* Footer */}
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-between shrink-0">
@@ -349,8 +357,11 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
               <Button
                 size="default"
                 className="min-w-[130px]"
-                disabled={step === TOTAL - 1 && !checked}
-                onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
+                onClick={() => {
+                  if (step < TOTAL - 1) setStep(s => s + 1);
+                  else if (!checked) triggerShake();
+                  else close();
+                }}
               >
                 {step === TOTAL - 1 ? "Let's go" : 'Next'}
               </Button>
@@ -363,9 +374,17 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 flex items-center justify-center h-8 w-8 bg-background/80 border border-border/50 text-foreground hover:bg-background transition-colors focus:outline-none"
+            aria-label="Close"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
           <img
             src={lightbox}
             alt=""
