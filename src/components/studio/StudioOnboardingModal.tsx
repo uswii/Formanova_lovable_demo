@@ -150,7 +150,7 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
         <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-          These inputs confuse the AI and can change your jewelry design in weird ways.
+          These inputs confuse the AI and can change your jewelry design.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
