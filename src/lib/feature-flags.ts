@@ -76,8 +76,11 @@ export function isViewGuideEnabled(_email: string | undefined | null): boolean {
  * Onboarding welcome screen — input quality guidelines + Terms of Service gate.
  * Enabled for all users.
  */
-export function isOnboardingWelcomeEnabled(_email: string | undefined | null): boolean {
-  return true;
+const ONBOARDING_WELCOME_EMAILS = ['uswa@raresense.so'];
+
+export function isOnboardingWelcomeEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return ONBOARDING_WELCOME_EMAILS.includes(email.toLowerCase());
 }
 
 /**
