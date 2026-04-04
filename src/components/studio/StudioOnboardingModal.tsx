@@ -124,7 +124,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           </li>
           <li className="flex items-start gap-2">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Blurry or low-res photo</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Blurry or low res</span>
           </li>
         </ul>
       </div>
