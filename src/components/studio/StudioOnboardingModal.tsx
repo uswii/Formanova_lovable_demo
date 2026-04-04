@@ -72,7 +72,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         <ul className="space-y-1.5">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Clear, even light</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Clear, diffuse light</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
