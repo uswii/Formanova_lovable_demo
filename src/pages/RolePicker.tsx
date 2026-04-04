@@ -218,8 +218,8 @@ export default function RolePicker() {
             tosChecked
               ? 'bg-primary border-primary'
               : shakeTos
-                ? 'border-destructive'
-                : 'border-foreground group-hover:border-primary',
+                ? 'bg-background border-destructive'
+                : 'bg-background border-foreground group-hover:border-primary',
           )}>
             {tosChecked && (
               <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">

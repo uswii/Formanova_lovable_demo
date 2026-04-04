@@ -235,14 +235,14 @@ function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => v
           onClick={onCheck}
           className={`inline-flex items-start gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
         >
-          <div className={`mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-foreground group-hover:border-primary'}`}>
+          <div className={`mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'bg-background border-destructive' : 'bg-background border-foreground group-hover:border-primary'}`}>
             {checked && (
               <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">
                 <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </div>
-          <span className={`text-sm leading-snug ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
+          <span className={`text-sm font-semibold leading-snug ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
             I understand bad photos give bad results.
           </span>
         </button>
