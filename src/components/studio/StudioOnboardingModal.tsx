@@ -337,18 +337,6 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
           {/* Footer */}
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-between shrink-0">
-            <div className="flex items-center">
-              {isTest && (
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                >
-                  ↩ restart
-                </button>
-              )}
-            </div>
-
             <div className="flex items-center gap-4">
               {step > 0 && (
                 <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>

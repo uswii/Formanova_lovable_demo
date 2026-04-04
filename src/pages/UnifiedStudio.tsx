@@ -746,7 +746,7 @@ export default function UnifiedStudio() {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
-    setModelAssetId(isApiModel ? null : model.id); // API preset models must not send input_model_asset_id
+    setModelAssetId(null);
     trackModelSelected({
       category: TO_SINGULAR[jewelryType] ?? jewelryType,
       model_type: 'catalog',
@@ -856,25 +856,8 @@ export default function UnifiedStudio() {
       let modelUrl: string;
 
       if (selectedModel) {
-        if (selectedModel.url.includes('/artifacts/')) {
-          // Artifact URLs require auth — the pipeline can't fetch them directly.
-          // Fetch with Bearer token and re-upload to Azure so the pipeline gets a public URL.
-          const artifactRes = await authenticatedFetch(selectedModel.url);
-          if (!artifactRes.ok) throw new Error('Failed to fetch preset model image');
-          const artifactBlob = await artifactRes.blob();
-          const { blob: compressedArtifact } = await compressImageBlob(artifactBlob);
-          const artifactBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(compressedArtifact);
-          });
-          const azArtifact = await uploadToAzure(artifactBase64, 'image/jpeg', 'model_photo', {});
-          modelUrl = azArtifact.https_url || azArtifact.sas_url;
-        } else {
-          // Public HTTPS URL (e.g. Azure blob) — use directly
-          modelUrl = selectedModel.url;
-        }
+        // Preset models already have HTTPS URLs — use directly
+        modelUrl = selectedModel.url;
       } else if (customModelImage && customModelImage.startsWith('http')) {
         // Model was uploaded at selection time (handleModelUpload) — customModelImage is a SAS URL.
         // startsWith('http') guards against 'data:' URL previews set briefly before the Azure upload completes.
@@ -1874,7 +1857,7 @@ export default function UnifiedStudio() {
 
             {/* Action buttons directly under results */}
             <div className="flex items-center justify-center gap-4 pt-2">
-              <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider h-11 w-44">
+              <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider h-11 px-6">
                 <Diamond className="h-4 w-4" />
                 New Photoshoot
               </Button>
