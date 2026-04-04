@@ -178,26 +178,22 @@ function GlobalOnboardingGate() {
 
     hasChecked.current = true;
 
-    // Fast path — localStorage says already agreed
+    // Already agreed in localStorage — skip instantly
     if (isTosAgreed(user.id)) return;
 
-    // API check for cross-device accuracy
+    // Show immediately — don't block on API round-trip
+    setOpen(true);
+    trackTosViewed();
+
+    // Background sync: if they agreed on another device, close the modal
     checkTosAgreement()
       .then((agreed) => {
         if (agreed) {
-          markTosAgreed(user.id); // sync localStorage
-        } else {
-          setOpen(true);
-          trackTosViewed();
+          markTosAgreed(user.id);
+          setOpen(false);
         }
       })
-      .catch(() => {
-        // Fail open — don't block users if API is unreachable
-        if (!isTosAgreed(user.id)) {
-          setOpen(true);
-          trackTosViewed();
-        }
-      });
+      .catch(() => {}); // ignore — modal stays open
   }, [initializing, user?.id, location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {
