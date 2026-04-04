@@ -40,17 +40,11 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                    <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
+                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                    <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
+                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
                 </div>
               </div>
             </div>
@@ -64,29 +58,24 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                    <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
+                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                    <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
-                  </div>
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
+                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
+                  <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
-            <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-            <p className="text-xs leading-relaxed text-foreground">
-              Make sure your model is not already wearing the same type of jewelry you want to add.
-            </p>
-          </div>
+        </div>
 
+        {/* Tip — overlaps footer border */}
+        <div className="-mt-px flex items-start gap-3 border-y border-primary/30 bg-primary/5 px-4 sm:px-6 py-3">
+          <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+          <p className="text-xs leading-relaxed text-foreground">
+            Make sure your model is not already wearing the same type of jewelry you want to add.
+          </p>
         </div>
 
         {/* Footer */}

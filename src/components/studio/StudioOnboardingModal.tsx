@@ -136,9 +136,6 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
           </p>
         </div>
       </div>
-      <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The result can look nice but the jewelry ends up the wrong size.
-      </p>
     </div>
   );
 }
@@ -186,14 +183,8 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
             <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
-            </div>
-            <div className="space-y-1.5">
-              <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
-            </div>
+            <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
+            <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
           </div>
         </div>
 
@@ -206,22 +197,10 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
             <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
-            </div>
-            <div className="space-y-1.5">
-              <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
-              <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
-            </div>
+            <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
+            <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
           </div>
         </div>
-      </div>
-      <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
-        <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-        <p className="text-xs leading-relaxed text-foreground">
-          Make sure your model is not already wearing the same type of jewelry you want to add.
-        </p>
       </div>
     </div>
   );
@@ -294,6 +273,16 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
             {step === 3 && <Step4 onZoom={setLightbox} />}
             {step === 4 && <Step5 />}
           </div>
+
+          {/* Step 4 tip — overlaps footer border */}
+          {step === 3 && (
+            <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y border-primary/30 bg-primary/5 py-3">
+              <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+              <p className="text-xs leading-relaxed text-foreground">
+                Make sure your model is not already wearing the same type of jewelry you want to add.
+              </p>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-between shrink-0">
