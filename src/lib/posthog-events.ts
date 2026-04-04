@@ -25,6 +25,8 @@ export function consumeFirstGeneration(): boolean {
 
 // ═══════ Types ══════════════════════════════════════════════════════
 
+export type UserProfession = 'jewelry_brand' | 'freelancer' | 'researcher_student' | 'content_creator' | 'other';
+
 export interface CategorySelectedProps {
   category: string;
   is_first_selection: boolean;
@@ -208,6 +210,12 @@ export function trackWebGLContextRestored(stats: Record<string, unknown>) {
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
   if (posthog.__loaded) {
     posthog.identify(userId, properties);
+  }
+}
+
+export function setUserProfession(profession: UserProfession) {
+  if (posthog.__loaded) {
+    posthog.setPersonProperties({ profession });
   }
 }
 

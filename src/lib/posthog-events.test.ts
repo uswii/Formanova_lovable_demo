@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock posthog-js BEFORE importing posthog-events
 vi.mock('posthog-js', () => ({
-  default: { capture: vi.fn(), setPersonProperties: vi.fn(), __loaded: true },
+  default: { capture: vi.fn(), setPersonProperties: vi.fn(), reset: vi.fn(), identify: vi.fn(), onFeatureFlags: vi.fn(), getFeatureFlag: vi.fn(), __loaded: true },
 }))
 
 import posthog from 'posthog-js'
@@ -22,6 +22,7 @@ import {
   trackTosSigned,
   trackUserTypeSelected,
   trackFeedbackSubmitted,
+  setUserProfession,
 } from './posthog-events'
 
 beforeEach(() => {
@@ -291,5 +292,21 @@ describe('trackUserTypeSelected', () => {
       trackUserTypeSelected({ user_type })
       expect(posthog.capture).toHaveBeenCalledWith('user_type_selected', { user_type })
     })
+  })
+})
+
+// ── setUserProfession ──────────────────────────────────────────────
+
+describe('setUserProfession', () => {
+  it('calls setPersonProperties with profession', () => {
+    setUserProfession('jewelry_brand')
+    expect((posthog as any).setPersonProperties).toHaveBeenCalledWith({ profession: 'jewelry_brand' })
+  })
+
+  it('does not call setPersonProperties when __loaded is false', () => {
+    ;(posthog as any).__loaded = false
+    setUserProfession('freelancer')
+    expect((posthog as any).setPersonProperties).not.toHaveBeenCalled()
+    ;(posthog as any).__loaded = true
   })
 })
