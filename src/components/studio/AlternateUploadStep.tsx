@@ -78,14 +78,15 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
   watches:   { allowed: [watchAllowed1,    watchAllowed2,    watchAllowed3,    watchAllowed4],       notAllowed: [watchNotAllowed1,    watchNotAllowed2,    watchNotAllowed3]    },
 };
 
+// Shared canvas height — locks both columns to the same vertical bounds.
+const CANVAS_H = 'h-[500px] md:h-[640px]';
+
 // ── Upload Guide — 2×2 recommended photos, shown to users with no uploads yet ──
 function UploadGuidePanel({
   examples,
-  canvasH,
   categoryType,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
-  canvasH?: number;
   categoryType: string;
 }) {
   const topLabel = categoryType === 'rings'
@@ -93,14 +94,14 @@ function UploadGuidePanel({
     : 'Recommended input photos for best results';
 
   return (
-    <div className="border border-border/30 flex flex-col overflow-hidden">
+    <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
       {/* Top label */}
       <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
         {topLabel}
       </p>
 
       {/* Grid — padded horizontally to keep images small */}
-      <div className="px-12 overflow-hidden">
+      <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
         <div className="grid grid-cols-2 gap-4">
           {examples.allowed.slice(0, 4).map((src, i) => (
             <div key={`rec-${i}`} className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
@@ -196,8 +197,6 @@ export function AlternateUploadStep({
   // Necklace worn example looks better as the 3rd image
   const popupWornExample = exampleCategoryType === 'necklace' ? examples.allowed[2] : examples.allowed[0];
 
-  // Shared height — locks both columns to the same vertical bounds.
-  const CANVAS_H = 'h-[500px] md:h-[640px]';
 
   return (
     <>

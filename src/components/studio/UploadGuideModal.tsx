@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Lightbulb, X as XIcon, ArrowRight } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 
 import ringA1            from '@/assets/examples/ring-allowed-1.webp';
 import earringA1         from '@/assets/examples/earring-allowed-1.webp';
@@ -38,19 +37,13 @@ const STEPS = [
 
 const TOTAL = STEPS.length;
 
-// ─── Shared clickable image cell ──────────────────────────────────────────────
+// ─── Shared image cell ────────────────────────────────────────────────────────
 
-function Img({
-  src, alt, onZoom, hClass = 'aspect-square',
-}: { src: string; alt: string; onZoom: (s: string) => void; hClass?: string }) {
+function Img({ src, alt, hClass = 'aspect-square' }: { src: string; alt: string; hClass?: string }) {
   return (
-    <button
-      type="button"
-      onClick={() => onZoom(src)}
-      className={`${hClass} w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none`}
-    >
+    <div className={`${hClass} w-full overflow-hidden border border-border/30 bg-muted/10`}>
       <img src={src} alt={alt} className="w-full h-full object-contain" />
-    </button>
+    </div>
   );
 }
 
@@ -69,7 +62,7 @@ function Step0() {
 
 // ─── Step 1: Do / Don't side by side ─────────────────────────────────────────
 
-function Step1({ onZoom }: { onZoom: (s: string) => void }) {
+function Step1() {
   return (
     <div className="grid grid-cols-2 gap-3">
       {/* DO */}
@@ -82,10 +75,9 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
-            <button key={i} type="button" onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
+            <div key={i} className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10">
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </button>
+            </div>
           ))}
         </div>
         <ul className="space-y-1.5 mt-1">
@@ -110,10 +102,9 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
-            <button key={i} type="button" onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
+            <div key={i} className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10">
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </button>
+            </div>
           ))}
         </div>
         <ul className="space-y-1.5 mt-1">
@@ -133,7 +124,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
 
 // ─── Step 2: Scale consequence ────────────────────────────────────────────────
 
-function Step2({ onZoom }: { onZoom: (s: string) => void }) {
+function Step2() {
   return (
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
@@ -143,13 +134,13 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Img src={scaleBefore} alt="Input: earrings not worn" onZoom={onZoom} />
+          <Img src={scaleBefore} alt="Input: earrings not worn" />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Input: earrings not worn
           </p>
         </div>
         <div className="space-y-1.5">
-          <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
+          <Img src={scaleAfter} alt="Output: proportions are off" />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Output: earrings look too big
           </p>
@@ -161,7 +152,7 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
 
 // ─── Step 3: Screenshots + multiple ──────────────────────────────────────────
 
-function Step3({ onZoom }: { onZoom: (s: string) => void }) {
+function Step3() {
   return (
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
@@ -171,13 +162,13 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Img src={screenshotExample} alt="Social media screenshot" onZoom={onZoom} />
+          <Img src={screenshotExample} alt="Social media screenshot" />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Social media screenshot
           </p>
         </div>
         <div className="space-y-1.5">
-          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} />
+          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
             Jewelry in packaging or bundles
           </p>
@@ -189,7 +180,7 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
 
 // ─── Step 4: Synthetic vs realistic model ────────────────────────────────────
 
-function Step4({ onZoom }: { onZoom: (s: string) => void }) {
+function Step4() {
   return (
     <div className="grid grid-cols-2 gap-3">
       {/* Fake model */}
@@ -202,10 +193,9 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[fakeModelInput, fakeModelOutput, syntheticBefore, syntheticAfter].map((src, i) => (
-            <button key={i} type="button" onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
+            <div key={i} className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10">
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -220,10 +210,9 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[realModelInput, realModelOutput, realisticBefore, realisticAfter].map((src, i) => (
-            <button key={i} type="button" onClick={() => onZoom(src)}
-              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
+            <div key={i} className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10">
               <img src={src} alt="" className="w-full h-full object-contain" />
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -275,7 +264,6 @@ interface Props {
 
 export function UploadGuideModal({ open, onClose, isTest }: Props) {
   const [step, setStep] = useState(0);
-  const [lightbox, setLightbox] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [shake, setShake] = useState(false);
   const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -294,21 +282,19 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (lightbox) return;
     if (e.key === 'ArrowRight' && step < TOTAL - 1) setStep(s => s + 1);
     if (e.key === 'ArrowLeft' && step > 0) setStep(s => s - 1);
     if (e.key === 'Enter' && step === TOTAL - 1) close();
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={() => {}}>
-        <DialogContent
-          className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden"
-          onKeyDown={handleKey}
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent
+        className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden"
+        onKeyDown={handleKey}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
 
           {/* Header */}
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
@@ -325,10 +311,10 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
           {/* Content */}
           <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-y-auto">
             {step === 0 && <Step0 />}
-            {step === 1 && <Step1 onZoom={setLightbox} />}
-            {step === 2 && <Step2 onZoom={setLightbox} />}
-            {step === 3 && <Step3 onZoom={setLightbox} />}
-            {step === 4 && <Step4 onZoom={setLightbox} />}
+            {step === 1 && <Step1 />}
+            {step === 2 && <Step2 />}
+            {step === 3 && <Step3 />}
+            {step === 4 && <Step4 />}
             {step === 5 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} shake={shake} />}
           </div>
 
@@ -360,33 +346,7 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
             </Button>
           </div>
 
-        </DialogContent>
-      </Dialog>
-
-      {/* Lightbox — rendered via portal so it sits above the Radix dialog in DOM order */}
-      {lightbox && createPortal(
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm p-10"
-          onClick={() => setLightbox(null)}
-        >
-          {/* Close button — fixed top-right of screen, always reachable */}
-          <button
-            type="button"
-            onClick={() => setLightbox(null)}
-            className="fixed top-4 right-4 flex items-center justify-center h-9 w-9 bg-background border border-border text-foreground hover:bg-muted transition-colors focus:outline-none z-[201]"
-            aria-label="Close"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-          <img
-            src={lightbox}
-            alt=""
-            className="max-h-[75vh] max-w-[80vw] sm:max-h-[80vh] sm:max-w-[75vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>,
-        document.body
-      )}
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
