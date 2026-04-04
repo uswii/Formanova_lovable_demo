@@ -1,4 +1,5 @@
 import React, { Suspense, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
@@ -155,10 +156,13 @@ function OnboardingRedirectHandler() {
   return null;
 }
 
-/** Version-aware update banner wired into the router context */
+/** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
 function VersionBanner() {
   const { updateAvailable, refresh, dismiss } = useVersionPolling();
-  return <UpdateBanner visible={updateAvailable} onRefresh={refresh} onDismiss={dismiss} />;
+  return createPortal(
+    <UpdateBanner visible={updateAvailable} onRefresh={refresh} onDismiss={dismiss} />,
+    document.body
+  );
 }
 
 const queryClient = new QueryClient();
