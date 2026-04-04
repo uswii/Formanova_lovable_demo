@@ -54,6 +54,7 @@ function Img({
 function Step0() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">Turn your jewelry photos into model shots</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
         The better your photo, the better the result.
       </p>
@@ -218,6 +219,7 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
 function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">You are ready</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
         Thanks for reading. Now go get some great shots.
       </p>
@@ -273,25 +275,20 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
 
           {/* Header */}
-          {(step === 0 || step === TOTAL - 1) ? (
-            <div className="flex flex-col items-center text-center px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
-              <span className="font-mono text-xs text-muted-foreground mb-1">{step + 1} / {TOTAL}</span>
-              <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
-                {STEPS[step].title}
-              </DialogTitle>
-            </div>
-          ) : (
-            <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
+          <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
+            {(step === 0 || step === TOTAL - 1) ? (
+              <DialogTitle className="sr-only">{STEPS[step].title}</DialogTitle>
+            ) : (
               <div className="min-w-0">
                 <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                   {STEPS[step].title}
                 </DialogTitle>
               </div>
-              <span className="font-mono text-sm text-muted-foreground shrink-0 ml-4 mt-1">
-                {step + 1} / {TOTAL}
-              </span>
-            </div>
-          )}
+            )}
+            <span className="font-mono text-sm text-muted-foreground shrink-0 ml-auto">
+              {step + 1} / {TOTAL}
+            </span>
+          </div>
 
           {/* Content */}
           <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden">
