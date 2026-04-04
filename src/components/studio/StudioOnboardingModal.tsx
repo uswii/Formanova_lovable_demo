@@ -176,7 +176,7 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
 function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   return (
     <div className="flex flex-col gap-3 h-full">
-      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
+      <div className="grid grid-cols-2 gap-3">
         {/* Synthetic */}
         <div className="flex flex-col gap-2">
           <div className="min-h-[2.75rem]">
@@ -185,13 +185,13 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
             </p>
             <p className="text-sm font-medium text-foreground leading-snug">Looks fake in, looks fake out</p>
           </div>
-          <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-            <div className="flex flex-col gap-1.5">
-              <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} hClass="flex-1 min-h-0" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Img src={syntheticBefore} alt="Synthetic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
               <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} hClass="flex-1 min-h-0" />
+            <div className="space-y-1.5">
+              <Img src={syntheticAfter} alt="Synthetic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
               <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
             </div>
           </div>
@@ -205,13 +205,13 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
             </p>
             <p className="text-sm font-medium text-foreground leading-snug">Real photo in, real result out</p>
           </div>
-          <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-            <div className="flex flex-col gap-1.5">
-              <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} hClass="flex-1 min-h-0" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Img src={realisticBefore} alt="Realistic model" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
               <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Input</p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} hClass="flex-1 min-h-0" />
+            <div className="space-y-1.5">
+              <Img src={realisticAfter} alt="Realistic output" onZoom={onZoom} hClass="aspect-[1/2] w-full" />
               <p className="text-[9px] text-center font-mono tracking-widest text-muted-foreground uppercase">Output</p>
             </div>
           </div>
@@ -287,7 +287,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden">
             {step === 0 && <Step1 onZoom={setLightbox} />}
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}

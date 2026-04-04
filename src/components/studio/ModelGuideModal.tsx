@@ -30,7 +30,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
         {/* Content */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
 
-          <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
+          <div className="grid grid-cols-2 gap-3">
             {/* Synthetic */}
             <div className="flex flex-col gap-2">
               <div className="min-h-[2.75rem]">
@@ -39,15 +39,15 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 </p>
                 <p className="text-sm font-medium text-foreground leading-snug">Looks fake in, looks fake out</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex-1 min-h-0 w-full overflow-hidden border border-border/30 bg-muted/10">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex-1 min-h-0 w-full overflow-hidden border border-border/30 bg-muted/10">
+                <div className="space-y-1.5">
+                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
@@ -63,15 +63,15 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 </p>
                 <p className="text-sm font-medium text-foreground leading-snug">Real photo in, real result out</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex-1 min-h-0 w-full overflow-hidden border border-border/30 bg-muted/10">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex-1 min-h-0 w-full overflow-hidden border border-border/30 bg-muted/10">
+                <div className="space-y-1.5">
+                  <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
                     <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
