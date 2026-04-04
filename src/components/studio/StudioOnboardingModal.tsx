@@ -206,17 +206,30 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
   );
 }
 
-// ─── Step 5: Low quality in / low quality out ─────────────────────────────────
+// ─── Step 5: Ready ────────────────────────────────────────────────────────────
 
-function Step5() {
+function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-justify text-foreground leading-relaxed">
-        A blurry, dark, or low-res photo will give you a blurry, bad result. We can't fix a bad input.
-      </p>
+    <div className="flex flex-col gap-5">
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        AI is not perfect. We are always working to make Formanova better and we take every bad result seriously.
+        That's it. Follow these tips and you will get good results. Skip them and the output may look wrong.
       </p>
+      <button
+        type="button"
+        onClick={onCheck}
+        className="flex items-start gap-3 text-left focus:outline-none group"
+      >
+        <div className={`mt-0.5 h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : 'border-border group-hover:border-primary/60'}`}>
+          {checked && (
+            <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+              <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <span className="text-sm text-foreground leading-snug">
+          Got it — a bad photo gives a bad result.
+        </span>
+      </button>
     </div>
   );
 }
@@ -232,9 +245,11 @@ interface Props {
 export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   const [step, setStep] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
 
   const close = () => {
     setStep(0);
+    setChecked(false);
     onClose();
   };
 
@@ -254,7 +269,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
-                Read this to get started
+                Tips for your jewelry photos
               </p>
               <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                 {STEPS[step].title}
@@ -271,7 +286,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}
             {step === 3 && <Step4 onZoom={setLightbox} />}
-            {step === 4 && <Step5 />}
+            {step === 4 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} />}
           </div>
 
           {/* Step 4 tip — overlaps footer border */}
