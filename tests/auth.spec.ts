@@ -28,9 +28,10 @@ for (const route of protectedRoutes) {
 const adminRoutes = ['/admin/feedback', '/admin/promo-codes'];
 
 for (const route of adminRoutes) {
-  test(`redirects unauthenticated users from ${route} to login`, async ({ page }) => {
+  test(`blocks unauthenticated users from ${route}`, async ({ page }) => {
     await page.goto(route);
-    await expect(page).toHaveURL(/\/login/);
+    // AdminRouteGuard shows a 404 page in-place rather than redirecting
+    await expect(page.getByText("This page doesn't exist or you don't have access.")).toBeVisible();
   });
 }
 
