@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { checkTosAgreement, signTosAgreement, markTosAgreed } from '@/lib/onboarding-api';
 import { isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackTosViewed, trackTosSigned } from '@/lib/posthog-events';
+import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
 
 import ringA1      from '@/assets/examples/ring-allowed-1.webp';
 import earringA1   from '@/assets/examples/earring-allowed-1.webp';
@@ -161,7 +161,7 @@ export default function OnboardingWelcome() {
           navigate('/studio', { replace: true });
         } else {
           setChecking(false);
-          trackTosViewed();
+          trackUploadGuideViewed();
         }
       })
       .catch(() => setChecking(false));
@@ -173,7 +173,7 @@ export default function OnboardingWelcome() {
     setError(null);
     try {
       await signTosAgreement();
-      trackTosSigned();
+      trackUploadGuideAcknowledged();
       if (user) markTosAgreed(user.id);
       navigate('/studio', { replace: true });
     } catch {
