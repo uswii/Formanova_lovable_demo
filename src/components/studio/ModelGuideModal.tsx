@@ -30,18 +30,15 @@ export function ModelGuideModal({ open, onClose }: Props) {
         {/* Content */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
 
-          <div className="min-h-[2.75rem]">
-            <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-              The AI copies the style of your photo. Use a real photo, get a real result.
-            </p>
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             {/* Synthetic */}
             <div className="flex flex-col gap-2">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-                <XCircle className="h-3.5 w-3.5 shrink-0" /> Synthetic model
-              </p>
+              <div className="min-h-[2.75rem]">
+                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+                  <XCircle className="h-3.5 w-3.5 shrink-0" /> Synthetic model
+                </p>
+                <p className="text-sm font-medium text-foreground leading-snug">Looks fake in, looks fake out</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
@@ -60,9 +57,12 @@ export function ModelGuideModal({ open, onClose }: Props) {
 
             {/* Realistic */}
             <div className="flex flex-col gap-2">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Realistic model
-              </p>
+              <div className="min-h-[2.75rem]">
+                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Real photo
+                </p>
+                <p className="text-sm font-medium text-foreground leading-snug">Real photo in, real result out</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
