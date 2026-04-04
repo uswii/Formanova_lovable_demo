@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb, X as XIcon, ArrowRight } from 'lucide-react';
@@ -371,8 +372,8 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Lightbox */}
-      {lightbox && (
+      {/* Lightbox — rendered via portal so it sits above the Radix dialog in DOM order */}
+      {lightbox && createPortal(
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
@@ -391,7 +392,8 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
             className="max-h-[90vh] max-w-[90vw] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
