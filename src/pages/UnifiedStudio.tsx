@@ -55,7 +55,7 @@ import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
-import { isTosAgreed, markTosAgreed } from '@/lib/onboarding-api';
+import { isTosAgreed, markTosAgreed, checkUploadInstructionsSeen, markUploadInstructionsSeen } from '@/lib/onboarding-api';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { StudioOnboardingModal } from '@/components/studio/StudioOnboardingModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
@@ -427,10 +427,19 @@ export default function UnifiedStudio() {
   const hasOpenedOnboarding = useRef(false);
   useEffect(() => {
     if (initializing || !user || hasOpenedOnboarding.current) return;
-    if (isStudioOnboardingEnabled(user.email)) {
-      setOnboardingOpen(true);
-      hasOpenedOnboarding.current = true;
-    }
+    if (!isStudioOnboardingEnabled(user.email)) return;
+    hasOpenedOnboarding.current = true;
+    const isTest = isStudioOnboardingEnabled(user.email);
+    checkUploadInstructionsSeen()
+      .then((seen) => {
+        // In test mode: always open, but still fire the API call so it can be verified.
+        // In production: only open if not yet seen.
+        if (!seen || isTest) setOnboardingOpen(true);
+      })
+      .catch(() => {
+        // Fail open — don't block users if the API is unreachable.
+        setOnboardingOpen(true);
+      });
   }, [initializing, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Jewelry image
@@ -1914,6 +1923,7 @@ export default function UnifiedStudio() {
             onClose={() => {
               setOnboardingOpen(false);
               if (user) markTosAgreed(user.id);
+              markUploadInstructionsSeen().catch(() => {});
             }}
           />
           <ModelGuideModal

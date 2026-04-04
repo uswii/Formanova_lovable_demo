@@ -63,32 +63,60 @@ export async function saveUserType(userType: UserType): Promise<void> {
 }
 
 /**
- * GET /api/user/agreements — returns all agreements the user has signed.
- * Returns true if tos_v1 is already signed.
+ * GET /api/user/acknowledgements — returns all acknowledgements for the user.
+ * Returns true if tos v1.0 is already acknowledged.
  *
- *   Response 200: { "agreements": [{ "agreement_type": "tos_v1", "signed_at": "..." }] }
+ *   Response 200: { "acknowledgements": [{ "acknowledgement_type": "tos", "version": "1.0", "signed_at": "..." }] }
  */
 export async function checkTosAgreement(): Promise<boolean> {
-  const res = await authenticatedFetch('/api/user/agreements');
-  if (!res.ok) throw new Error(`Failed to fetch agreements: ${res.status}`);
+  const res = await authenticatedFetch('/api/user/acknowledgements');
+  if (!res.ok) throw new Error(`Failed to fetch acknowledgements: ${res.status}`);
   const data = await res.json();
-  return (data.agreements as { agreement_type: string; version: string }[]).some(
-    (a) => a.agreement_type === 'tos' && a.version === '1.0',
+  return (data.acknowledgements as { acknowledgement_type: string; version: string }[]).some(
+    (a) => a.acknowledgement_type === 'tos' && a.version === '1.0',
   );
 }
 
 /**
- * POST /api/user/agreements — records that the user has signed tos v1.0.
+ * POST /api/user/acknowledgements — records that the user has acknowledged tos v1.0.
  *
- *   Body: { "agreement_type": "tos", "version": "1.0" }
- *   Response 201: { "agreement_type": "tos", "version": "1.0", "signed_at": "..." }
+ *   Body: { "acknowledgement_type": "tos", "version": "1.0" }
+ *   Response 201: { "acknowledgement_type": "tos", "version": "1.0", "signed_at": "..." }
  *   Response 200: same (idempotent — safe to call multiple times)
  */
 export async function signTosAgreement(): Promise<void> {
-  const res = await authenticatedFetch('/api/user/agreements', {
+  const res = await authenticatedFetch('/api/user/acknowledgements', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agreement_type: 'tos', version: '1.0' }),
+    body: JSON.stringify({ acknowledgement_type: 'tos', version: '1.0' }),
   });
-  if (!res.ok) throw new Error(`Failed to sign agreement: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to sign acknowledgement: ${res.status}`);
 }
+
+/**
+ * GET /api/user/acknowledgements — returns true if the user has already seen the upload instructions.
+ */
+export async function checkUploadInstructionsSeen(): Promise<boolean> {
+  const res = await authenticatedFetch('/api/user/acknowledgements');
+  if (!res.ok) throw new Error(`Failed to fetch acknowledgements: ${res.status}`);
+  const data = await res.json();
+  return (data.acknowledgements as { acknowledgement_type: string; version: string }[]).some(
+    (a) => a.acknowledgement_type === 'photoshoot_upload_instructions' && a.version === '1.0',
+  );
+}
+
+/**
+ * POST /api/user/acknowledgements — marks that the user has seen the upload instructions.
+ *
+ *   Body: { "acknowledgement_type": "photoshoot_upload_instructions", "version": "1.0" }
+ *   Response 201/200: idempotent
+ */
+export async function markUploadInstructionsSeen(): Promise<void> {
+  const res = await authenticatedFetch('/api/user/acknowledgements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acknowledgement_type: 'photoshoot_upload_instructions', version: '1.0' }),
+  });
+  if (!res.ok) throw new Error(`Failed to mark upload instructions seen: ${res.status}`);
+}
+
