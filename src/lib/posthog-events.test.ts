@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock posthog-js BEFORE importing posthog-events
 vi.mock('posthog-js', () => ({
-  default: { capture: vi.fn(), setPersonProperties: vi.fn(), __loaded: true },
+  default: { capture: vi.fn(), setPersonProperties: vi.fn(), reset: vi.fn(), identify: vi.fn(), onFeatureFlags: vi.fn(), getFeatureFlag: vi.fn(), __loaded: true },
 }))
 
 import posthog from 'posthog-js'
