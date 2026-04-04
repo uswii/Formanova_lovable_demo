@@ -31,10 +31,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Serve & run Playwright tests
-        run: npx serve -s dist -l 8080 &
-             sleep 2 &&
-             npx playwright test
+      - name: Run Playwright tests
+        run: npx playwright test
 
       - uses: actions/upload-artifact@v4
         if: failure()
