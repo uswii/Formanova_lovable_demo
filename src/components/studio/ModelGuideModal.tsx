@@ -28,7 +28,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden flex flex-col gap-3">
 
           <div className="grid grid-cols-2 gap-3">
             {/* Synthetic */}
