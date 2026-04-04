@@ -107,6 +107,9 @@ export function isModelsApiEnabled(_email: string | undefined | null): boolean {
  * is shown inside UnifiedStudio instead.
  * Gated until ready to roll out to everyone.
  */
-export function isStudioOnboardingEnabled(_email: string | undefined | null): boolean {
-  return true;
+const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];
+
+export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return STUDIO_ONBOARDING_EMAILS.includes(email.toLowerCase());
 }
