@@ -12,7 +12,7 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
-import { isOnboardingComplete, isTosAgreed, markTosAgreed, checkTosAgreement, signTosAgreement, markUploadInstructionsSeen } from '@/lib/onboarding-api';
+import { isOnboardingComplete, isTosAgreed, markTosAgreed, markUploadInstructionsSeen } from '@/lib/onboarding-api';
 import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { PostHogPageView } from '@/components/PostHogPageView';
@@ -163,8 +163,7 @@ const ONBOARDING_SKIP_PATHS = [
   '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
 ];
 
-/** Shows the studio onboarding modal once to every new user who hasn't agreed to ToS.
- *  Runs globally so it appears regardless of which page the user lands on first. */
+/** Shows the upload guide modal once to every new user. */
 function GlobalOnboardingGate() {
   const { user, initializing } = useAuth();
   const location = useLocation();
@@ -174,26 +173,14 @@ function GlobalOnboardingGate() {
   useEffect(() => {
     if (initializing || !user || hasChecked.current) return;
     if (!isStudioOnboardingEnabled(user.email)) return;
-    if (location.pathname !== '/studio') return; // only trigger on the categories page
+    if (location.pathname !== '/studio') return;
 
     hasChecked.current = true;
 
-    // Already agreed in localStorage — skip instantly
     if (isTosAgreed(user.id)) return;
 
-    // Show immediately — don't block on API round-trip
     setOpen(true);
     trackUploadGuideViewed();
-
-    // Background sync: if they agreed on another device, close the modal
-    checkTosAgreement()
-      .then((agreed) => {
-        if (agreed) {
-          markTosAgreed(user.id);
-          setOpen(false);
-        }
-      })
-      .catch(() => {}); // ignore — modal stays open
   }, [initializing, user?.id, location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {
@@ -201,11 +188,43 @@ function GlobalOnboardingGate() {
     if (!user) return;
     markTosAgreed(user.id);
     trackUploadGuideAcknowledged();
-    signTosAgreement().catch(() => {});
     markUploadInstructionsSeen().catch(() => {});
   };
 
   return <UploadGuideModal open={open} onClose={handleClose} />;
+}
+
+/** Dev test panel — always visible to test emails, bottom-left of every page. */
+function TestPanel() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  if (!isOnboardingEnabled(user?.email)) return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-1">
+      <button
+        type="button"
+        onClick={() => {
+          if (user) localStorage.removeItem('formanova_onboarding_' + user.id);
+          navigate('/onboarding');
+        }}
+        className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-primary transition-colors"
+      >
+        ↩ role picker
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (user) localStorage.removeItem('formanova_tos_' + user.id);
+          window.location.href = '/studio';
+        }}
+        className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-primary transition-colors"
+      >
+        ↩ upload guide
+      </button>
+    </div>
+  );
 }
 
 /** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
@@ -239,6 +258,7 @@ const App = () => (
             <OnboardingRedirectHandler />
             <TosRedirectHandler />
             <GlobalOnboardingGate />
+            <TestPanel />
             <VersionBanner />
             
             <DeferredDecorations>
