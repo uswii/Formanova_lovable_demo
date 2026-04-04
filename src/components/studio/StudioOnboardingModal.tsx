@@ -132,12 +132,12 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
         <div className="space-y-1.5">
           <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Output: size looks wrong
+            Output: earrings look too big
           </p>
         </div>
       </div>
       <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The result can look nice but the jewelry ends up the wrong size. It may not work for your use case.
+        The result can look nice but the jewelry ends up the wrong size.
       </p>
     </div>
   );
