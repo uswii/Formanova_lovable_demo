@@ -35,13 +35,13 @@ const TOTAL = STEPS.length;
 // ─── Shared clickable image cell ──────────────────────────────────────────────
 
 function Img({
-  src, alt, h = 'h-48', onZoom,
-}: { src: string; alt: string; h?: string; onZoom: (s: string) => void }) {
+  src, alt, onZoom,
+}: { src: string; alt: string; onZoom: (s: string) => void }) {
   return (
     <button
       type="button"
       onClick={() => onZoom(src)}
-      className={`${h} w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none`}
+      className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10 block focus:outline-none"
     >
       <img src={src} alt={alt} className="w-full h-full object-contain" />
     </button>
@@ -68,7 +68,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
               key={i}
               type="button"
               onClick={() => onZoom(src)}
-              className="h-20 w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
+              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none"
             >
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
@@ -101,7 +101,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
               key={i}
               type="button"
               onClick={() => onZoom(src)}
-              className="h-20 w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
+              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none"
             >
               <img src={src} alt="" className="w-full h-full object-contain" />
             </button>
@@ -255,7 +255,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-        <DialogContent className="max-w-2xl w-full shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
 
           {/* Header */}
           <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
@@ -273,7 +273,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5 h-[360px] overflow-y-auto">
+          <div className="px-6 py-5 h-[50vw] max-h-[360px] min-h-[220px] overflow-y-auto">
             {step === 0 && <Step1 onZoom={setLightbox} />}
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}
