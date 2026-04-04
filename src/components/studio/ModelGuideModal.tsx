@@ -15,20 +15,20 @@ export function ModelGuideModal({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm px-4">
-      <div className="bg-background border border-border/30 shadow-2xl w-[calc(100vw-2rem)] max-w-2xl flex flex-col overflow-hidden">
+      <div className="bg-background border border-border/30 shadow-2xl w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
+        <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
               Model input guide
             </p>
-            <h4 className="font-display text-xl sm:text-2xl tracking-wide">Fake looking models, fake looking results</h4>
+            <h4 className="font-display text-lg sm:text-2xl leading-tight tracking-wide">Fake models give fake results</h4>
           </div>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
 
           <div className="min-h-[2.75rem]">
             <p className="text-sm text-justify text-muted-foreground leading-relaxed">
@@ -90,7 +90,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border flex items-center justify-end shrink-0">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}

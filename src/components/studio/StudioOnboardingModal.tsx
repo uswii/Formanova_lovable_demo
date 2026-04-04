@@ -24,7 +24,7 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
 const STEPS = [
   { title: 'Wear your jewelry. Always.' },
-  { title: 'No body, wrong size' },
+  { title: 'Not worn? Size will be off' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
   { title: 'Fake models give fake results' },
   { title: 'Bad photo in, bad photo out' },
@@ -268,25 +268,25 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) close(); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] shadow-none p-0 flex flex-col overflow-hidden gap-0 [&>button:last-of-type]:hidden" onKeyDown={handleKey}>
 
           {/* Header */}
-          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
+          <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
                 Read this to get started
               </p>
-              <DialogTitle className="font-display text-xl sm:text-2xl tracking-wide [text-shadow:none]">
+              <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                 {STEPS[step].title}
               </DialogTitle>
             </div>
-            <span className="font-mono text-sm text-muted-foreground shrink-0 ml-6 mt-1">
+            <span className="font-mono text-sm text-muted-foreground shrink-0 ml-4 mt-1">
               {step + 1} / {TOTAL}
             </span>
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden">
             {step === 0 && <Step1 onZoom={setLightbox} />}
             {step === 1 && <Step2 onZoom={setLightbox} />}
             {step === 2 && <Step3 onZoom={setLightbox} />}
@@ -295,7 +295,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-between shrink-0">
             <div className="flex items-center">
               {isTest && (
                 <button
