@@ -24,7 +24,7 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
 const STEPS = [
   { title: 'Wear your jewelry. Always.' },
-  { title: 'Without a body, size goes wrong' },
+  { title: 'No body, wrong size' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
   { title: 'Fake models give fake results' },
   { title: 'Bad photo in, bad photo out' },
