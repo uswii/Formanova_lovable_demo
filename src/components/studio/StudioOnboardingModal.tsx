@@ -23,6 +23,7 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
+  { title: 'Turn your jewelry photos into model shots' },
   { title: 'The photo must show jewelry worn on a body' },
   { title: 'Not worn? Size will be off' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
@@ -45,6 +46,25 @@ function Img({
     >
       <img src={src} alt={alt} className="w-full h-full object-contain" />
     </button>
+  );
+}
+
+// ─── Step 0: Intro ────────────────────────────────────────────────────────────
+
+function Step0({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        The better your photo, the better the result.
+      </p>
+      <button
+        type="button"
+        onClick={onNext}
+        className="self-start flex items-center gap-1.5 text-sm font-medium text-primary hover:opacity-70 transition-opacity focus:outline-none"
+      >
+        Show me how →
+      </button>
+    </div>
   );
 }
 
@@ -268,10 +288,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           {/* Header */}
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
             <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
-                {step < TOTAL - 1 ? 'Before you start' : 'All done'}
-              </p>
-              <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
+<DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                 {STEPS[step].title}
               </DialogTitle>
             </div>
@@ -282,15 +299,16 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
 
           {/* Content */}
           <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden">
-            {step === 0 && <Step1 onZoom={setLightbox} />}
-            {step === 1 && <Step2 onZoom={setLightbox} />}
-            {step === 2 && <Step3 onZoom={setLightbox} />}
-            {step === 3 && <Step4 onZoom={setLightbox} />}
-            {step === 4 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} />}
+            {step === 0 && <Step0 onNext={() => setStep(1)} />}
+            {step === 1 && <Step1 onZoom={setLightbox} />}
+            {step === 2 && <Step2 onZoom={setLightbox} />}
+            {step === 3 && <Step3 onZoom={setLightbox} />}
+            {step === 4 && <Step4 onZoom={setLightbox} />}
+            {step === 5 && <Step5 checked={checked} onCheck={() => setChecked(c => !c)} />}
           </div>
 
           {/* Step 4 tip — overlaps footer border */}
-          {step === 3 && (
+          {step === 4 && (
             <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y border-primary/30 bg-primary/5 py-3">
               <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
               <p className="text-xs leading-relaxed text-foreground">
@@ -325,7 +343,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
                 disabled={step === TOTAL - 1 && !checked}
                 onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
               >
-                {step === TOTAL - 1 ? "Let's go" : 'Next'}
+                {step === TOTAL - 1 ? "Let's go" : step === 0 ? 'Show me how' : 'Next'}
               </Button>
             </div>
           </div>
