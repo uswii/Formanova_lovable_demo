@@ -17,7 +17,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
       <div className="bg-background border border-border/30 shadow-2xl max-w-md w-full mx-4 flex flex-col overflow-hidden">
 
-        {/* Header */}
+        {/* Header — identical to upload guide popup */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div>
             <h4 className="font-display text-2xl uppercase tracking-tight">Model Guide</h4>
@@ -33,7 +33,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
           </button>
         </div>
 
-        {/* Content — mirrors UploadGuidePanel structure exactly */}
+        {/* Content — pixel-identical structure to UploadGuidePanel */}
         <div className="px-6 pb-6">
           <div className="border border-border/30 flex flex-col overflow-hidden">
 
@@ -42,26 +42,25 @@ export function ModelGuideModal({ open, onClose }: Props) {
               Fake model (left) vs real photo (right)
             </p>
 
-            {/* Grid — same padding and gap as UploadGuidePanel */}
+            {/* Grid — px-12, grid-cols-2, gap-4, aspect-square, object-cover */}
             <div className="px-12 overflow-hidden">
               <div className="grid grid-cols-2 gap-4">
-                {/* left col = fake, right col = real — arranged row by row */}
-                <div className="relative aspect-square overflow-hidden border border-destructive/20 bg-muted/20">
+                <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
                   <img src={fakeModelInput} alt="" draggable={false} className="w-full h-full object-cover" />
                 </div>
-                <div className="relative aspect-square overflow-hidden border border-formanova-success/20 bg-muted/20">
+                <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
                   <img src={realModelInput} alt="" draggable={false} className="w-full h-full object-cover" />
                 </div>
-                <div className="relative aspect-square overflow-hidden border border-destructive/20 bg-muted/20">
+                <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
                   <img src={fakeModelOutput} alt="" draggable={false} className="w-full h-full object-cover" />
                 </div>
-                <div className="relative aspect-square overflow-hidden border border-formanova-success/20 bg-muted/20">
+                <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
                   <img src={realModelOutput} alt="" draggable={false} className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
 
-            {/* Tip */}
+            {/* Tip — px-12, pt-2, pb-3, same as UploadGuidePanel */}
             <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
               <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground leading-relaxed">
