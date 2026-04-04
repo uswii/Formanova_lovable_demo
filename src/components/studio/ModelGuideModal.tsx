@@ -35,9 +35,9 @@ export function ModelGuideModal({ open, onClose }: Props) {
             <div className="flex flex-col gap-2">
               <div className="min-h-[2.75rem]">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-                  <XCircle className="h-3.5 w-3.5 shrink-0" /> Synthetic model
+                  <XCircle className="h-3.5 w-3.5 shrink-0" /> Fake model
                 </p>
-                <p className="text-sm font-medium text-foreground leading-snug">Looks fake in, looks fake out</p>
+                <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -61,7 +61,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Real photo
                 </p>
-                <p className="text-sm font-medium text-foreground leading-snug">Real photo in, real result out</p>
+                <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
