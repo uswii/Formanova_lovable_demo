@@ -17,8 +17,12 @@ import scaleBefore       from '@/assets/examples/not_worn_scale_before.webp';
 import scaleAfter        from '@/assets/examples/not-wonr-scale-output.webp';
 import fakeModelInput    from '@/assets/examples/fake-model-input.webp';
 import fakeModelOutput   from '@/assets/examples/fake-model-output.webp';
+import syntheticBefore   from '@/assets/examples/synthetic-before.webp';
+import syntheticAfter    from '@/assets/examples/synthetic-after.webp';
 import realModelInput    from '@/assets/examples/real-model-input-2.webp';
 import realModelOutput   from '@/assets/examples/real-model-output-2.webp';
+import realisticBefore   from '@/assets/examples/realistic-model-input.webp';
+import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
@@ -195,8 +199,14 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
           </p>
           <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
         </div>
-        <Img src={fakeModelInput} alt="Fake model input" onZoom={onZoom} />
-        <Img src={fakeModelOutput} alt="Fake model output" onZoom={onZoom} />
+        <div className="grid grid-cols-2 gap-3">
+          {[fakeModelInput, fakeModelOutput, syntheticBefore, syntheticAfter].map((src, i) => (
+            <button key={i} type="button" onClick={() => onZoom(src)}
+              className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10 focus:outline-none">
+              <img src={src} alt="" className="w-full h-full object-contain" />
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Real photo */}
@@ -207,8 +217,14 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
           </p>
           <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
         </div>
-        <Img src={realModelInput} alt="Real model input" onZoom={onZoom} />
-        <Img src={realModelOutput} alt="Real model output" onZoom={onZoom} />
+        <div className="grid grid-cols-2 gap-3">
+          {[realModelInput, realModelOutput, realisticBefore, realisticAfter].map((src, i) => (
+            <button key={i} type="button" onClick={() => onZoom(src)}
+              className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10 focus:outline-none">
+              <img src={src} alt="" className="w-full h-full object-contain" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
