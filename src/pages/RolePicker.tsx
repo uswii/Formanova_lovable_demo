@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -128,8 +128,25 @@ export default function RolePicker() {
   const { user, initializing } = useAuth();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<UserType | null>(null);
+  const [tosChecked, setTosChecked] = useState(false);
+  const [shakeRole, setShakeRole] = useState(false);
+  const [shakeTos, setShakeTos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shakeRoleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shakeTosTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerShake = (type: 'role' | 'tos') => {
+    if (type === 'role') {
+      if (shakeRoleTimer.current) clearTimeout(shakeRoleTimer.current);
+      setShakeRole(true);
+      shakeRoleTimer.current = setTimeout(() => setShakeRole(false), 600);
+    } else {
+      if (shakeTosTimer.current) clearTimeout(shakeTosTimer.current);
+      setShakeTos(true);
+      shakeTosTimer.current = setTimeout(() => setShakeTos(false), 600);
+    }
+  };
 
   useEffect(() => {
     if (initializing) return;
@@ -139,7 +156,9 @@ export default function RolePicker() {
   }, [user, initializing, navigate]);
 
   const handleContinue = async () => {
-    if (!selected || !user || submitting) return;
+    if (!selected) { triggerShake('role'); return; }
+    if (!tosChecked) { triggerShake('tos'); return; }
+    if (!user || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -165,7 +184,10 @@ export default function RolePicker() {
         </p>
       </div>
 
-      <div className="grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-3xl sm:gap-6 lg:max-w-7xl lg:grid-cols-5 lg:gap-8">
+      <div className={cn(
+        'grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-3xl sm:gap-6 lg:max-w-7xl lg:grid-cols-5 lg:gap-8',
+        shakeRole && 'animate-[shake_0.3s_ease-in-out]',
+      )}>
         {ROLE_OPTIONS.map((option) => (
           <RoleCard
             key={option.value}
@@ -176,18 +198,60 @@ export default function RolePicker() {
         ))}
       </div>
 
-      <div className="w-full shrink-0 pt-6 pb-4 flex flex-col items-center sm:pt-8 sm:pb-8">
+      {/* ToS checkbox */}
+      <div className="w-full shrink-0 pt-5 sm:pt-6 flex justify-center">
+        <button
+          type="button"
+          onClick={() => setTosChecked(c => !c)}
+          className={cn(
+            'flex items-start gap-3 focus:outline-none group',
+            shakeTos && 'animate-[shake_0.3s_ease-in-out]',
+          )}
+        >
+          <div className={cn(
+            'mt-0.5 h-4 w-4 shrink-0 border-2 flex items-center justify-center transition-colors',
+            tosChecked
+              ? 'bg-primary border-primary'
+              : shakeTos
+                ? 'border-destructive'
+                : 'border-foreground/50 group-hover:border-primary',
+          )}>
+            {tosChecked && (
+              <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          <span className={cn(
+            'text-sm leading-snug text-left',
+            shakeTos && !tosChecked ? 'text-destructive' : 'text-muted-foreground',
+          )}>
+            I agree to the{' '}
+            <a
+              href="https://formanova.ai/terms/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              Terms of Service
+            </a>
+          </span>
+        </button>
+      </div>
+
+      <div className="w-full shrink-0 pt-4 pb-4 flex flex-col items-center sm:pt-5 sm:pb-8">
         {error && (
           <p className="mb-3 text-center text-sm text-destructive">{error}</p>
         )}
         <Button
           className="min-w-[200px] px-10"
           size="lg"
-          disabled={!selected || submitting}
+          disabled={submitting}
           onClick={handleContinue}
         >
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {submitting ? 'Continuing…' : 'Press to Continue'}
+          {submitting ? 'Continuing…' : 'Continue'}
         </Button>
       </div>
 
