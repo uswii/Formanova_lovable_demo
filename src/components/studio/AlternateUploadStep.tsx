@@ -85,6 +85,7 @@ function UploadGuidePanel({
   categoryType,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
+  canvasH?: number;
   categoryType: string;
 }) {
   const topLabel = categoryType === 'rings'
