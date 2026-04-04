@@ -1,7 +1,11 @@
 import { Lightbulb, CheckCircle2, XCircle } from 'lucide-react';
 
+import fakeModelInput  from '@/assets/examples/fake-model-input.webp';
+import fakeModelOutput from '@/assets/examples/fake-model-output.webp';
 import syntheticBefore from '@/assets/examples/synthetic-before.webp';
 import syntheticAfter  from '@/assets/examples/synthetic-after.webp';
+import realModelInput  from '@/assets/examples/real-model-input-2.webp';
+import realModelOutput from '@/assets/examples/real-model-output-2.webp';
 import realisticBefore from '@/assets/examples/realistic-model-input.webp';
 import realisticAfter  from '@/assets/examples/realistic-output.webp';
 
@@ -17,21 +21,20 @@ export function ModelGuideModal({ open, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm px-4">
       <div className="bg-background border border-border/30 shadow-2xl w-[calc(100vw-2rem)] max-w-2xl max-h-[100dvh] flex flex-col overflow-hidden">
 
-        {/* Header */}
+        {/* Header — fixed height matches StudioOnboardingModal */}
         <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
-              Model input guide
-            </p>
-            <h4 className="font-display text-lg sm:text-2xl leading-tight tracking-wide">Fake models give fake results</h4>
+          <div className="min-w-0 h-[3rem] sm:h-[4rem] overflow-hidden">
+            <h4 className="font-display text-lg sm:text-2xl leading-tight tracking-wide">
+              Fake models give fake results
+            </h4>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden flex flex-col gap-3">
-
+        {/* Content — same height formula as StudioOnboardingModal */}
+        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-hidden">
           <div className="grid grid-cols-2 gap-3">
-            {/* Synthetic */}
+
+            {/* Fake model */}
             <div className="flex flex-col gap-2">
               <div className="min-h-[2.75rem]">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
@@ -40,16 +43,15 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 <p className="text-sm font-medium text-foreground leading-snug">Fake in, fake out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                  <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
-                </div>
-                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                  <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
-                </div>
+                {[fakeModelInput, fakeModelOutput, syntheticBefore, syntheticAfter].map((src, i) => (
+                  <div key={i} className="aspect-square w-full overflow-hidden border border-destructive/20 bg-muted/10">
+                    <img src={src} alt="" draggable={false} className="w-full h-full object-contain" />
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Realistic */}
+            {/* Real photo */}
             <div className="flex flex-col gap-2">
               <div className="min-h-[2.75rem]">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
@@ -58,19 +60,18 @@ export function ModelGuideModal({ open, onClose }: Props) {
                 <p className="text-sm font-medium text-foreground leading-snug">Real in, real out</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                  <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
-                </div>
-                <div className="aspect-[1/2] w-full overflow-hidden border border-border/30 bg-muted/10">
-                  <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
-                </div>
+                {[realModelInput, realModelOutput, realisticBefore, realisticAfter].map((src, i) => (
+                  <div key={i} className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10">
+                    <img src={src} alt="" draggable={false} className="w-full h-full object-contain" />
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
 
-        {/* Tip — overlaps footer border */}
+        {/* Tip — same structure as StudioOnboardingModal */}
         <div className="-mt-px flex items-start gap-3 border-y border-primary/30 bg-primary/5 px-4 sm:px-6 py-3">
           <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
           <p className="text-xs leading-relaxed text-foreground">
@@ -83,7 +84,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-w-[80px]"
+            className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-w-[130px]"
           >
             Got it
           </button>
