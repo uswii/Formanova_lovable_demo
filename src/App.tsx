@@ -115,7 +115,7 @@ const ONBOARDING_PUBLIC_PATHS = [
   '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
 ];
 
-/** Redirects gated users to /onboarding-welcome until they accept the ToS. */
+/** Redirects unsigned users to /studio where the onboarding modal will block them. */
 function TosRedirectHandler() {
   const { user, initializing } = useAuth();
   const navigate = useNavigate();
@@ -124,14 +124,13 @@ function TosRedirectHandler() {
   useEffect(() => {
     if (initializing) return;
     if (!user) return;
-    if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
-    if (!isOnboardingWelcomeEnabled(user.email)) return;
-    if (isStudioOnboardingEnabled(user.email)) return; // handled by in-studio popup
+    if (!isStudioOnboardingEnabled(user.email)) return;
+    if (location.pathname === '/studio') return; // already at the gate
     if (isTosAgreed(user.id)) return;
     const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
       || location.pathname.startsWith('/blog/');
     if (isPublic) return;
-    navigate('/onboarding-welcome', { replace: true });
+    navigate('/studio', { replace: true });
   }, [initializing, user?.id, location.pathname, navigate]);
 
   return null;
@@ -175,8 +174,7 @@ function GlobalOnboardingGate() {
   useEffect(() => {
     if (initializing || !user || hasChecked.current) return;
     if (!isStudioOnboardingEnabled(user.email)) return;
-    const isSkip = ONBOARDING_SKIP_PATHS.includes(location.pathname) || location.pathname.startsWith('/blog/');
-    if (isSkip) return;
+    if (location.pathname !== '/studio') return; // only trigger on the categories page
 
     hasChecked.current = true;
 
