@@ -28,24 +28,30 @@ export function ModelGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden space-y-4">
+        <div className="px-6 py-5 h-[calc((100vw-5rem)/2+120px)] max-h-[440px] min-h-[260px] overflow-hidden flex flex-col gap-3">
+
+          <div className="min-h-[2.75rem]">
+            <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+              The AI copies the style of your photo. Use a real photo, get a real result.
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             {/* Synthetic */}
             <div className="flex flex-col gap-2">
-              <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-destructive">
-                <XCircle className="h-3 w-3 shrink-0" /> Synthetic model
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+                <XCircle className="h-3.5 w-3.5 shrink-0" /> Synthetic model
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
-                    <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-cover" />
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
+                    <img src={syntheticBefore} alt="Synthetic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
-                    <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-cover" />
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
+                    <img src={syntheticAfter} alt="Synthetic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
                 </div>
@@ -54,19 +60,19 @@ export function ModelGuideModal({ open, onClose }: Props) {
 
             {/* Realistic */}
             <div className="flex flex-col gap-2">
-              <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-formanova-success">
-                <CheckCircle2 className="h-3 w-3 shrink-0" /> Realistic model
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Realistic model
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
-                    <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-cover" />
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
+                    <img src={realisticBefore} alt="Realistic input" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Input</p>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="aspect-square overflow-hidden border border-border/20 bg-muted/10">
-                    <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-cover" />
+                  <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
+                    <img src={realisticAfter} alt="Realistic output" draggable={false} className="w-full h-full object-contain" />
                   </div>
                   <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground text-center">Output</p>
                 </div>
@@ -77,7 +83,7 @@ export function ModelGuideModal({ open, onClose }: Props) {
           <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
             <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
             <p className="text-xs leading-relaxed text-foreground">
-              Make sure your model is not already wearing the jewelry type you are shooting for.
+              Make sure your model is not already wearing the same type of jewelry you want to add.
             </p>
           </div>
 

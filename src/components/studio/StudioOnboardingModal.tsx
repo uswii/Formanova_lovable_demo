@@ -24,10 +24,10 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
 const STEPS = [
   { title: 'Wear your jewelry. Always.' },
-  { title: 'Without a body, scale breaks' },
-  { title: 'Screenshots and packed shots fail too' },
-  { title: 'Fake looking models, fake looking results' },
-  { title: 'Low quality input, low quality result' },
+  { title: 'Without a body, size goes wrong' },
+  { title: 'Screenshots and packaged jewelry don\'t work' },
+  { title: 'Fake models give fake results' },
+  { title: 'Bad photo in, bad photo out' },
 ] as const;
 
 const TOTAL = STEPS.length;
@@ -72,11 +72,11 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
         <ul className="space-y-1.5">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Clear, even or diffuse light</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Clear, even light</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">HD resolution, sharp focus</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Sharp, HD photo</span>
           </li>
         </ul>
       </div>
@@ -87,7 +87,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
             <XCircle className="h-3.5 w-3.5 shrink-0" /> Avoid this
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">Product shots on surfaces or trays</p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry lying on a surface</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
@@ -97,9 +97,16 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
             </button>
           ))}
         </div>
-        <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-          Without a body reference, AI guesses scale. Proportions become unreliable.
-        </p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2">
+            <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground leading-relaxed">No body = AI can't tell how big the jewelry is</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground leading-relaxed">The size will look wrong in the result</span>
+          </li>
+        </ul>
       </div>
     </div>
   );
@@ -112,8 +119,7 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
         <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-          Worn jewelry is how the AI understands real-world scale, fit, and proportions.
-          Here is what happens when it cannot.
+          The AI needs to see the jewelry on a body to know how big it is. Here is what happens when it can't.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -126,12 +132,12 @@ function Step2({ onZoom }: { onZoom: (s: string) => void }) {
         <div className="space-y-1.5">
           <Img src={scaleAfter} alt="Output: proportions are off" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Output: proportions are off
+            Output: size looks wrong
           </p>
         </div>
       </div>
       <p className="text-xs text-justify text-muted-foreground leading-relaxed">
-        The output looks visually pretty but the proportions are wrong. This may or may not work for you.
+        The result can look nice but the jewelry ends up the wrong size. It may not work for your use case.
       </p>
     </div>
   );
@@ -144,7 +150,7 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
         <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-          Input similar to these may change your design in unpredictable ways.
+          These inputs confuse the AI and can change your jewelry design in weird ways.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -157,7 +163,7 @@ function Step3({ onZoom }: { onZoom: (s: string) => void }) {
         <div className="space-y-1.5">
           <Img src={multipleAndPacked} alt="Multiple and packed jewelry" onZoom={onZoom} />
           <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Multiple or packed jewelry
+            Jewelry in packaging or bundles
           </p>
         </div>
       </div>
@@ -172,8 +178,7 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
         <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-          Submit a synthetic or illustrated model and the output will match that style. Submit a
-          real photo and the output will be photorealistic. Upload with intention.
+          The AI copies the style of your photo. Use a real photo, get a real result.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -214,7 +219,7 @@ function Step4({ onZoom }: { onZoom: (s: string) => void }) {
       <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3.5">
         <Lightbulb className="h-4 w-4 shrink-0 text-primary mt-0.5" />
         <p className="text-xs leading-relaxed text-foreground">
-          Make sure your model is not already wearing the jewelry type you are shooting for.
+          Make sure your model is not already wearing the same type of jewelry you want to add.
         </p>
       </div>
     </div>
@@ -227,13 +232,10 @@ function Step5() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-justify text-foreground leading-relaxed">
-        We cannot guarantee quality output for inputs that do not follow these guidelines.
-        Low-quality inputs produce low-quality results, and inputs we do not recommend may
-        produce unpredictable results.
+        A blurry, dark, or low-res photo will give you a blurry, bad result. We can't fix a bad input.
       </p>
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        AI can make mistakes. We are constantly working to make Formanova better for you
-        and we take every case of incorrect output seriously.
+        AI is not perfect. We are always working to make Formanova better and we take every bad result seriously.
       </p>
     </div>
   );
