@@ -15,11 +15,11 @@ jobs:
       VITE_PIPELINE_ADMIN_SECRET: ${{ secrets.VITE_PIPELINE_ADMIN_SECRET }}
       VITE_ADMIN_EMAILS: ${{ secrets.VITE_ADMIN_EMAILS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -34,7 +34,7 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4.6.2
         if: failure()
         with:
           name: playwright-report
