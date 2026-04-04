@@ -74,7 +74,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
     <div className="grid grid-cols-2 gap-3">
       {/* DO */}
       <div className="flex flex-col gap-2">
-        <div className="min-h-[2.75rem]">
+        <div className="min-h-[3.5rem]">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Do this
           </p>
@@ -102,7 +102,7 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
 
       {/* DON'T */}
       <div className="flex flex-col gap-2">
-        <div className="min-h-[2.75rem]">
+        <div className="min-h-[3.5rem]">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
             <XCircle className="h-3.5 w-3.5 shrink-0" /> Avoid this
           </p>
@@ -244,7 +244,7 @@ function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => v
         <button
           type="button"
           onClick={onCheck}
-          className={`flex items-center gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
+          className={`flex items-start gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
         >
           <div className={`h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-border group-hover:border-primary/60'}`}>
             {checked && (
