@@ -1,4 +1,4 @@
-import { Lightbulb, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Lightbulb, X } from 'lucide-react';
 
 import fakeModelInput  from '@/assets/examples/fake-model-input.webp';
 import fakeModelOutput from '@/assets/examples/fake-model-output.webp';
@@ -37,15 +37,10 @@ export function ModelGuideModal({ open, onClose }: Props) {
         <div className="px-6 pb-6">
           <div className="border border-border/30 flex flex-col overflow-hidden">
 
-            {/* Column labels */}
-            <div className="px-12 pt-3 pb-2 grid grid-cols-2 gap-4 flex-shrink-0">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-                <XCircle className="h-3 w-3 shrink-0" /> Fake model
-              </p>
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-                <CheckCircle2 className="h-3 w-3 shrink-0" /> Real photo
-              </p>
-            </div>
+            {/* Top label — same class as UploadGuidePanel */}
+            <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
+              Fake model (left) vs real photo (right)
+            </p>
 
             {/* Grid — same padding and gap as UploadGuidePanel */}
             <div className="px-12 overflow-hidden">
