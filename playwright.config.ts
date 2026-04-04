@@ -11,7 +11,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npx serve -s dist -l 8080 --no-request-logging',
+    command: 'npx serve -s dist -l 8080',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
   },
