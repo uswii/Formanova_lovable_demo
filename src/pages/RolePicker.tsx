@@ -205,45 +205,52 @@ export default function RolePicker() {
 
       {/* ToS checkbox */}
       <div className="w-full shrink-0 pt-5 sm:pt-6 flex flex-col items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => { setTosChecked(c => !c); setTosError(null); }}
-          className={cn(
-            'inline-flex items-start gap-3 focus:outline-none group',
-            shakeTos && 'animate-[shake_0.3s_ease-in-out]',
-          )}
-        >
-          <div className={cn(
-            'mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors',
-            tosChecked
-              ? 'bg-primary border-primary'
-              : shakeTos
-                ? 'bg-background border-destructive'
-                : 'bg-background border-foreground group-hover:border-primary',
-          )}>
-            {tosChecked && (
-              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">
-                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </div>
-          <span className={cn(
-            'text-base leading-snug text-left font-medium',
-            shakeTos && !tosChecked ? 'text-destructive' : 'text-foreground',
-          )}>
-            I agree to the{' '}
-            <a
-              href="https://formanova.ai/terms/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="inline-flex items-center gap-1 underline underline-offset-2 hover:opacity-70 transition-opacity"
-            >
-              Terms of Service
-              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-            </a>
-          </span>
-        </button>
+        <div className={cn(
+          'border px-5 py-3 transition-colors',
+          shakeTos && 'animate-[shake_0.3s_ease-in-out]',
+          tosChecked
+            ? 'border-primary/40 bg-primary/5'
+            : shakeTos
+              ? 'border-destructive/60 bg-destructive/5'
+              : 'border-border bg-muted/40',
+        )}>
+          <button
+            type="button"
+            onClick={() => { setTosChecked(c => !c); setTosError(null); }}
+            className="inline-flex items-start gap-3 focus:outline-none group"
+          >
+            <div className={cn(
+              'mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors',
+              tosChecked
+                ? 'bg-primary border-primary'
+                : shakeTos
+                  ? 'bg-background border-destructive'
+                  : 'bg-background border-foreground group-hover:border-primary',
+            )}>
+              {tosChecked && (
+                <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span className={cn(
+              'text-base leading-snug text-left font-semibold',
+              shakeTos && !tosChecked ? 'text-destructive' : 'text-foreground',
+            )}>
+              I agree to the{' '}
+              <a
+                href="https://formanova.ai/terms/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 underline underline-offset-2 hover:opacity-70 transition-opacity"
+              >
+                Terms of Service
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+            </span>
+          </button>
+        </div>
         {tosError && (
           <p className="text-sm text-destructive">{tosError}</p>
         )}
