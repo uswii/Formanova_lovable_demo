@@ -133,6 +133,8 @@ export default function RolePicker() {
   const [shakeTos, setShakeTos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [tosError, setTosError] = useState<string | null>(null);
   const shakeRoleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shakeTosTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -156,8 +158,8 @@ export default function RolePicker() {
   }, [user, initializing, navigate]);
 
   const handleContinue = async () => {
-    if (!selected) { triggerShake('role'); return; }
-    if (!tosChecked) { triggerShake('tos'); return; }
+    if (!selected) { triggerShake('role'); setRoleError('Please select one to continue.'); return; }
+    if (!tosChecked) { triggerShake('tos'); setTosError('Please agree to the Terms of Service.'); return; }
     if (!user || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -193,38 +195,41 @@ export default function RolePicker() {
             key={option.value}
             {...option}
             selected={selected === option.value}
-            onSelect={() => setSelected(option.value)}
+            onSelect={() => { setSelected(option.value); setRoleError(null); }}
           />
         ))}
       </div>
+      {roleError && (
+        <p className="mt-2 text-sm text-destructive text-center">{roleError}</p>
+      )}
 
       {/* ToS checkbox */}
-      <div className="w-full shrink-0 pt-5 sm:pt-6 flex justify-center">
+      <div className="w-full shrink-0 pt-5 sm:pt-6 flex flex-col items-center gap-1.5">
         <button
           type="button"
-          onClick={() => setTosChecked(c => !c)}
+          onClick={() => { setTosChecked(c => !c); setTosError(null); }}
           className={cn(
-            'flex items-start gap-3 focus:outline-none group',
+            'inline-flex items-start gap-3 focus:outline-none group',
             shakeTos && 'animate-[shake_0.3s_ease-in-out]',
           )}
         >
           <div className={cn(
-            'mt-0.5 h-4 w-4 shrink-0 border-2 flex items-center justify-center transition-colors',
+            'mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors',
             tosChecked
               ? 'bg-primary border-primary'
               : shakeTos
                 ? 'border-destructive'
-                : 'border-foreground/50 group-hover:border-primary',
+                : 'border-foreground group-hover:border-primary',
           )}>
             {tosChecked && (
-              <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 10 8" fill="none">
                 <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </div>
           <span className={cn(
-            'text-sm leading-snug text-left',
-            shakeTos && !tosChecked ? 'text-destructive' : 'text-muted-foreground',
+            'text-base leading-snug text-left font-medium',
+            shakeTos && !tosChecked ? 'text-destructive' : 'text-foreground',
           )}>
             I agree to the{' '}
             <a
@@ -232,13 +237,16 @@ export default function RolePicker() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 underline underline-offset-2 hover:opacity-70 transition-opacity"
             >
               Terms of Service
-              <ExternalLink className="h-3 w-3 shrink-0" />
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             </a>
           </span>
         </button>
+        {tosError && (
+          <p className="text-sm text-destructive">{tosError}</p>
+        )}
       </div>
 
       <div className="w-full shrink-0 pt-4 pb-4 flex flex-col items-center sm:pt-5 sm:pb-8">
