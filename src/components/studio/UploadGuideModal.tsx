@@ -240,11 +240,11 @@ function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => v
       <p className="text-sm text-muted-foreground leading-relaxed">
         Thanks for reading. Now go get some great shots.
       </p>
-      <div className="flex flex-col items-center gap-2 w-full max-w-xs sm:max-w-sm">
+      <div className="flex flex-col items-center gap-2">
         <button
           type="button"
           onClick={onCheck}
-          className={`flex items-start gap-3 w-full focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
+          className={`inline-flex items-start gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
         >
           <div className={`mt-0.5 h-5 w-5 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-foreground group-hover:border-primary'}`}>
             {checked && (
@@ -253,7 +253,7 @@ function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => v
               </svg>
             )}
           </div>
-          <span className={`text-sm leading-snug text-left ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
+          <span className={`text-sm leading-snug ${shake && !checked ? 'text-destructive' : 'text-foreground'}`}>
             I understand bad photos give bad results.
           </span>
         </button>
