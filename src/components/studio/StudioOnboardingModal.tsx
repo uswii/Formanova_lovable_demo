@@ -27,7 +27,7 @@ const STEPS = [
   { title: 'Not worn? Size will be off' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
   { title: 'Fake models give fake results' },
-  { title: 'Bad photo in, bad photo out' },
+  { title: 'You are ready' },
 ] as const;
 
 const TOTAL = STEPS.length;
@@ -212,7 +212,7 @@ function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) 
   return (
     <div className="flex flex-col gap-5">
       <p className="text-sm text-justify text-muted-foreground leading-relaxed">
-        That's it. Follow these tips and you will get good results. Skip them and the output may look wrong.
+        Thanks for reading. Now go get some great shots.
       </p>
       <button
         type="button"
@@ -227,7 +227,7 @@ function Step5({ checked, onCheck }: { checked: boolean; onCheck: () => void }) 
           )}
         </div>
         <span className="text-sm text-foreground leading-snug">
-          Got it — a bad photo gives a bad result.
+          I understand bad photos give bad results.
         </span>
       </button>
     </div>
@@ -269,7 +269,7 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
           <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">
-                Tips for your jewelry photos
+                {step < TOTAL - 1 ? 'Before you start' : 'All done'}
               </p>
               <DialogTitle className="font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none]">
                 {STEPS[step].title}
@@ -322,9 +322,10 @@ export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
               <Button
                 size="default"
                 className="min-w-[80px]"
+                disabled={step === TOTAL - 1 && !checked}
                 onClick={() => { if (step < TOTAL - 1) setStep(s => s + 1); else close(); }}
               >
-                {step === TOTAL - 1 ? 'Got it' : 'Next'}
+                {step === TOTAL - 1 ? "Let's go" : 'Next'}
               </Button>
             </div>
           </div>
