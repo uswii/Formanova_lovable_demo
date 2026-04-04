@@ -39,24 +39,25 @@ export function ModelGuideModal({ open, onClose }: Props) {
 
             {/* Top label — same class as UploadGuidePanel */}
             <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
-              Fake model (left) vs real photo (right)
+              Fake model vs real photo
             </p>
 
             {/* Grid — px-12, grid-cols-2, gap-4, aspect-square, object-cover */}
             <div className="px-12 overflow-hidden">
               <div className="grid grid-cols-2 gap-4">
-                <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                  <img src={fakeModelInput} alt="" draggable={false} className="w-full h-full object-cover" />
-                </div>
-                <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
-                  <img src={realModelInput} alt="" draggable={false} className="w-full h-full object-cover" />
-                </div>
-                <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                  <img src={fakeModelOutput} alt="" draggable={false} className="w-full h-full object-cover" />
-                </div>
-                <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
-                  <img src={realModelOutput} alt="" draggable={false} className="w-full h-full object-cover" />
-                </div>
+                {[
+                  { src: fakeModelInput,  label: 'Fake model input',  border: 'border-destructive/30' },
+                  { src: fakeModelOutput, label: 'Fake model output', border: 'border-destructive/30' },
+                  { src: realModelInput,  label: 'Real model input',  border: 'border-green-500/30' },
+                  { src: realModelOutput, label: 'Real model output', border: 'border-green-500/30' },
+                ].map(({ src, label, border }) => (
+                  <div key={label} className={`relative aspect-square overflow-hidden border ${border} bg-muted/20`}>
+                    <img src={src} alt={label} draggable={false} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-1 left-1 right-1 text-[8px] font-mono uppercase tracking-widest bg-background/75 px-1 py-px truncate">
+                      {label}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
