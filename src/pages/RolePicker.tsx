@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -232,9 +232,10 @@ export default function RolePicker() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              className="underline underline-offset-2 hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-foreground transition-colors"
             >
               Terms of Service
+              <ExternalLink className="h-3 w-3 shrink-0" />
             </a>
           </span>
         </button>
