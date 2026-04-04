@@ -89,11 +89,11 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           ))}
         </div>
         <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-2 min-h-[2rem]">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Clear, diffuse light</span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-2 min-h-[2rem]">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
             <span className="text-xs text-muted-foreground leading-relaxed">Sharp, HD photo</span>
           </li>
@@ -117,13 +117,13 @@ function Step1({ onZoom }: { onZoom: (s: string) => void }) {
           ))}
         </div>
         <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-2 min-h-[2rem]">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Harsh or uneven light</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Harsh, uneven light</span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-2 min-h-[2rem]">
             <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Blurry or low res</span>
+            <span className="text-xs text-muted-foreground leading-relaxed">Blurry, low res</span>
           </li>
         </ul>
       </div>
