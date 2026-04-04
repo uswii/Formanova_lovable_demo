@@ -246,7 +246,7 @@ function Step5({ checked, onCheck, shake }: { checked: boolean; onCheck: () => v
           onClick={onCheck}
           className={`flex items-start gap-3 focus:outline-none group ${shake ? 'animate-[shake_0.3s_ease-in-out]' : ''}`}
         >
-          <div className={`h-4 w-4 shrink-0 border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-border group-hover:border-primary/60'}`}>
+          <div className={`h-4 w-4 shrink-0 border-2 flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : shake ? 'border-destructive' : 'border-foreground/50 group-hover:border-primary'}`}>
             {checked && (
               <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
                 <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -273,7 +273,7 @@ interface Props {
   isTest?: boolean;
 }
 
-export function StudioOnboardingModal({ open, onClose, isTest }: Props) {
+export function UploadGuideModal({ open, onClose, isTest }: Props) {
   const [step, setStep] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);

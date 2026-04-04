@@ -90,14 +90,14 @@ export function trackFeedbackSubmitted(props: FeedbackSubmittedProps) {
   capture('feedback_submitted', { ...props });
 }
 
-// ═══════ Onboarding / ToS ═══════════════════════════════════════════
+// ═══════ Onboarding / Upload Guide ══════════════════════════════════
 
-export function trackTosViewed() {
-  capture('tos_viewed');
+export function trackUploadGuideViewed() {
+  capture('upload_guide_viewed');
 }
 
-export function trackTosSigned() {
-  capture('tos_signed');
+export function trackUploadGuideAcknowledged() {
+  capture('upload_guide_acknowledged');
 }
 
 export function trackUserTypeSelected(props: UserTypeSelectedProps) {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
-import { useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -54,7 +54,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { type FeedbackCategory } from '@/lib/feedback-api';
@@ -414,6 +414,7 @@ export default function UnifiedStudio() {
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
   const { user, initializing } = useAuth();
+  const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
@@ -1899,6 +1900,19 @@ export default function UnifiedStudio() {
         open={modelGuideOpen}
         onClose={() => setModelGuideOpen(false)}
       />
+
+      {isOnboardingEnabled(user?.email) && (
+        <button
+          type="button"
+          onClick={() => {
+            if (user) localStorage.removeItem('formanova_onboarding_' + user.id);
+            navigate('/onboarding');
+          }}
+          className="fixed bottom-4 left-4 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+        >
+          ↩ test role picker
+        </button>
+      )}
     </div>
   );
 }

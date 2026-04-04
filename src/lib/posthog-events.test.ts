@@ -18,8 +18,8 @@ import {
   trackDownloadClicked,
   trackRegenerateClicked,
   trackPaymentSuccess,
-  trackTosViewed,
-  trackTosSigned,
+  trackUploadGuideViewed,
+  trackUploadGuideAcknowledged,
   trackUserTypeSelected,
   trackFeedbackSubmitted,
   setUserProfession,
@@ -230,19 +230,19 @@ describe('trackPaymentSuccess', () => {
   })
 })
 
-// ── Onboarding / ToS ───────────────────────────────────────────────
+// ── Onboarding / Upload Guide ──────────────────────────────────────
 
-describe('trackTosViewed', () => {
-  it('captures tos_viewed', () => {
-    trackTosViewed()
-    expect(posthog.capture).toHaveBeenCalledWith('tos_viewed', undefined)
+describe('trackUploadGuideViewed', () => {
+  it('captures upload_guide_viewed', () => {
+    trackUploadGuideViewed()
+    expect(posthog.capture).toHaveBeenCalledWith('upload_guide_viewed', undefined)
   })
 })
 
-describe('trackTosSigned', () => {
-  it('captures tos_signed', () => {
-    trackTosSigned()
-    expect(posthog.capture).toHaveBeenCalledWith('tos_signed', undefined)
+describe('trackUploadGuideAcknowledged', () => {
+  it('captures upload_guide_acknowledged', () => {
+    trackUploadGuideAcknowledged()
+    expect(posthog.capture).toHaveBeenCalledWith('upload_guide_acknowledged', undefined)
   })
 })
 

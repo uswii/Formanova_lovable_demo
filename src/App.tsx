@@ -13,8 +13,8 @@ import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { isOnboardingComplete, isTosAgreed, markTosAgreed, checkTosAgreement, signTosAgreement, markUploadInstructionsSeen } from '@/lib/onboarding-api';
-import { trackTosViewed, trackTosSigned } from '@/lib/posthog-events';
-import { StudioOnboardingModal } from '@/components/studio/StudioOnboardingModal';
+import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
+import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
@@ -75,7 +75,7 @@ const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
 const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
-const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const RolePicker = lazyWithRetry(() => import("./pages/RolePicker"));
 const OnboardingWelcome = lazyWithRetry(() => import("./pages/OnboardingWelcome"));
 
 const PageLoader = () => (
@@ -183,7 +183,7 @@ function GlobalOnboardingGate() {
 
     // Show immediately — don't block on API round-trip
     setOpen(true);
-    trackTosViewed();
+    trackUploadGuideViewed();
 
     // Background sync: if they agreed on another device, close the modal
     checkTosAgreement()
@@ -200,12 +200,12 @@ function GlobalOnboardingGate() {
     setOpen(false);
     if (!user) return;
     markTosAgreed(user.id);
-    trackTosSigned();
+    trackUploadGuideAcknowledged();
     signTosAgreement().catch(() => {});
     markUploadInstructionsSeen().catch(() => {});
   };
 
-  return <StudioOnboardingModal open={open} onClose={handleClose} />;
+  return <UploadGuideModal open={open} onClose={handleClose} />;
 }
 
 /** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
@@ -266,8 +266,8 @@ const App = () => (
                   <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   
-                  {/* Onboarding — one-time role picker, gated by feature flag */}
-                  <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                  {/* Role picker — one-time "what best describes you?" screen, gated by feature flag */}
+                  <Route path="/onboarding" element={<ProtectedRoute><RolePicker /></ProtectedRoute>} />
                   {/* Onboarding welcome — shown once after role selection; contains ToS gate */}
                   <Route path="/onboarding-welcome" element={<ProtectedRoute><OnboardingWelcome /></ProtectedRoute>} />
 
