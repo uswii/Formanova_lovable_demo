@@ -1647,8 +1647,8 @@ export default function UnifiedStudio() {
                   </TabsContent>
 
                   {/* ── FORMANOVA MODELS TAB ── */}
-                  <TabsContent value="formanova" className="flex-1 flex flex-col min-h-0 mt-0">
-                    <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                  <TabsContent value="formanova">
+                    <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
                       {/*
                         CSS columns layout: content flows top-to-bottom in each column before
                         moving to the next. Category buttons anchor to the top of column 1,
