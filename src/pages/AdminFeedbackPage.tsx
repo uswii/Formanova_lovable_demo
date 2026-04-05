@@ -114,7 +114,7 @@ function ImageThumbnail({ url, label }: { url: string | null; label: string }) {
                 ? <img src={resolved} alt={label} className="w-full max-h-[82vh] object-contain" />
                 : <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
               }
-              <div className="absolute top-3 right-3 flex gap-2">
+              <div className="absolute top-3 left-3">
                 <Button
                   size="sm"
                   variant="secondary"
@@ -123,9 +123,6 @@ function ImageThumbnail({ url, label }: { url: string | null; label: string }) {
                 >
                   <Download className="h-3.5 w-3.5" />
                   Download
-                </Button>
-                <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => setOpen(false)}>
-                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
