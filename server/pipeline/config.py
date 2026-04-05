@@ -60,7 +60,6 @@ If input has earrings, output must have same earrings.
 You may change pose subtly to showcase necklace.
 Do NOT overscale necklace. Keep real-world proportions.
 No text overlays. Take care of scale carefully.
-Preserve each detail of jewelry and make the other model wear exact same selected jewelry, do not change selected jewelry at all exact same colors and shine.
 """,
 
     "earring": """
@@ -77,7 +76,6 @@ Generate professional high definition images, 8k, ultra real.
 No blurry jewelry. High realism.
 Remove any extra jewelry not in input image.
 Keep real-world proportions. No text overlays.
-Preserve each detail of jewelry and make the other model wear exact same selected jewelry, do not change selected jewelry at all exact same colors and shine.
 """,
 
     "bracelet": """
@@ -94,7 +92,6 @@ Generate professional high definition images, 8k, ultra real.
 No blurry jewelry. High realism.
 Remove any extra jewelry not in input image.
 Keep real-world proportions. No text overlays.
-Preserve each detail of jewelry and make the other model wear exact same selected jewelry, do not change selected jewelry at all exact same colors and shine.
 """,
 
     "ring": """
@@ -111,7 +108,6 @@ Generate professional high definition images, 8k, ultra real.
 No blurry jewelry. High realism.
 Remove any extra jewelry not in input image.
 Keep real-world proportions. No text overlays.
-Preserve each detail of jewelry and make the other model wear exact same selected jewelry, do not change selected jewelry at all exact same colors and shine.
 """,
 
     "watch": """
@@ -127,6 +123,5 @@ Preserve exact watch geometry. Do not redesign.
 Generate professional high definition images, 8k, ultra real.
 No blurry details. High realism.
 Keep real-world proportions. No text overlays.
-Preserve each detail of jewelry and make the other model wear exact same selected jewelry, do not change selected jewelry at all exact same colors and shine.
 """,
 }
