@@ -309,7 +309,7 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
           </div>
 
           {/* Content */}
-          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[calc((100vw-5rem)/2+165px)] max-h-[440px] min-h-[280px] overflow-y-auto">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 h-[480px] max-h-[calc(100dvh-14rem)] min-h-[280px] overflow-hidden">
             {step === 0 && <Step0 />}
             {step === 1 && <Step1 />}
             {step === 2 && <Step2 />}
