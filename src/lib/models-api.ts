@@ -1,5 +1,7 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
+const ADMIN_SECRET = import.meta.env.VITE_PIPELINE_ADMIN_SECRET ?? '';
+
 export interface PresetModel {
   id: string;
   label: string;
@@ -29,5 +31,63 @@ export interface PresetModelsResponse {
 export async function fetchPresetModels(): Promise<PresetModelsResponse> {
   const res = await authenticatedFetch('/api/models');
   if (!res.ok) throw new Error(`Failed to fetch preset models: ${res.status}`);
+  return res.json();
+}
+
+// ─── Admin API (X-Admin-Secret) ───────────────────────────────────────────────
+
+export interface UploadModelPayload {
+  base64: string;
+  content_type: string;
+  category: string;
+  filename: string;
+  label?: string;
+}
+
+export interface UpdateModelPayload {
+  label?: string;
+  metadata?: Record<string, string | null>;
+}
+
+function adminHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    'X-Admin-Secret': ADMIN_SECRET,
+  };
+}
+
+/**
+ * POST /api/models — upload a new preset model image.
+ * Returns 201 with the created PresetModel.
+ */
+export async function uploadModel(payload: UploadModelPayload): Promise<PresetModel> {
+  const res = await authenticatedFetch('/api/models', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail ?? body?.message ?? `HTTP ${res.status}`;
+    throw Object.assign(new Error(detail), { status: res.status });
+  }
+  return res.json();
+}
+
+/**
+ * PATCH /api/models/{id} — rename label or update metadata.
+ * Returns the updated PresetModel.
+ */
+export async function updateModel(id: string, payload: UpdateModelPayload): Promise<PresetModel> {
+  const res = await authenticatedFetch(`/api/models/${id}`, {
+    method: 'PATCH',
+    headers: adminHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail ?? body?.message ?? `HTTP ${res.status}`;
+    throw Object.assign(new Error(detail), { status: res.status });
+  }
   return res.json();
 }
