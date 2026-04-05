@@ -111,7 +111,7 @@ function RoleCard({ label, Icon, selected, onSelect }: RoleCardProps) {
       )}
       <Icon className="h-20 w-20 text-primary sm:h-32 sm:w-32 lg:h-40 lg:w-40" />
       <span className={cn(
-        'line-clamp-2 w-full text-center text-xs font-medium leading-tight sm:text-sm',
+        'line-clamp-2 w-full text-center text-[10px] font-medium leading-tight sm:text-xs',
         selected ? 'text-foreground' : 'text-muted-foreground',
       )}>
         {label}
