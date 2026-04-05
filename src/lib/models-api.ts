@@ -1,6 +1,6 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
-const ADMIN_SECRET = import.meta.env.VITE_PIPELINE_ADMIN_SECRET ?? '';
+const ADMIN_SECRET = import.meta.env.VITE_API_ADMIN_SECRET ?? '';
 
 export interface PresetModel {
   id: string;
