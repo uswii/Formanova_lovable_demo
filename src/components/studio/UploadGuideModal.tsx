@@ -54,7 +54,7 @@ function Step0() {
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">YOUR PHOTO IN. MODEL SHOT OUT.</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Here's what we need from you
+        Here's how to get best results from FormaNova
       </p>
     </div>
   );
@@ -71,7 +71,7 @@ function Step1() {
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Do this
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">Jewelry worn on body. Clear, bright light.</p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry worn on body.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
@@ -88,7 +88,7 @@ function Step1() {
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
             <XCircle className="h-3.5 w-3.5 shrink-0" /> Avoid this
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">Jewelry on a surface. Low light.</p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry on a surface.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (

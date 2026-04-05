@@ -174,7 +174,7 @@ function GlobalOnboardingGate() {
   useEffect(() => {
     if (initializing || !user || hasChecked.current) return;
     if (!isStudioOnboardingEnabled(user.email)) return;
-    if (location.pathname !== '/studio') return;
+    if (!location.pathname.startsWith('/studio/')) return;
 
     hasChecked.current = true;
 
