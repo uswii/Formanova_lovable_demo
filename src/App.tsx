@@ -195,12 +195,14 @@ function GlobalOnboardingGate() {
   return <UploadGuideModal open={open} onClose={handleClose} />;
 }
 
-/** Dev test panel — always visible to test emails, bottom-left of every page. */
+const DEV_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
+
+/** Dev test panel — always visible to dev emails, bottom-left of every page. */
 function TestPanel() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (!isOnboardingEnabled(user?.email)) return null;
+  if (!user?.email || !DEV_EMAILS.includes(user.email.toLowerCase())) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-1">
