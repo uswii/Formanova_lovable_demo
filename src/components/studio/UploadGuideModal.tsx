@@ -28,7 +28,7 @@ import realisticAfter    from '@/assets/examples/realistic-output.webp';
 
 const STEPS = [
   { title: 'Turn your jewelry photos into model shots' },
-  { title: 'The photo must show jewelry worn on a body' },
+  { title: 'YOUR PHOTO SHOULD SHOW JEWELRY WORN ON A BODY' },
   { title: 'Not worn? Size will be off' },
   { title: 'Screenshots and packaged jewelry don\'t work' },
   { title: 'Fake models give fake results' },
@@ -52,9 +52,9 @@ function Img({ src, alt, hClass = 'aspect-square' }: { src: string; alt: string;
 function Step0() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">Turn your jewelry photos into model shots</p>
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">YOUR PHOTO IN. MODEL SHOT OUT.</p>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        The better your photo, the better the result.
+        Here's what we need from you
       </p>
     </div>
   );
@@ -71,7 +71,7 @@ function Step1() {
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Do this
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">Jewelry worn on the body</p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry worn on body. Clear, bright light.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringA1, earringA1, watchA1, braceletA1].map((src, i) => (
@@ -80,16 +80,6 @@ function Step1() {
             </div>
           ))}
         </div>
-        <ul className="space-y-1.5 mt-1">
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Clear, diffuse light</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Sharp, HD photo</span>
-          </li>
-        </ul>
       </div>
 
       {/* DON'T */}
@@ -98,7 +88,7 @@ function Step1() {
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
             <XCircle className="h-3.5 w-3.5 shrink-0" /> Avoid this
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">Jewelry lying on a surface</p>
+          <p className="text-sm font-medium text-foreground leading-snug">Jewelry on a surface. Low light.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[ringN1, earringN1, watchN1, braceletN1].map((src, i) => (
@@ -107,16 +97,6 @@ function Step1() {
             </div>
           ))}
         </div>
-        <ul className="space-y-1.5 mt-1">
-          <li className="flex items-start gap-2">
-            <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Harsh, uneven light</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground leading-relaxed">Blurry, low res</span>
-          </li>
-        </ul>
       </div>
     </div>
   );
@@ -128,7 +108,7 @@ function Step2() {
   return (
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
-        <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        <p className="text-sm text-justify text-foreground leading-relaxed">
           The AI needs to see the jewelry on a body to know how big it is. Here is what happens when it can't.
         </p>
       </div>
@@ -156,7 +136,7 @@ function Step3() {
   return (
     <div className="flex flex-col gap-3">
       <div className="min-h-[2.75rem]">
-        <p className="text-sm text-justify text-muted-foreground leading-relaxed">
+        <p className="text-sm text-justify text-foreground leading-relaxed">
           These inputs confuse the AI and can change your jewelry design.
         </p>
       </div>
@@ -342,7 +322,7 @@ export function UploadGuideModal({ open, onClose, isTest }: Props) {
                 else close();
               }}
             >
-              {step === TOTAL - 1 ? "Let's go" : 'Next'}
+              {step === TOTAL - 1 ? "Let's go" : step === 0 ? 'Show me' : 'Next'}
             </Button>
           </div>
 
