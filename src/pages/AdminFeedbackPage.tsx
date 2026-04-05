@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Search, Download, X, ChevronLeft, ChevronRight,
-  Loader2, Upload, ImageOff,
+  Download, X, ChevronLeft, ChevronRight,
+  Loader2, Upload, ImageOff, AlertTriangle, Mail, Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +24,12 @@ import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { getStoredToken } from '@/lib/auth-api';
 import { useToast } from '@/hooks/use-toast';
 import {
+  type FeedbackItem,
+  type FeedbackListResponse,
+  type EmailStatus,
   type AdminFeedbackItem,
-  type AdminFeedbackListResponse,
   type FeedbackStatus,
-  listAdminFeedback,
+  listFeedback,
   getAdminFeedbackById,
   updateAdminFeedback,
   uploadRevisedOutput,
@@ -38,8 +40,15 @@ import {
 const PAGE_SIZE = 20;
 
 const CATEGORIES = ['ring', 'necklace', 'bracelet', 'earring', 'watch', 'other'] as const;
+const GENERATION_TYPES = ['photoshoot', 'text_to_cad'] as const;
 
-const STATUS_CFG: Record<FeedbackStatus, { label: string; pill: string }> = {
+const EMAIL_STATUS_CFG: Record<EmailStatus, { label: string; pill: string; Icon: typeof Mail }> = {
+  sent:    { label: 'Sent',    pill: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',  Icon: Mail },
+  failed:  { label: 'Failed',  pill: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',         Icon: AlertTriangle },
+  pending: { label: 'Pending', pill: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', Icon: Clock },
+};
+
+const FEEDBACK_STATUS_CFG: Record<FeedbackStatus, { label: string; pill: string }> = {
   open:       { label: 'Open',       pill: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
   looks_fine: { label: 'Looks Fine', pill: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
   resolved:   { label: 'Resolved',   pill: 'bg-muted text-muted-foreground' },
@@ -52,6 +61,13 @@ function formatLocalDate(iso: string): string {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
+}
+
+/** Derives the email notification status from item fields. */
+function deriveEmailStatus(item: FeedbackItem): EmailStatus {
+  if (item.email_sent_at) return 'sent';
+  if (item.email_error)   return 'failed';
+  return 'pending';
 }
 
 async function downloadAuthImage(url: string, filename: string) {
@@ -69,10 +85,23 @@ async function downloadAuthImage(url: string, filename: string) {
   } catch { /* silent */ }
 }
 
-// ─── StatusBadge ──────────────────────────────────────────────────────────────
+// ─── EmailStatusBadge ─────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: FeedbackStatus }) {
-  const cfg = STATUS_CFG[status] ?? { label: status ?? 'unknown', pill: 'bg-muted text-muted-foreground' };
+function EmailStatusBadge({ status }: { status: EmailStatus }) {
+  const cfg = EMAIL_STATUS_CFG[status];
+  const Icon = cfg.Icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm font-mono text-[10px] uppercase tracking-widest whitespace-nowrap ${cfg.pill}`}>
+      <Icon className="h-2.5 w-2.5" />
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── FeedbackStatusBadge ──────────────────────────────────────────────────────
+
+function FeedbackStatusBadge({ status }: { status: FeedbackStatus }) {
+  const cfg = FEEDBACK_STATUS_CFG[status] ?? { label: status ?? 'unknown', pill: 'bg-muted text-muted-foreground' };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-sm font-mono text-[10px] uppercase tracking-widest whitespace-nowrap ${cfg.pill}`}>
       {cfg.label}
@@ -164,8 +193,7 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
     mutationFn: () => updateAdminFeedback(item!.id, { status, contacted, admin_notes: adminNotes }),
     onSuccess: (updated) => {
       onUpdated(updated);
-      queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-feedback-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['feedback-list'] });
       toast({ title: 'Saved' });
     },
     onError: () => toast({ variant: 'destructive', title: 'Failed to save' }),
@@ -178,7 +206,7 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
       const result = await uploadRevisedOutput(item.id, file);
       const updated = { ...item, revised_output_url: result.revised_output_url };
       onUpdated(updated);
-      queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
+      queryClient.invalidateQueries({ queryKey: ['feedback-list'] });
       toast({ title: 'Revised output uploaded' });
     } catch {
       toast({ variant: 'destructive', title: 'Upload failed' });
@@ -270,8 +298,8 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(STATUS_CFG) as FeedbackStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
+                  {(Object.keys(FEEDBACK_STATUS_CFG) as FeedbackStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>{FEEDBACK_STATUS_CFG[s].label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -314,24 +342,23 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
 
 export default function AdminFeedbackPage() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | ''>('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [generationTypeFilter, setGenerationTypeFilter] = useState('');
+  const [emailStatusFilter, setEmailStatusFilter] = useState<EmailStatus | ''>('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [offset, setOffset] = useState(0);
+
   const [activeItem, setActiveItem] = useState<AdminFeedbackItem | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   // Deep-link: ?id=<uuid> opens that feedback row directly
   const deepLinkId = searchParams.get('id');
   const deepLinkQuery = useQuery({
-    queryKey: ['admin-feedback-by-id', deepLinkId],
+    queryKey: ['feedback-detail', deepLinkId],
     queryFn: () => getAdminFeedbackById(deepLinkId!),
     enabled: !!deepLinkId,
     staleTime: Infinity,
@@ -344,73 +371,55 @@ export default function AdminFeedbackPage() {
     }
   }, [deepLinkQuery.data]);
 
-  // Debounce search
-  useEffect(() => {
-    const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 400);
-    return () => clearTimeout(t);
-  }, [searchInput]);
+  // Reset offset on filter change
+  useEffect(() => { setOffset(0); }, [categoryFilter, generationTypeFilter, emailStatusFilter, fromDate, toDate]);
 
-  // Reset page on filter change
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [statusFilter, categoryFilter, fromDate, toDate]);
+  // Convert local date inputs to ISO 8601 datetimes for the API
+  const createdAfter  = fromDate ? `${fromDate}T00:00:00Z` : undefined;
+  const createdBefore = toDate   ? `${toDate}T23:59:59Z`   : undefined;
 
-  const queryKey = ['admin-feedback', { search, statusFilter, categoryFilter, fromDate, toDate, page }];
+  const queryKey = ['feedback-list', { categoryFilter, generationTypeFilter, emailStatusFilter, fromDate, toDate, offset }];
 
   const listQuery = useQuery({
     queryKey,
-    queryFn: () => listAdminFeedback({
-      q: search || undefined,
-      status: statusFilter || undefined,
-      category: categoryFilter || undefined,
-      from: fromDate || undefined,
-      to: toDate || undefined,
-      sort_by: 'created_at',
-      sort_dir: 'desc',
-      page,
-      limit: PAGE_SIZE,
+    queryFn: () => listFeedback({
+      limit:           PAGE_SIZE,
+      offset,
+      category:        categoryFilter || undefined,
+      generation_type: generationTypeFilter || undefined,
+      email_status:    emailStatusFilter || undefined,
+      created_after:   createdAfter,
+      created_before:  createdBefore,
     }),
-  });
-
-  const bulkMutation = useMutation({
-    mutationFn: async (newStatus: FeedbackStatus) =>
-      Promise.all([...selected].map(id => updateAdminFeedback(id, { status: newStatus }))),
-    onSuccess: () => {
-      setSelected(new Set());
-      queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
-      toast({ title: 'Updated' });
-    },
-    onError: () => toast({ variant: 'destructive', title: 'Bulk update failed' }),
   });
 
   const items = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const allOnPageSelected = items.length > 0 && items.every(i => selected.has(i.id));
-  const hasFilters = !!(searchInput || statusFilter || categoryFilter || fromDate || toDate);
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
-  function toggleAll() {
-    setSelected(prev => {
-      const s = new Set(prev);
-      if (allOnPageSelected) { items.forEach(i => s.delete(i.id)); } else { items.forEach(i => s.add(i.id)); }
-      return s;
-    });
-  }
+  const hasFilters = !!(categoryFilter || generationTypeFilter || emailStatusFilter || fromDate || toDate);
 
-  function toggleOne(id: string) {
-    setSelected(prev => {
-      const s = new Set(prev);
-      if (s.has(id)) { s.delete(id); } else { s.add(id); }
-      return s;
-    });
-  }
-
-  function openDetail(item: AdminFeedbackItem) {
-    setActiveItem(item);
-    setSheetOpen(true);
+  async function openDetail(id: string) {
+    setLoadingId(id);
+    try {
+      const data = await getAdminFeedbackById(id);
+      setActiveItem(data);
+      setSheetOpen(true);
+    } catch {
+      // silent — server errors surface in the query layer
+    } finally {
+      setLoadingId(null);
+    }
   }
 
   function clearFilters() {
-    setSearchInput(''); setSearch(''); setStatusFilter('');
-    setCategoryFilter(''); setFromDate(''); setToDate(''); setPage(1);
+    setCategoryFilter('');
+    setGenerationTypeFilter('');
+    setEmailStatusFilter('');
+    setFromDate('');
+    setToDate('');
+    setOffset(0);
   }
 
   return (
@@ -423,17 +432,20 @@ export default function AdminFeedbackPage() {
           <h1 className="font-display text-3xl sm:text-4xl tracking-wide [text-shadow:none]">Feedback</h1>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-2 mb-5">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search email, name, workflow ID, complaint..."
-              className="pl-9 h-9 text-sm"
-            />
+        {/* Ops notice — shown when filtering for dropped notifications */}
+        {(emailStatusFilter === 'failed' || emailStatusFilter === 'pending') && (
+          <div className="mb-5 flex items-start gap-3 px-4 py-3 border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              {emailStatusFilter === 'failed'
+                ? 'These submissions triggered an email send error — the team was not notified.'
+                : 'These submissions were saved but the notification email was never sent (e.g. server crash between save and send).'}
+            </p>
           </div>
+        )}
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2 mb-5">
           <Select value={categoryFilter || 'all'} onValueChange={(v) => setCategoryFilter(v === 'all' ? '' : v)}>
             <SelectTrigger className="h-9 w-full sm:w-36 text-sm shrink-0">
               <SelectValue placeholder="Category" />
@@ -445,6 +457,31 @@ export default function AdminFeedbackPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select value={generationTypeFilter || 'all'} onValueChange={(v) => setGenerationTypeFilter(v === 'all' ? '' : v)}>
+            <SelectTrigger className="h-9 w-full sm:w-40 text-sm shrink-0">
+              <SelectValue placeholder="Generation type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {GENERATION_TYPES.map(t => (
+                <SelectItem key={t} value={t} className="capitalize">{t.replace('_', ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={emailStatusFilter || 'all'} onValueChange={(v) => setEmailStatusFilter(v === 'all' ? '' : v as EmailStatus)}>
+            <SelectTrigger className="h-9 w-full sm:w-44 text-sm shrink-0">
+              <SelectValue placeholder="Email status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All email statuses</SelectItem>
+              {(Object.keys(EMAIL_STATUS_CFG) as EmailStatus[]).map(s => (
+                <SelectItem key={s} value={s}>{EMAIL_STATUS_CFG[s].label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Input
             type="date"
             value={fromDate}
@@ -457,6 +494,7 @@ export default function AdminFeedbackPage() {
             onChange={(e) => setToDate(e.target.value)}
             className="h-9 w-full sm:w-36 text-sm shrink-0"
           />
+
           {hasFilters && (
             <Button variant="outline" size="sm" className="h-9 gap-1.5 shrink-0" onClick={clearFilters}>
               <X className="h-3.5 w-3.5" />
@@ -464,32 +502,6 @@ export default function AdminFeedbackPage() {
             </Button>
           )}
         </div>
-
-        {/* Bulk action bar */}
-        {selected.size > 0 && (
-          <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 border border-border bg-muted/20">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {selected.size} selected
-            </span>
-            <div className="flex flex-wrap gap-2 ml-auto">
-              {(Object.keys(STATUS_CFG) as FeedbackStatus[]).map(s => (
-                <Button
-                  key={s}
-                  variant="outline"
-                  size="sm"
-                  disabled={bulkMutation.isPending}
-                  onClick={() => bulkMutation.mutate(s)}
-                  className="h-7 text-xs"
-                >
-                  Mark {STATUS_CFG[s].label}
-                </Button>
-              ))}
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSelected(new Set())}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Table */}
         <div className="border border-border overflow-x-auto">
@@ -509,19 +521,12 @@ export default function AdminFeedbackPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10 pl-4">
-                    <input
-                      type="checkbox"
-                      checked={allOnPageSelected}
-                      onChange={toggleAll}
-                      className="h-3.5 w-3.5"
-                    />
-                  </TableHead>
-                  <TableHead className="w-10 font-mono text-[10px] uppercase tracking-widest">#</TableHead>
-                  <TableHead className="font-mono text-[10px] uppercase tracking-widest min-w-[160px]">User</TableHead>
+                  <TableHead className="w-10 pl-4 font-mono text-[10px] uppercase tracking-widest">#</TableHead>
+                  <TableHead className="font-mono text-[10px] uppercase tracking-widest min-w-[160px]">Reporter</TableHead>
                   <TableHead className="font-mono text-[10px] uppercase tracking-widest w-24">Category</TableHead>
+                  <TableHead className="font-mono text-[10px] uppercase tracking-widest w-28">Type</TableHead>
                   <TableHead className="font-mono text-[10px] uppercase tracking-widest min-w-[200px]">Complaint</TableHead>
-                  <TableHead className="font-mono text-[10px] uppercase tracking-widest w-28">Status</TableHead>
+                  <TableHead className="font-mono text-[10px] uppercase tracking-widest w-32">Notification</TableHead>
                   <TableHead className="font-mono text-[10px] uppercase tracking-widest w-36">Date</TableHead>
                   <TableHead className="w-16" />
                 </TableRow>
@@ -529,39 +534,32 @@ export default function AdminFeedbackPage() {
               <TableBody>
                 {items.map((item, idx) => (
                   <TableRow key={item.id}>
-                    <TableCell className="pl-4">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(item.id)}
-                        onChange={() => toggleOne(item.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-3.5 w-3.5"
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {(page - 1) * PAGE_SIZE + idx + 1}
+                    <TableCell className="pl-4 font-mono text-xs text-muted-foreground">
+                      {offset + idx + 1}
                     </TableCell>
                     <TableCell className="max-w-[180px]">
-                      <button
-                        type="button"
-                        title="Filter by this user"
-                        onClick={() => setSearchInput(item.user_email)}
-                        className="text-left w-full"
-                      >
-                        <p className="text-sm truncate hover:underline">{item.user_email}</p>
-                        {item.username && (
-                          <p className="text-xs text-muted-foreground truncate">{item.username}</p>
-                        )}
-                      </button>
+                      <p className="text-sm truncate">{item.reporter_email}</p>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-xs capitalize">{item.category}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {item.generation_type.replace('_', ' ')}
+                      </span>
                     </TableCell>
                     <TableCell className="max-w-[280px]">
                       <p className="text-sm text-muted-foreground truncate">{item.complaint}</p>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={item.status} />
+                      <div className="space-y-1">
+                        <EmailStatusBadge status={deriveEmailStatus(item)} />
+                        {item.email_error && (
+                          <p className="font-mono text-[9px] text-destructive truncate max-w-[120px]" title={item.email_error}>
+                            {item.email_error}
+                          </p>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                       {formatLocalDate(item.created_at)}
@@ -570,10 +568,14 @@ export default function AdminFeedbackPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => openDetail(item)}
+                        className="h-7 text-xs gap-1"
+                        disabled={loadingId === item.id}
+                        onClick={() => openDetail(item.id)}
                       >
-                        View
+                        {loadingId === item.id
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : 'View'
+                        }
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -587,15 +589,15 @@ export default function AdminFeedbackPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Page {page} of {totalPages} &middot; {total} results
+              Page {currentPage} of {totalPages} &middot; {total} results
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="h-8 gap-1 text-xs"
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
+                disabled={offset === 0}
+                onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Previous
@@ -604,8 +606,8 @@ export default function AdminFeedbackPage() {
                 variant="outline"
                 size="sm"
                 className="h-8 gap-1 text-xs"
-                disabled={page === totalPages}
-                onClick={() => setPage(p => p + 1)}
+                disabled={currentPage >= totalPages}
+                onClick={() => setOffset(o => o + PAGE_SIZE)}
               >
                 Next
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -621,9 +623,6 @@ export default function AdminFeedbackPage() {
         onClose={() => setSheetOpen(false)}
         onUpdated={(updated) => {
           setActiveItem(updated);
-          queryClient.setQueryData(queryKey, (old: AdminFeedbackListResponse | undefined) =>
-            old ? { ...old, items: old.items.map((i) => i.id === updated.id ? updated : i) } : old
-          );
         }}
       />
     </div>

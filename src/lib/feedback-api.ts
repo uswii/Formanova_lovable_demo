@@ -139,6 +139,62 @@ export async function updateAdminFeedback(id: string, payload: UpdateFeedbackPay
  * POST /api/feedback/{id}/revised-output
  * Payload format: { base64: string, content_type: string } — confirm with backend.
  */
+// ─── New GET /feedback list endpoint ─────────────────────────────────────────
+// Separate from the legacy admin-specific list above. Uses offset pagination,
+// email_status filter, and returns reporter_email / email notification fields.
+
+export type EmailStatus = 'sent' | 'failed' | 'pending';
+
+/** Item returned by GET /feedback (list) and GET /feedback/{id} (detail). */
+export interface FeedbackItem {
+  id: string;
+  workflow_id: string;
+  generation_type: string;
+  category: string;
+  complaint: string;
+  input_image_urls: string[];
+  output_image_url: string;
+  reporter_email: string;
+  created_at: string;
+  email_sent_at: string | null;
+  email_error: string | null;
+}
+
+export interface FeedbackListParams {
+  limit?: number;           // 1–100, default 20
+  offset?: number;          // ≥0
+  category?: string;
+  generation_type?: string;
+  email_status?: EmailStatus;
+  created_after?: string;   // ISO 8601
+  created_before?: string;  // ISO 8601
+}
+
+export interface FeedbackListResponse {
+  items: FeedbackItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * GET /api/feedback — paginated, filterable list for admins.
+ * Results always most-recent-first. Auth: Bearer JWT (admin only).
+ */
+export async function listFeedback(params: FeedbackListParams = {}): Promise<FeedbackListResponse> {
+  const q = new URLSearchParams();
+  if (params.limit !== undefined)    q.set('limit',          String(params.limit));
+  if (params.offset !== undefined)   q.set('offset',         String(params.offset));
+  if (params.category)               q.set('category',       params.category);
+  if (params.generation_type)        q.set('generation_type', params.generation_type);
+  if (params.email_status)           q.set('email_status',   params.email_status);
+  if (params.created_after)          q.set('created_after',  params.created_after);
+  if (params.created_before)         q.set('created_before', params.created_before);
+  const res = await authenticatedFetch(`/api/feedback?${q.toString()}`);
+  if (!res.ok) throw new Error(`Failed to fetch feedback: ${res.status}`);
+  return res.json();
+}
+
 export async function uploadRevisedOutput(id: string, file: File): Promise<{ revised_output_url: string }> {
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
