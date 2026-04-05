@@ -72,7 +72,7 @@ async function downloadAuthImage(url: string, filename: string) {
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: FeedbackStatus }) {
-  const cfg = STATUS_CFG[status];
+  const cfg = STATUS_CFG[status] ?? { label: status ?? 'unknown', pill: 'bg-muted text-muted-foreground' };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-sm font-mono text-[10px] uppercase tracking-widest whitespace-nowrap ${cfg.pill}`}>
       {cfg.label}
