@@ -12,7 +12,7 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
-import { isOnboardingComplete, isTosAgreed, markTosAgreed, markUploadInstructionsSeen } from '@/lib/onboarding-api';
+import { isOnboardingComplete, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkUploadInstructionsSeen } from '@/lib/onboarding-api';
 import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { PostHogPageView } from '@/components/PostHogPageView';
@@ -180,8 +180,21 @@ function GlobalOnboardingGate() {
 
     if (isTosAgreed(user.id)) return;
 
-    setOpen(true);
-    trackUploadGuideViewed();
+    // localStorage says not seen — verify against backend in case storage was cleared
+    checkUploadInstructionsSeen()
+      .then((seenOnBackend) => {
+        if (seenOnBackend) {
+          markTosAgreed(user.id); // sync localStorage
+          return;
+        }
+        setOpen(true);
+        trackUploadGuideViewed();
+      })
+      .catch(() => {
+        // If API fails, fall back to showing the modal
+        setOpen(true);
+        trackUploadGuideViewed();
+      });
   }, [initializing, user?.id, location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {
