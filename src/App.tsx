@@ -126,7 +126,9 @@ function TosRedirectHandler() {
     if (initializing) return;
     if (!user) return;
     if (!isStudioOnboardingEnabled(user.email)) return;
+    if (!isOnboardingComplete(user.id)) return;
     if (location.pathname === '/studio') return; // already at the gate
+    if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
     if (isTosAgreed(user.id)) return;
     const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
       || location.pathname.startsWith('/blog/');
