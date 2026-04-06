@@ -97,6 +97,17 @@ export interface AdminGenerationDetail {
   feedback: AdminGenerationFeedback | null;
 }
 
+function unwrapPayload(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+
+  const nestedPayload = (value as Record<string, unknown>).payload;
+  if (nestedPayload && typeof nestedPayload === 'object') {
+    return nestedPayload;
+  }
+
+  return value;
+}
+
 function isImageUrl(value: string): boolean {
   const lower = value.toLowerCase();
   return (
@@ -157,11 +168,14 @@ function findStringArray(value: unknown, keys: string[]): string[] {
 }
 
 function normalizeListItem(item: any): AdminGenerationListItem {
-  const inputPayload = item.input_payload ?? item.input ?? null;
+  const inputPayload = unwrapPayload(item.input_payload ?? item.input ?? item.payload ?? null);
   const inputImageUrls = [
     ...findStringArray(item, ['input_image_urls', 'input_images']),
     ...findStringArray(inputPayload, ['input_image_urls', 'input_images']),
   ].filter((value, index, array) => array.indexOf(value) === index);
+  const primaryInputImageUrl =
+    findString(item, ['jewelry_image_url', 'input_image_url']) ??
+    findString(inputPayload, ['jewelry_image_url', 'input_image_url']);
   const modelImageUrl =
     findString(item, ['model_image_url', 'model_url']) ??
     findString(inputPayload, ['model_image_url', 'model_url']);
@@ -188,7 +202,11 @@ function normalizeListItem(item: any): AdminGenerationListItem {
     is_paying: Boolean(item.is_paying),
     feedback_id: item.feedback_id ?? null,
     category: item.category ?? findString(inputPayload, ['category']) ?? null,
-    input_image_urls: inputImageUrls,
+    input_image_urls: primaryInputImageUrl
+      ? [primaryInputImageUrl, ...inputImageUrls.filter((url) => url !== primaryInputImageUrl)]
+      : inputImageUrls.length > 0
+        ? inputImageUrls
+        : extractImageUrls(inputPayload),
     model_image_url: modelImageUrl,
     output_image_url: outputImageUrl,
   };
@@ -295,7 +313,7 @@ export async function getAdminGenerationDetail(workflowId: string): Promise<Admi
       : typeof payload.provider_cost === 'number'
         ? payload.provider_cost
         : null,
-    input_payload: payload.input_payload ?? payload.input ?? {},
+    input_payload: unwrapPayload(payload.input_payload ?? payload.input ?? payload.payload ?? {}),
     steps: Array.isArray(payload.steps) ? payload.steps.map(normalizeStep) : [],
     feedback: normalizeFeedback(payload.feedback),
   };

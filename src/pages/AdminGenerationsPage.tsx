@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ImageOff, Loader2, MessageSquareWarning } from 'lucide-react';
 
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { getStoredToken } from '@/lib/auth-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -82,44 +83,76 @@ function PayingBadge({ isPaying }: { isPaying: boolean }) {
   return <Badge variant={isPaying ? 'default' : 'outline'}>{isPaying ? 'Paying' : 'Free'}</Badge>;
 }
 
+async function downloadAuthImage(url: string, filename: string) {
+  const token = getStoredToken();
+  if (!token) return;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    // Silent fallback for admin preview actions.
+  }
+}
+
 function ThumbnailButton({ url, label }: { url: string | null; label: string }) {
+  const [open, setOpen] = useState(false);
   const resolvedUrl = useAuthenticatedImage(url);
 
-  if (!url) {
-    return (
-      <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-muted/20">
-        <ImageOff className="h-4 w-4 text-muted-foreground/40" />
-      </div>
-    );
-  }
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <div className="flex flex-col items-center gap-1">
+      {url ? (
         <button
           type="button"
-          className="overflow-hidden rounded-md border border-border bg-muted/20 transition-colors hover:border-foreground/30"
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+          className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/20 transition-colors hover:border-foreground/30"
         >
-          <div className="flex h-14 w-14 items-center justify-center">
-            {resolvedUrl ? (
-              <img src={resolvedUrl} alt={label} className="h-full w-full object-cover" />
-            ) : (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-            )}
-          </div>
+          {resolvedUrl ? (
+            <img src={resolvedUrl} alt={label} className="h-full w-full object-cover" />
+          ) : (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+          )}
         </button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl border-0 bg-black p-0 overflow-hidden">
-        {resolvedUrl ? (
-          <img src={resolvedUrl} alt={label} className="max-h-[82vh] w-full object-contain" />
-        ) : (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      ) : (
+        <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-muted/20">
+          <ImageOff className="h-4 w-4 text-muted-foreground/40" />
+        </div>
+      )}
+
+      {url && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-3xl w-full border-0 bg-black p-0 overflow-hidden">
+            <div className="relative">
+              {resolvedUrl ? (
+                <img src={resolvedUrl} alt={label} className="w-full max-h-[82vh] object-contain" />
+              ) : (
+                <div className="flex h-64 items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+                </div>
+              )}
+              <div className="absolute left-3 top-3">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => downloadAuthImage(url, `${label.toLowerCase().replace(/\s+/g, '-')}.jpg`)}
+                >
+                  Download
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }
 
@@ -333,18 +366,9 @@ export default function AdminGenerationsPage() {
                     <TableRow key={item.workflow_id} className="cursor-pointer" onClick={() => openDetail(item)}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="flex flex-col items-center gap-1">
-                            <ThumbnailButton url={item.input_image_urls[0] ?? null} label="Input image" />
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Input</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <ThumbnailButton url={item.model_image_url} label="Model image" />
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Model</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <ThumbnailButton url={item.output_image_url} label="Output image" />
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Output</span>
-                          </div>
+                          <ThumbnailButton url={item.input_image_urls[0] ?? null} label="Input image" />
+                          <ThumbnailButton url={item.model_image_url} label="Model image" />
+                          <ThumbnailButton url={item.output_image_url} label="Output image" />
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">

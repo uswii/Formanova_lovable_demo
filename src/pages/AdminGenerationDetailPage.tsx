@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -157,6 +157,36 @@ function JsonBlock({ title, value, defaultOpen = false }: { title: string; value
   );
 }
 
+function CollapsibleCardSection({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <Card>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <button type="button" className="flex w-full items-center justify-between text-left">
+              <CardTitle className="font-display text-2xl tracking-wide">{title}</CardTitle>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent>{children}</CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
+
 function ImagePreview({ url, label }: { url: string | null; label: string }) {
   const resolvedUrl = useAuthenticatedImage(url);
 
@@ -295,20 +325,12 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display text-2xl tracking-wide">Input Payload</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <JsonBlock title="Raw JSON" value={detail.input_payload} defaultOpen />
-        </CardContent>
-      </Card>
+      <CollapsibleCardSection title="Input Payload">
+        <JsonBlock title="Raw JSON" value={detail.input_payload} />
+      </CollapsibleCardSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display text-2xl tracking-wide">Processing Steps</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleCardSection title="Processing Steps">
+        <div className="space-y-4">
           {detail.steps.length === 0 ? (
             <p className="text-sm text-muted-foreground">No processing steps were returned for this workflow.</p>
           ) : (
@@ -337,15 +359,12 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
               );
             })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCardSection>
 
       {detail.feedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-2xl tracking-wide">Complaint</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
+        <CollapsibleCardSection title="Complaint" defaultOpen>
+          <div className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <MetaItem label="Reporter Email" value={detail.feedback.reporter_email || '-'} />
               <MetaItem label="Category" value={detail.feedback.category || '-'} />
@@ -362,8 +381,8 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
               ))}
               <ImagePreview url={detail.feedback.output_image_url} label="Output Image" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleCardSection>
       )}
     </div>
   );
