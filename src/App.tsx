@@ -116,29 +116,6 @@ const ONBOARDING_PUBLIC_PATHS = [
   '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
 ];
 
-/** Redirects unsigned users to /studio where the onboarding modal will block them. */
-function TosRedirectHandler() {
-  const { user, initializing } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (initializing) return;
-    if (!user) return;
-    if (!isStudioOnboardingEnabled(user.email)) return;
-    if (!isOnboardingComplete(user.id)) return;
-    if (location.pathname === '/studio') return; // already at the gate
-    if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
-    if (isTosAgreed(user.id)) return;
-    const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
-      || location.pathname.startsWith('/blog/');
-    if (isPublic) return;
-    navigate('/studio', { replace: true });
-  }, [initializing, user?.id, location.pathname, navigate]);
-
-  return null;
-}
-
 /** Redirects gated users to /onboarding before their first protected-page visit. */
 function OnboardingRedirectHandler() {
   const { user, initializing } = useAuth();
@@ -160,18 +137,8 @@ function OnboardingRedirectHandler() {
   return null;
 }
 
-const ONBOARDING_SKIP_PATHS = [
-  '/', '/login', '/oauth-callback', '/feedback', '/link',
-  '/onboarding', '/onboarding-welcome',
-  '/ai-jewelry-photoshoot', '/ai-jewelry-cad', '/ai-jewelry-photography-comparison',
-];
-
 /** Shows the upload guide modal once to every new user. */
-function GlobalOnboardingGate() {
-  const { user, initializing } = useAuth();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-  const hasChecked = useRef(false);
+function GlobalOnboardingGate_REMOVED() {
 
   useEffect(() => {
     if (initializing || !user || hasChecked.current) return;
@@ -274,8 +241,6 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <OnboardingRedirectHandler />
-            <TosRedirectHandler />
-            <GlobalOnboardingGate />
             <TestPanel />
             <VersionBanner />
             

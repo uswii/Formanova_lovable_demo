@@ -57,9 +57,11 @@ import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
+import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
+import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen } from '@/lib/onboarding-api';
 import {
   trackJewelryUploaded,
   trackValidationFlagged,
@@ -69,6 +71,8 @@ import {
   trackDownloadClicked,
   trackRegenerateClicked,
   consumeFirstGeneration,
+  trackUploadGuideViewed,
+  trackUploadGuideAcknowledged,
 } from '@/lib/posthog-events';
 // ExampleGuidePanel removed — guide is inline
 
@@ -419,8 +423,10 @@ export default function UnifiedStudio() {
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
+  const hasCheckedUploadGuide = useRef(false);
 
   // ── Studio onboarding popup + model guide (gated) ────────────────────────
+  const [uploadGuideOpen, setUploadGuideOpen] = useState(false);
   const [modelGuideOpen, setModelGuideOpen] = useState(false);
 
   // Jewelry image
@@ -519,6 +525,38 @@ export default function UnifiedStudio() {
     }
     setSearchParams(nextParams, { replace: true });
   }, [currentStep, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (initializing || !user || hasCheckedUploadGuide.current) return;
+    if (!isStudioOnboardingEnabled(user.email)) return;
+    if (currentStep !== 'upload') return;
+
+    hasCheckedUploadGuide.current = true;
+
+    if (isTosAgreed(user.id)) return;
+
+    checkUploadInstructionsSeen()
+      .then((seenOnBackend) => {
+        if (seenOnBackend) {
+          markTosAgreed(user.id);
+          return;
+        }
+        setUploadGuideOpen(true);
+        trackUploadGuideViewed();
+      })
+      .catch(() => {
+        setUploadGuideOpen(true);
+        trackUploadGuideViewed();
+      });
+  }, [currentStep, initializing, user?.email, user?.id]);
+
+  const handleUploadGuideClose = useCallback(() => {
+    setUploadGuideOpen(false);
+    if (!user) return;
+    markTosAgreed(user.id);
+    trackUploadGuideAcknowledged();
+    markUploadInstructionsSeen().catch(() => {});
+  }, [user]);
 
   // Persist only local pending models to localStorage
   useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
@@ -1896,6 +1934,11 @@ export default function UnifiedStudio() {
       </div>
 
       {/* ── Model guide popup ── */}
+      <UploadGuideModal
+        open={uploadGuideOpen}
+        onClose={handleUploadGuideClose}
+      />
+
       <ModelGuideModal
         open={modelGuideOpen}
         onClose={() => setModelGuideOpen(false)}
