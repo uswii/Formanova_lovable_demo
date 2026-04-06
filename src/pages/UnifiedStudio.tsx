@@ -1901,7 +1901,7 @@ export default function UnifiedStudio() {
         onClose={() => setModelGuideOpen(false)}
       />
 
-      {isOnboardingEnabled(user?.email) && (
+      {['uswa@raresense.so', 'uswaashfaque@gmail.com'].includes(user?.email?.toLowerCase() ?? '') && (
         <button
           type="button"
           onClick={() => {
