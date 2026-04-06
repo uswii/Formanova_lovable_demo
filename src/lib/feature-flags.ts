@@ -73,7 +73,7 @@ export function isViewGuideEnabled(_email: string | undefined | null): boolean {
  * Enabled for all users.
  */
 export function isOnboardingWelcomeEnabled(_email: string | undefined | null): boolean {
-  return true;
+  return false;
 }
 
 /**
