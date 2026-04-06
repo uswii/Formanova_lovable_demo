@@ -177,7 +177,7 @@ export default function AdminGenerationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-8">
           <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Admin</p>
           <h1 className="font-display text-3xl tracking-wide sm:text-4xl">Generations</h1>
@@ -286,7 +286,11 @@ export default function AdminGenerationsPage() {
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
-                    <TableRow key={item.workflow_id}>
+                    <TableRow
+                      key={item.workflow_id}
+                      className="cursor-pointer"
+                      onClick={() => openDetail(item)}
+                    >
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                         {formatDateTime(item.created_at)}
                       </TableCell>
@@ -315,7 +319,10 @@ export default function AdminGenerationsPage() {
                         <Button
                           size="sm"
                           className="gap-1.5"
-                          onClick={() => openDetail(item)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openDetail(item);
+                          }}
                         >
                           View Details
                           <ExternalLink className="h-3.5 w-3.5" />
