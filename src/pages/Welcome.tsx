@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
 import { KineticText } from '@/components/KineticText';
@@ -27,12 +27,7 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Auto-redirect authenticated users to studio
-  useEffect(() => {
-    if (user) {
-      navigate('/studio', { replace: true });
-    }
-  }, [user, navigate]);
+  if (user) return <Navigate to="/studio" replace />;
 
   // Web Vitals tracking — landing page only
   useEffect(() => {
