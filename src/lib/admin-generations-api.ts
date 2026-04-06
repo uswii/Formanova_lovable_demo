@@ -32,6 +32,7 @@ export interface AdminGenerationsListParams {
   limit?: number;
   offset?: number;
   status?: string;
+  workflow_name?: string;
   has_feedback?: boolean;
   user_type?: string;
   is_paying?: boolean;
@@ -49,6 +50,10 @@ export interface AdminGenerationListItem {
   user_type: AdminGenerationUserType | null;
   is_paying: boolean;
   feedback_id: string | null;
+  category: string | null;
+  input_image_urls: string[];
+  model_image_url: string | null;
+  output_image_url: string | null;
 }
 
 export interface AdminGenerationsListResponse {
@@ -92,7 +97,80 @@ export interface AdminGenerationDetail {
   feedback: AdminGenerationFeedback | null;
 }
 
+function isImageUrl(value: string): boolean {
+  const lower = value.toLowerCase();
+  return (
+    value.startsWith('http://') ||
+    value.startsWith('https://') ||
+    value.includes('/artifacts/') ||
+    /\.(png|jpg|jpeg|webp|gif|bmp|svg)(\?|$)/i.test(lower)
+  );
+}
+
+function extractImageUrls(value: unknown): string[] {
+  const urls = new Set<string>();
+
+  function visit(node: unknown) {
+    if (typeof node === 'string') {
+      if (isImageUrl(node)) {
+        urls.add(node);
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    if (node && typeof node === 'object') {
+      Object.values(node as Record<string, unknown>).forEach(visit);
+    }
+  }
+
+  visit(value);
+  return Array.from(urls);
+}
+
+function findString(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== 'object') return null;
+
+  for (const key of keys) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (typeof candidate === 'string' && candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function findStringArray(value: unknown, keys: string[]): string[] {
+  if (!value || typeof value !== 'object') return [];
+
+  for (const key of keys) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (Array.isArray(candidate)) {
+      return candidate.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+    }
+  }
+
+  return [];
+}
+
 function normalizeListItem(item: any): AdminGenerationListItem {
+  const inputPayload = item.input_payload ?? item.input ?? null;
+  const inputImageUrls = [
+    ...findStringArray(item, ['input_image_urls', 'input_images']),
+    ...findStringArray(inputPayload, ['input_image_urls', 'input_images']),
+  ].filter((value, index, array) => array.indexOf(value) === index);
+  const modelImageUrl =
+    findString(item, ['model_image_url', 'model_url']) ??
+    findString(inputPayload, ['model_image_url', 'model_url']);
+  const outputImageUrl =
+    findString(item, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
+    findString(item.output, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
+    extractImageUrls(item.output ?? item.result ?? null)[0] ??
+    null;
+
   return {
     workflow_id: item.workflow_id ?? item.id ?? '',
     workflow_name: item.workflow_name ?? item.name ?? '',
@@ -109,6 +187,10 @@ function normalizeListItem(item: any): AdminGenerationListItem {
     user_type: item.user_type ?? null,
     is_paying: Boolean(item.is_paying),
     feedback_id: item.feedback_id ?? null,
+    category: item.category ?? findString(inputPayload, ['category']) ?? null,
+    input_image_urls: inputImageUrls,
+    model_image_url: modelImageUrl,
+    output_image_url: outputImageUrl,
   };
 }
 
@@ -168,6 +250,7 @@ export async function listAdminGenerations(
   if (params.limit !== undefined) q.set('limit', String(params.limit));
   if (params.offset !== undefined) q.set('offset', String(params.offset));
   if (params.status) q.set('status', params.status);
+  if (params.workflow_name) q.set('workflow_name', params.workflow_name);
   if (params.has_feedback !== undefined) q.set('has_feedback', String(params.has_feedback));
   if (params.user_type) q.set('user_type', params.user_type);
   if (params.is_paying !== undefined) q.set('is_paying', String(params.is_paying));

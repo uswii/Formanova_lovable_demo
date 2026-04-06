@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Loader2, MessageSquareWarning } from 'lucide-react';
+import { AlertTriangle, ImageOff, Loader2, MessageSquareWarning } from 'lucide-react';
 
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -79,6 +82,47 @@ function PayingBadge({ isPaying }: { isPaying: boolean }) {
   return <Badge variant={isPaying ? 'default' : 'outline'}>{isPaying ? 'Paying' : 'Free'}</Badge>;
 }
 
+function ThumbnailButton({ url, label }: { url: string | null; label: string }) {
+  const resolvedUrl = useAuthenticatedImage(url);
+
+  if (!url) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-muted/20">
+        <ImageOff className="h-4 w-4 text-muted-foreground/40" />
+      </div>
+    );
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="overflow-hidden rounded-md border border-border bg-muted/20 transition-colors hover:border-foreground/30"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex h-14 w-14 items-center justify-center">
+            {resolvedUrl ? (
+              <img src={resolvedUrl} alt={label} className="h-full w-full object-cover" />
+            ) : (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+            )}
+          </div>
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl border-0 bg-black p-0 overflow-hidden">
+        {resolvedUrl ? (
+          <img src={resolvedUrl} alt={label} className="max-h-[82vh] w-full object-contain" />
+        ) : (
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function NotAuthorizedState() {
   return (
     <div className="border border-border bg-card">
@@ -118,17 +162,19 @@ export default function AdminGenerationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const status = searchParams.get('status') ?? '';
+  const workflowName = searchParams.get('workflow_name') ?? '';
   const hasFeedback = searchParams.get('has_feedback') ?? '';
   const userType = searchParams.get('user_type') ?? '';
   const isPaying = searchParams.get('is_paying') ?? '';
   const offset = Number(searchParams.get('offset') ?? '0') || 0;
 
   const query = useQuery({
-    queryKey: ['admin-generations', { status, hasFeedback, userType, isPaying, offset }],
+    queryKey: ['admin-generations', { status, workflowName, hasFeedback, userType, isPaying, offset }],
     queryFn: () => listAdminGenerations({
       limit: PAGE_SIZE,
       offset,
       status: status || undefined,
+      workflow_name: workflowName || undefined,
       has_feedback: hasFeedback === '' ? undefined : hasFeedback === 'true',
       user_type: userType || undefined,
       is_paying: isPaying === '' ? undefined : isPaying === 'true',
@@ -163,8 +209,8 @@ export default function AdminGenerationsPage() {
   }
 
   const hasFilters = useMemo(
-    () => Boolean(status || hasFeedback || userType || isPaying),
-    [status, hasFeedback, userType, isPaying],
+    () => Boolean(status || workflowName || hasFeedback || userType || isPaying),
+    [status, workflowName, hasFeedback, userType, isPaying],
   );
 
   function openDetail(item: AdminGenerationListItem) {
@@ -181,6 +227,13 @@ export default function AdminGenerationsPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
+          <Input
+            value={workflowName}
+            onChange={(event) => updateParam('workflow_name', event.target.value.trim())}
+            placeholder="Filter by workflow"
+            className="h-9 w-full shrink-0 text-sm sm:w-56"
+          />
+
           <Select value={status || 'all'} onValueChange={(value) => updateParam('status', value === 'all' ? '' : value)}>
             <SelectTrigger className="h-9 w-full shrink-0 text-sm sm:w-40">
               <SelectValue placeholder="Status" />
@@ -262,8 +315,10 @@ export default function AdminGenerationsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="font-mono text-[10px] uppercase tracking-widest">Images</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Created</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">User</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase tracking-widest">Category</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Workflow</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Status</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Actual Cost</TableHead>
@@ -276,10 +331,29 @@ export default function AdminGenerationsPage() {
                 <TableBody>
                   {items.map((item) => (
                     <TableRow key={item.workflow_id} className="cursor-pointer" onClick={() => openDetail(item)}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-center gap-1">
+                            <ThumbnailButton url={item.input_image_urls[0] ?? null} label="Input image" />
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Input</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <ThumbnailButton url={item.model_image_url} label="Model image" />
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Model</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <ThumbnailButton url={item.output_image_url} label="Output image" />
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Output</span>
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                         {formatDateTime(item.created_at)}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-sm">{item.user_email || '-'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground capitalize">
+                        {item.category || '-'}
+                      </TableCell>
                       <TableCell className="max-w-[280px] truncate text-sm">
                         {item.workflow_name || item.workflow_id}
                       </TableCell>

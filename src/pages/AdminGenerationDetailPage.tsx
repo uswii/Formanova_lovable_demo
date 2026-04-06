@@ -81,6 +81,32 @@ function extractImageUrls(value: unknown): string[] {
   return Array.from(urls);
 }
 
+function findString(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== 'object') return null;
+
+  for (const key of keys) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (typeof candidate === 'string' && candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function findStringArray(value: unknown, keys: string[]): string[] {
+  if (!value || typeof value !== 'object') return [];
+
+  for (const key of keys) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (Array.isArray(candidate)) {
+      return candidate.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+    }
+  }
+
+  return [];
+}
+
 function StatusBadge({ status }: { status: string }) {
   const variant =
     status === 'completed' ? 'default'
@@ -209,6 +235,18 @@ function InvalidRequestState({ message }: { message: string }) {
 }
 
 function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
+  const inputImageUrls = findStringArray(detail.input_payload, ['input_image_urls', 'input_images']);
+  const modelImageUrl = findString(detail.input_payload, ['model_image_url', 'model_url']);
+  const outputImageUrl =
+    detail.feedback?.output_image_url ??
+    findString(detail.input_payload, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
+    detail.steps.flatMap((step) => extractImageUrls(step.output))[0] ??
+    null;
+  const category =
+    detail.feedback?.category ??
+    findString(detail.input_payload, ['category']) ??
+    '-';
+
   return (
     <div className="space-y-6">
       <Card>
@@ -235,6 +273,25 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
           <MetaItem label="Provider Cost" value={formatMoney(detail.total_provider_cost)} />
           <MetaItem label="Workflow ID" value={detail.workflow_id} />
           <MetaItem label="Status" value={detail.status.replace(/_/g, ' ')} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-2xl tracking-wide">Visual Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <MetaItem label="Category" value={category} />
+            <MetaItem label="User Type" value={formatUserType(detail.user_type)} />
+            <MetaItem label="Plan" value={detail.is_paying ? 'Paying' : 'Free'} />
+            <MetaItem label="Complaint" value={detail.feedback ? 'Yes' : 'No'} />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <ImagePreview url={inputImageUrls[0] ?? null} label="Input Image" />
+            <ImagePreview url={modelImageUrl} label="Model Image" />
+            <ImagePreview url={outputImageUrl} label="Output Image" />
+          </div>
         </CardContent>
       </Card>
 
