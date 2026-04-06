@@ -9,6 +9,12 @@ const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
 const STATUS_URL = `${BASE_URL}/api/status`;
 const RESULT_URL = `${BASE_URL}/api/result`;
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
+const VALIDATION_UNAVAILABLE_REASONS = new Set([
+  'classification_unavailable',
+  'classification_failed',
+  'no_result',
+  'no_captioning_data',
+]);
 
 // Response from the classification service
 export interface ClassificationResult {
@@ -81,6 +87,7 @@ function mapCategoryToType(category: string, is_worn: boolean): 'worn' | 'flatla
  * Build flags array from classification result
  */
 function buildFlags(result: ClassificationResult): string[] {
+  if (VALIDATION_UNAVAILABLE_REASONS.has(result.reason)) return [];
   const flags: string[] = [];
   if (!result.is_worn) flags.push('not_worn');
   if (result.flagged) flags.push('flagged');
@@ -338,11 +345,12 @@ export function useImageValidation() {
 
         const detectedType = mapCategoryToType(result.category, result.is_worn);
         const flags = buildFlags(result);
+        const isValidationUnavailable = VALIDATION_UNAVAILABLE_REASONS.has(result.reason);
 
         return {
           index: idx,
           detected_type: detectedType,
-          is_acceptable: result.is_worn,
+          is_acceptable: isValidationUnavailable ? true : result.is_worn,
           flags,
           confidence: result.confidence,
           message: result.reason,
