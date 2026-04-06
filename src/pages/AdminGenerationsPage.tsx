@@ -1,13 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ImageOff, Loader2, MessageSquareWarning } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, MessageSquareWarning } from 'lucide-react';
 
-import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { getStoredToken } from '@/lib/auth-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -52,14 +49,12 @@ function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
-function formatMoney(value: number | null): string {
+function formatCredits(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 4,
-  }).format(value);
+  }).format(value)} credits`;
 }
 
 function formatUserType(value: string | null): string {
@@ -81,79 +76,6 @@ function StatusBadge({ status }: { status: string }) {
 
 function PayingBadge({ isPaying }: { isPaying: boolean }) {
   return <Badge variant={isPaying ? 'default' : 'outline'}>{isPaying ? 'Paying' : 'Free'}</Badge>;
-}
-
-async function downloadAuthImage(url: string, filename: string) {
-  const token = getStoredToken();
-  if (!token) return;
-  try {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  } catch {
-    // Silent fallback for admin preview actions.
-  }
-}
-
-function ThumbnailButton({ url, label }: { url: string | null; label: string }) {
-  const [open, setOpen] = useState(false);
-  const resolvedUrl = useAuthenticatedImage(url);
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      {url ? (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            setOpen(true);
-          }}
-          className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/20 transition-colors hover:border-foreground/30"
-        >
-          {resolvedUrl ? (
-            <img src={resolvedUrl} alt={label} className="h-full w-full object-cover" />
-          ) : (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-          )}
-        </button>
-      ) : (
-        <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-muted/20">
-          <ImageOff className="h-4 w-4 text-muted-foreground/40" />
-        </div>
-      )}
-
-      {url && (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-3xl w-full border-0 bg-black p-0 overflow-hidden">
-            <div className="relative">
-              {resolvedUrl ? (
-                <img src={resolvedUrl} alt={label} className="w-full max-h-[82vh] object-contain" />
-              ) : (
-                <div className="flex h-64 items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-                </div>
-              )}
-              <div className="absolute left-3 top-3">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 gap-1.5 text-xs"
-                  onClick={() => downloadAuthImage(url, `${label.toLowerCase().replace(/\s+/g, '-')}.jpg`)}
-                >
-                  Download
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
 }
 
 function NotAuthorizedState() {
@@ -253,7 +175,7 @@ export default function AdminGenerationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-8">
           <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Admin</p>
           <h1 className="font-display text-3xl tracking-wide sm:text-4xl">Generations</h1>
@@ -348,10 +270,8 @@ export default function AdminGenerationsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-mono text-[10px] uppercase tracking-widest">Images</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Created</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">User</TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase tracking-widest">Category</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Workflow</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Status</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Actual Cost</TableHead>
@@ -359,31 +279,26 @@ export default function AdminGenerationsPage() {
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">User Type</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Paying</TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-widest">Complaint</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase tracking-widest text-right">Open</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
-                    <TableRow key={item.workflow_id} className="cursor-pointer" onClick={() => openDetail(item)}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <ThumbnailButton url={item.input_image_urls[0] ?? null} label="Input image" />
-                          <ThumbnailButton url={item.model_image_url} label="Model image" />
-                          <ThumbnailButton url={item.output_image_url} label="Output image" />
-                        </div>
-                      </TableCell>
+                    <TableRow
+                      key={item.workflow_id}
+                      className="cursor-pointer"
+                      onClick={() => openDetail(item)}
+                    >
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                         {formatDateTime(item.created_at)}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-sm">{item.user_email || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground capitalize">
-                        {item.category || '-'}
-                      </TableCell>
                       <TableCell className="max-w-[280px] truncate text-sm">
                         {item.workflow_name || item.workflow_id}
                       </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="font-mono text-xs">{formatMoney(item.actual_cost)}</TableCell>
-                      <TableCell className="font-mono text-xs">{formatMoney(item.provider_cost)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatCredits(item.actual_cost)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatCredits(item.provider_cost)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground capitalize">
                         {formatUserType(item.user_type)}
                       </TableCell>
@@ -397,6 +312,19 @@ export default function AdminGenerationsPage() {
                         ) : (
                           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openDetail(item);
+                          }}
+                        >
+                          View Details
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

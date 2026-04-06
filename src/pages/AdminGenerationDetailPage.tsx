@@ -37,14 +37,12 @@ function formatDuration(value: number | null): string {
   return `${value.toLocaleString()} ms`;
 }
 
-function formatMoney(value: number | null): string {
+function formatCredits(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 4,
-  }).format(value);
+  }).format(value)} credits`;
 }
 
 function formatUserType(value: string | null): string {
@@ -81,6 +79,24 @@ function extractImageUrls(value: unknown): string[] {
   return Array.from(urls);
 }
 
+function isRenderableUrl(value: string | null): boolean {
+  if (!value) return false;
+  return value.startsWith('https://') || value.startsWith('http://');
+}
+
+function normalizeRenderableUrl(value: string | null): string | null {
+  if (!value) return null;
+  return isRenderableUrl(value) ? value : null;
+}
+
+function firstRenderableUrl(values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const normalized = normalizeRenderableUrl(value ?? null);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 function findString(value: unknown, keys: string[]): string | null {
   if (!value || typeof value !== 'object') return null;
 
@@ -105,6 +121,19 @@ function findStringArray(value: unknown, keys: string[]): string[] {
   }
 
   return [];
+}
+
+function findText(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== 'object') return null;
+
+  for (const key of keys) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -265,16 +294,38 @@ function InvalidRequestState({ message }: { message: string }) {
 }
 
 function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
-  const inputImageUrls = findStringArray(detail.input_payload, ['input_image_urls', 'input_images']);
-  const modelImageUrl = findString(detail.input_payload, ['model_image_url', 'model_url']);
-  const outputImageUrl =
-    detail.feedback?.output_image_url ??
-    findString(detail.input_payload, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
-    detail.steps.flatMap((step) => extractImageUrls(step.output))[0] ??
-    null;
+  const stepInputImageUrls = detail.steps.flatMap((step) =>
+    extractImageUrls(step.input)
+      .map((value) => normalizeRenderableUrl(value))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const stepOutputImageUrls = detail.steps.flatMap((step) =>
+    extractImageUrls(step.output)
+      .map((value) => normalizeRenderableUrl(value))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const inputImageUrls = [
+    ...findStringArray(detail.input_payload, ['input_image_urls', 'input_images']),
+    ...['jewelry_image_url', 'input_image_url']
+      .map((key) => findString(detail.input_payload, [key]))
+      .filter((value): value is string => Boolean(value)),
+    ...stepInputImageUrls,
+  ]
+    .map((value) => normalizeRenderableUrl(value))
+    .filter((value): value is string => Boolean(value));
+  const modelImageUrl = firstRenderableUrl([
+    findString(detail.input_payload, ['model_image_url', 'model_url']),
+    findString(detail.steps[0]?.input, ['model_image_url', 'model_url']),
+    stepInputImageUrls[1],
+  ]);
+  const outputImageUrl = firstRenderableUrl([
+    detail.feedback?.output_image_url ?? null,
+    findString(detail.input_payload, ['output_image_url', 'output_url', 'image_url', 'result_url']),
+    stepOutputImageUrls[0],
+  ]);
   const category =
     detail.feedback?.category ??
-    findString(detail.input_payload, ['category']) ??
+    findText(detail.input_payload, ['category', 'jewelry_category', 'jewelry_type', 'product_category']) ??
     '-';
 
   return (
@@ -299,8 +350,8 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
           <MetaItem label="User Type" value={formatUserType(detail.user_type)} />
           <MetaItem label="Created" value={formatDateTime(detail.created_at)} />
           <MetaItem label="Finished" value={formatDateTime(detail.finished_at)} />
-          <MetaItem label="Actual Cost" value={formatMoney(detail.actual_cost)} />
-          <MetaItem label="Provider Cost" value={formatMoney(detail.total_provider_cost)} />
+          <MetaItem label="Actual Cost" value={formatCredits(detail.actual_cost)} />
+          <MetaItem label="Provider Cost" value={formatCredits(detail.total_provider_cost)} />
           <MetaItem label="Workflow ID" value={detail.workflow_id} />
           <MetaItem label="Status" value={detail.status.replace(/_/g, ' ')} />
         </CardContent>
@@ -335,7 +386,9 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
             <p className="text-sm text-muted-foreground">No processing steps were returned for this workflow.</p>
           ) : (
             detail.steps.map((step, index) => {
-              const stepImageUrls = extractImageUrls(step.output);
+              const stepImageUrls = extractImageUrls(step.output)
+                .map((value) => normalizeRenderableUrl(value))
+                .filter((value): value is string => Boolean(value));
               return (
                 <div key={`${step.tool_name}-${index}`} className="rounded-md border border-border">
                   <div className="grid gap-4 border-b border-border px-4 py-4 sm:grid-cols-4">
@@ -407,13 +460,17 @@ export default function AdminGenerationDetailPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-6 flex items-center justify-between gap-4">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(backTarget)}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to Generations
-          </Button>
-          <Link to={backTarget} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
-            List View
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(backTarget)}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Generations
+            </Button>
+            <Button asChild size="sm" className="gap-2">
+              <Link to={backTarget}>
+                List View
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {query.isLoading ? (

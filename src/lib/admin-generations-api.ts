@@ -50,10 +50,6 @@ export interface AdminGenerationListItem {
   user_type: AdminGenerationUserType | null;
   is_paying: boolean;
   feedback_id: string | null;
-  category: string | null;
-  input_image_urls: string[];
-  model_image_url: string | null;
-  output_image_url: string | null;
 }
 
 export interface AdminGenerationsListResponse {
@@ -108,7 +104,7 @@ function unwrapPayload(value: unknown): unknown {
   return value;
 }
 
-function isImageUrl(value: string): boolean {
+function isRenderableUrl(value: string): boolean {
   const lower = value.toLowerCase();
   return (
     value.startsWith('http://') ||
@@ -123,7 +119,7 @@ function extractImageUrls(value: unknown): string[] {
 
   function visit(node: unknown) {
     if (typeof node === 'string') {
-      if (isImageUrl(node)) {
+      if (isRenderableUrl(node)) {
         urls.add(node);
       }
       return;
@@ -168,23 +164,6 @@ function findStringArray(value: unknown, keys: string[]): string[] {
 }
 
 function normalizeListItem(item: any): AdminGenerationListItem {
-  const inputPayload = unwrapPayload(item.input_payload ?? item.input ?? item.payload ?? null);
-  const inputImageUrls = [
-    ...findStringArray(item, ['input_image_urls', 'input_images']),
-    ...findStringArray(inputPayload, ['input_image_urls', 'input_images']),
-  ].filter((value, index, array) => array.indexOf(value) === index);
-  const primaryInputImageUrl =
-    findString(item, ['jewelry_image_url', 'input_image_url']) ??
-    findString(inputPayload, ['jewelry_image_url', 'input_image_url']);
-  const modelImageUrl =
-    findString(item, ['model_image_url', 'model_url']) ??
-    findString(inputPayload, ['model_image_url', 'model_url']);
-  const outputImageUrl =
-    findString(item, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
-    findString(item.output, ['output_image_url', 'output_url', 'image_url', 'result_url']) ??
-    extractImageUrls(item.output ?? item.result ?? null)[0] ??
-    null;
-
   return {
     workflow_id: item.workflow_id ?? item.id ?? '',
     workflow_name: item.workflow_name ?? item.name ?? '',
@@ -201,14 +180,6 @@ function normalizeListItem(item: any): AdminGenerationListItem {
     user_type: item.user_type ?? null,
     is_paying: Boolean(item.is_paying),
     feedback_id: item.feedback_id ?? null,
-    category: item.category ?? findString(inputPayload, ['category']) ?? null,
-    input_image_urls: primaryInputImageUrl
-      ? [primaryInputImageUrl, ...inputImageUrls.filter((url) => url !== primaryInputImageUrl)]
-      : inputImageUrls.length > 0
-        ? inputImageUrls
-        : extractImageUrls(inputPayload),
-    model_image_url: modelImageUrl,
-    output_image_url: outputImageUrl,
   };
 }
 
