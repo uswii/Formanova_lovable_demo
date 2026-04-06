@@ -37,14 +37,12 @@ function formatDuration(value: number | null): string {
   return `${value.toLocaleString()} ms`;
 }
 
-function formatMoney(value: number | null): string {
+function formatCredits(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 4,
-  }).format(value);
+  }).format(value)} credits`;
 }
 
 function formatUserType(value: string | null): string {
@@ -89,6 +87,14 @@ function isRenderableUrl(value: string | null): boolean {
 function normalizeRenderableUrl(value: string | null): string | null {
   if (!value) return null;
   return isRenderableUrl(value) ? value : null;
+}
+
+function firstRenderableUrl(values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const normalized = normalizeRenderableUrl(value ?? null);
+    if (normalized) return normalized;
+  }
+  return null;
 }
 
 function findString(value: unknown, keys: string[]): string | null {
@@ -288,20 +294,35 @@ function InvalidRequestState({ message }: { message: string }) {
 }
 
 function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
+  const stepInputImageUrls = detail.steps.flatMap((step) =>
+    extractImageUrls(step.input)
+      .map((value) => normalizeRenderableUrl(value))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const stepOutputImageUrls = detail.steps.flatMap((step) =>
+    extractImageUrls(step.output)
+      .map((value) => normalizeRenderableUrl(value))
+      .filter((value): value is string => Boolean(value)),
+  );
   const inputImageUrls = [
     ...findStringArray(detail.input_payload, ['input_image_urls', 'input_images']),
     ...['jewelry_image_url', 'input_image_url']
       .map((key) => findString(detail.input_payload, [key]))
       .filter((value): value is string => Boolean(value)),
+    ...stepInputImageUrls,
   ]
     .map((value) => normalizeRenderableUrl(value))
     .filter((value): value is string => Boolean(value));
-  const modelImageUrl = normalizeRenderableUrl(findString(detail.input_payload, ['model_image_url', 'model_url']));
-  const outputImageUrl =
-    normalizeRenderableUrl(detail.feedback?.output_image_url ?? null) ??
-    normalizeRenderableUrl(findString(detail.input_payload, ['output_image_url', 'output_url', 'image_url', 'result_url'])) ??
-    detail.steps.flatMap((step) => extractImageUrls(step.output).map((value) => normalizeRenderableUrl(value)).filter((value): value is string => Boolean(value)))[0] ??
-    null;
+  const modelImageUrl = firstRenderableUrl([
+    findString(detail.input_payload, ['model_image_url', 'model_url']),
+    findString(detail.steps[0]?.input, ['model_image_url', 'model_url']),
+    stepInputImageUrls[1],
+  ]);
+  const outputImageUrl = firstRenderableUrl([
+    detail.feedback?.output_image_url ?? null,
+    findString(detail.input_payload, ['output_image_url', 'output_url', 'image_url', 'result_url']),
+    stepOutputImageUrls[0],
+  ]);
   const category =
     detail.feedback?.category ??
     findText(detail.input_payload, ['category', 'jewelry_category', 'jewelry_type', 'product_category']) ??
@@ -329,8 +350,8 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
           <MetaItem label="User Type" value={formatUserType(detail.user_type)} />
           <MetaItem label="Created" value={formatDateTime(detail.created_at)} />
           <MetaItem label="Finished" value={formatDateTime(detail.finished_at)} />
-          <MetaItem label="Actual Cost" value={formatMoney(detail.actual_cost)} />
-          <MetaItem label="Provider Cost" value={formatMoney(detail.total_provider_cost)} />
+          <MetaItem label="Actual Cost" value={formatCredits(detail.actual_cost)} />
+          <MetaItem label="Provider Cost" value={formatCredits(detail.total_provider_cost)} />
           <MetaItem label="Workflow ID" value={detail.workflow_id} />
           <MetaItem label="Status" value={detail.status.replace(/_/g, ' ')} />
         </CardContent>

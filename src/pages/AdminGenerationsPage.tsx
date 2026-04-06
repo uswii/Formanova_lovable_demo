@@ -49,14 +49,12 @@ function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
-function formatMoney(value: number | null): string {
+function formatCredits(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 4,
-  }).format(value);
+  }).format(value)} credits`;
 }
 
 function formatUserType(value: string | null): string {
@@ -299,8 +297,8 @@ export default function AdminGenerationsPage() {
                         {item.workflow_name || item.workflow_id}
                       </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="font-mono text-xs">{formatMoney(item.actual_cost)}</TableCell>
-                      <TableCell className="font-mono text-xs">{formatMoney(item.provider_cost)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatCredits(item.actual_cost)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatCredits(item.provider_cost)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground capitalize">
                         {formatUserType(item.user_type)}
                       </TableCell>
