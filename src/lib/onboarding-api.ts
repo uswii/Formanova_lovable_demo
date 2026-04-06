@@ -15,7 +15,7 @@ export type UserProfile = {
 };
 
 const KEY_PREFIX = 'formanova_onboarding_';
-const TOS_KEY_PREFIX = 'formanova_tos_';
+const TOS_KEY_PREFIX = 'formanova_upload_guide_v2_';
 
 export function isOnboardingComplete(userId: string): boolean {
   return localStorage.getItem(KEY_PREFIX + userId) === 'true';
