@@ -109,6 +109,5 @@ export function isModelsApiEnabled(_email: string | undefined | null): boolean {
 const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];
 
 export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return STUDIO_ONBOARDING_EMAILS.includes(email.toLowerCase());
+  return true;
 }
