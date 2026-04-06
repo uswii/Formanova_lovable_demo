@@ -1,7 +1,6 @@
 import { getStoredToken } from '@/lib/auth-api';
 
-const BASE_URL = 'https://formanova.ai';
-const ADMIN_GENERATIONS_BASE = `${BASE_URL}/admin/generations`;
+const ADMIN_GENERATIONS_BASE = '/api/admin/generations';
 
 export class AdminGenerationsApiError extends Error {
   status: number;
