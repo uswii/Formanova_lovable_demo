@@ -1,0 +1,220 @@
+import { getStoredToken } from '@/lib/auth-api';
+
+const BASE_URL = 'https://formanova.ai';
+const ADMIN_GENERATIONS_BASE = `${BASE_URL}/admin/generations`;
+
+export class AdminGenerationsApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'AdminGenerationsApiError';
+    this.status = status;
+  }
+}
+
+export type AdminGenerationStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | string;
+
+export type AdminGenerationUserType =
+  | 'jewelry_brand'
+  | 'freelancer'
+  | 'researcher_student'
+  | 'content_creator'
+  | 'other'
+  | string;
+
+export interface AdminGenerationsListParams {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  has_feedback?: boolean;
+  user_type?: string;
+  is_paying?: boolean;
+}
+
+export interface AdminGenerationListItem {
+  workflow_id: string;
+  workflow_name: string;
+  status: AdminGenerationStatus;
+  created_at: string;
+  finished_at: string | null;
+  user_email: string;
+  actual_cost: number | null;
+  provider_cost: number | null;
+  user_type: AdminGenerationUserType | null;
+  is_paying: boolean;
+  feedback_id: string | null;
+}
+
+export interface AdminGenerationsListResponse {
+  items: AdminGenerationListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AdminGenerationStep {
+  tool_name: string;
+  took_ms: number | null;
+  at: string | null;
+  input: unknown;
+  output: unknown;
+}
+
+export interface AdminGenerationFeedback {
+  id: string;
+  complaint: string;
+  category: string;
+  reporter_email: string;
+  created_at: string;
+  input_image_urls: string[] | null;
+  output_image_url: string | null;
+}
+
+export interface AdminGenerationDetail {
+  workflow_id: string;
+  workflow_name: string;
+  status: AdminGenerationStatus;
+  user_email: string;
+  user_type: AdminGenerationUserType | null;
+  is_paying: boolean;
+  created_at: string;
+  finished_at: string | null;
+  actual_cost: number | null;
+  total_provider_cost: number | null;
+  input_payload: unknown;
+  steps: AdminGenerationStep[];
+  feedback: AdminGenerationFeedback | null;
+}
+
+function normalizeListItem(item: any): AdminGenerationListItem {
+  return {
+    workflow_id: item.workflow_id ?? item.id ?? '',
+    workflow_name: item.workflow_name ?? item.name ?? '',
+    status: item.status ?? 'unknown',
+    created_at: item.created_at ?? '',
+    finished_at: item.finished_at ?? null,
+    user_email: item.user_email ?? item.email ?? '',
+    actual_cost: typeof item.actual_cost === 'number' ? item.actual_cost : null,
+    provider_cost: typeof item.provider_cost === 'number'
+      ? item.provider_cost
+      : typeof item.total_provider_cost === 'number'
+        ? item.total_provider_cost
+        : null,
+    user_type: item.user_type ?? null,
+    is_paying: Boolean(item.is_paying),
+    feedback_id: item.feedback_id ?? null,
+  };
+}
+
+function normalizeStep(step: any): AdminGenerationStep {
+  return {
+    tool_name: step.tool_name ?? step.tool ?? 'Unknown tool',
+    took_ms: typeof step.took_ms === 'number' ? step.took_ms : null,
+    at: step.at ?? step.created_at ?? null,
+    input: step.input ?? step.input_data ?? null,
+    output: step.output ?? step.output_data ?? null,
+  };
+}
+
+function normalizeFeedback(feedback: any): AdminGenerationFeedback | null {
+  if (!feedback) return null;
+  return {
+    id: feedback.id ?? feedback.feedback_id ?? '',
+    complaint: feedback.complaint ?? '',
+    category: feedback.category ?? 'other',
+    reporter_email: feedback.reporter_email ?? feedback.user_email ?? '',
+    created_at: feedback.created_at ?? '',
+    input_image_urls: Array.isArray(feedback.input_image_urls) ? feedback.input_image_urls : null,
+    output_image_url: feedback.output_image_url ?? null,
+  };
+}
+
+async function adminGenerationsFetch(path: string): Promise<Response> {
+  const token = getStoredToken();
+  if (!token) throw new AdminGenerationsApiError(401, 'Missing authentication token.');
+
+  const response = await fetch(path, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    let message = `Request failed: ${response.status}`;
+    try {
+      const body = await response.json();
+      if (typeof body?.detail === 'string') message = body.detail;
+      else if (typeof body?.message === 'string') message = body.message;
+    } catch {
+      const text = await response.text().catch(() => '');
+      if (text) message = text;
+    }
+    throw new AdminGenerationsApiError(response.status, message);
+  }
+
+  return response;
+}
+
+export async function listAdminGenerations(
+  params: AdminGenerationsListParams = {},
+): Promise<AdminGenerationsListResponse> {
+  const q = new URLSearchParams();
+  if (params.limit !== undefined) q.set('limit', String(params.limit));
+  if (params.offset !== undefined) q.set('offset', String(params.offset));
+  if (params.status) q.set('status', params.status);
+  if (params.has_feedback !== undefined) q.set('has_feedback', String(params.has_feedback));
+  if (params.user_type) q.set('user_type', params.user_type);
+  if (params.is_paying !== undefined) q.set('is_paying', String(params.is_paying));
+
+  const response = await adminGenerationsFetch(
+    `${ADMIN_GENERATIONS_BASE}${q.toString() ? `?${q.toString()}` : ''}`,
+  );
+  const data = await response.json();
+  const rawItems = Array.isArray(data)
+    ? data
+    : Array.isArray(data.items)
+      ? data.items
+      : Array.isArray(data.generations)
+        ? data.generations
+        : [];
+
+  return {
+    items: rawItems.map(normalizeListItem),
+    total: typeof data.total === 'number' ? data.total : rawItems.length,
+    limit: typeof data.limit === 'number' ? data.limit : params.limit ?? rawItems.length,
+    offset: typeof data.offset === 'number' ? data.offset : params.offset ?? 0,
+  };
+}
+
+export async function getAdminGenerationDetail(workflowId: string): Promise<AdminGenerationDetail> {
+  const response = await adminGenerationsFetch(`${ADMIN_GENERATIONS_BASE}/${encodeURIComponent(workflowId)}`);
+  const data = await response.json();
+  const payload = data.data ?? data;
+
+  return {
+    workflow_id: payload.workflow_id ?? payload.id ?? workflowId,
+    workflow_name: payload.workflow_name ?? payload.name ?? '',
+    status: payload.status ?? 'unknown',
+    user_email: payload.user_email ?? payload.email ?? '',
+    user_type: payload.user_type ?? null,
+    is_paying: Boolean(payload.is_paying),
+    created_at: payload.created_at ?? '',
+    finished_at: payload.finished_at ?? null,
+    actual_cost: typeof payload.actual_cost === 'number' ? payload.actual_cost : null,
+    total_provider_cost: typeof payload.total_provider_cost === 'number'
+      ? payload.total_provider_cost
+      : typeof payload.provider_cost === 'number'
+        ? payload.provider_cost
+        : null,
+    input_payload: payload.input_payload ?? payload.input ?? {},
+    steps: Array.isArray(payload.steps) ? payload.steps.map(normalizeStep) : [],
+    feedback: normalizeFeedback(payload.feedback),
+  };
+}

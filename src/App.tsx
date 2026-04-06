@@ -72,6 +72,8 @@ const PaymentCancel = lazyWithRetry(() => import("./pages/PaymentCancel"));
 const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
 const AdminFeedbackPage = lazyWithRetry(() => import("./pages/AdminFeedbackPage"));
 const AdminModelsPage = lazyWithRetry(() => import("./pages/AdminModelsPage"));
+const AdminGenerationsPage = lazyWithRetry(() => import("./pages/AdminGenerationsPage"));
+const AdminGenerationDetailPage = lazyWithRetry(() => import("./pages/AdminGenerationDetailPage"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
@@ -296,6 +298,8 @@ const App = () => (
                   <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
                   <Route path="/admin/feedback" element={<AdminRouteGuard><AdminFeedbackPage /></AdminRouteGuard>} />
                   <Route path="/admin/models" element={<AdminRouteGuard><AdminModelsPage /></AdminRouteGuard>} />
+                  <Route path="/admin/generations" element={<ProtectedRoute><AdminGenerationsPage /></ProtectedRoute>} />
+                  <Route path="/admin/generations/:workflowId" element={<ProtectedRoute><AdminGenerationDetailPage /></ProtectedRoute>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

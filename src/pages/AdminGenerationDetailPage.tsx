@@ -1,0 +1,369 @@
+import { useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ChevronDown,
+  ImageOff,
+  Loader2,
+  MessageSquareWarning,
+} from 'lucide-react';
+
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import {
+  AdminGenerationsApiError,
+  getAdminGenerationDetail,
+  type AdminGenerationDetail,
+} from '@/lib/admin-generations-api';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function formatDuration(value: number | null): string {
+  if (value === null || value === undefined) return '-';
+  return `${value.toLocaleString()} ms`;
+}
+
+function formatMoney(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return '-';
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+
+function formatUserType(value: string | null): string {
+  if (!value) return '-';
+  return value.replace(/_/g, ' ');
+}
+
+function extractImageUrls(value: unknown): string[] {
+  const urls = new Set<string>();
+
+  function visit(node: unknown) {
+    if (typeof node === 'string') {
+      const lower = node.toLowerCase();
+      if (
+        node.startsWith('http://') ||
+        node.startsWith('https://') ||
+        node.includes('/artifacts/') ||
+        /\.(png|jpg|jpeg|webp|gif|bmp|svg)(\?|$)/i.test(lower)
+      ) {
+        urls.add(node);
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    if (node && typeof node === 'object') {
+      Object.values(node as Record<string, unknown>).forEach(visit);
+    }
+  }
+
+  visit(value);
+  return Array.from(urls);
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const variant =
+    status === 'completed' ? 'default'
+      : status === 'failed' ? 'destructive'
+        : 'secondary';
+  return (
+    <Badge variant={variant} className="capitalize">
+      {status.replace(/_/g, ' ')}
+    </Badge>
+  );
+}
+
+function PayingBadge({ isPaying }: { isPaying: boolean }) {
+  return <Badge variant={isPaying ? 'default' : 'outline'}>{isPaying ? 'Paying' : 'Free'}</Badge>;
+}
+
+function MetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-sm">{value}</p>
+    </div>
+  );
+}
+
+function JsonBlock({ title, value, defaultOpen = false }: { title: string; value: unknown; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const formatted = useMemo(() => JSON.stringify(value ?? {}, null, 2), [value]);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="rounded-md border border-border">
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex w-full items-center justify-between px-4 py-3 text-left">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{title}</span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-t border-border bg-muted/20 p-4">
+            <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+              {formatted}
+            </pre>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
+function ImagePreview({ url, label }: { url: string | null; label: string }) {
+  const resolvedUrl = useAuthenticatedImage(url);
+
+  return (
+    <div className="space-y-2">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <div className="overflow-hidden rounded-md border border-border bg-muted/20">
+        {url ? (
+          resolvedUrl ? (
+            <img src={resolvedUrl} alt={label} className="max-h-72 w-full object-contain" />
+          ) : (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )
+        ) : (
+          <div className="flex h-40 items-center justify-center">
+            <ImageOff className="h-5 w-5 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NotAuthorizedState() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="font-display text-2xl tracking-wide">Not Authorized</h2>
+          <p className="text-sm text-muted-foreground">
+            Your account is authenticated, but the backend did not authorize access to this generation detail.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NotFoundState() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <MessageSquareWarning className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="font-display text-2xl tracking-wide">Generation Not Found</h2>
+          <p className="text-sm text-muted-foreground">
+            The requested workflow could not be found in the current tenant.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InvalidRequestState({ message }: { message: string }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="font-display text-2xl tracking-wide">Invalid Request</h2>
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Workflow</p>
+              <CardTitle className="font-display text-3xl tracking-wide">
+                {detail.workflow_name || detail.workflow_id}
+              </CardTitle>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge status={detail.status} />
+              <PayingBadge isPaying={detail.is_paying} />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <MetaItem label="User Email" value={detail.user_email || '-'} />
+          <MetaItem label="User Type" value={formatUserType(detail.user_type)} />
+          <MetaItem label="Created" value={formatDateTime(detail.created_at)} />
+          <MetaItem label="Finished" value={formatDateTime(detail.finished_at)} />
+          <MetaItem label="Actual Cost" value={formatMoney(detail.actual_cost)} />
+          <MetaItem label="Provider Cost" value={formatMoney(detail.total_provider_cost)} />
+          <MetaItem label="Workflow ID" value={detail.workflow_id} />
+          <MetaItem label="Status" value={detail.status.replace(/_/g, ' ')} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-2xl tracking-wide">Input Payload</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <JsonBlock title="Raw JSON" value={detail.input_payload} defaultOpen />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-2xl tracking-wide">Processing Steps</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {detail.steps.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No processing steps were returned for this workflow.</p>
+          ) : (
+            detail.steps.map((step, index) => {
+              const stepImageUrls = extractImageUrls(step.output);
+              return (
+                <div key={`${step.tool_name}-${index}`} className="rounded-md border border-border">
+                  <div className="grid gap-4 border-b border-border px-4 py-4 sm:grid-cols-4">
+                    <MetaItem label="Step" value={`${index + 1}. ${step.tool_name}`} />
+                    <MetaItem label="Duration" value={formatDuration(step.took_ms)} />
+                    <MetaItem label="Timestamp" value={formatDateTime(step.at)} />
+                    <MetaItem label="Tool" value={step.tool_name} />
+                  </div>
+                  <div className="space-y-3 p-4">
+                    <JsonBlock title="Input" value={step.input} />
+                    <JsonBlock title="Output" value={step.output} />
+                    {stepImageUrls.length > 0 && (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {stepImageUrls.map((url) => (
+                          <ImagePreview key={url} url={url} label="Step Output Image" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      {detail.feedback && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-2xl tracking-wide">Complaint</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <MetaItem label="Reporter Email" value={detail.feedback.reporter_email || '-'} />
+              <MetaItem label="Category" value={detail.feedback.category || '-'} />
+              <MetaItem label="Created" value={formatDateTime(detail.feedback.created_at)} />
+              <MetaItem label="Feedback ID" value={detail.feedback.id} />
+            </div>
+            <div className="space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Complaint Text</p>
+              <p className="text-sm leading-relaxed">{detail.feedback.complaint || '-'}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {(detail.feedback.input_image_urls ?? []).map((url, index) => (
+                <ImagePreview key={`${url}-${index}`} url={url} label={`Input Image ${index + 1}`} />
+              ))}
+              <ImagePreview url={detail.feedback.output_image_url} label="Output Image" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+export default function AdminGenerationDetailPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { workflowId = '' } = useParams<{ workflowId: string }>();
+
+  const query = useQuery({
+    queryKey: ['admin-generation-detail', workflowId],
+    queryFn: () => getAdminGenerationDetail(workflowId),
+    enabled: Boolean(workflowId),
+    retry: false,
+  });
+
+  const error = query.error instanceof AdminGenerationsApiError ? query.error : null;
+  const backTarget = `/admin/generations${location.search || ''}`;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(backTarget)}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Generations
+          </Button>
+          <Link to={backTarget} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+            List View
+          </Link>
+        </div>
+
+        {query.isLoading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : error?.status === 401 ? (
+          <NotAuthorizedState />
+        ) : error?.status === 404 ? (
+          <NotFoundState />
+        ) : error?.status === 422 ? (
+          <InvalidRequestState message={error.message || 'The request was invalid.'} />
+        ) : error ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-16">
+              <p className="text-sm text-muted-foreground">Failed to load generation detail.</p>
+            </CardContent>
+          </Card>
+        ) : query.data ? (
+          <DetailContent detail={query.data} />
+        ) : (
+          <NotFoundState />
+        )}
+      </div>
+    </div>
+  );
+}
