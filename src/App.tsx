@@ -140,45 +140,7 @@ function OnboardingRedirectHandler() {
   return null;
 }
 
-/** Shows the upload guide modal once to every new user. */
-function GlobalOnboardingGate_REMOVED() {
-
-  useEffect(() => {
-    if (initializing || !user || hasChecked.current) return;
-    if (!isStudioOnboardingEnabled(user.email)) return;
-    if (!location.pathname.startsWith('/studio/')) return;
-
-    hasChecked.current = true;
-
-    if (isTosAgreed(user.id)) return;
-
-    // localStorage says not seen — verify against backend in case storage was cleared
-    checkUploadInstructionsSeen()
-      .then((seenOnBackend) => {
-        if (seenOnBackend) {
-          markTosAgreed(user.id); // sync localStorage
-          return;
-        }
-        setOpen(true);
-        trackUploadGuideViewed();
-      })
-      .catch(() => {
-        // If API fails, fall back to showing the modal
-        setOpen(true);
-        trackUploadGuideViewed();
-      });
-  }, [initializing, user?.id, location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleClose = () => {
-    setOpen(false);
-    if (!user) return;
-    markTosAgreed(user.id);
-    trackUploadGuideAcknowledged();
-    markUploadInstructionsSeen().catch(() => {});
-  };
-
-  return <UploadGuideModal open={open} onClose={handleClose} />;
-}
+/* GlobalOnboardingGate removed — guide is now handled inside UnifiedStudio */
 
 const DEV_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
 
