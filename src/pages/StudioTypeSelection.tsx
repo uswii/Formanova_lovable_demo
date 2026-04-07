@@ -18,7 +18,7 @@ const modes = [
     title: 'Product Shot',
     description: 'Create clean product images for listings and PDPs.',
     route: '/studio/categories',
-    comingSoon: true,
+    comingSoon: false,
     icon: Package,
     image: productShotImg,
   },
@@ -37,12 +37,12 @@ export default function StudioTypeSelection() {
         className="text-center mb-8 md:mb-12"
       >
         <p className="font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-formanova-hero-accent mb-3">
-          Welcome to Studio
+          You are in Photo Studio
         </p>
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none mb-3">
           What do you want to create?
         </h1>
-        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-muted-foreground uppercase">
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/70 uppercase font-medium">
           Choose the type of image you want to generate
         </p>
       </motion.div>
@@ -149,7 +149,7 @@ export default function StudioTypeSelection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-muted-foreground uppercase pb-6"
+        className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/60 uppercase font-semibold pb-6"
       >
         You can switch between modes anytime in the{' '}
         <span className="text-formanova-hero-accent">Studio</span>
