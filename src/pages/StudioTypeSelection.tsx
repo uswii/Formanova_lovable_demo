@@ -6,7 +6,7 @@ import { PeopleIcon } from '@/components/icons/PeopleIcon';
 import { RingIcon } from '@/components/icons/RingIcon';
 
 import modelShotImg from '@/assets/jewelry/model-shot-card.webp';
-import productShotImg from '@/assets/jewelry/ps-rings.webp';
+import productShotImg from '@/assets/cad-studio/product-shot-card.webp';
 
 const modes = [
   {

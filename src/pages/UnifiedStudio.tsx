@@ -586,6 +586,7 @@ export default function UnifiedStudio() {
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
   const location = useLocation();
+  const isProductShot = (location.state as any)?.mode === 'product-shot';
   // Intentionally empty deps: pre-load runs once on mount from route state.
   // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1111,14 +1112,14 @@ export default function UnifiedStudio() {
           {isStudioTypeSelectionEnabled(user?.email) && (
             <div className="flex items-center border border-border bg-background">
               <button
-                onClick={() => {/* already in model shot */}}
-                className="px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold bg-foreground text-background transition-all"
+                onClick={() => !isProductShot ? undefined : navigate('/studio/categories')}
+                className={`px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold transition-all ${!isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Model Shot
               </button>
               <button
-                onClick={() => navigate('/studio/product-shot/categories')}
-                className="px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-muted-foreground hover:text-foreground transition-all"
+                onClick={() => isProductShot ? undefined : navigate('/studio/product-shot/categories')}
+                className={`px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold transition-all ${isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Product Shot
               </button>
@@ -1129,7 +1130,7 @@ export default function UnifiedStudio() {
           <div className="flex items-center justify-center gap-0">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
-              { step: 2, label: 'Choose Model', id: 'model' as const },
+              { step: 2, label: isProductShot ? 'Inspiration' : 'Choose Model', id: 'model' as const },
               { step: 3, label: 'Results', id: 'results' as const },
             ].map((s, index, arr) => {
               const stepOrder = { upload: 0, model: 1, generating: 2, results: 2 };
