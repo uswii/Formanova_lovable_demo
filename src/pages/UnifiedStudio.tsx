@@ -1110,16 +1110,24 @@ export default function UnifiedStudio() {
 
           {/* Mode Switcher — only for gated users */}
           {isStudioTypeSelectionEnabled(user?.email) && (
-            <div className="flex items-center border border-border bg-background">
+            <div className="flex items-center border border-formanova-hero-accent/40 shadow-[0_0_20px_-4px_hsl(var(--formanova-hero-accent)/0.3)]">
               <button
                 onClick={() => !isProductShot ? undefined : navigate('/studio/categories')}
-                className={`w-36 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-center transition-all ${!isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
+                  !isProductShot
+                    ? 'bg-formanova-hero-accent text-primary-foreground'
+                    : 'bg-muted text-foreground/50 hover:text-foreground hover:bg-muted/80'
+                }`}
               >
                 Model Shot
               </button>
               <button
                 onClick={() => isProductShot ? undefined : navigate('/studio/product-shot/categories')}
-                className={`w-36 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-center transition-all ${isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
+                  isProductShot
+                    ? 'bg-formanova-hero-accent text-primary-foreground'
+                    : 'bg-muted text-foreground/50 hover:text-foreground hover:bg-muted/80'
+                }`}
               >
                 Product Shot
               </button>
@@ -1127,7 +1135,7 @@ export default function UnifiedStudio() {
           )}
 
           {/* Step Indicator */}
-          <div className="w-72 flex items-center justify-between">
+          <div className="w-80 flex items-center justify-between">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
               { step: 2, label: isProductShot ? 'Choose or upload inspiration' : 'Choose or upload model', id: 'model' as const },
