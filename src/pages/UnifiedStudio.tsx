@@ -1138,7 +1138,7 @@ export default function UnifiedStudio() {
           <div className="w-80 flex items-center justify-between">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
-              { step: 2, label: isProductShot ? 'Choose or upload inspiration' : 'Choose or upload model', id: 'model' as const },
+              { step: 2, label: isProductShot ? 'Choose inspiration' : 'Choose model', id: 'model' as const },
               { step: 3, label: 'Results', id: 'results' as const },
             ].map((s, index, arr) => {
               const stepOrder = { upload: 0, model: 1, generating: 2, results: 2 };
