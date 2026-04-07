@@ -182,7 +182,7 @@ export default function RolePicker() {
           What best describes you?
         </h1>
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-          Help us personalize your Formanova experience
+          Help us personalize your FormaNova experience
         </p>
       </div>
 

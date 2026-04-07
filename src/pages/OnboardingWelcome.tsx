@@ -200,7 +200,7 @@ export default function OnboardingWelcome() {
         {/* ── Header ── */}
         <div className="mb-10 text-center sm:mb-12">
           <h1 className="font-display text-4xl leading-tight tracking-wide [text-shadow:none] sm:text-5xl lg:text-6xl">
-            Welcome to Formanova
+            Welcome to FormaNova
           </h1>
           <p className="mt-3 text-sm text-muted-foreground sm:text-base">
             Read through, then confirm at the bottom to continue.
@@ -366,7 +366,7 @@ export default function OnboardingWelcome() {
               produce unpredictable results.
             </p>
             <p className="text-justify text-sm leading-relaxed text-muted-foreground sm:text-base">
-              AI can make mistakes. We are constantly working to make Formanova better for you
+              AI can make mistakes. We are constantly working to make FormaNova better for you
               and we take every case of incorrect output seriously.
             </p>
           </div>
@@ -385,7 +385,7 @@ export default function OnboardingWelcome() {
               htmlFor={tosCheckboxId}
               className="text-sm leading-relaxed text-foreground sm:text-base"
             >
-              I have read and agree to Formanova&rsquo;s{' '}
+              I have read and agree to FormaNova&rsquo;s{' '}
               <a
                 href="https://formanova.ai/terms/"
                 target="_blank"

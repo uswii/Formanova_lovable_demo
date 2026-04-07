@@ -80,7 +80,7 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
           >
             <div className="space-y-6 text-center">
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                We updated Formanova while you were generating. Your generation
+                We updated FormaNova while you were generating. Your generation
                 is still processing and will be saved to your history
                 automatically.
               </p>

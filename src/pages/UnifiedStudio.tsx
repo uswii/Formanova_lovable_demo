@@ -1605,7 +1605,7 @@ export default function UnifiedStudio() {
                       {isProductShot ? 'My Inspirations' : 'My Models'}
                     </TabsTrigger>
                     <TabsTrigger value="formanova" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
-                      {isProductShot ? 'Formanova Inspirations' : 'Formanova Models'}
+                      {isProductShot ? 'FormaNova Inspirations' : 'FormaNova Models'}
                     </TabsTrigger>
                   </TabsList>
 

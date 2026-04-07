@@ -41,7 +41,7 @@ export function UpdateBanner({ visible, onRefresh, onDismiss }: Props) {
             <div className="space-y-6 text-center">
               <div className="space-y-3">
                 <p className="font-display text-lg md:text-xl uppercase tracking-wider text-foreground">
-                  Formanova has been updated.
+                  FormaNova has been updated.
                 </p>
                 <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                   A new version is available. Refresh to get the latest improvements.
