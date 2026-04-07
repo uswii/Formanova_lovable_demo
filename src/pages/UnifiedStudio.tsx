@@ -1113,13 +1113,13 @@ export default function UnifiedStudio() {
             <div className="flex items-center border border-border bg-background">
               <button
                 onClick={() => !isProductShot ? undefined : navigate('/studio/categories')}
-                className={`px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold transition-all ${!isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`w-36 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-center transition-all ${!isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Model Shot
               </button>
               <button
                 onClick={() => isProductShot ? undefined : navigate('/studio/product-shot/categories')}
-                className={`px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold transition-all ${isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`w-36 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-center transition-all ${isProductShot ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Product Shot
               </button>
@@ -1127,7 +1127,7 @@ export default function UnifiedStudio() {
           )}
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-0">
+          <div className="w-72 flex items-center justify-between">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
               { step: 2, label: isProductShot ? 'Choose or upload inspiration' : 'Choose or upload model', id: 'model' as const },
