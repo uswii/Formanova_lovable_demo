@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { isViewGuideEnabled } from '@/lib/feature-flags';
+import { isViewGuideEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
@@ -177,6 +177,7 @@ export function AlternateUploadStep({
 
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
@@ -185,12 +186,22 @@ export function AlternateUploadStep({
   }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
-  const category = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
-  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, category);
+  const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
+  const activeCategory = isStudioTypeSelectionEnabled(userEmail) ? (selectedCategory ?? undefined) : urlCategory;
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Show upload guide if user has no uploads in the current category
   const showGuide = !isLoading && total === 0;
+
+  const JEWELRY_CATS = [
+    { label: 'All', value: null },
+    { label: 'Necklaces', value: 'necklace' },
+    { label: 'Earrings', value: 'earring' },
+    { label: 'Rings', value: 'ring' },
+    { label: 'Bracelets', value: 'bracelet' },
+    { label: 'Watches', value: 'watch' },
+  ];
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
@@ -357,7 +368,26 @@ export function AlternateUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
+              <div className={`${CANVAS_H} border border-border/30 flex flex-row overflow-hidden`}>
+                {/* Vertical category filter — gated */}
+                {isStudioTypeSelectionEnabled(userEmail) && (
+                  <div className="flex-shrink-0 w-16 border-r border-border/30 overflow-y-auto flex flex-col py-1">
+                    {JEWELRY_CATS.map((cat) => (
+                      <button
+                        key={cat.label}
+                        onClick={() => setSelectedCategory(cat.value)}
+                        className={`px-1 py-2.5 font-mono text-[9px] tracking-[0.1em] uppercase text-center transition-all duration-150 leading-tight ${
+                          selectedCategory === cat.value
+                            ? 'bg-foreground text-background'
+                            : 'text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto p-2">
                 <MasonryGrid columns={3} gap={8}>
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
@@ -400,6 +430,7 @@ export function AlternateUploadStep({
                     );
                   })}
                 </MasonryGrid>
+                </div>
               </div>
             )}
 
