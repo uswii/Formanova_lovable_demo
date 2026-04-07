@@ -11,7 +11,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
-import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
+import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
 import { isOnboardingComplete, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkUploadInstructionsSeen } from '@/lib/onboarding-api';
 import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
@@ -56,6 +56,7 @@ const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const Tutorial = lazyWithRetry(() => import("./pages/Tutorial"));
 const FeedbackRedirect = lazyWithRetry(() => import("./pages/FeedbackRedirect"));
 const PhotographyStudioCategories = lazyWithRetry(() => import("./pages/PhotographyStudioCategories"));
+const StudioTypeSelection = lazyWithRetry(() => import("./pages/StudioTypeSelection"));
 const UnifiedStudio = lazyWithRetry(() => import("./pages/UnifiedStudio"));
 // PRESERVED: Old single-upload studio - uncomment to restore
 // const JewelryStudio = lazyWithRetry(() => import("./pages/JewelryStudio"));
@@ -214,6 +215,18 @@ function TestPanel() {
   );
 }
 
+/**
+ * Routes /studio to the pre-selection screen for gated users;
+ * all others see the jewelry category picker as before.
+ */
+function StudioGate() {
+  const { user } = useAuth();
+  if (isStudioTypeSelectionEnabled(user?.email)) {
+    return <StudioTypeSelection />;
+  }
+  return <PhotographyStudioCategories />;
+}
+
 /** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
 function VersionBanner() {
   const { updateAvailable, refresh, dismiss } = useVersionPolling();
@@ -284,7 +297,8 @@ const App = () => (
                   <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                   <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                   <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-                  <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
+                  <Route path="/studio" element={<ProtectedRoute><StudioGate /></ProtectedRoute>} />
+                  <Route path="/studio/categories" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
                   <Route path="/studio/:type" element={<ProtectedRoute><UnifiedStudio /></ProtectedRoute>} />
                   {/* PRESERVED: Old single-upload route - uncomment to restore */}
                   {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
