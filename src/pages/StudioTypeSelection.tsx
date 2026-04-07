@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Package } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
-import { ModelSilhouette } from '@/components/icons/ModelSilhouette';
+import { PeopleIcon } from '@/components/icons/PeopleIcon';
+import { RingIcon } from '@/components/icons/RingIcon';
 
-import modelShotImg from '@/assets/jewelry/hero-vneck-necklace.webp';
+import modelShotImg from '@/assets/jewelry/model-shot-card.webp';
 import productShotImg from '@/assets/cad-studio/product-shot-card.webp';
 
 const modes = [
@@ -13,7 +14,7 @@ const modes = [
     description: 'Generate jewelry images worn by a model.',
     route: '/studio/categories',
     comingSoon: false,
-    icon: ModelSilhouette,
+    icon: PeopleIcon,
     image: modelShotImg,
   },
   {
@@ -21,7 +22,7 @@ const modes = [
     description: 'Create clean product images for listings and PDPs.',
     route: '/studio/categories',
     comingSoon: false,
-    icon: Package,
+    icon: RingIcon,
     image: productShotImg,
   },
 ];
