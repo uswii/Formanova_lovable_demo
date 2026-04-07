@@ -368,68 +368,65 @@ export function AlternateUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} border border-border/30 flex flex-row overflow-hidden`}>
-                {/* Vertical category filter — gated */}
-                {isStudioTypeSelectionEnabled(userEmail) && (
-                  <div className="flex-shrink-0 w-16 border-r border-border/30 overflow-y-auto flex flex-col py-1">
-                    {JEWELRY_CATS.map((cat) => (
+              <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
+                <div className="columns-3 gap-2">
+                  {/* Category buttons — gated, anchored to top of column 1 */}
+                  {isStudioTypeSelectionEnabled(userEmail) && JEWELRY_CATS.map((cat) => (
+                    <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
-                        key={cat.label}
                         onClick={() => setSelectedCategory(cat.value)}
-                        className={`px-1 py-2.5 font-mono text-[9px] tracking-[0.1em] uppercase text-center transition-all duration-150 leading-tight ${
+                        className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                           selectedCategory === cat.value
                             ? 'bg-foreground text-background'
-                            : 'text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                            : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                         }`}
                       >
-                        {cat.label}
+                        <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
+                          {cat.label}
+                        </span>
                       </button>
-                    ))}
-                  </div>
-                )}
-                <div className="flex-1 overflow-y-auto p-2">
-                <MasonryGrid columns={3} gap={8}>
+                    </div>
+                  ))}
+                  {/* Product thumbnails */}
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
                     return (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                        className={`relative overflow-hidden border transition-all group w-full
-                          ${isSelected
-                            ? 'border-[hsl(var(--formanova-hero-accent))]'
-                            : 'border-border/20 hover:border-foreground/30'}`}
-                      >
-                        <ProductThumb
-                          src={asset.thumbnail_url}
-                          alt={asset.name ?? 'Product'}
-                        />
-
-                        {isSelected && (
-                          <div className="absolute inset-0 flex items-center justify-center"
-                               style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
-                            <div className="w-6 h-6 flex items-center justify-center"
-                                 style={{ background: 'hsl(var(--formanova-hero-accent))' }}>
-                              <Check className="h-3.5 w-3.5 text-background" />
+                      <div key={asset.id} className="break-inside-avoid mb-2">
+                        <button
+                          type="button"
+                          onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
+                          className={`relative overflow-hidden border transition-all group w-full
+                            ${isSelected
+                              ? 'border-[hsl(var(--formanova-hero-accent))]'
+                              : 'border-border/20 hover:border-foreground/30'}`}
+                        >
+                          <ProductThumb
+                            src={asset.thumbnail_url}
+                            alt={asset.name ?? 'Product'}
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center"
+                                 style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
+                              <div className="w-6 h-6 flex items-center justify-center"
+                                   style={{ background: 'hsl(var(--formanova-hero-accent))' }}>
+                                <Check className="h-3.5 w-3.5 text-background" />
+                              </div>
                             </div>
-                          </div>
-                        )}
-
-                        {!isSelected && (
-                          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10
-                                          transition-colors flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity
-                                             font-mono text-[9px] tracking-[0.15em] uppercase
-                                             text-background bg-foreground/70 px-2 py-1">
-                              Use
-                            </span>
-                          </div>
-                        )}
-                      </button>
+                          )}
+                          {!isSelected && (
+                            <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10
+                                            transition-colors flex items-center justify-center">
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity
+                                               font-mono text-[9px] tracking-[0.15em] uppercase
+                                               text-background bg-foreground/70 px-2 py-1">
+                                Use
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     );
                   })}
-                </MasonryGrid>
                 </div>
               </div>
             )}
