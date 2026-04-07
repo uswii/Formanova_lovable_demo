@@ -36,13 +36,13 @@ export default function StudioTypeSelection() {
         transition={{ duration: 0.3 }}
         className="text-center mb-8 md:mb-12"
       >
-        <p className="font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-formanova-hero-accent mb-3">
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-formanova-hero-accent mb-3 font-medium">
           You are in Photo Studio
         </p>
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none mb-3">
           What do you want to create?
         </h1>
-        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/70 uppercase font-medium">
+        <p className="font-mono text-[11px] md:text-sm tracking-[0.12em] text-foreground/70 uppercase font-medium">
           Choose the type of image you want to generate
         </p>
       </motion.div>
@@ -65,7 +65,7 @@ export default function StudioTypeSelection() {
               className="group relative marta-frame overflow-hidden flex flex-col transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               {/* Image */}
-              <div className="relative aspect-[4/3] overflow-hidden">
+              <div className="relative aspect-[3/2] overflow-hidden">
                 <img
                   src={mode.image}
                   alt={mode.title}
@@ -83,7 +83,7 @@ export default function StudioTypeSelection() {
                 <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
                   {mode.title}
                 </h2>
-                <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-muted-foreground uppercase text-center max-w-[200px]">
+                <p className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-foreground/60 uppercase text-center max-w-[240px]">
                   {mode.description}
                 </p>
                 <button
