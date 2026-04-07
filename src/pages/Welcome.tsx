@@ -27,12 +27,13 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  if (user) return <Navigate to="/studio" replace />;
-
   // Web Vitals tracking — landing page only
+  // Must be before any early returns (Rules of Hooks)
   useEffect(() => {
     import('@/lib/web-vitals').then(({ initWebVitals }) => initWebVitals());
   }, []);
+
+  if (user) return <Navigate to="/studio" replace />;
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },

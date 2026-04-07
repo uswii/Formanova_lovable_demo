@@ -10,6 +10,12 @@ function capture(event: string, properties?: Record<string, unknown>) {
   }
 }
 
+// ═══════ Page view ══════════════════════════════════════════════════
+
+export function trackPageView(url: string) {
+  capture('$pageview', { $current_url: url });
+}
+
 // ═══════ localStorage helper ════════════════════════════════════════
 
 const PH_FIRST_GEN_KEY = 'ph_first_generation_done';

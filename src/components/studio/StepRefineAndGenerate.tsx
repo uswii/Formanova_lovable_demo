@@ -627,14 +627,14 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
                     <button
                       className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={(e) => { e.stopPropagation(); state.fluxResult && setFullscreenImage({ url: state.fluxResult, title: 'Generated Result' }); }}
+                      onClick={(e) => { e.stopPropagation(); if (state.fluxResult) { setFullscreenImage({ url: state.fluxResult, title: 'Generated Result' }); } }}
                       title="Fullscreen"
                     >
                       <Expand className="h-4 w-4" />
                     </button>
                     <button
                       className="w-8 h-8 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      onClick={(e) => { e.stopPropagation(); state.fluxResult && handleDownload(state.fluxResult, 'generated_result.jpg'); }}
+                      onClick={(e) => { e.stopPropagation(); if (state.fluxResult) { handleDownload(state.fluxResult, 'generated_result.jpg'); } }}
                       title="Download"
                     >
                       <Download className="h-4 w-4" />
