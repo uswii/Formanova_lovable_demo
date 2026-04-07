@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users, Package } from 'lucide-react';
+import { ArrowRight, Package } from 'lucide-react';
+
+import { ModelSilhouette } from '@/components/icons/ModelSilhouette';
 
 import modelShotImg from '@/assets/jewelry/hero-vneck-necklace.webp';
-import productShotImg from '@/assets/cad-studio/cad-to-catalog-card.webp';
+import productShotImg from '@/assets/cad-studio/product-shot-card.webp';
 
 const modes = [
   {
@@ -11,7 +13,7 @@ const modes = [
     description: 'Generate jewelry images worn by a model.',
     route: '/studio/categories',
     comingSoon: false,
-    icon: Users,
+    icon: ModelSilhouette,
     image: modelShotImg,
   },
   {
@@ -88,10 +90,10 @@ export default function StudioTypeSelection() {
                 </p>
                 <button
                   onClick={() => navigate(mode.route)}
-                  className="mt-4 md:mt-5 px-6 py-2.5 bg-formanova-hero-accent text-primary-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase flex items-center gap-2 transition-all duration-300 hover:opacity-90"
+                  className="mt-4 md:mt-5 px-6 py-2.5 bg-formanova-hero-accent text-primary-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-300 hover:opacity-90"
                 >
                   Continue
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3 shrink-0" />
                 </button>
               </div>
             </motion.div>
