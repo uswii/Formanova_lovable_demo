@@ -1,40 +1,50 @@
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Users, Package, ArrowRight } from 'lucide-react';
+import { ArrowRight, Package, Users } from 'lucide-react';
 
-const containerVariants = {
+import productShotImg from '@/assets/cad-studio/cad-to-catalog-card.webp';
+import modelShotImg from '@/assets/jewelry/hero-vneck-necklace.webp';
+import { OptimizedImage } from '@/components/ui/optimized-image';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.14 },
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 28 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5 },
+    transition: { duration: 0.55, ease: 'easeOut' },
   },
 };
 
 const modes = [
   {
     id: 'model',
-    title: 'Model Shot',
+    title: 'MODEL SHOT',
     description: 'Generate jewelry images worn by a model',
     Icon: Users,
     destination: '/studio/categories',
-    bg: 'bg-gradient-to-br from-neutral-900 via-stone-900 to-neutral-800',
+    image: modelShotImg,
+    imageClassName: 'object-cover object-center scale-[1.02] group-hover:scale-[1.06]',
+    glowClassName: 'group-hover:shadow-[0_24px_60px_-28px_hsl(var(--formanova-hero-accent)/0.45)]',
   },
   {
     id: 'product',
-    title: 'Product Shot',
+    title: 'PRODUCT SHOT',
     description: 'Create clean product images for listings and PDPs',
     Icon: Package,
     destination: '/studio/categories',
-    bg: 'bg-gradient-to-br from-zinc-800 via-neutral-700 to-stone-800',
+    image: productShotImg,
+    imageClassName: 'object-cover object-center group-hover:scale-[1.05]',
+    glowClassName: 'group-hover:shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.22)]',
   },
 ] as const;
 
@@ -42,93 +52,102 @@ export default function StudioTypeSelection() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] bg-background flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-16 py-8 md:py-10">
-        <div className="w-full max-w-5xl">
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
+      <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-10 md:px-8 lg:min-h-[calc(100vh-5rem)] lg:px-10 lg:py-12">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.04]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg,currentColor 0,currentColor 1px,transparent 1px,transparent 48px),' +
+                'repeating-linear-gradient(90deg,currentColor 0,currentColor 1px,transparent 1px,transparent 48px)',
+            }}
+          />
+        </div>
 
-          {/* Top label + heading */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-muted/50 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-muted/40 via-transparent to-transparent" />
+
+        <div className="relative mx-auto flex w-full max-w-[1120px] flex-col items-center">
+
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="mb-6 md:mb-8"
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="mx-auto mb-12 flex max-w-[760px] flex-col items-center text-center sm:mb-14 lg:mb-16"
           >
-            <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-2">
-              Photo Studio
+            <span className="mb-2 font-mono text-[10px] tracking-[0.32em] text-muted-foreground uppercase">
+              PHOTO STUDIO
             </span>
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl uppercase tracking-tight text-foreground leading-[0.9] mb-2">
-              What do you want to create?
+            <h1 className="max-w-[11ch] font-display text-[3.25rem] leading-[0.88] tracking-[0.02em] text-foreground sm:text-[4.25rem] lg:text-[5.4rem]">
+              WHAT DO YOU WANT TO CREATE?
             </h1>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
-              Choose the type of image you want to generate
+            <p className="mt-3 max-w-[52ch] font-mono text-[10px] tracking-[0.22em] text-muted-foreground uppercase sm:text-[11px]">
+              CHOOSE THE TYPE OF IMAGE YOU WANT TO GENERATE
             </p>
           </motion.div>
 
-          {/* Cards */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5"
+            className="grid w-full grid-cols-1 justify-items-center gap-8 md:gap-9 lg:grid-cols-2 lg:gap-10"
           >
-            {modes.map((mode) => {
+            {modes.map((mode, index) => {
               const { Icon } = mode;
+
               return (
                 <motion.button
                   key={mode.id}
                   variants={itemVariants}
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ y: -6 }}
+                  whileTap={{ scale: 0.995 }}
                   onClick={() => navigate(mode.destination)}
-                  className={`group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer
-                               transition-all duration-300
-                               hover:border-formanova-hero-accent
-                               hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]
-                               text-left ${mode.bg}`}
+                  className={cn(
+                    'group relative flex h-[340px] w-full max-w-[520px] flex-col overflow-hidden border border-border/80 bg-card text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'sm:h-[352px] md:h-[332px] lg:h-[348px]',
+                    'hover:border-formanova-hero-accent/70 hover:bg-card',
+                    mode.glowClassName,
+                  )}
                 >
-                  {/* Subtle texture overlay */}
-                  <div
-                    className="absolute inset-0 opacity-[0.035]"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(0deg,currentColor 0,currentColor 1px,transparent 1px,transparent 36px),' +
-                        'repeating-linear-gradient(90deg,currentColor 0,currentColor 1px,transparent 1px,transparent 36px)',
-                    }}
-                  />
+                  <div className="relative h-[61%] overflow-hidden border-b border-border/70 bg-muted/20">
+                    <OptimizedImage
+                      src={mode.image}
+                      alt={mode.title}
+                      priority={index === 0}
+                      className={cn(
+                        'absolute inset-0 h-full w-full transition-transform duration-700 ease-out',
+                        mode.imageClassName,
+                      )}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/25" />
+                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/20 via-black/5 to-transparent" />
+                  </div>
 
-                  {/* Centered icon badge */}
-                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                    <div
-                      className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center
-                                 bg-background/80 border border-border/60 shadow-lg
-                                 backdrop-blur-sm
-                                 group-hover:border-formanova-hero-accent
-                                 group-hover:shadow-[0_0_16px_-2px_hsl(var(--formanova-hero-accent)/0.45)]
-                                 transition-all duration-300"
-                    >
-                      <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />
+                  <div className="pointer-events-none absolute left-1/2 top-[61%] z-10 -translate-x-1/2 -translate-y-1/2">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border/70 bg-background shadow-[0_10px_30px_-18px_hsl(var(--foreground)/0.45)] transition-all duration-300 group-hover:border-formanova-hero-accent/70 group-hover:shadow-[0_16px_36px_-18px_hsl(var(--formanova-hero-accent)/0.45)]">
+                      <Icon className="h-5 w-5 text-foreground" />
                     </div>
                   </div>
 
-                  {/* Bottom gradient */}
-                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
-
-                  {/* Text content */}
-                  <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-7 text-left">
-                    <h2 className="font-display text-2xl md:text-3xl lg:text-4xl uppercase tracking-wide text-foreground
-                                   transition-transform duration-300 group-hover:translate-x-1">
+                  <div className="relative flex min-h-0 flex-1 flex-col items-start justify-end px-6 pb-6 pt-10 sm:px-7 sm:pb-7 sm:pt-11">
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/80 to-transparent" />
+                    <h2 className="font-display text-[2rem] leading-none tracking-[0.06em] text-foreground sm:text-[2.3rem]">
                       {mode.title}
                     </h2>
-                    <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-1 max-w-xs">
+                    <p className="mt-2 max-w-[28ch] font-body text-[14px] leading-6 text-muted-foreground">
                       {mode.description}
                     </p>
-                  </div>
 
-                  {/* Hover arrow */}
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                    <div className="w-9 h-9 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
-                      <ArrowRight className="w-4 h-4 text-primary-foreground" />
-                    </div>
+                    <span
+                      className={cn(
+                        buttonVariants({ variant: 'default', size: 'lg' }),
+                        'mt-6 h-11 px-6 font-mono text-[10px] uppercase tracking-[0.22em] shadow-none transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground',
+                      )}
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
                   </div>
                 </motion.button>
               );
@@ -139,10 +158,10 @@ export default function StudioTypeSelection() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="font-mono text-[9px] tracking-[0.2em] text-foreground/70 uppercase text-center"
+            transition={{ duration: 0.5, delay: 0.35 }}
+            className="mt-10 text-center font-mono text-[9px] tracking-[0.24em] text-muted-foreground uppercase sm:mt-12"
           >
-            You can switch between modes anytime in the Studio
+            YOU CAN SWITCH BETWEEN MODES ANYTIME IN THE STUDIO
           </motion.p>
 
         </div>
