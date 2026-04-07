@@ -1476,10 +1476,10 @@ export default function UnifiedStudio() {
             <div className="mb-6">
               <span className="marta-label">Step 2</span>
               <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                Choose or Upload Model
+                {isProductShot ? 'Choose or Upload Inspiration' : 'Choose or Upload Model'}
               </h2>
               <p className="text-muted-foreground mt-1.5 text-sm">
-                Choose a model from our library or upload your own
+                {isProductShot ? 'Choose an inspiration from our library or upload your own' : 'Choose a model from our library or upload your own'}
               </p>
             </div>
 
@@ -1561,7 +1561,7 @@ export default function UnifiedStudio() {
                         </svg>
                       )}
                       <p className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground/60">
-                        Selected or uploaded model will appear here
+                        {isProductShot ? 'Selected or uploaded inspiration will appear here' : 'Selected or uploaded model will appear here'}
                       </p>
                     </div>
                   )}
@@ -1602,10 +1602,10 @@ export default function UnifiedStudio() {
                 <Tabs defaultValue="formanova" className="w-full flex-1 flex flex-col min-h-0">
                   <TabsList className="w-full grid grid-cols-2 mb-3 bg-muted/30 h-11 flex-shrink-0">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
-                      My Models
+                      {isProductShot ? 'My Inspirations' : 'My Models'}
                     </TabsTrigger>
                     <TabsTrigger value="formanova" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
-                      Formanova Models
+                      {isProductShot ? 'Inspirations' : 'Formanova Models'}
                     </TabsTrigger>
                   </TabsList>
 

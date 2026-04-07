@@ -19,7 +19,7 @@ const modes = [
   },
   {
     title: 'Product Shot',
-    description: 'Create clean product images for listings and PDPs.',
+    description: 'Create product images for listings and PDPs.',
     route: '/studio/product-shot/categories',
     comingSoon: false,
     icon: RingIcon,
