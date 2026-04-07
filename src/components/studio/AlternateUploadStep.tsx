@@ -175,9 +175,11 @@ export function AlternateUploadStep({
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
 
+  const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
+
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
@@ -186,7 +188,6 @@ export function AlternateUploadStep({
   }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
-  const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
   const activeCategory = isStudioTypeSelectionEnabled(userEmail) ? (selectedCategory ?? undefined) : urlCategory;
   const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -195,7 +196,6 @@ export function AlternateUploadStep({
   const showGuide = !isLoading && total === 0;
 
   const JEWELRY_CATS = [
-    { label: 'All', value: null },
     { label: 'Necklaces', value: 'necklace' },
     { label: 'Earrings', value: 'earring' },
     { label: 'Rings', value: 'ring' },
