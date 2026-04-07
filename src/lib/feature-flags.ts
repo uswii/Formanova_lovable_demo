@@ -108,15 +108,3 @@ const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];
 export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
   return true;
 }
-
-/**
- * Pre-selection screen at /studio that lets users choose between
- * Model Shot and Product Shot before the jewelry category picker.
- * Gated for early-access testing.
- */
-const STUDIO_TYPE_SELECTION_EMAILS = ['uswa@raresense.so'];
-
-export function isStudioTypeSelectionEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return STUDIO_TYPE_SELECTION_EMAILS.includes(email.toLowerCase());
-}
