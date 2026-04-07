@@ -6,7 +6,7 @@ import { PeopleIcon } from '@/components/icons/PeopleIcon';
 import { RingIcon } from '@/components/icons/RingIcon';
 
 import modelShotImg from '@/assets/jewelry/model-shot-card.webp';
-import productShotImg from '@/assets/cad-studio/product-shot-card.webp';
+import productShotImg from '@/assets/jewelry/ps-rings.webp';
 
 const modes = [
   {
@@ -20,7 +20,7 @@ const modes = [
   {
     title: 'Product Shot',
     description: 'Create clean product images for listings and PDPs.',
-    route: '/studio/categories',
+    route: '/studio/product-shot/categories',
     comingSoon: false,
     icon: RingIcon,
     image: productShotImg,
@@ -86,7 +86,7 @@ export default function StudioTypeSelection() {
                 <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
                   {mode.title}
                 </h2>
-                <p className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-foreground/60 uppercase text-center max-w-[240px]">
+                <p className="font-mono text-[11px] md:text-xs tracking-[0.15em] text-foreground/80 uppercase text-center max-w-[240px]">
                   {mode.description}
                 </p>
                 <button
@@ -107,7 +107,7 @@ export default function StudioTypeSelection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/60 uppercase font-semibold pb-6"
+        className="font-mono text-xs md:text-sm tracking-[0.15em] text-foreground/80 uppercase font-semibold pb-6"
       >
         You can switch between modes anytime in the{' '}
         <span className="text-formanova-hero-accent">Studio</span>
