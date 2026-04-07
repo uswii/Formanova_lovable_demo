@@ -30,14 +30,22 @@ export default function StudioTypeSelection() {
   return (
     <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 overflow-x-hidden pt-4 md:pt-8 lg:pt-0">
       {/* Header */}
-      <motion.h1
+      <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-5xl md:text-6xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-8 lg:pt-6 text-foreground leading-none mb-6 md:mb-8"
+        className="text-center mb-8 md:mb-12"
       >
-        Photo <span className="hero-accent-text">Studio</span>
-      </motion.h1>
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-formanova-hero-accent mb-3">
+          Welcome to Studio
+        </p>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none mb-3">
+          What do you want to create?
+        </h1>
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-muted-foreground uppercase">
+          Choose the type of image you want to generate
+        </p>
+      </motion.div>
 
       {/* Feature Cards */}
       <motion.div
@@ -53,78 +61,99 @@ export default function StudioTypeSelection() {
             return (
               <div
                 key={mode.title}
-                className="group relative marta-frame overflow-hidden aspect-[4/3] opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden opacity-60 cursor-default flex flex-col"
               >
-                <img
-                  src={mode.image}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                <div className="absolute top-2.5 left-2.5">
-                  <Icon className="w-4 h-4 text-formanova-hero-accent/60" />
+                {/* Image */}
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={mode.image}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2.5 right-2.5">
+                    <span className="font-mono text-[7px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-2 py-0.5">
+                      Coming Soon
+                    </span>
+                  </div>
                 </div>
 
-                <div className="absolute top-2.5 right-2.5">
-                  <span className="font-mono text-[7px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-2 py-0.5">
-                    Coming Soon
-                  </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-                  <h2 className="font-display text-2xl md:text-3xl lg:text-[40px] uppercase tracking-wide text-white leading-none">
+                {/* Content */}
+                <div className="flex flex-col items-center px-4 py-5 md:py-6 bg-card">
+                  <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-border bg-background -mt-10 md:-mt-11 mb-3">
+                    <Icon className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+                  </div>
+                  <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
                     {mode.title}
                   </h2>
-                  <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-white/60 uppercase mt-2">
+                  <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-muted-foreground uppercase text-center max-w-[200px]">
                     {mode.description}
                   </p>
+                  <button
+                    disabled
+                    className="mt-4 md:mt-5 px-6 py-2.5 bg-muted text-muted-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase flex items-center gap-2"
+                  >
+                    Continue
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             );
           }
 
           return (
-            <motion.button
+            <motion.div
               key={mode.title}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              onClick={() => navigate(mode.route)}
-              className="group relative marta-frame overflow-hidden aspect-[4/3] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden flex flex-col transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
-              <img
-                src={mode.image}
-                alt={mode.title}
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-              <div className="absolute top-2.5 left-2.5">
-                <Icon className="w-4 h-4 text-formanova-hero-accent" />
+              {/* Image */}
+              <div className="relative aspect-[4/3] overflow-hidden">
+                <img
+                  src={mode.image}
+                  alt={mode.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
               </div>
 
-              <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                <div className="w-6 h-6 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
-                  <ArrowRight className="w-3 h-3 text-primary-foreground" />
+              {/* Content */}
+              <div className="flex flex-col items-center px-4 py-5 md:py-6 bg-card">
+                <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-border bg-background -mt-10 md:-mt-11 mb-3">
+                  <Icon className="w-4 h-4 md:w-5 md:h-5 text-formanova-hero-accent" />
                 </div>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-                <h2 className="font-display text-2xl md:text-3xl lg:text-[40px] uppercase tracking-wide text-white leading-none transition-transform duration-300 group-hover:translate-x-0.5">
+                <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
                   {mode.title}
                 </h2>
-                <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-white/60 uppercase mt-2">
+                <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-muted-foreground uppercase text-center max-w-[200px]">
                   {mode.description}
                 </p>
+                <button
+                  onClick={() => navigate(mode.route)}
+                  className="mt-4 md:mt-5 px-6 py-2.5 bg-formanova-hero-accent text-primary-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase flex items-center gap-2 transition-all duration-300 hover:opacity-90"
+                >
+                  Continue
+                  <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
-            </motion.button>
+            </motion.div>
           );
         })}
       </motion.div>
+
+      {/* Footer hint */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-muted-foreground uppercase pb-6"
+      >
+        You can switch between modes anytime in the{' '}
+        <span className="text-formanova-hero-accent">Studio</span>
+      </motion.p>
     </div>
   );
 }
