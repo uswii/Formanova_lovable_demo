@@ -18,7 +18,7 @@ const modes = [
     title: 'Product Shot',
     description: 'Create clean product images for listings and PDPs.',
     route: '/studio/categories',
-    comingSoon: true,
+    comingSoon: false,
     icon: Package,
     image: productShotImg,
   },
@@ -37,12 +37,12 @@ export default function StudioTypeSelection() {
         className="text-center mb-8 md:mb-12"
       >
         <p className="font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-formanova-hero-accent mb-3">
-          Welcome to Studio
+          You are in Photo Studio
         </p>
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none mb-3">
           What do you want to create?
         </h1>
-        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-muted-foreground uppercase">
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/70 uppercase font-medium">
           Choose the type of image you want to generate
         </p>
       </motion.div>
@@ -56,51 +56,6 @@ export default function StudioTypeSelection() {
       >
         {modes.map((mode) => {
           const Icon = mode.icon;
-
-          if (mode.comingSoon) {
-            return (
-              <div
-                key={mode.title}
-                className="group relative marta-frame overflow-hidden opacity-60 cursor-default flex flex-col"
-              >
-                {/* Image */}
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={mode.image}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className="font-mono text-[7px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-2 py-0.5">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex flex-col items-center px-4 py-5 md:py-6 bg-card">
-                  <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-border bg-background -mt-10 md:-mt-11 mb-3">
-                    <Icon className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-                  </div>
-                  <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
-                    {mode.title}
-                  </h2>
-                  <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-muted-foreground uppercase text-center max-w-[200px]">
-                    {mode.description}
-                  </p>
-                  <button
-                    disabled
-                    className="mt-4 md:mt-5 px-6 py-2.5 bg-muted text-muted-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase flex items-center gap-2"
-                  >
-                    Continue
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          }
 
           return (
             <motion.div
@@ -121,8 +76,8 @@ export default function StudioTypeSelection() {
               </div>
 
               {/* Content */}
-              <div className="flex flex-col items-center px-4 py-5 md:py-6 bg-card">
-                <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-border bg-background -mt-10 md:-mt-11 mb-3">
+              <div className="relative z-10 flex flex-col items-center px-4 py-5 md:py-6 bg-card">
+                <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border border-border bg-background -mt-10 md:-mt-11 mb-3 relative z-10">
                   <Icon className="w-4 h-4 md:w-5 md:h-5 text-formanova-hero-accent" />
                 </div>
                 <h2 className="font-display text-xl md:text-2xl uppercase tracking-wide text-foreground leading-none mb-2">
@@ -149,7 +104,7 @@ export default function StudioTypeSelection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="font-mono text-[9px] md:text-[10px] tracking-[0.15em] text-muted-foreground uppercase pb-6"
+        className="font-mono text-[10px] md:text-xs tracking-[0.15em] text-foreground/60 uppercase font-semibold pb-6"
       >
         You can switch between modes anytime in the{' '}
         <span className="text-formanova-hero-accent">Studio</span>
