@@ -54,7 +54,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
@@ -1103,9 +1103,29 @@ export default function UnifiedStudio() {
         />
       )}
 
-      {/* ── Step Progress Bar ── */}
+      {/* ── Mode Switcher + Step Progress Bar ── */}
       {currentStep !== 'generating' && (
-        <div className="flex-shrink-0 px-4 md:px-6 pt-6 pb-4 relative z-10">
+        <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-3 relative z-10 flex flex-col items-center gap-3">
+
+          {/* Mode Switcher — only for gated users */}
+          {isStudioTypeSelectionEnabled(user?.email) && (
+            <div className="flex items-center border border-border bg-background">
+              <button
+                onClick={() => {/* already in model shot */}}
+                className="px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold bg-foreground text-background transition-all"
+              >
+                Model Shot
+              </button>
+              <button
+                onClick={() => navigate('/studio/product-shot/categories')}
+                className="px-5 py-2 font-mono text-[11px] tracking-[0.18em] uppercase font-semibold text-muted-foreground hover:text-foreground transition-all"
+              >
+                Product Shot
+              </button>
+            </div>
+          )}
+
+          {/* Step Indicator */}
           <div className="flex items-center justify-center gap-0">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
@@ -1123,7 +1143,7 @@ export default function UnifiedStudio() {
                       if (s.id === 'upload' && (currentStep as string) !== 'generating') setCurrentStep('upload');
                       else if (s.id === 'model' && !!jewelryImage && (currentStep as string) !== 'generating') setCurrentStep('model');
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-all ${
                       isActive
                         ? 'text-foreground'
                         : isDone
@@ -1131,7 +1151,7 @@ export default function UnifiedStudio() {
                         : 'text-muted-foreground/40 cursor-default'
                     }`}
                   >
-                    <div className={`w-6 h-6 flex items-center justify-center text-[11px] font-mono font-bold border transition-all ${
+                    <div className={`w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold border transition-all ${
                       isActive
                         ? 'bg-foreground text-background border-foreground'
                         : isDone
@@ -1140,17 +1160,18 @@ export default function UnifiedStudio() {
                     }`}>
                       {s.step}
                     </div>
-                    <span className="font-mono text-[11px] tracking-[0.15em] uppercase hidden sm:inline">
+                    <span className="font-mono text-[10px] tracking-[0.15em] uppercase hidden sm:inline">
                       {s.label}
                     </span>
                   </button>
                   {index < arr.length - 1 && (
-                    <div className={`w-12 h-px mx-1 transition-colors ${isDone || isActive ? 'bg-foreground/30' : 'bg-border/30'}`} />
+                    <div className={`w-10 h-px mx-1 transition-colors ${isDone || isActive ? 'bg-foreground/30' : 'bg-border/30'}`} />
                   )}
                 </div>
               );
             })}
           </div>
+
         </div>
       )}
 
