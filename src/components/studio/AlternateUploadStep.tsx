@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { isViewGuideEnabled } from '@/lib/feature-flags';
+import { trackCategorySelected } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
@@ -378,7 +379,7 @@ export function AlternateUploadStep({
                   {JEWELRY_CATS.map((cat) => (
                     <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
-                        onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); }}
+                        onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); trackCategorySelected({ category: cat.value, is_first_selection: false }); }}
                         className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                           selectedCategory === cat.value
                             ? 'bg-foreground text-background'
