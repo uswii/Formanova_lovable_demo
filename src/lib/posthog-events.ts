@@ -142,6 +142,10 @@ export function trackGenerationComplete(props: GenerationCompleteProps) {
 
 // ═══════ New Funnel Events ═══════════════════════════════════════════
 
+export function trackMyProductsCategoryFiltered(props: { category: string }) {
+  capture('my_products_category_filtered', { ...props });
+}
+
 export function trackCategorySelected(props: CategorySelectedProps) {
   capture('category_selected', { ...props });
 }

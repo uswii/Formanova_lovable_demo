@@ -8,6 +8,7 @@ vi.mock('posthog-js', () => ({
 import posthog from 'posthog-js'
 import {
   consumeFirstGeneration,
+  trackMyProductsCategoryFiltered,
   trackCategorySelected,
   trackJewelryUploaded,
   trackValidationFlagged,
@@ -62,6 +63,15 @@ describe('__loaded guard', () => {
 })
 
 // ── New event functions ─────────────────────────────────────────────
+
+describe('trackMyProductsCategoryFiltered', () => {
+  it('captures my_products_category_filtered with category', () => {
+    trackMyProductsCategoryFiltered({ category: 'ring' })
+    expect(posthog.capture).toHaveBeenCalledWith('my_products_category_filtered', {
+      category: 'ring',
+    })
+  })
+})
 
 describe('trackCategorySelected', () => {
   it('captures category_selected with correct shape', () => {
