@@ -541,7 +541,8 @@ export default function PromoAdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
+  
   );
 }
 
