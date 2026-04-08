@@ -153,6 +153,7 @@ export interface AlternateUploadStepProps {
   onForceNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
   onCategoryChange?: (category: string) => void;
+  isProductShot?: boolean;
   userEmail?: string | null;
 }
 
@@ -173,6 +174,7 @@ export function AlternateUploadStep({
   onForceNextStep,
   onProductSelect,
   onCategoryChange,
+  isProductShot,
   userEmail,
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
@@ -373,7 +375,7 @@ export function AlternateUploadStep({
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
                 <div className="columns-3 gap-2">
                   {/* Category buttons — gated, anchored to top of column 1 */}
-                  {JEWELRY_CATS.map((cat) => (
+                  {isProductShot && JEWELRY_CATS.map((cat) => (
                     <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
                         onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); }}

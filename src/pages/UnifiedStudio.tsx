@@ -1223,6 +1223,7 @@ export default function UnifiedStudio() {
                 onNextStep={handleNextStep}
                 onForceNextStep={handleContinueAnyway}
                 onCategoryChange={(cat) => setOverrideJewelryType(cat)}
+                isProductShot={isProductShot}
                 onProductSelect={(thumbnailUrl, assetId) => {
                   setJewelryImage(thumbnailUrl);
                   setJewelryUploadedUrl(thumbnailUrl);
