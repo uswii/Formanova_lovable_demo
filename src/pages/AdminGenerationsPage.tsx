@@ -106,7 +106,6 @@ function InvalidRequestState({ message }: { message: string }) {
         <div className="space-y-1">
           <h2 className="font-display text-2xl tracking-wide">Invalid Request</h2>
           <p className="text-sm text-muted-foreground">{message}</p>
-        </div>
       </div>
     </div>
   );
@@ -174,12 +173,7 @@ export default function AdminGenerationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-8">
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Admin</p>
-          <h1 className="font-display text-3xl tracking-wide sm:text-4xl">Generations</h1>
-        </div>
+    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8">
 
         <div className="mb-5 flex flex-wrap gap-2">
           <Input

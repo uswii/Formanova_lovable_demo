@@ -423,14 +423,7 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-
-        {/* Header */}
-        <div className="mb-8">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Admin</p>
-          <h1 className="font-display text-3xl sm:text-4xl tracking-wide [text-shadow:none]">Feedback</h1>
-        </div>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
 
         {/* Ops notice — shown when filtering for dropped notifications */}
         {(emailStatusFilter === 'failed' || emailStatusFilter === 'pending') && (
@@ -615,7 +608,7 @@ export default function AdminFeedbackPage() {
             </div>
           </div>
         )}
-      </div>
+    </div>
 
       <DetailSheet
         item={activeItem}
