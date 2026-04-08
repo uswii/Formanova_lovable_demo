@@ -375,7 +375,7 @@ export function AlternateUploadStep({
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
                 <div className="columns-3 gap-2">
                   {/* Category buttons — gated, anchored to top of column 1 */}
-                  {isProductShot && JEWELRY_CATS.map((cat) => (
+                  {JEWELRY_CATS.map((cat) => (
                     <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
                         onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); }}
