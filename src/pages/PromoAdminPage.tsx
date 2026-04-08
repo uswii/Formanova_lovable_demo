@@ -247,16 +247,10 @@ export default function PromoAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <TicketPercent className="h-6 w-6 text-foreground" />
-            <h1 className="text-2xl md:text-3xl font-display font-semibold text-foreground">
-              Promo Codes
-            </h1>
-          </div>
+    <>
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-8">
+        {/* Action bar */}
+        <div className="flex items-center justify-end mb-6">
           <Button onClick={openCreate} className="gap-2">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New Promo Code</span>
