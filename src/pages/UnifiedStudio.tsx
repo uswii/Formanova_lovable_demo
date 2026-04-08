@@ -586,7 +586,7 @@ export default function UnifiedStudio() {
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
   const location = useLocation();
-  const isProductShot = (location.state as any)?.mode === 'product-shot';
+  const [isProductShot, setIsProductShot] = useState<boolean>((location.state as any)?.mode === 'product-shot');
   // Intentionally empty deps: pre-load runs once on mount from route state.
   // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1112,7 +1112,7 @@ export default function UnifiedStudio() {
           {isStudioTypeSelectionEnabled(user?.email) && (
             <div className="flex items-center border border-formanova-hero-accent/40 shadow-[0_0_20px_-4px_hsl(var(--formanova-hero-accent)/0.3)]">
               <button
-                onClick={() => !isProductShot ? undefined : navigate('/studio/categories')}
+                onClick={() => setIsProductShot(false)}
                 className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
                   !isProductShot
                     ? 'bg-formanova-hero-accent text-primary-foreground'
@@ -1122,7 +1122,7 @@ export default function UnifiedStudio() {
                 Model Shot
               </button>
               <button
-                onClick={() => isProductShot ? undefined : navigate('/studio/product-shot/categories')}
+                onClick={() => setIsProductShot(true)}
                 className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
                   isProductShot
                     ? 'bg-formanova-hero-accent text-primary-foreground'
