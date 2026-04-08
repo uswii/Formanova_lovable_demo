@@ -82,7 +82,10 @@ export function MasonryGrid({
     // descending, assign each to the currently shortest column. This minimises
     // the max column height at the bottom and eliminates the large empty gaps
     // that appear when a tall item lands in a short column at the end.
-    const batchStart = Math.max(0, items.length - effectiveCols);
+    // Always run item 0 through the regular loop so it stays pinned to col 0 top,
+    // even when the total item count is ≤ effectiveCols (which would otherwise make
+    // batchStart = 0 and send all items into the LPT sort, reordering them by height).
+    const batchStart = Math.max(1, items.length - effectiveCols);
 
     for (let i = 0; i < batchStart; i++) {
       const col = heights.indexOf(Math.min(...heights));
