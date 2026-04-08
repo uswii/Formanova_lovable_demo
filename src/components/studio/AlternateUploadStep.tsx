@@ -152,6 +152,7 @@ export interface AlternateUploadStepProps {
   /** Bypasses the flag check — used by "Continue Anyway". */
   onForceNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
+  onCategoryChange?: (category: string) => void;
   userEmail?: string | null;
 }
 
@@ -171,6 +172,7 @@ export function AlternateUploadStep({
   onNextStep,
   onForceNextStep,
   onProductSelect,
+  onCategoryChange,
   userEmail,
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
@@ -374,7 +376,7 @@ export function AlternateUploadStep({
                   {isStudioTypeSelectionEnabled(userEmail) && JEWELRY_CATS.map((cat) => (
                     <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
-                        onClick={() => setSelectedCategory(cat.value)}
+                        onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); }}
                         className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                           selectedCategory === cat.value
                             ? 'bg-foreground text-background'

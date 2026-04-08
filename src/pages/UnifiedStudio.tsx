@@ -414,6 +414,8 @@ export default function UnifiedStudio() {
   const { type } = useParams<{ type: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const jewelryType = type || 'necklace';
+  const [overrideJewelryType, setOverrideJewelryType] = useState<string | null>(null);
+  const effectiveJewelryType = overrideJewelryType ?? jewelryType;
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
@@ -683,7 +685,7 @@ export default function UnifiedStudio() {
     };
     reader.readAsDataURL(normalized);
 
-    const result = await validateImages([normalized], jewelryType, { category: TO_SINGULAR[jewelryType] ?? jewelryType });
+    const result = await validateImages([normalized], effectiveJewelryType, { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
     if (result && result.results.length > 0) {
       const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
       setValidationResult(localResult);
@@ -696,7 +698,7 @@ export default function UnifiedStudio() {
       if (localResult.is_acceptable) {
         // Path A: worn image accepted — fire jewelry_uploaded immediately
         trackJewelryUploaded({
-          category: TO_SINGULAR[jewelryType] ?? jewelryType,
+          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
           upload_type: localResult.category,
           was_flagged: false,
         });
@@ -704,12 +706,12 @@ export default function UnifiedStudio() {
         // Path B: non-worn image flagged — fire validation_flagged now;
         // jewelry_uploaded fires in handleContinueAnyway if user proceeds
         trackValidationFlagged({
-          category: TO_SINGULAR[jewelryType] ?? jewelryType,
+          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
           detected_label: localResult.category,
         });
       }
     }
-  }, [toast, jewelryType, validateImages]);
+  }, [toast, effectiveJewelryType, validateImages]);
 
   const handleModelUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -740,7 +742,7 @@ export default function UnifiedStudio() {
       setModelAssetId(azResult.asset_id ?? null);
       setCustomModelFile(null);
       trackModelSelected({
-        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
         model_type: 'custom_upload',
       });
 
@@ -768,7 +770,7 @@ export default function UnifiedStudio() {
     setCustomModelFile(null);
     setModelAssetId(null);
     trackModelSelected({
-      category: TO_SINGULAR[jewelryType] ?? jewelryType,
+      category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
       model_type: 'catalog',
     });
   };
@@ -810,7 +812,7 @@ export default function UnifiedStudio() {
     // validationResult state IS safe to read here — validation finished before this dialog appeared.
     if (validationResult) {
       trackJewelryUploaded({
-        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
         upload_type: validationResult.category,
         was_flagged: true,
       });
@@ -834,7 +836,7 @@ export default function UnifiedStudio() {
     const hasCredits = await checkCredits('jewelry_photoshoots_generator');
     if (!hasCredits) {
       trackPaywallHit({
-        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
         steps_completed: 2,
       });
       return;
@@ -865,7 +867,7 @@ export default function UnifiedStudio() {
           reader.onerror = reject;
           reader.readAsDataURL(compressedJewelry);
         });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[jewelryType] ?? jewelryType });
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
         jewelryUrl = azResult.https_url || azResult.sas_url;
         setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
@@ -896,11 +898,11 @@ export default function UnifiedStudio() {
         return;
       }
 
-      const idempotencyKey = `${Date.now()}-${jewelryType}-${selectedModel?.id || 'custom'}`;
+      const idempotencyKey = `${Date.now()}-${effectiveJewelryType}-${selectedModel?.id || 'custom'}`;
       const photoshootPayload = {
         jewelry_image_url: jewelryUrl,
         model_image_url: modelUrl,
-        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
         idempotency_key: idempotencyKey,
         ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
         ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
@@ -958,7 +960,7 @@ export default function UnifiedStudio() {
             markGenerationCompleted(_genWorkflowId, _genStartTime);
             trackGenerationComplete({
               source: 'unified-studio',
-              category: TO_SINGULAR[jewelryType] ?? jewelryType,
+              category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
               upload_type: validationResult?.category ?? null,
               duration_ms: Date.now() - _genStartTime,
               is_first_ever: consumeFirstGeneration(),
@@ -1135,7 +1137,7 @@ export default function UnifiedStudio() {
           )}
 
           {/* Step Indicator */}
-          <div className="w-80 flex items-center justify-between">
+          <div className="flex items-center justify-center gap-1">
             {[
               { step: 1, label: 'Upload', id: 'upload' as const },
               { step: 2, label: isProductShot ? 'Choose inspiration' : 'Choose model', id: 'model' as const },
@@ -1220,6 +1222,7 @@ export default function UnifiedStudio() {
                 userEmail={user?.email}
                 onNextStep={handleNextStep}
                 onForceNextStep={handleContinueAnyway}
+                onCategoryChange={(cat) => setOverrideJewelryType(cat)}
                 onProductSelect={(thumbnailUrl, assetId) => {
                   setJewelryImage(thumbnailUrl);
                   setJewelryUploadedUrl(thumbnailUrl);
@@ -1232,7 +1235,7 @@ export default function UnifiedStudio() {
                     .then(r => r.blob())
                     .then(blob => {
                       const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
-                      return validateImages([file], jewelryType);
+                      return validateImages([file], effectiveJewelryType);
                     })
                     .then(result => {
                       if (result && result.results.length > 0) {
@@ -1906,7 +1909,7 @@ export default function UnifiedStudio() {
             {resultImages.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
                 {resultImages.map((url, i) => (
-                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={jewelryType} />
+                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} />
                 ))}
               </div>
             ) : (
@@ -1927,7 +1930,7 @@ export default function UnifiedStudio() {
                   setRegenerationCount(c => c + 1);
                   trackRegenerateClicked({
                     context: 'unified-studio',
-                    category: TO_SINGULAR[jewelryType] ?? jewelryType,
+                    category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
                     regeneration_number: regenerationCount + 1, // +1 because setRegenerationCount hasn't updated state yet
                   });
                   setResultImages([]);
@@ -1966,7 +1969,7 @@ export default function UnifiedStudio() {
                 jewelryDisplayUrl={jewelrySasUrl || jewelryImage}
                 modelImageUrl={activeModelUrl}
                 resultImageUrl={resultImages[0] ?? null}
-                category={(TO_SINGULAR[jewelryType] ?? 'other') as FeedbackCategory}
+                category={(TO_SINGULAR[effectiveJewelryType] ?? 'other') as FeedbackCategory}
               />
             )}
 
