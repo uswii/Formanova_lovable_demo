@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { isViewGuideEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
+import { isViewGuideEnabled } from '@/lib/feature-flags';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
@@ -190,7 +190,7 @@ export function AlternateUploadStep({
   }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
-  const activeCategory = isStudioTypeSelectionEnabled(userEmail) ? (selectedCategory ?? undefined) : urlCategory;
+  const activeCategory = selectedCategory ?? undefined;
   const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -373,7 +373,7 @@ export function AlternateUploadStep({
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
                 <div className="columns-3 gap-2">
                   {/* Category buttons — gated, anchored to top of column 1 */}
-                  {isStudioTypeSelectionEnabled(userEmail) && JEWELRY_CATS.map((cat) => (
+                  {JEWELRY_CATS.map((cat) => (
                     <div key={cat.label} className="break-inside-avoid mb-2">
                       <button
                         onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); }}
