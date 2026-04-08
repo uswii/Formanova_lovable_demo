@@ -71,6 +71,7 @@ const Credits = lazyWithRetry(() => import("./pages/Credits"));
 const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 const PaymentSuccess = lazyWithRetry(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazyWithRetry(() => import("./pages/PaymentCancel"));
+import { AdminLayout } from './components/admin/AdminLayout';
 const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
 const AdminFeedbackPage = lazyWithRetry(() => import("./pages/AdminFeedbackPage"));
 const AdminModelsPage = lazyWithRetry(() => import("./pages/AdminModelsPage"));
@@ -270,11 +271,14 @@ const App = () => (
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
                   
                   {/* Admin routes */}
-                  <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
-                  <Route path="/admin/feedback" element={<AdminRouteGuard><AdminFeedbackPage /></AdminRouteGuard>} />
-                  <Route path="/admin/models" element={<AdminRouteGuard><AdminModelsPage /></AdminRouteGuard>} />
-                  <Route path="/admin/generations" element={<ProtectedRoute><AdminGenerationsPage /></ProtectedRoute>} />
-                  <Route path="/admin/generations/:workflowId" element={<ProtectedRoute><AdminGenerationDetailPage /></ProtectedRoute>} />
+                  <Route path="/admin" element={<AdminRouteGuard><AdminLayout /></AdminRouteGuard>}>
+                    <Route index element={<Navigate to="/admin/promo-codes" replace />} />
+                    <Route path="promo-codes" element={<PromoAdminPage />} />
+                    <Route path="generations" element={<AdminGenerationsPage />} />
+                    <Route path="feedback" element={<AdminFeedbackPage />} />
+                    <Route path="models" element={<AdminModelsPage />} />
+                  </Route>
+                  <Route path="/admin/generations/:workflowId" element={<AdminRouteGuard><AdminGenerationDetailPage /></AdminRouteGuard>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
