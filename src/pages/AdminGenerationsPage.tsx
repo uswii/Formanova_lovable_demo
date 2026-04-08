@@ -106,6 +106,7 @@ function InvalidRequestState({ message }: { message: string }) {
         <div className="space-y-1">
           <h2 className="font-display text-2xl tracking-wide">Invalid Request</h2>
           <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
       </div>
     </div>
   );
