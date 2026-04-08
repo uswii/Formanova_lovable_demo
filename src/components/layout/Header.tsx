@@ -177,7 +177,7 @@ export function Header() {
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem
-                        onClick={() => navigate('/admin/promo-codes')}
+                        onClick={() => navigate('/admin')}
                         className="text-sm"
                       >
                         <ScanEye className="h-4 w-4 mr-2" />
@@ -293,7 +293,7 @@ export function Header() {
                   </Button>
                 </Link>
                 {isAdmin && (
-                  <Link to="/admin/promo-codes">
+                  <Link to="/admin">
                     <Button variant="outline" size="lg" className="gap-2 w-full">
                       <ScanEye className="h-5 w-5" />
                       Admin
