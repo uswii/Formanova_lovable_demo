@@ -423,6 +423,7 @@ export default function AdminFeedbackPage() {
   }
 
   return (
+    <>
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
 
         {/* Ops notice — shown when filtering for dropped notifications */}
