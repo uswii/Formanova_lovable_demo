@@ -619,6 +619,6 @@ export default function AdminFeedbackPage() {
           setActiveItem(updated);
         }}
       />
-    </div>
+    </>
   );
 }
