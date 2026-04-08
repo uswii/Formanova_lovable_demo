@@ -334,7 +334,6 @@ export default function AdminGenerationsPage() {
             </div>
           </>
         )}
-      </div>
     </div>
   );
 }
