@@ -1016,7 +1016,10 @@ export default function UnifiedStudio() {
               (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
             );
             if (hasActivityError) {
-              throw new Error('The generation workflow failed. Please try again.');
+              clearInterval(ticker);
+              setGenerationError('workflow-failed');
+              setIsGenerating(false);
+              return;
             }
             const images = extractResultImages(result);
             setResultImages(images);
@@ -1297,22 +1300,24 @@ export default function UnifiedStudio() {
                   setJewelryFile(null);
                   setValidationResult(null);
                   clearValidation();
-                  // Fetch and validate the selected product image
-                  authenticatedFetch(thumbnailUrl)
-                    .then(r => r.blob())
-                    .then(blob => {
-                      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
-                      return validateImages([file], effectiveJewelryType);
-                    })
-                    .then(result => {
-                      if (result && result.results.length > 0) {
-                        setValidationResult(result.results[0]);
-                        if (result.results[0].uploaded_url) {
-                          setJewelryUploadedUrl(result.results[0].uploaded_url);
+                  if (!isProductShot) {
+                    // On-model only: validate the selected product image
+                    authenticatedFetch(thumbnailUrl)
+                      .then(r => r.blob())
+                      .then(blob => {
+                        const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
+                        return validateImages([file], effectiveJewelryType);
+                      })
+                      .then(result => {
+                        if (result && result.results.length > 0) {
+                          setValidationResult(result.results[0]);
+                          if (result.results[0].uploaded_url) {
+                            setJewelryUploadedUrl(result.results[0].uploaded_url);
+                          }
                         }
-                      }
-                    })
-                    .catch(e => console.warn('[ProductSelect] Validation failed:', e));
+                      })
+                      .catch(e => console.warn('[ProductSelect] Validation failed:', e));
+                  }
                 }}
               />
             ) : (
