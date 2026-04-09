@@ -596,6 +596,13 @@ export default function UnifiedStudio() {
   // Persist only local pending models to localStorage
   useEffect(() => { saveMyModels(localPendingModels, isProductShot); }, [localPendingModels, isProductShot]);
 
+  // Cycle rotating messages every 4s while generating
+  useEffect(() => {
+    if (!isGenerating) { setRotatingMsgIdx(0); return; }
+    const id = setInterval(() => setRotatingMsgIdx(i => i + 1), 4000);
+    return () => clearInterval(id);
+  }, [isGenerating]);
+
   const activeModelUrl = customModelImage || selectedModel?.url || null;
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
   const resolvedActiveModelUrl = useAuthenticatedImage(activeModelUrl);
@@ -612,6 +619,7 @@ export default function UnifiedStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStep, setGenerationStep] = useState('');
+  const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -1889,21 +1897,32 @@ export default function UnifiedStudio() {
 
               <h2 className="font-display text-3xl uppercase tracking-tight mb-3">Generating</h2>
 
-              {/* Real status message — fades when it changes */}
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={generationStep}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.3 }}
-                  className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6 text-center"
-                >
-                  {generationStep || 'Starting…'}
-                </motion.p>
-              </AnimatePresence>
+              {/* Rotating messages — switches to fetching note at end */}
+              {(() => {
+                const MSGS = [
+                  'Placing your jewelry on the model…',
+                  'Applying lighting and shadows…',
+                  'Perfecting the final details…',
+                ];
+                const isFetching = generationStep === 'Fetching results...';
+                const displayMsg = isFetching ? 'Fetching result…' : MSGS[rotatingMsgIdx % MSGS.length];
+                return (
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={displayMsg}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.4 }}
+                      className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase mb-6 text-center"
+                    >
+                      {displayMsg}
+                    </motion.p>
+                  </AnimatePresence>
+                );
+              })()}
 
-              <p className="font-mono text-[10px] italic text-muted-foreground/50 mb-8">This can take up to 5 minutes</p>
+              <p className="font-mono text-[10px] italic text-muted-foreground/40 mb-8">This can take up to 50 seconds</p>
 
               <div className="flex gap-4">
                 {jewelryImage && (
