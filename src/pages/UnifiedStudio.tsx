@@ -448,7 +448,7 @@ export default function UnifiedStudio() {
 
   // My Models — backend-fetched + optimistic local additions for instant feedback
   const [myModels, setMyModels] = useState<UserModel[]>([]);
-  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels(isProductShot));
+  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels((location.state as any)?.mode === 'product-shot'));
   const [myModelsLoading, setMyModelsLoading] = useState(true);
   const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
