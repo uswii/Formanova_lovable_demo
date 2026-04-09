@@ -155,6 +155,63 @@ export async function getPhotoshootResult(
   throw lastError || new Error('Result fetch exhausted retries');
 }
 
+// ─── Start PDP Shot ─────────────────────────────────────────────────
+
+export interface PdpStartRequest {
+  jewelry_image_url: string;
+  inspiration_image_url: string;
+  category: string;
+  idempotency_key?: string;
+  input_jewelry_asset_id?: string;
+  /** Set if user uploaded their own inspiration — never send both */
+  input_inspiration_asset_id?: string;
+  /** Set if user picked a preset inspiration — never send both */
+  input_preset_inspiration_id?: string;
+}
+
+export async function startPdpShot(
+  request: PdpStartRequest,
+): Promise<PhotoshootStartResponse> {
+  if (!request.jewelry_image_url) throw new Error('A valid jewelry image URL must be provided.');
+  if (!request.inspiration_image_url) throw new Error('A valid inspiration image URL must be provided.');
+
+  const {
+    input_jewelry_asset_id,
+    input_inspiration_asset_id,
+    input_preset_inspiration_id,
+    ...payload
+  } = request;
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const jewelryId = input_jewelry_asset_id && UUID_RE.test(input_jewelry_asset_id) ? input_jewelry_asset_id : undefined;
+  const inspirationAssetId = input_inspiration_asset_id && UUID_RE.test(input_inspiration_asset_id) ? input_inspiration_asset_id : undefined;
+  const presetInspirationId = input_preset_inspiration_id && UUID_RE.test(input_preset_inspiration_id) ? input_preset_inspiration_id : undefined;
+
+  // Exactly one of the two inspiration ID fields must be sent — never both
+  const inspirationIdField = inspirationAssetId
+    ? { input_inspiration_asset_id: inspirationAssetId }
+    : presetInspirationId
+    ? { input_preset_inspiration_id: presetInspirationId }
+    : {};
+
+  const res = await fetch(`${API_BASE}/run/state/product_shot_pipeline`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      payload,
+      ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
+      ...inspirationIdField,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to start PDP shot: ${res.status} — ${text.substring(0, 200)}`);
+  }
+
+  return res.json();
+}
+
 /**
  * Helper to resolve the runtime state from a status response.
  * Checks runtime.state first, then progress.state, then top-level state.

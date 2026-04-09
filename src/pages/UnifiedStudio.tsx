@@ -42,6 +42,7 @@ import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/asse
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
   startPhotoshoot,
+  startPdpShot,
   getPhotoshootStatus,
   getPhotoshootResult,
   resolveWorkflowState,
@@ -899,15 +900,31 @@ export default function UnifiedStudio() {
       }
 
       const idempotencyKey = `${Date.now()}-${effectiveJewelryType}-${selectedModel?.id || 'custom'}`;
-      const photoshootPayload = {
-        jewelry_image_url: jewelryUrl,
-        model_image_url: modelUrl,
-        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-        idempotency_key: idempotencyKey,
-        ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
-        ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
-      };
-      const startResponse = await startPhotoshoot(photoshootPayload);
+      const category = TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType;
+
+      const startResponse = isProductShot
+        ? await startPdpShot({
+            jewelry_image_url: jewelryUrl,
+            inspiration_image_url: modelUrl,
+            category,
+            idempotency_key: idempotencyKey,
+            ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
+            // Preset inspiration selected → input_preset_inspiration_id
+            // User-uploaded inspiration → input_inspiration_asset_id
+            ...(selectedModel?.id
+              ? { input_preset_inspiration_id: selectedModel.id }
+              : modelAssetId
+              ? { input_inspiration_asset_id: modelAssetId }
+              : {}),
+          })
+        : await startPhotoshoot({
+            jewelry_image_url: jewelryUrl,
+            model_image_url: modelUrl,
+            category,
+            idempotency_key: idempotencyKey,
+            ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
+            ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
+          });
       _genWorkflowId = startResponse.workflow_id;
 
       setWorkflowId(startResponse.workflow_id);
