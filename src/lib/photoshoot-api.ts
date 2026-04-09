@@ -194,10 +194,11 @@ export async function startPdpShot(
     ? { input_preset_inspiration_id: presetInspirationId }
     : {};
 
-  const res = await fetch(`${API_BASE}/run/state/product_shot_pipeline`, {
+  const res = await fetch(`${API_BASE}/run`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
+      workflow_name: 'product_shot_pipeline',
       payload,
       ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
       ...inspirationIdField,
