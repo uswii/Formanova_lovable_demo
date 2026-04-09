@@ -1928,10 +1928,12 @@ export default function UnifiedStudio() {
                     const MSGS = [
                       'Analysing your jewelry…',
                       'Matching inspiration style…',
-                      'Generating your shot…',
+                      'Composing the scene…',
+                      'Rendering your shot…',
+                      'Almost there…',
                     ];
                     const isFetching = generationStep === 'Fetching results...';
-                    const displayMsg = isFetching ? 'Fetching result…' : MSGS[rotatingMsgIdx % MSGS.length];
+                    const displayMsg = isFetching ? 'Fetching result…' : MSGS[Math.min(rotatingMsgIdx, MSGS.length - 1)];
                     return (
                       <AnimatePresence mode="wait">
                         <motion.p
