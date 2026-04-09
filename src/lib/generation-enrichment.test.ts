@@ -1,0 +1,122 @@
+import { describe, it, expect, vi } from 'vitest';
+import { extractPhotoThumbnail, extractCadTextData } from './generation-enrichment';
+
+// Mock azure-utils so tests don't need real Azure URIs
+vi.mock('./azure-utils', () => ({
+  azureUriToUrl: (uri: string) => uri.replace('azure://', 'https://cdn.example.com/'),
+}));
+
+// ── extractPhotoThumbnail ────────────────────────────────────────────
+
+describe('extractPhotoThumbnail', () => {
+  it('returns null for empty steps', () => {
+    expect(extractPhotoThumbnail([])).toBeNull();
+  });
+
+  it('returns null when generate_jewelry_image step is missing', () => {
+    const steps = [{ tool: 'other_tool', output: { image_b64: 'abc' } }];
+    expect(extractPhotoThumbnail(steps)).toBeNull();
+  });
+
+  it('extracts base64 from image_b64', () => {
+    const steps = [{
+      tool: 'generate_jewelry_image',
+      output: { image_b64: 'abc123', mime_type: 'image/png' },
+    }];
+    expect(extractPhotoThumbnail(steps)).toBe('data:image/png;base64,abc123');
+  });
+
+  it('defaults to image/jpeg when mime_type is absent', () => {
+    const steps = [{
+      tool: 'generate_jewelry_image',
+      output: { image_b64: 'abc123' },
+    }];
+    expect(extractPhotoThumbnail(steps)).toBe('data:image/jpeg;base64,abc123');
+  });
+
+  it('extracts base64 from nested result.image_b64', () => {
+    const steps = [{
+      tool: 'generate_jewelry_image',
+      output: { result: { image_b64: 'nested123', mime_type: 'image/webp' } },
+    }];
+    expect(extractPhotoThumbnail(steps)).toBe('data:image/webp;base64,nested123');
+  });
+
+  it('falls back to output_url when no base64', () => {
+    const steps = [{
+      tool: 'generate_jewelry_image',
+      output: { output_url: 'https://example.com/image.jpg' },
+    }];
+    expect(extractPhotoThumbnail(steps)).toBe('https://example.com/image.jpg');
+  });
+
+  it('returns null when output_url is not https', () => {
+    const steps = [{
+      tool: 'generate_jewelry_image',
+      output: { output_url: 'azure://container/image.jpg' },
+    }];
+    expect(extractPhotoThumbnail(steps)).toBeNull();
+  });
+});
+
+// ── extractCadTextData ───────────────────────────────────────────────
+
+describe('extractCadTextData', () => {
+  it('returns empty data for empty steps', () => {
+    const result = extractCadTextData([]);
+    expect(result.thumbnail_url).toBe('');
+    expect(result.screenshots).toEqual([]);
+    expect(result.glb_url).toBeNull();
+    expect(result.glb_filename).toBeNull();
+    expect(result.ai_model).toBeNull();
+  });
+
+  it('extracts screenshots and glb from run_blender step', () => {
+    const steps = [{
+      tool: 'run_blender',
+      output: {
+        success: true,
+        glb_artifact: { uri: 'azure://bucket/model.glb' },
+        screenshots: [
+          { uri: 'azure://bucket/shot1.png' },
+          { uri: 'azure://bucket/shot2.png' },
+        ],
+      },
+    }];
+    const result = extractCadTextData(steps);
+    expect(result.glb_url).toBe('https://cdn.example.com/bucket/model.glb');
+    expect(result.glb_filename).toBe('model.glb');
+    expect(result.screenshots).toHaveLength(2);
+    expect(result.screenshots[0].url).toBe('https://cdn.example.com/bucket/shot1.png');
+    expect(result.thumbnail_url).toBe('https://cdn.example.com/bucket/shot1.png');
+  });
+
+  it('ignores run_blender step when success is false (no screenshots, but GLB fallback still finds it)', () => {
+    const steps = [{
+      tool: 'run_blender',
+      output: {
+        success: false,
+        glb_artifact: { uri: 'azure://bucket/model.glb' },
+        screenshots: [{ uri: 'azure://bucket/shot1.png' }],
+      },
+    }];
+    const result = extractCadTextData(steps);
+    // Screenshots are not extracted from a failed blender step
+    expect(result.screenshots).toEqual([]);
+    // GLB fallback scan still finds the uri in the output
+    expect(result.glb_url).toBe('https://cdn.example.com/bucket/model.glb');
+  });
+
+  it('extracts ai_model from step input', () => {
+    const steps = [
+      { tool: 'generate', input: { model: 'claude-opus' }, output: {} },
+    ];
+    const result = extractCadTextData(steps);
+    expect(result.ai_model).toBe('claude-opus');
+  });
+
+  it('thumbnail_url is empty string when no screenshots found', () => {
+    const result = extractCadTextData([{ tool: 'other', input: {}, output: {} }]);
+    expect(result.thumbnail_url).toBe('');
+  });
+});
