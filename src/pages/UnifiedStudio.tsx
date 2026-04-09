@@ -501,7 +501,7 @@ export default function UnifiedStudio() {
   const fetchMyModels = useCallback(async () => {
     try {
       setMyModelsLoading(true);
-      const data = await fetchUserAssets('model_photo', 0, 100);
+      const data = await fetchUserAssets(isProductShot ? 'inspiration_photo' : 'model_photo', 0, 100);
       const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
         id: a.id,
         name: a.metadata?.name || a.name || '',
