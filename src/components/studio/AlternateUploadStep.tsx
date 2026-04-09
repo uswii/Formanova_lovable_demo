@@ -185,6 +185,7 @@ export function AlternateUploadStep({
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
+  const [showAll, setShowAll] = useState(false);
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
@@ -194,7 +195,7 @@ export function AlternateUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  const intendedUse: 'on_model' | 'pdp' | undefined = isProductShot ? 'pdp' : 'on_model';
+  const intendedUse: 'on_model' | 'pdp' | undefined = showAll ? undefined : (isProductShot ? 'pdp' : 'on_model');
   const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -352,7 +353,15 @@ export function AlternateUploadStep({
               {showGuide ? 'For best results, follow the guidelines below.' : 'Previously uploaded jewelry'}
             </p>
           </div>
-
+          {!showGuide && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-8 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              {showAll ? 'Show filtered' : 'Show all'}
+            </button>
+          )}
         </div>
 
         {/* ── Upload Guide ── */}
