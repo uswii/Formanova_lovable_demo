@@ -1950,7 +1950,7 @@ export default function UnifiedStudio() {
                       </AnimatePresence>
                     );
                   })()}
-                  <p className="font-mono text-[10px] italic text-muted-foreground/40 mb-8">This can take up to 50 seconds</p>
+                  <p className="font-mono text-[10px] italic text-muted-foreground mb-8">This can take up to 50 seconds</p>
                 </>
               )}
 
