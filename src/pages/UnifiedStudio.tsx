@@ -686,6 +686,27 @@ export default function UnifiedStudio() {
     };
     reader.readAsDataURL(normalized);
 
+    if (isProductShot) {
+      // PDP: no classification needed — product shots are the correct input, upload directly
+      try {
+        const { blob: compressed } = await compressImageBlob(normalized);
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader2 = new FileReader();
+          reader2.onload = () => resolve(reader2.result as string);
+          reader2.onerror = reject;
+          reader2.readAsDataURL(compressed);
+        });
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
+        setJewelryUploadedUrl(azResult.https_url || azResult.sas_url);
+        setJewelrySasUrl(azResult.sas_url ?? null);
+        setJewelryAssetId(azResult.asset_id ?? null);
+        trackJewelryUploaded({ category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, upload_type: 'product_shot', was_flagged: false });
+      } catch (err) {
+        console.error('[PDP] jewelry upload failed', err);
+      }
+      return;
+    }
+
     const result = await validateImages([normalized], effectiveJewelryType, { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
     if (result && result.results.length > 0) {
       const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
@@ -712,7 +733,7 @@ export default function UnifiedStudio() {
         });
       }
     }
-  }, [toast, effectiveJewelryType, validateImages]);
+  }, [toast, effectiveJewelryType, validateImages, isProductShot]);
 
   const handleModelUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
