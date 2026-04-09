@@ -181,11 +181,12 @@ function clearStudioSession() {
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
 
-function ResultImageItem({ url, index, workflowId, jewelryType }: {
+function ResultImageItem({ url, index, workflowId, jewelryType, naturalAspect }: {
   url: string;
   index: number;
   workflowId: string | null;
   jewelryType: string;
+  naturalAspect?: boolean;
 }) {
   const resolvedSrc = useAuthenticatedImage(url);
   return (
@@ -193,7 +194,7 @@ function ResultImageItem({ url, index, workflowId, jewelryType }: {
       <img
         src={resolvedSrc ?? ""}
         alt={`Result ${index + 1}`}
-        className="w-full object-contain bg-muted/30"
+        className={`w-full object-contain bg-muted/30${naturalAspect ? '' : ' aspect-[3/4]'}`}
       />
       <div className="absolute top-2 right-2 flex gap-1.5">
         <Button
@@ -2031,7 +2032,7 @@ export default function UnifiedStudio() {
             {resultImages.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
                 {resultImages.map((url, i) => (
-                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} />
+                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} naturalAspect={isProductShot} />
                 ))}
               </div>
             ) : (
