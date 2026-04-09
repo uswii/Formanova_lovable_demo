@@ -521,7 +521,7 @@ export default function UnifiedStudio() {
     } finally {
       setMyModelsLoading(false);
     }
-  }, []);
+  }, [isProductShot]);
 
   useEffect(() => { fetchMyModels(); }, [fetchMyModels]);
 
