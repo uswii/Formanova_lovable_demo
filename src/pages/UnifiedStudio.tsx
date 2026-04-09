@@ -697,7 +697,7 @@ export default function UnifiedStudio() {
           reader2.readAsDataURL(compressed);
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
-        setJewelryUploadedUrl(azResult.https_url || azResult.sas_url);
+        setJewelryUploadedUrl(azResult.sas_url || azResult.https_url);
         setJewelrySasUrl(azResult.sas_url ?? null);
         setJewelryAssetId(azResult.asset_id ?? null);
         trackJewelryUploaded({ category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, upload_type: 'product_shot', was_flagged: false });
@@ -890,7 +890,7 @@ export default function UnifiedStudio() {
           reader.readAsDataURL(compressedJewelry);
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
-        jewelryUrl = azResult.https_url || azResult.sas_url;
+        jewelryUrl = isProductShot ? (azResult.sas_url || azResult.https_url) : (azResult.https_url || azResult.sas_url);
         setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
       }
