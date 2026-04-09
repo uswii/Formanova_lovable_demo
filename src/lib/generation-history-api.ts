@@ -11,7 +11,7 @@ const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type SourceType = 'photo' | 'cad_render' | 'cad_text' | 'unknown';
+export type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'unknown';
 
 export interface WorkflowSummary {
   workflow_id: string;
@@ -114,6 +114,7 @@ export async function listMyWorkflows(
   if (__DEV__) {
     console.log('[HistoryAPI] source_type breakdown:', {
       photo: mapped.filter(w => w.source_type === 'photo').length,
+      product_shot: mapped.filter(w => w.source_type === 'product_shot').length,
       cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
       cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
       unknown: mapped.filter(w => w.source_type === 'unknown').length,
@@ -299,6 +300,10 @@ export function inferSourceType(name: string): SourceType {
 
   // CAD render workflows
   if (lower.includes('cad') || lower.includes('render')) return 'cad_render';
+
+  // Product shot workflows
+  if (lower.includes('product_shot') || lower.includes('product-shot'))
+    return 'product_shot';
 
   // Photo workflows (jewelry photoshoot, masking, flux gen, etc.)
   if (

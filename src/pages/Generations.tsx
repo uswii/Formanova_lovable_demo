@@ -20,7 +20,7 @@ const PER_PAGE = 5;
 const CACHE_KEY = 'formanova_gen_cache';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-type SourceType = 'photo' | 'cad_render' | 'cad_text';
+type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text';
 
 interface SectionState {
   workflows: WorkflowSummary[];
@@ -86,6 +86,7 @@ export default function Generations() {
   const [globalLoading, setGlobalLoading] = useState(true);
 
   const [photoPage, setPhotoPage] = useState(1);
+  const [productShotPage, setProductShotPage] = useState(1);
   const [cadRenderPage, setCadRenderPage] = useState(1);
   const [cadTextPage, setCadTextPage] = useState(1);
 
@@ -309,6 +310,7 @@ export default function Generations() {
   }, [allWorkflows.length, globalLoading]);
 
   const photoSection = getSection('photo', photoPage, true);
+  const productShotSection = getSection('product_shot', productShotPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
 
@@ -355,7 +357,7 @@ export default function Generations() {
         {!error && (
           <>
             <WorkflowSection
-              title="Photo Studio"
+              title="Model Shot"
               subtitle="Jewelry photo to on-model imagery"
               icon={SectionIcons.photo}
               workflows={photoSection.workflows}
@@ -364,6 +366,19 @@ export default function Generations() {
               totalPages={photoSection.totalPages}
               columns={5}
               onPageChange={setPhotoPage}
+              onWorkflowClick={() => {}}
+            />
+
+            <WorkflowSection
+              title="Product Shot"
+              subtitle="AI-generated product photography"
+              icon={SectionIcons.productShot}
+              workflows={productShotSection.workflows}
+              loading={productShotSection.loading}
+              currentPage={productShotSection.page}
+              totalPages={productShotSection.totalPages}
+              columns={5}
+              onPageChange={setProductShotPage}
               onWorkflowClick={() => {}}
             />
 

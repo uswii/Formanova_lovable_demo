@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Box, FileText } from 'lucide-react';
+import { Camera, Box, FileText, Aperture } from 'lucide-react';
 import { WorkflowCard } from './WorkflowCard';
 import { PaginationBar } from './PaginationBar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -124,6 +124,7 @@ export function WorkflowSection({
 // Convenience icon exports for the page
 export const SectionIcons = {
   photo: <Camera className="h-4 w-4" />,
+  productShot: <Aperture className="h-4 w-4" />,
   cadRender: <Box className="h-4 w-4" />,
   cadText: <FileText className="h-4 w-4" />,
 };
