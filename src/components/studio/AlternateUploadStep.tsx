@@ -194,7 +194,8 @@ export function AlternateUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory);
+  const intendedUse: 'on_model' | 'pdp' | undefined = isProductShot ? 'pdp' : 'on_model';
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Show upload guide if user has no uploads in the current category
