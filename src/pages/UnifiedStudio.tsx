@@ -1011,7 +1011,13 @@ export default function UnifiedStudio() {
             setGenerationStep('Fetching results...');
 
             const result = await getPhotoshootResult(startResponse.workflow_id);
-            console.log('[result raw]', JSON.stringify(result, null, 2));
+            // Detect backend activity error returned as a completed workflow
+            const hasActivityError = Object.values(result).some(
+              (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
+            );
+            if (hasActivityError) {
+              throw new Error('The generation workflow failed. Please try again.');
+            }
             const images = extractResultImages(result);
             setResultImages(images);
             setGenerationProgress(100);
