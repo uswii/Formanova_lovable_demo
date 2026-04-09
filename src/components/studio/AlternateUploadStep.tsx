@@ -385,10 +385,11 @@ export function AlternateUploadStep({
             {!isLoading && !error && assets.length > 0 && (
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
                 <div className="columns-3 gap-2">
-                  {/* Category buttons — vertically stacked in column 1 */}
-                  {JEWELRY_CATS.map((cat) => (
-                    <div key={cat.label} className="break-inside-avoid mb-2">
+                  {/* Category buttons — all in one block so they stay in column 1 */}
+                  <div className="break-inside-avoid mb-2">
+                    {JEWELRY_CATS.map((cat) => (
                       <button
+                        key={cat.value}
                         onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); trackMyProductsCategoryFiltered({ category: cat.value }); }}
                         className={`w-full px-3 py-3 text-center transition-all duration-200 ${
                           selectedCategory === cat.value
@@ -400,8 +401,8 @@ export function AlternateUploadStep({
                           {cat.label}
                         </span>
                       </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   {/* Product thumbnails */}
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
