@@ -176,6 +176,7 @@ function saveStudioSession(patch: Partial<StudioSession>) {
 
 function clearStudioSession() {
   sessionStorage.removeItem(STUDIO_SESSION_KEY);
+  sessionStorage.removeItem('formanova_studio_mode');
 }
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
@@ -455,7 +456,14 @@ export default function UnifiedStudio() {
 
   // Must be declared before queries that reference it
   const location = useLocation();
-  const [isProductShot, setIsProductShot] = useState<boolean>((location.state as any)?.mode === 'product-shot');
+  const [isProductShot, setIsProductShot] = useState<boolean>(() => {
+    // Prefer location.state (fresh navigation), fall back to sessionStorage (survives refresh)
+    if ((location.state as any)?.mode === 'product-shot') {
+      sessionStorage.setItem('formanova_studio_mode', 'product-shot');
+      return true;
+    }
+    return sessionStorage.getItem('formanova_studio_mode') === 'product-shot';
+  });
 
   // Fetch preset models from API (feature-flagged)
   const modelsApiEnabled = isModelsApiEnabled(user?.email);
