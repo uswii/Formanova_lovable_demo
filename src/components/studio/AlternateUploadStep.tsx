@@ -341,7 +341,7 @@ export function AlternateUploadStep({
       {/* ══════════════════════════════════════════════════════════════
           RIGHT — Upload Guide / My Products  (1 / 3)
           ══════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 h-full">
 
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -357,7 +357,7 @@ export function AlternateUploadStep({
           {!showGuide && (
             <div className="mt-8 flex items-center gap-2 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                All
+                Show all
               </span>
               <Switch checked={showAll} onCheckedChange={setShowAll} />
             </div>
