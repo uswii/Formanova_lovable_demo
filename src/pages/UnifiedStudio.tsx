@@ -1903,15 +1903,7 @@ export default function UnifiedStudio() {
                 </motion.p>
               </AnimatePresence>
 
-              <div className="w-full h-1.5 bg-muted overflow-hidden mb-2">
-                <motion.div
-                  className="h-full bg-primary"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${generationProgress}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
-              <p className="font-mono text-[10px] text-muted-foreground mb-8">{Math.round(generationProgress)}%</p>
+              <p className="font-mono text-[10px] italic text-muted-foreground/50 mb-8">This can take up to 5 minutes</p>
 
               <div className="flex gap-4">
                 {jewelryImage && (
