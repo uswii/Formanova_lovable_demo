@@ -14,6 +14,7 @@ import {
   ChevronLeft, ChevronRight, ImageIcon, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { isViewGuideEnabled } from '@/lib/feature-flags';
@@ -354,13 +355,12 @@ export function AlternateUploadStep({
             </p>
           </div>
           {!showGuide && (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="mt-8 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            >
-              {showAll ? 'Show filtered' : 'Show all'}
-            </button>
+            <div className="mt-8 flex items-center gap-2 shrink-0">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                All
+              </span>
+              <Switch checked={showAll} onCheckedChange={setShowAll} />
+            </div>
           )}
         </div>
 
@@ -383,25 +383,26 @@ export function AlternateUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
-                <div className="columns-3 gap-2">
-                  {/* Category buttons — gated, anchored to top of column 1 */}
+              <>
+                {/* Category filter row */}
+                <div className="flex gap-1 flex-wrap">
                   {JEWELRY_CATS.map((cat) => (
-                    <div key={cat.label} className="break-inside-avoid mb-2">
-                      <button
-                        onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); trackMyProductsCategoryFiltered({ category: cat.value }); }}
-                        className={`w-full px-3 py-3 text-center transition-all duration-200 ${
-                          selectedCategory === cat.value
-                            ? 'bg-foreground text-background'
-                            : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
-                        }`}
-                      >
-                        <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
-                          {cat.label}
-                        </span>
-                      </button>
-                    </div>
+                    <button
+                      key={cat.value}
+                      onClick={() => { setSelectedCategory(cat.value); onCategoryChange?.(cat.value); trackMyProductsCategoryFiltered({ category: cat.value }); }}
+                      className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-all duration-200 ${
+                        selectedCategory === cat.value
+                          ? 'bg-foreground text-background'
+                          : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
                   ))}
+                </div>
+
+              <div className={`overflow-y-auto border border-border/30 p-2`} style={{ height: '540px' }}>
+                <div className="columns-3 gap-2">
                   {/* Product thumbnails */}
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
@@ -444,6 +445,7 @@ export function AlternateUploadStep({
                   })}
                 </div>
               </div>
+              </>
             )}
 
             {!isLoading && !error && totalPages > 1 && (
