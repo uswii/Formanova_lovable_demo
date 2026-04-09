@@ -447,14 +447,7 @@ export default function UnifiedStudio() {
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
-  // My Models — backend-fetched + optimistic local additions for instant feedback
-  const [myModels, setMyModels] = useState<UserModel[]>([]);
-  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels((location.state as any)?.mode === 'product-shot'));
-  const [myModelsLoading, setMyModelsLoading] = useState(true);
-  const [myModelsSearch, setMyModelsSearch] = useState('');
-  const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
-
-  // Must be declared before queries that reference it
+  // Must be declared before anything that references location or isProductShot
   const location = useLocation();
   const [isProductShot, setIsProductShot] = useState<boolean>(() => {
     // Prefer location.state (fresh navigation), fall back to sessionStorage (survives refresh)
@@ -464,6 +457,13 @@ export default function UnifiedStudio() {
     }
     return sessionStorage.getItem('formanova_studio_mode') === 'product-shot';
   });
+
+  // My Models — backend-fetched + optimistic local additions for instant feedback
+  const [myModels, setMyModels] = useState<UserModel[]>([]);
+  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels(isProductShot));
+  const [myModelsLoading, setMyModelsLoading] = useState(true);
+  const [myModelsSearch, setMyModelsSearch] = useState('');
+  const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
 
   // Fetch preset models from API (feature-flagged)
   const modelsApiEnabled = isModelsApiEnabled(user?.email);
