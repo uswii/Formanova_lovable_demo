@@ -777,7 +777,7 @@ export default function UnifiedStudio() {
         reader2.readAsDataURL(compressed);
       });
       const modelName = file.name.replace(/\.[^.]+$/, '');
-      const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo', { name: modelName });
+      const azResult = await uploadToAzure(base64, 'image/jpeg', isProductShot ? 'inspiration_photo' : 'model_photo', { name: modelName });
       const stableUrl = azResult.sas_url || azResult.https_url;
       setCustomModelImage(stableUrl);
       setModelAssetId(azResult.asset_id ?? null);
