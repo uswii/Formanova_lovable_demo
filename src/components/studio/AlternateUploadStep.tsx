@@ -185,7 +185,7 @@ export function AlternateUploadStep({
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
