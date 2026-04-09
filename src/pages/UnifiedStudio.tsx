@@ -1011,6 +1011,7 @@ export default function UnifiedStudio() {
             setGenerationStep('Fetching results...');
 
             const result = await getPhotoshootResult(startResponse.workflow_id);
+            console.log('[result raw]', JSON.stringify(result, null, 2));
             const images = extractResultImages(result);
             setResultImages(images);
             setGenerationProgress(100);
