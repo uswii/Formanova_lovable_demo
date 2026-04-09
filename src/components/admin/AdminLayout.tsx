@@ -6,6 +6,7 @@ const TABS = [
   { label: 'Promo Codes', to: '/admin/promo-codes' },
   { label: 'Generations', to: '/admin/generations' },
   { label: 'Feedback', to: '/admin/feedback' },
+  { label: 'Preset Library', to: '/admin/preset-library' },
 ];
 
 export function AdminLayout() {
