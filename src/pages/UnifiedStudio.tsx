@@ -144,6 +144,7 @@ const LABEL_NAMES: Record<string, string> = {
 };
 
 const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
+const MY_INSPIRATIONS_STORAGE_KEY = 'formanova_my_inspirations';
 const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
 
 // ─── Studio session persistence (survives reloads, cleared on reset) ──────────
@@ -353,18 +354,20 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   );
 }
 
-function loadMyModels(): UserModel[] {
+function loadMyModels(isProductShot = false): UserModel[] {
+  const key = isProductShot ? MY_INSPIRATIONS_STORAGE_KEY : MY_MODELS_STORAGE_KEY;
   try {
-    const raw = localStorage.getItem(MY_MODELS_STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(MY_MODELS_STORAGE_KEY); return []; }
+    if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(key); return []; }
     return Array.isArray(parsed.models) ? parsed.models : [];
   } catch { return []; }
 }
 
-function saveMyModels(models: UserModel[]) {
-  localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
+function saveMyModels(models: UserModel[], isProductShot = false) {
+  const key = isProductShot ? MY_INSPIRATIONS_STORAGE_KEY : MY_MODELS_STORAGE_KEY;
+  localStorage.setItem(key, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
 }
 
 function PresetModelThumb({ model, isSelected, onSelect }: {
@@ -445,7 +448,7 @@ export default function UnifiedStudio() {
 
   // My Models — backend-fetched + optimistic local additions for instant feedback
   const [myModels, setMyModels] = useState<UserModel[]>([]);
-  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
+  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels(isProductShot));
   const [myModelsLoading, setMyModelsLoading] = useState(true);
   const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
@@ -513,7 +516,7 @@ export default function UnifiedStudio() {
       const backendIds = new Set(backendModels.map(m => m.id));
       setLocalPendingModels(prev => {
         const remaining = prev.filter(m => !backendIds.has(m.id));
-        saveMyModels(remaining);
+        saveMyModels(remaining, isProductShot);
         return remaining;
       });
     } catch (e) {
@@ -583,7 +586,7 @@ export default function UnifiedStudio() {
   }, [user]);
 
   // Persist only local pending models to localStorage
-  useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
+  useEffect(() => { saveMyModels(localPendingModels, isProductShot); }, [localPendingModels, isProductShot]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
