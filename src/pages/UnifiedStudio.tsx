@@ -1897,32 +1897,59 @@ export default function UnifiedStudio() {
 
               <h2 className="font-display text-3xl uppercase tracking-tight mb-3">Generating</h2>
 
-              {/* Rotating messages — switches to fetching note at end */}
-              {(() => {
-                const MSGS = [
-                  'Placing your jewelry on the model…',
-                  'Applying lighting and shadows…',
-                  'Perfecting the final details…',
-                ];
-                const isFetching = generationStep === 'Fetching results...';
-                const displayMsg = isFetching ? 'Fetching result…' : MSGS[rotatingMsgIdx % MSGS.length];
-                return (
+              {/* Model shot: progress bar. Product shot: rotating messages */}
+              {!isProductShot ? (
+                <>
                   <AnimatePresence mode="wait">
                     <motion.p
-                      key={displayMsg}
+                      key={generationStep}
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.4 }}
-                      className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase mb-6 text-center"
+                      transition={{ duration: 0.3 }}
+                      className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6 text-center"
                     >
-                      {displayMsg}
+                      {generationStep || 'Starting…'}
                     </motion.p>
                   </AnimatePresence>
-                );
-              })()}
-
-              <p className="font-mono text-[10px] italic text-muted-foreground/40 mb-8">This can take up to 50 seconds</p>
+                  <div className="w-full h-1.5 bg-muted overflow-hidden mb-2">
+                    <motion.div
+                      className="h-full bg-primary"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${generationProgress}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                    />
+                  </div>
+                  <p className="font-mono text-[10px] text-muted-foreground mb-8">{Math.round(generationProgress)}%</p>
+                </>
+              ) : (
+                <>
+                  {(() => {
+                    const MSGS = [
+                      'Analysing your jewelry…',
+                      'Matching inspiration style…',
+                      'Generating your shot…',
+                    ];
+                    const isFetching = generationStep === 'Fetching results...';
+                    const displayMsg = isFetching ? 'Fetching result…' : MSGS[rotatingMsgIdx % MSGS.length];
+                    return (
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={displayMsg}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.4 }}
+                          className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase mb-6 text-center"
+                        >
+                          {displayMsg}
+                        </motion.p>
+                      </AnimatePresence>
+                    );
+                  })()}
+                  <p className="font-mono text-[10px] italic text-muted-foreground/40 mb-8">This can take up to 50 seconds</p>
+                </>
+              )}
 
               <div className="flex gap-4">
                 {jewelryImage && (
