@@ -36,7 +36,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
-import { fetchPresetModels, type PresetModel, type PresetModelsResponse } from '@/lib/models-api';
+import { fetchPresetModels, fetchPresetInspirations, type PresetModel, type PresetModelsResponse, type PresetInspirationsResponse } from '@/lib/models-api';
 import { useQuery } from '@tanstack/react-query';
 import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
@@ -459,10 +459,23 @@ export default function UnifiedStudio() {
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
+  const { data: presetInspirationsData } = useQuery<PresetInspirationsResponse>({
+    queryKey: ['preset-inspirations'],
+    queryFn: fetchPresetInspirations,
+    enabled: modelsApiEnabled && isProductShot,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Active preset data — inspirations when PDP, models otherwise
+  const activePresetCategories = useMemo(() => {
+    if (isProductShot) return presetInspirationsData?.categories ?? [];
+    return presetModelsData?.categories ?? [];
+  }, [isProductShot, presetInspirationsData, presetModelsData]);
+
   // Derive category ids for auto-select logic
   const presetCategoryIds = useMemo<string[]>(() => {
-    return presetModelsData?.categories.map(c => c.id) ?? [];
-  }, [presetModelsData]);
+    return activePresetCategories.map(c => c.id);
+  }, [activePresetCategories]);
 
   // Auto-select first available category when API data first loads
   useEffect(() => {
@@ -472,9 +485,13 @@ export default function UnifiedStudio() {
   }, [presetCategoryIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const presetModelsForCategory = useMemo<PresetModel[]>(() => {
+    if (isProductShot) {
+      const cat = presetInspirationsData?.categories.find(c => c.id === formanovaCategory);
+      return (cat?.inspirations ?? []) as PresetModel[];
+    }
     const cat = presetModelsData?.categories.find(c => c.id === formanovaCategory);
     return cat?.models ?? [];
-  }, [presetModelsData, formanovaCategory]);
+  }, [isProductShot, presetInspirationsData, presetModelsData, formanovaCategory]);
 
   // Fetch user-uploaded models from backend API
   const fetchMyModels = useCallback(async () => {
@@ -696,7 +713,7 @@ export default function UnifiedStudio() {
           reader2.onerror = reject;
           reader2.readAsDataURL(compressed);
         });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, intended_use: 'pdp' });
         setJewelryUploadedUrl(azResult.sas_url || azResult.https_url);
         setJewelrySasUrl(azResult.sas_url ?? null);
         setJewelryAssetId(azResult.asset_id ?? null);
@@ -707,7 +724,7 @@ export default function UnifiedStudio() {
       return;
     }
 
-    const result = await validateImages([normalized], effectiveJewelryType, { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
+    const result = await validateImages([normalized], effectiveJewelryType, { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, intended_use: 'on_model' });
     if (result && result.results.length > 0) {
       const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
       setValidationResult(localResult);
@@ -945,6 +962,8 @@ export default function UnifiedStudio() {
             idempotency_key: idempotencyKey,
             ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
             ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
+            // Preset model selected (not user-uploaded) — audit field only
+            ...(selectedModel?.id && !modelAssetId ? { input_preset_model_id: selectedModel.id } : {}),
           });
       _genWorkflowId = startResponse.workflow_id;
 
@@ -1758,7 +1777,7 @@ export default function UnifiedStudio() {
                       <div className="columns-3 gap-2">
                         {/* Category buttons */}
                         {(modelsApiEnabled
-                          ? (presetModelsData?.categories ?? [])
+                          ? activePresetCategories
                           : [{ id: 'ecom', label: 'E-Commerce' }, { id: 'editorial', label: 'Editorial' }]
                         ).map((cat) => (
                           <div key={cat.id} className="break-inside-avoid mb-2">

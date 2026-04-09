@@ -34,6 +34,32 @@ export async function fetchPresetModels(): Promise<PresetModelsResponse> {
   return res.json();
 }
 
+// ─── Inspirations ────────────────────────────────────────────────────────────
+
+/** Same shape as PresetModel — id, label, url, metadata */
+export type PresetInspiration = PresetModel;
+
+export interface PresetInspirationCategory {
+  id: string;
+  label: string;
+  inspirations: PresetInspiration[];
+}
+
+export interface PresetInspirationsResponse {
+  categories: PresetInspirationCategory[];
+}
+
+/**
+ * GET /api/inspirations — returns preset inspirations grouped by category.
+ * Same response shape as /api/models but with `inspirations` array per category.
+ * Auth: Bearer <jwt>
+ */
+export async function fetchPresetInspirations(): Promise<PresetInspirationsResponse> {
+  const res = await authenticatedFetch('/api/inspirations');
+  if (!res.ok) throw new Error(`Failed to fetch preset inspirations: ${res.status}`);
+  return res.json();
+}
+
 // ─── Admin API (X-Admin-Secret) ───────────────────────────────────────────────
 
 export interface UploadModelPayload {

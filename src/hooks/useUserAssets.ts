@@ -12,7 +12,7 @@ export interface UseUserAssetsResult {
   refresh: () => void;
 }
 
-export function useUserAssets(type: AssetType, pageSize = 20, category?: string): UseUserAssetsResult {
+export function useUserAssets(type: AssetType, pageSize = 20, category?: string, intendedUse?: 'on_model' | 'pdp'): UseUserAssetsResult {
   const [assets, setAssets] = useState<UserAsset[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -25,7 +25,7 @@ export function useUserAssets(type: AssetType, pageSize = 20, category?: string)
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchUserAssets(type, pageNum, pageSize, category);
+      const data = await fetchUserAssets(type, pageNum, pageSize, category, intendedUse);
       setAssets(data.items);
       setTotal(data.total);
       setPage(pageNum);
@@ -34,7 +34,7 @@ export function useUserAssets(type: AssetType, pageSize = 20, category?: string)
     } finally {
       setIsLoading(false);
     }
-  }, [type, pageSize, category]);
+  }, [type, pageSize, category, intendedUse]);
 
   useEffect(() => { load(0); }, [load]);
 

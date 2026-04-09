@@ -5,7 +5,7 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const API_BASE = import.meta.env.VITE_PIPELINE_API_URL ?? '';
 
-export type AssetType = 'jewelry_photo' | 'model_photo';
+export type AssetType = 'jewelry_photo' | 'model_photo' | 'inspiration_photo';
 
 export interface UserAsset {
   id: string;
@@ -28,9 +28,11 @@ export async function fetchUserAssets(
   page = 0,
   pageSize = 20,
   category?: string,
+  intendedUse?: 'on_model' | 'pdp',
 ): Promise<AssetsPage> {
   const params = new URLSearchParams({ asset_type: type, page: String(page), page_size: String(pageSize) });
   if (category) params.set('category', category);
+  if (intendedUse) params.set('intended_use', intendedUse);
   const response = await authenticatedFetch(`${API_BASE}/assets?${params}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${type} assets: ${response.status}`);

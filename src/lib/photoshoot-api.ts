@@ -19,6 +19,8 @@ export interface PhotoshootStartRequest {
   idempotency_key?: string;
   input_jewelry_asset_id?: string;
   input_model_asset_id?: string;
+  /** UUID of the selected FormaNova preset model — audit field only, never affects generation */
+  input_preset_model_id?: string;
 }
 
 export interface PhotoshootStartResponse {
@@ -72,11 +74,12 @@ export async function startPhotoshoot(
     throw new Error('A valid model image URL must be provided.');
   }
 
-  const { input_jewelry_asset_id, input_model_asset_id, ...payload } = request;
+  const { input_jewelry_asset_id, input_model_asset_id, input_preset_model_id, ...payload } = request;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const jewelryId = input_jewelry_asset_id && UUID_RE.test(input_jewelry_asset_id) ? input_jewelry_asset_id : undefined;
   const modelId = input_model_asset_id && UUID_RE.test(input_model_asset_id) ? input_model_asset_id : undefined;
+  const presetModelId = input_preset_model_id && UUID_RE.test(input_preset_model_id) ? input_preset_model_id : undefined;
 
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
@@ -85,6 +88,7 @@ export async function startPhotoshoot(
       payload,
       ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
       ...(modelId ? { input_model_asset_id: modelId } : {}),
+      ...(presetModelId ? { input_preset_model_id: presetModelId } : {}),
     }),
   });
 
