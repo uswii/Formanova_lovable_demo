@@ -158,7 +158,7 @@ export async function getPhotoshootResult(
 // ─── Start PDP Shot ─────────────────────────────────────────────────
 
 export interface PdpStartRequest {
-  jewelry_image_url: string;
+  jewelry_image_url: string;   // internal — mapped to jewelry_image_urls array on send
   inspiration_image_url: string;
   category: string;
   idempotency_key?: string;
@@ -176,11 +176,15 @@ export async function startPdpShot(
   if (!request.inspiration_image_url) throw new Error('A valid inspiration image URL must be provided.');
 
   const {
+    jewelry_image_url,
     input_jewelry_asset_id,
     input_inspiration_asset_id,
     input_preset_inspiration_id,
-    ...payload
+    ...rest
   } = request;
+
+  // Backend expects jewelry_image_urls as an array
+  const payload = { ...rest, jewelry_image_urls: [jewelry_image_url] };
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const jewelryId = input_jewelry_asset_id && UUID_RE.test(input_jewelry_asset_id) ? input_jewelry_asset_id : undefined;
@@ -198,7 +202,7 @@ export async function startPdpShot(
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      workflow_name: 'product_shot_pipeline',
+      workflow_name: 'Product_shot_pipeline',
       payload,
       ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
       ...inspirationIdField,
