@@ -60,6 +60,49 @@ export async function fetchPresetInspirations(): Promise<PresetInspirationsRespo
   return res.json();
 }
 
+export interface UploadInspirationPayload {
+  base64: string;
+  content_type: string;
+  category: string;
+  filename: string;
+  label?: string;
+}
+
+export interface UpdateInspirationPayload {
+  label?: string;
+  metadata?: Record<string, string | null>;
+}
+
+/** POST /api/inspirations — upload a new preset inspiration image. */
+export async function uploadInspiration(payload: UploadInspirationPayload): Promise<PresetInspiration> {
+  const res = await authenticatedFetch('/api/inspirations', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail ?? body?.message ?? `HTTP ${res.status}`;
+    throw Object.assign(new Error(detail), { status: res.status });
+  }
+  return res.json();
+}
+
+/** PATCH /api/inspirations/{id} — rename label or update metadata. */
+export async function updateInspiration(id: string, payload: UpdateInspirationPayload): Promise<PresetInspiration> {
+  const res = await authenticatedFetch(`/api/inspirations/${id}`, {
+    method: 'PATCH',
+    headers: adminHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail ?? body?.message ?? `HTTP ${res.status}`;
+    throw Object.assign(new Error(detail), { status: res.status });
+  }
+  return res.json();
+}
+
 // ─── Admin API (X-Admin-Secret) ───────────────────────────────────────────────
 
 export interface UploadModelPayload {

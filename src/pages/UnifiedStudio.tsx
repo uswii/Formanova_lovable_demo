@@ -450,6 +450,10 @@ export default function UnifiedStudio() {
   const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
 
+  // Must be declared before queries that reference it
+  const location = useLocation();
+  const [isProductShot, setIsProductShot] = useState<boolean>((location.state as any)?.mode === 'product-shot');
+
   // Fetch preset models from API (feature-flagged)
   const modelsApiEnabled = isModelsApiEnabled(user?.email);
   const { data: presetModelsData } = useQuery<PresetModelsResponse>({
@@ -605,8 +609,6 @@ export default function UnifiedStudio() {
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
-  const location = useLocation();
-  const [isProductShot, setIsProductShot] = useState<boolean>((location.state as any)?.mode === 'product-shot');
   // Intentionally empty deps: pre-load runs once on mount from route state.
   // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
   // eslint-disable-next-line react-hooks/exhaustive-deps
