@@ -593,6 +593,17 @@ export default function UnifiedStudio() {
     markUploadInstructionsSeen().catch(() => {});
   }, [user]);
 
+  // Generation
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStep, setGenerationStep] = useState('');
+  const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [resultImages, setResultImages] = useState<string[]>([]);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [regenerationCount, setRegenerationCount] = useState(0);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
   // Persist only local pending models to localStorage
   useEffect(() => { saveMyModels(localPendingModels, isProductShot); }, [localPendingModels, isProductShot]);
 
@@ -614,17 +625,6 @@ export default function UnifiedStudio() {
   const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
   const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
   const [modelAssetId, setModelAssetId] = useState<string | null>(null);
-
-  // Generation
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStep, setGenerationStep] = useState('');
-  const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
-  const [workflowId, setWorkflowId] = useState<string | null>(null);
-  const [resultImages, setResultImages] = useState<string[]>([]);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [regenerationCount, setRegenerationCount] = useState(0);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
