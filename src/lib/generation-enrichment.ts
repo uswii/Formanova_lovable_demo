@@ -33,6 +33,31 @@ export function extractPhotoThumbnail(steps: any[]): string | null {
   return null;
 }
 
+// ── Product shot thumbnail extraction ───────────────────────────────
+// Fetches from the result endpoint and returns the first image URL found
+
+export async function extractProductShotThumbnail(
+  workflowId: string,
+): Promise<string | null> {
+  try {
+    const { authenticatedFetch } = await import('@/lib/authenticated-fetch');
+    const res = await authenticatedFetch(`https://formanova.ai/api/result/${workflowId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const items of Object.values(data)) {
+      if (!Array.isArray(items)) continue;
+      for (const item of items) {
+        if (!item || typeof item !== 'object') continue;
+        for (const key of ['output_url', 'image_url', 'result_url', 'url']) {
+          const val = (item as any)[key];
+          if (typeof val === 'string' && val.startsWith('http')) return val;
+        }
+      }
+    }
+    return null;
+  } catch { return null; }
+}
+
 // ── CAD text data extraction ─────────────────────────────────────────
 
 export function extractCadTextData(steps: any[]) {

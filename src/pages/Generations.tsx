@@ -12,7 +12,7 @@ import {
   fetchCadResult,
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
-import { extractPhotoThumbnail, extractCadTextData } from '@/lib/generation-enrichment';
+import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 
@@ -217,6 +217,11 @@ export default function Generations() {
               }
               return { id: wf.workflow_id, data: stepData };
             }
+            if (wf.source_type === 'product_shot') {
+              const thumbnail_url = await extractProductShotThumbnail(wf.workflow_id);
+              if (thumbnail_url) preloadImage(thumbnail_url);
+              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+            }
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
@@ -310,7 +315,7 @@ export default function Generations() {
   }, [allWorkflows.length, globalLoading]);
 
   const photoSection = getSection('photo', photoPage, true);
-  const productShotSection = getSection('product_shot', productShotPage, true);
+  const productShotSection = getSection('product_shot', productShotPage, false);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
 
