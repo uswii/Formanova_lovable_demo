@@ -3,39 +3,34 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 
-import earringOrientationInput  from '@/assets/examples/ps-earring-orientation-input.webp';
-import earringOrientationResult from '@/assets/examples/ps-earring-orientation-result.webp';
 import psDimInput               from '@/assets/examples/ps-lighting-dim-input.webp';
-import psDimResult              from '@/assets/examples/ps-lighting-dim-result.webp';
 import psBrightInput            from '@/assets/examples/ps-lighting-bright-input.webp';
-import psBrightResult           from '@/assets/examples/ps-lighting-bright-result.webp';
 import psBlurInput              from '@/assets/examples/ps-blur-input.webp';
-import psBlurResult             from '@/assets/examples/ps-blur-result.webp';
 import psBlurClearInput         from '@/assets/examples/ps-blur-clear-input.webp';
-import psBlurClearResult        from '@/assets/examples/ps-blur-clear-result.webp';
+import screenshotExample        from '@/assets/examples/screenshot.webp';
+import multipleAndPacked        from '@/assets/examples/multile-and-packed.webp';
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
   { title: 'Your photo in. Product shot out.' },
-  { title: 'Lighting affects your result' },
+  { title: 'Lighting affects your jewelry' },
   { title: 'Blur in, blur out' },
-  { title: 'Earring orientation matters' },
+  { title: 'Avoid these inputs' },
   { title: 'You are ready' },
 ] as const;
 
 const TOTAL = STEPS.length;
 
-// ─── Shared image cell — matches exact sizing used in UploadGuideModal ────────
+// ─── Shared image cell ────────────────────────────────────────────────────────
 
-function Img({ src, alt }: { src: string; alt: string }) {
+function Img({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
     <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
-      <img src={src} alt={alt} className="w-full h-full object-contain" />
+      <img src={src} alt={alt} className={`w-full h-full object-contain ${className}`} />
     </div>
   );
 }
-
 
 // ─── Step 0: Intro ────────────────────────────────────────────────────────────
 
@@ -54,32 +49,28 @@ function Step0() {
 
 function Step1() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="min-h-[2.75rem]">
-        <p className="text-sm text-justify text-foreground leading-relaxed">
-          Dark input = dark result. Shoot in bright, even light and your product shot will match.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="flex flex-col gap-5 h-full">
+      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+        LIGHTING AFFECTS YOUR JEWELRY
+      </p>
+      <div className="grid grid-cols-2 gap-4">
         {/* Dim */}
         <div className="flex flex-col gap-2">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-            <XCircle className="h-3.5 w-3.5 shrink-0" /> Dim light
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Img src={psDimInput} alt="Dim input" />
-            <Img src={psDimResult} alt="Dark result" />
+          <div className="flex items-center gap-2 h-8">
+            <XCircle className="h-6 w-6 text-destructive shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Dim light</span>
           </div>
+          <Img src={psDimInput} alt="Dark jewelry input" className="brightness-50" />
+          <p className="text-xs text-center text-muted-foreground">Dark in. Dark out.</p>
         </div>
         {/* Bright */}
         <div className="flex flex-col gap-2">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Bright light
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Img src={psBrightInput} alt="Bright input" />
-            <Img src={psBrightResult} alt="Correct result" />
+          <div className="flex items-center gap-2 h-8">
+            <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Bright light</span>
           </div>
+          <Img src={psBrightInput} alt="Bright jewelry input" />
+          <p className="text-xs text-center text-muted-foreground">Bright in. Sharp out.</p>
         </div>
       </div>
     </div>
@@ -90,70 +81,60 @@ function Step1() {
 
 function Step2() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="min-h-[2.75rem]">
-        <p className="text-sm text-justify text-foreground leading-relaxed">
-          A blurry photo confuses the AI and can change your jewelry design. Sharp input = correct result.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="flex flex-col gap-5 h-full">
+      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+        BLUR CHANGES YOUR DESIGN
+      </p>
+      <div className="grid grid-cols-2 gap-4">
         {/* Blurry */}
         <div className="flex flex-col gap-2">
-          <div className="min-h-[3.5rem]">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-destructive">
-              <XCircle className="h-3.5 w-3.5 shrink-0" /> Blurry photo
-            </p>
-            <p className="text-sm font-medium text-foreground leading-snug">Design changes in output.</p>
+          <div className="flex items-center gap-2 h-8">
+            <XCircle className="h-6 w-6 text-destructive shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Blurry photo</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Img src={psBlurInput} alt="Blurry input" />
-            <Img src={psBlurResult} alt="Wrong design result" />
-          </div>
+          <Img src={psBlurInput} alt="Blurry jewelry input" className="blur-[3px]" />
+          <p className="text-xs text-center text-muted-foreground">Blurry in. Wrong design out.</p>
         </div>
-        {/* Clear */}
+        {/* Sharp */}
         <div className="flex flex-col gap-2">
-          <div className="min-h-[3.5rem]">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-formanova-success">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Sharp photo
-            </p>
-            <p className="text-sm font-medium text-foreground leading-snug">Design preserved correctly.</p>
+          <div className="flex items-center gap-2 h-8">
+            <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Sharp photo</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10">
-              <img src={psBlurClearInput} alt="Clear input" className="w-full h-full object-contain" />
-            </div>
-            <div className="aspect-square w-full overflow-hidden border border-formanova-success/20 bg-muted/10">
-              <img src={psBlurClearResult} alt="Correct result" className="w-full h-full object-contain" />
-            </div>
-          </div>
+          <Img src={psBlurClearInput} alt="Sharp jewelry input" />
+          <p className="text-xs text-center text-muted-foreground">Clear photo. Correct design out.</p>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Step 3: Earring orientation ──────────────────────────────────────────────
+// ─── Step 3: Avoid these inputs ───────────────────────────────────────────────
 
 function Step3() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="min-h-[2.75rem]">
-        <p className="text-sm text-justify text-foreground leading-relaxed">
-          The AI copies exactly what it sees. Both earrings face up = both show beautifully in the result.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Img src={earringOrientationInput} alt="Input: one earring face-up, one face-back" />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Input: mixed orientation
-          </p>
+    <div className="flex flex-col gap-5 h-full">
+      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+        AVOID THESE INPUTS
+      </p>
+      <div className="grid grid-cols-2 gap-4">
+        {/* Screenshot */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 h-8">
+            <XCircle className="h-6 w-6 text-destructive shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Screenshot</span>
+          </div>
+          <Img src={screenshotExample} alt="Social media screenshot" />
+          <p className="text-xs text-center text-muted-foreground">UI noise. Wrong output.</p>
         </div>
-        <div className="space-y-1.5">
-          <Img src={earringOrientationResult} alt="Result: orientation copied exactly" />
-          <p className="text-[10px] text-center font-mono tracking-widest text-muted-foreground uppercase">
-            Result: orientation copied
-          </p>
+        {/* Packaged */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 h-8">
+            <XCircle className="h-6 w-6 text-destructive shrink-0" />
+            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Packaged / bundle</span>
+          </div>
+          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" />
+          <p className="text-xs text-center text-muted-foreground">Bundles confuse the AI.</p>
         </div>
       </div>
     </div>
