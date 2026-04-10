@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { isViewGuideEnabled } from '@/lib/feature-flags';
+import { isViewGuideEnabled, isShowAllVaultEnabled } from '@/lib/feature-flags';
 import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
@@ -364,7 +364,7 @@ export function AlternateUploadStep({
               {showGuide ? 'For best results, follow the guidelines below.' : 'Previously uploaded jewelry'}
             </p>
           </div>
-          {!showGuide && (
+          {!showGuide && isShowAllVaultEnabled(userEmail) && (
             <div className="mt-8 flex items-center gap-2 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Show all

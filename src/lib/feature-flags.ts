@@ -69,6 +69,14 @@ export function isViewGuideEnabled(_email: string | undefined | null): boolean {
 }
 
 /**
+ * "Show all" toggle in the jewelry vault picker — bypasses intended_use filter.
+ */
+export function isShowAllVaultEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase() === 'uswa@raresense.so';
+}
+
+/**
  * Onboarding welcome screen — input quality guidelines + Terms of Service gate.
  * Enabled for all users.
  */
