@@ -85,7 +85,7 @@ const PhotographyStudio = () => {
       category: TO_SINGULAR[category.id] ?? category.id,
       is_first_selection: isFirst,
     });
-    navigate(`/studio/${category.id}`);
+    navigate(`/studio/${category.id}`, { state: { mode: 'model-shot' } });
   };
 
   return (

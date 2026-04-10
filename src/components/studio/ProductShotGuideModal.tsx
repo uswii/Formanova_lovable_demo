@@ -36,6 +36,34 @@ function Img({ src, alt, className = '' }: { src: string; alt: string; className
   );
 }
 
+// ─── Shared column label ──────────────────────────────────────────────────────
+
+function ColLabel({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5 sm:gap-2 h-7 sm:h-8">
+      {ok
+        ? <CheckCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-formanova-success shrink-0" />
+        : <XCircle      className="h-4 w-4 sm:h-6 sm:w-6 text-destructive shrink-0" />
+      }
+      <span className={`text-[10px] sm:text-sm font-semibold uppercase tracking-widest truncate ${ok ? 'text-formanova-success' : 'text-destructive'}`}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+// ─── Shared before→after pair ─────────────────────────────────────────────────
+
+function Pair({ before, after, beforeClass = '' }: { before: string; after: string; beforeClass?: string }) {
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] gap-0.5 sm:gap-1 items-center">
+      <Img src={before} alt="before" className={beforeClass} />
+      <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+      <Img src={after} alt="after" />
+    </div>
+  );
+}
+
 // ─── Step 0: Intro ────────────────────────────────────────────────────────────
 
 function Step0() {
@@ -53,36 +81,20 @@ function Step0() {
 
 function Step1() {
   return (
-    <div className="flex flex-col gap-5 h-full">
-      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-3 sm:gap-5 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
         LIGHTING AFFECTS YOUR JEWELRY
       </p>
-      <div className="grid grid-cols-2 gap-4">
-        {/* Dim */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 h-8">
-            <XCircle className="h-6 w-6 text-destructive shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Dim light</span>
-          </div>
-          <Img src={psDimInput} alt="Dim input" className="brightness-[0.55]" />
-          <div className="flex justify-center py-0.5">
-            <ArrowDown className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Img src={psDimResult} alt="Dim result" />
-          <p className="text-xs text-center text-muted-foreground pt-0.5">Dim light in. Dull jewelry out.</p>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={false}>Dim light</ColLabel>
+          <Pair before={psDimInput} after={psDimResult} beforeClass="brightness-[0.55]" />
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Dim light in. Dull jewelry out.</p>
         </div>
-        {/* Bright */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 h-8">
-            <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Bright light</span>
-          </div>
-          <Img src={psBrightInput} alt="Bright input" />
-          <div className="flex justify-center py-0.5">
-            <ArrowDown className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Img src={psBrightResult} alt="Bright result" />
-          <p className="text-xs text-center text-muted-foreground pt-0.5">Bright in. Sharp out.</p>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={true}>Bright light</ColLabel>
+          <Pair before={psBrightInput} after={psBrightResult} />
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Bright in. Sharp out.</p>
         </div>
       </div>
     </div>
@@ -93,36 +105,20 @@ function Step1() {
 
 function Step2() {
   return (
-    <div className="flex flex-col gap-5 h-full">
-      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-3 sm:gap-5 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
         BLUR CHANGES YOUR DESIGN
       </p>
-      <div className="grid grid-cols-2 gap-4">
-        {/* Blurry */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 h-8">
-            <XCircle className="h-6 w-6 text-destructive shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Blurry photo</span>
-          </div>
-          <Img src={psBlurInput} alt="Blurry input" className="blur-[3px]" />
-          <div className="flex justify-center py-0.5">
-            <ArrowDown className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Img src={psBlurResult} alt="Blurry result" />
-          <p className="text-xs text-center text-muted-foreground pt-0.5">Blurry in. Wrong design out.</p>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={false}>Blurry photo</ColLabel>
+          <Pair before={psBlurInput} after={psBlurResult} beforeClass="blur-[3px]" />
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Blurry in. Wrong design out.</p>
         </div>
-        {/* Sharp */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 h-8">
-            <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Sharp photo</span>
-          </div>
-          <Img src={psBlurClearInput} alt="Sharp input" />
-          <div className="flex justify-center py-0.5">
-            <ArrowDown className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Img src={psBlurClearResult} alt="Sharp result" />
-          <p className="text-xs text-center text-muted-foreground pt-0.5">Clear photo. Correct design out.</p>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={true}>Clear photo</ColLabel>
+          <Pair before={psBlurClearInput} after={psBlurClearResult} />
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Clear photo. Correct design out.</p>
         </div>
       </div>
     </div>
@@ -133,28 +129,20 @@ function Step2() {
 
 function Step3() {
   return (
-    <div className="flex flex-col gap-5 h-full">
-      <p className="font-display text-2xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-3 sm:gap-5 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
         AVOID THESE INPUTS
       </p>
-      <div className="grid grid-cols-2 gap-4">
-        {/* Screenshot */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 h-8">
-            <XCircle className="h-6 w-6 text-destructive shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Screenshot</span>
-          </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={false}>Screenshot</ColLabel>
           <Img src={screenshotExample} alt="Social media screenshot" />
-          <p className="text-xs text-center text-muted-foreground">UI noise. Wrong output.</p>
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">UI noise. Wrong output.</p>
         </div>
-        {/* Packaged */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 h-8">
-            <XCircle className="h-6 w-6 text-destructive shrink-0" />
-            <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Packaged / bundle</span>
-          </div>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <ColLabel ok={false}>Packaged / bundle</ColLabel>
           <Img src={multipleAndPacked} alt="Multiple and packed jewelry" />
-          <p className="text-xs text-center text-muted-foreground">Bundles confuse the AI.</p>
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Bundles confuse the AI.</p>
         </div>
       </div>
     </div>
@@ -236,15 +224,15 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 border-b border-border shrink-0">
           <DialogTitle className="sr-only">{STEPS[step].title}</DialogTitle>
-          <span className="font-mono text-sm text-muted-foreground ml-auto">
+          <span className="font-mono text-xs sm:text-sm text-muted-foreground ml-auto">
             {step + 1} / {TOTAL}
           </span>
         </div>
 
         {/* Content */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[540px] max-h-[calc(100dvh-10rem)] min-h-[320px] overflow-hidden">
+        <div className="px-3 sm:px-6 py-3 sm:py-5 flex-1 min-h-0 overflow-hidden">
           {step === 0 && <Step0 />}
           {step === 1 && <Step1 />}
           {step === 2 && <Step2 />}
@@ -253,21 +241,21 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Tip — reserved space, invisible unless needed */}
-        <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-3 border-transparent">
+        <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-2 sm:py-3 border-transparent">
           <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 invisible" />
           <p className="text-xs leading-relaxed invisible">placeholder</p>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-end gap-4 shrink-0">
+        <div className="px-4 sm:px-6 py-2 sm:py-4 border-t border-border flex items-center justify-end gap-3 sm:gap-4 shrink-0">
           {step > 0 && (
-            <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>
+            <Button variant="ghost" size="default" className="min-w-[100px] sm:min-w-[130px]" onClick={() => setStep(s => s - 1)}>
               Back
             </Button>
           )}
           <Button
             size="default"
-            className="min-w-[130px]"
+            className="min-w-[100px] sm:min-w-[130px]"
             onClick={() => {
               if (step < TOTAL - 1) setStep(s => s + 1);
               else if (!checked) triggerShake();

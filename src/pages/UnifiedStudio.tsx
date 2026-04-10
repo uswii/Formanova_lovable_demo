@@ -455,9 +455,14 @@ export default function UnifiedStudio() {
   const location = useLocation();
   const [isProductShot, setIsProductShot] = useState<boolean>(() => {
     // Prefer location.state (fresh navigation), fall back to sessionStorage (survives refresh)
-    if ((location.state as any)?.mode === 'product-shot') {
+    const stateMode = (location.state as any)?.mode;
+    if (stateMode === 'product-shot') {
       sessionStorage.setItem('formanova_studio_mode', 'product-shot');
       return true;
+    }
+    if (stateMode === 'model-shot') {
+      sessionStorage.removeItem('formanova_studio_mode');
+      return false;
     }
     return sessionStorage.getItem('formanova_studio_mode') === 'product-shot';
   });
