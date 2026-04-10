@@ -196,12 +196,22 @@ export function AlternateUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  const intendedUse: 'on_model' | 'pdp' | undefined = showAll ? undefined : (isProductShot ? 'pdp' : 'on_model');
-  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
+  const { assets: rawAssets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, undefined);
+
+  // Client-side intended_use filter:
+  // - show all: no filter (cross-boundary access)
+  // - product shot: only 'pdp' tagged
+  // - model shot: 'on_model' tagged OR untagged (old uploads pre-dating the tag)
+  const assets = showAll
+    ? rawAssets
+    : isProductShot
+      ? rawAssets.filter(a => a.metadata?.['intended_use'] === 'pdp')
+      : rawAssets.filter(a => !a.metadata?.['intended_use'] || a.metadata['intended_use'] === 'on_model');
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Show upload guide if user has no uploads in the current category
-  const showGuide = !isLoading && total === 0;
+  // Show upload guide if user has no uploads matching the current context
+  const showGuide = !isLoading && assets.length === 0;
 
   const JEWELRY_CATS = [
     { label: 'Necklaces', value: 'necklace' },
