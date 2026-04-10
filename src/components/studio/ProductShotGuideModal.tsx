@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb, ArrowDown } from 'lucide-react';
 
 import psDimInput               from '@/assets/examples/ps-lighting-dim-input.webp';
 import psDimResult              from '@/assets/examples/ps-lighting-dim-result.webp';
@@ -59,28 +59,30 @@ function Step1() {
       </p>
       <div className="grid grid-cols-2 gap-4">
         {/* Dim */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 h-8">
             <XCircle className="h-6 w-6 text-destructive shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Dim light</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Img src={psDimInput} alt="Dim input" className="brightness-75" />
-            <Img src={psDimResult} alt="Dim result" />
+          <Img src={psDimInput} alt="Dim input" className="brightness-[0.55]" />
+          <div className="flex justify-center py-0.5">
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </div>
-          <p className="text-xs text-center text-muted-foreground">Dark in. Dark out.</p>
+          <Img src={psDimResult} alt="Dim result" />
+          <p className="text-xs text-center text-muted-foreground pt-0.5">Dim light in. Dull jewelry out.</p>
         </div>
         {/* Bright */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 h-8">
             <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Bright light</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Img src={psBrightInput} alt="Bright input" />
-            <Img src={psBrightResult} alt="Bright result" />
+          <Img src={psBrightInput} alt="Bright input" />
+          <div className="flex justify-center py-0.5">
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </div>
-          <p className="text-xs text-center text-muted-foreground">Bright in. Sharp out.</p>
+          <Img src={psBrightResult} alt="Bright result" />
+          <p className="text-xs text-center text-muted-foreground pt-0.5">Bright in. Sharp out.</p>
         </div>
       </div>
     </div>
@@ -97,28 +99,30 @@ function Step2() {
       </p>
       <div className="grid grid-cols-2 gap-4">
         {/* Blurry */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 h-8">
             <XCircle className="h-6 w-6 text-destructive shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Blurry photo</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Img src={psBlurInput} alt="Blurry input" className="blur-[3px]" />
-            <Img src={psBlurResult} alt="Blurry result" />
+          <Img src={psBlurInput} alt="Blurry input" className="blur-[3px]" />
+          <div className="flex justify-center py-0.5">
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </div>
-          <p className="text-xs text-center text-muted-foreground">Blurry in. Wrong design out.</p>
+          <Img src={psBlurResult} alt="Blurry result" />
+          <p className="text-xs text-center text-muted-foreground pt-0.5">Blurry in. Wrong design out.</p>
         </div>
         {/* Sharp */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 h-8">
             <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Sharp photo</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Img src={psBlurClearInput} alt="Sharp input" />
-            <Img src={psBlurClearResult} alt="Sharp result" />
+          <Img src={psBlurClearInput} alt="Sharp input" />
+          <div className="flex justify-center py-0.5">
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </div>
-          <p className="text-xs text-center text-muted-foreground">Clear photo. Correct design out.</p>
+          <Img src={psBlurClearResult} alt="Sharp result" />
+          <p className="text-xs text-center text-muted-foreground pt-0.5">Clear photo. Correct design out.</p>
         </div>
       </div>
     </div>
