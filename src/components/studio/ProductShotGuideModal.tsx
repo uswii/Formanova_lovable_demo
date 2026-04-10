@@ -4,9 +4,13 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 
 import psDimInput               from '@/assets/examples/ps-lighting-dim-input.webp';
+import psDimResult              from '@/assets/examples/ps-lighting-dim-result.webp';
 import psBrightInput            from '@/assets/examples/ps-lighting-bright-input.webp';
+import psBrightResult           from '@/assets/examples/ps-lighting-bright-result.webp';
 import psBlurInput              from '@/assets/examples/ps-blur-input.webp';
+import psBlurResult             from '@/assets/examples/ps-blur-result.webp';
 import psBlurClearInput         from '@/assets/examples/ps-blur-clear-input.webp';
+import psBlurClearResult        from '@/assets/examples/ps-blur-clear-result.webp';
 import screenshotExample        from '@/assets/examples/screenshot.webp';
 import multipleAndPacked        from '@/assets/examples/multile-and-packed.webp';
 
@@ -60,7 +64,10 @@ function Step1() {
             <XCircle className="h-6 w-6 text-destructive shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Dim light</span>
           </div>
-          <Img src={psDimInput} alt="Dark jewelry input" className="brightness-50" />
+          <div className="grid grid-cols-2 gap-2">
+            <Img src={psDimInput} alt="Dim input" className="brightness-50" />
+            <Img src={psDimResult} alt="Dim result" />
+          </div>
           <p className="text-xs text-center text-muted-foreground">Dark in. Dark out.</p>
         </div>
         {/* Bright */}
@@ -69,7 +76,10 @@ function Step1() {
             <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Bright light</span>
           </div>
-          <Img src={psBrightInput} alt="Bright jewelry input" />
+          <div className="grid grid-cols-2 gap-2">
+            <Img src={psBrightInput} alt="Bright input" />
+            <Img src={psBrightResult} alt="Bright result" />
+          </div>
           <p className="text-xs text-center text-muted-foreground">Bright in. Sharp out.</p>
         </div>
       </div>
@@ -92,7 +102,10 @@ function Step2() {
             <XCircle className="h-6 w-6 text-destructive shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Blurry photo</span>
           </div>
-          <Img src={psBlurInput} alt="Blurry jewelry input" className="blur-[3px]" />
+          <div className="grid grid-cols-2 gap-2">
+            <Img src={psBlurInput} alt="Blurry input" className="blur-[3px]" />
+            <Img src={psBlurResult} alt="Blurry result" />
+          </div>
           <p className="text-xs text-center text-muted-foreground">Blurry in. Wrong design out.</p>
         </div>
         {/* Sharp */}
@@ -101,7 +114,10 @@ function Step2() {
             <CheckCircle2 className="h-6 w-6 text-formanova-success shrink-0" />
             <span className="text-sm font-semibold uppercase tracking-widest text-formanova-success">Sharp photo</span>
           </div>
-          <Img src={psBlurClearInput} alt="Sharp jewelry input" />
+          <div className="grid grid-cols-2 gap-2">
+            <Img src={psBlurClearInput} alt="Sharp input" />
+            <Img src={psBlurClearResult} alt="Sharp result" />
+          </div>
           <p className="text-xs text-center text-muted-foreground">Clear photo. Correct design out.</p>
         </div>
       </div>
