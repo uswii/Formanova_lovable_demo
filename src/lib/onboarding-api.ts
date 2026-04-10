@@ -120,3 +120,42 @@ export async function markUploadInstructionsSeen(): Promise<void> {
   if (!res.ok) throw new Error(`Failed to mark upload instructions seen: ${res.status}`);
 }
 
+// ─── Product Shot Guide ───────────────────────────────────────────────────────
+
+const PRODUCT_SHOT_GUIDE_KEY_PREFIX = 'formanova_product_shot_guide_v1_';
+
+export function isProductShotGuideSeen(userId: string): boolean {
+  return localStorage.getItem(PRODUCT_SHOT_GUIDE_KEY_PREFIX + userId) === 'true';
+}
+
+export function markProductShotGuideSeenLocal(userId: string): void {
+  localStorage.setItem(PRODUCT_SHOT_GUIDE_KEY_PREFIX + userId, 'true');
+}
+
+/**
+ * GET /api/user/acknowledgements — returns true if the user has already seen the product shot guide.
+ */
+export async function checkProductShotGuideSeen(): Promise<boolean> {
+  const res = await authenticatedFetch('/api/user/acknowledgements');
+  if (!res.ok) throw new Error(`Failed to fetch acknowledgements: ${res.status}`);
+  const data = await res.json();
+  return (data.acknowledgements as { acknowledgement_type: string; version: string }[]).some(
+    (a) => a.acknowledgement_type === 'product_shot_upload_instructions' && a.version === '1.0',
+  );
+}
+
+/**
+ * POST /api/user/acknowledgements — marks that the user has seen the product shot guide.
+ *
+ *   Body: { "acknowledgement_type": "product_shot_upload_instructions", "version": "1.0" }
+ *   Response 201/200: idempotent
+ */
+export async function markProductShotGuideSeen(): Promise<void> {
+  const res = await authenticatedFetch('/api/user/acknowledgements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acknowledgement_type: 'product_shot_upload_instructions', version: '1.0' }),
+  });
+  if (!res.ok) throw new Error(`Failed to mark product shot guide seen: ${res.status}`);
+}
+

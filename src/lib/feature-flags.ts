@@ -119,3 +119,14 @@ export function isStudioTypeSelectionEnabled(email: string | undefined | null): 
   if (!email) return false;
   return STUDIO_TYPE_SELECTION_EMAILS.includes(email.toLowerCase());
 }
+
+/**
+ * Product shot upload guide modal — shown once before the user's first product shot.
+ * Gated for early-access testing.
+ */
+const PRODUCT_SHOT_GUIDE_EMAILS = ['uswa@raresense.so'];
+
+export function isProductShotGuideEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return PRODUCT_SHOT_GUIDE_EMAILS.includes(email.toLowerCase());
+}

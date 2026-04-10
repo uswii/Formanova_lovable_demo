@@ -55,14 +55,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
+import { ProductShotGuideModal } from '@/components/studio/ProductShotGuideModal';
 import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
-import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen } from '@/lib/onboarding-api';
+import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkProductShotGuideSeen, markProductShotGuideSeen, isProductShotGuideSeen, markProductShotGuideSeenLocal } from '@/lib/onboarding-api';
 import {
   trackJewelryUploaded,
   trackValidationFlagged,
@@ -432,10 +433,12 @@ export default function UnifiedStudio() {
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
   const hasCheckedUploadGuide = useRef(false);
+  const hasCheckedProductShotGuide = useRef(false);
 
   // ── Studio onboarding popup + model guide (gated) ────────────────────────
   const [uploadGuideOpen, setUploadGuideOpen] = useState(false);
   const [modelGuideOpen, setModelGuideOpen] = useState(false);
+  const [productShotGuideOpen, setProductShotGuideOpen] = useState(false);
 
   // Jewelry image
   const jewelryInputRef = useRef<HTMLInputElement>(null);
@@ -592,6 +595,37 @@ export default function UnifiedStudio() {
     markTosAgreed(user.id);
     trackUploadGuideAcknowledged();
     markUploadInstructionsSeen().catch(() => {});
+  }, [user]);
+
+  // ── Product shot guide (gated) ───────────────────────────────────────────
+  useEffect(() => {
+    if (initializing || !user || hasCheckedProductShotGuide.current) return;
+    if (!isProductShot) return;
+    if (!isProductShotGuideEnabled(user.email)) return;
+    if (currentStep !== 'upload') return;
+
+    hasCheckedProductShotGuide.current = true;
+
+    if (isProductShotGuideSeen(user.id)) return;
+
+    checkProductShotGuideSeen()
+      .then((seenOnBackend) => {
+        if (seenOnBackend) {
+          markProductShotGuideSeenLocal(user.id);
+          return;
+        }
+        setProductShotGuideOpen(true);
+      })
+      .catch(() => {
+        setProductShotGuideOpen(true);
+      });
+  }, [currentStep, initializing, isProductShot, user?.email, user?.id]);
+
+  const handleProductShotGuideClose = useCallback(() => {
+    setProductShotGuideOpen(false);
+    if (!user) return;
+    markProductShotGuideSeenLocal(user.id);
+    markProductShotGuideSeen().catch(() => {});
   }, [user]);
 
   // Generation
@@ -2106,22 +2140,40 @@ export default function UnifiedStudio() {
         onClose={handleUploadGuideClose}
       />
 
+      <ProductShotGuideModal
+        open={productShotGuideOpen}
+        onClose={handleProductShotGuideClose}
+      />
+
       <ModelGuideModal
         open={modelGuideOpen}
         onClose={() => setModelGuideOpen(false)}
       />
 
       {['uswa@raresense.so', 'uswaashfaque@gmail.com'].includes(user?.email?.toLowerCase() ?? '') && (
-        <button
-          type="button"
-          onClick={() => {
-            if (user) localStorage.removeItem('formanova_onboarding_' + user.id);
-            navigate('/onboarding');
-          }}
-          className="fixed bottom-4 left-4 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-        >
-          ↩ test role picker
-        </button>
+        <div className="fixed bottom-4 left-4 flex flex-col items-start gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (user) localStorage.removeItem('formanova_onboarding_' + user.id);
+              navigate('/onboarding');
+            }}
+            className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          >
+            ↩ test role picker
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (user) localStorage.removeItem('formanova_product_shot_guide_v1_' + user.id);
+              hasCheckedProductShotGuide.current = false;
+              setProductShotGuideOpen(true);
+            }}
+            className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          >
+            ↩ test product shot guide
+          </button>
+        </div>
       )}
     </div>
   );
