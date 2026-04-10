@@ -65,7 +65,7 @@ function Step1() {
             <span className="text-sm font-semibold uppercase tracking-widest text-destructive">Dim light</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Img src={psDimInput} alt="Dim input" className="brightness-50" />
+            <Img src={psDimInput} alt="Dim input" className="brightness-75" />
             <Img src={psDimResult} alt="Dim result" />
           </div>
           <p className="text-xs text-center text-muted-foreground">Dark in. Dark out.</p>
@@ -232,19 +232,15 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-border shrink-0">
-          <div className="min-w-0 h-[3rem] sm:h-[4rem] overflow-hidden">
-            <DialogTitle aria-hidden={(step === 0 || step === TOTAL - 1) || undefined} className={`font-display text-lg sm:text-2xl leading-tight tracking-wide [text-shadow:none] ${(step === 0 || step === TOTAL - 1) ? 'invisible' : ''}`}>
-              {STEPS[step].title}
-            </DialogTitle>
-          </div>
-          <span className="font-mono text-sm text-muted-foreground shrink-0 ml-auto">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border shrink-0">
+          <DialogTitle className="sr-only">{STEPS[step].title}</DialogTitle>
+          <span className="font-mono text-sm text-muted-foreground ml-auto">
             {step + 1} / {TOTAL}
           </span>
         </div>
 
         {/* Content */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[480px] max-h-[calc(100dvh-14rem)] min-h-[280px] overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 h-[540px] max-h-[calc(100dvh-10rem)] min-h-[320px] overflow-hidden">
           {step === 0 && <Step0 />}
           {step === 1 && <Step1 />}
           {step === 2 && <Step2 />}
