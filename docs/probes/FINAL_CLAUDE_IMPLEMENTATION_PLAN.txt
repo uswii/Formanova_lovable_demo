@@ -1,0 +1,385 @@
+FormaNova Final Claude Implementation Plan
+
+Purpose:
+This is the implementation handoff for Claude Code.
+Do not broadly refactor the app.
+Do not rewrite UnifiedStudio, TextToCAD, or CADCanvas.
+The goal is to stop new architectural drift, then migrate the riskiest backend/auth paths in small tested PRs.
+
+
+Context
+
+FormaNova is one product with two tools:
+1. photo / on-model / product-shot generation
+2. CAD text-to-3D / WebGL generation
+
+Shared auth, header, credits, and generation history are intended.
+
+The current problem is not that the product is impossible.
+The problem is architecture drift:
+- protected API calls use multiple patterns
+- some calls bypass authenticatedFetch
+- some runtime URLs are hardcoded to production
+- polling loops are duplicated inside large pages
+- credit logic is scattered
+- some feature flags are hardcoded
+- the largest workflow files are too coupled to safely extend
+- test coverage is too thin for fast iteration
+
+Implementation strategy:
+Create rails first.
+Then migrate the riskiest paths in narrow PRs.
+Do not start with a rewrite.
+
+
+Files Claude must read first
+
+Read these before editing anything:
+- docs/probes/AUDIT_CONTINUATION.md
+- docs/probes/ROLLING_AUDIT_SUMMARY.md
+- docs/probes/probe14.txt
+- docs/probes/probe17.txt
+- docs/probes/probe18.txt
+- docs/probes/probe19.txt
+
+If any listed file is missing, stop and report that before changing code.
+
+
+Important correction to the amended plan
+
+The amended plan is directionally right, but use this corrected version.
+
+Corrections:
+- Do not claim "six independent Bearer-token implementations" unless re-counted in the current repo.
+- Do not claim JWT expiry is 12 minutes. The 12-minute number found in probes was a photoshoot polling timeout, not confirmed JWT lifetime.
+- Do not say PR 0 has "no behavior change." Wiring an error boundary and adding a cost key are small behavior changes. They are still good, but they need verification.
+- Do not add a noRedirect option to authenticatedFetch.
+- Also do not rely on catching AuthExpiredError to prevent redirect. authenticatedFetch redirects before throwing. Catching is only useful for cleanup after redirect behavior has already been triggered.
+- Do not claim getStoredToken will have zero import sites globally after Phase 2. auth-api, Auth, reload-utils, or excluded/dormant helpers may still use it legitimately. The target is: no protected runtime /api calls in src/lib or src/pages should manually attach JWTs.
+
+
+AI_RULES.md to create at repo root
+
+Create AI_RULES.md with these rules:
+
+1. Protected backend calls
+- Protected backend calls must use authenticatedFetch.
+- Raw fetch is allowed only for:
+  - public/direct asset URLs confirmed not to be /api or /artifacts
+  - blob: URLs
+  - data: URLs
+  - auth bootstrap endpoints under /auth before a session exists
+  - static public files such as /version.json
+  - authenticatedFetch internals
+
+2. authenticatedFetch contract
+- Do not add noRedirect, suppress401, skipAuthExpiry, or per-caller exception options to authenticatedFetch.
+- authenticatedFetch owns centralized 401 behavior.
+- If a page needs custom UI after AuthExpiredError, catch AuthExpiredError at the call site, but do not expect that catch to prevent the redirect.
+
+3. Runtime URLs
+- No hardcoded production backend URLs like https://formanova.ai in runtime API code.
+- Use relative /api/... paths for same-origin backend calls.
+- Use VITE_API_BASE_URL only when an absolute backend origin is truly required.
+- Public/legal/SEO links may use VITE_PUBLIC_SITE_URL.
+
+4. Azure/storage URLs
+- No hardcoded Azure blob URLs in page or component code.
+- Prefer backend-returned asset URLs.
+- If frontend config is unavoidable, use:
+  - VITE_AZURE_BLOB_BASE_URL
+  - VITE_MODEL_ASSET_BASE_URL
+
+5. Polling
+- No new polling loops inside page components.
+- New generation workflows must define:
+  - start endpoint
+  - status endpoint
+  - result endpoint
+  - interval
+  - timeout
+  - terminal states
+  - transient 404 policy
+  - error limit
+  - cancellation on unmount
+  - product-specific result parser
+
+6. Credits and paid features
+- No new credit checks scattered inside pages unless using the existing shared preflight helpers.
+- New paid features must define:
+  - feature flag
+  - TOOL_COSTS key
+  - backend workflow name
+  - credit preflight
+  - insufficient-credit UI
+  - backend start call
+  - credit balance refresh after completion
+- TOOL_COSTS keys must match real workflow names or have a comment explaining why not.
+
+7. Feature flags
+- No new feature flags without owner, reason, and removal condition.
+- Permanent true/false flags should be deleted/inlined rather than kept as dead toggles.
+- Temporary email allowlists should move to env vars or backend/admin config.
+
+8. File size and concern boundaries
+- Do not let page or component files grow past 500 lines without explicit justification.
+- More important than line count: do not mix API calls, polling, local UI state, result parsing, and rendering in one new file.
+
+9. eslint-disable
+- No eslint-disable react-hooks/exhaustive-deps unless the comment explains:
+  - what dependency is excluded
+  - why it is safe
+  - what regression to watch for
+
+10. Tests
+- Tests must ship with behavior changes in:
+  - auth/session/token handling
+  - API clients
+  - credit preflight/gates
+  - polling/retry/timeout behavior
+  - result parsing/enrichment
+  - session save/restore
+- Do not defer these tests to a later PR.
+
+11. Error boundaries
+- ChunkErrorBoundary is not enough for normal runtime crashes.
+- CAD/WebGL errors need local containment.
+- Route-level workflow crashes should not white-screen the entire app.
+
+
+docs/ARCHITECTURE_STABILIZATION_PLAN.md to create
+
+Create docs/ARCHITECTURE_STABILIZATION_PLAN.md with this structure:
+
+1. Current diagnosis
+
+FormaNova has grown through vertical feature slices. Each slice solved API calls, auth, polling, credits, loading, and assets locally. That made early shipping fast, but now every new feature risks breaking another flow.
+
+The main regression driver is coupling, not lack of effort.
+The fix is not a rewrite.
+The fix is to standardize the boundaries new work must use.
+
+2. Confirmed high-risk areas
+
+- src/lib/photoshoot-api.ts
+  - 4 raw protected /api calls:
+    - startPhotoshoot
+    - getPhotoshootStatus
+    - getPhotoshootResult
+    - startPdpShot, if present in this repo
+  - These manually attach JWT through getStoredToken/getAuthHeaders.
+  - On 401 they throw generic generation errors instead of using centralized auth expiry behavior.
+
+- src/hooks/use-image-validation.ts
+  - Hardcoded https://formanova.ai.
+  - Raw/manual auth pattern.
+  - 401 can appear as validation/classification failure rather than auth expiry.
+
+- Runtime production URL hardcodes
+  - src/hooks/use-image-validation.ts
+  - src/pages/PromoAdminPage.tsx
+  - src/lib/generation-history-api.ts
+  - src/lib/generation-enrichment.ts
+
+- Azure blob hardcodes
+  - src/lib/azure-utils.ts
+  - src/lib/model-library.ts
+
+- Error boundary coverage
+  - ChunkErrorBoundary handles chunk-load failures only.
+  - PostHogErrorBoundary exists but is not currently wired globally.
+  - UnifiedStudio/TextToCAD/CADCanvas normal runtime errors can still have large blast radius.
+
+- Credit/pricing drift
+  - TOOL_COSTS has stale/dormant keys.
+  - jewelry_photoshoots_generator is used live but was missing from TOOL_COSTS in the audited repo.
+  - Verify product-shot workflow cost key too.
+
+3. Phase 1: stop drift
+
+PR 1:
+- Add AI_RULES.md.
+- Add docs/ARCHITECTURE_STABILIZATION_PLAN.md.
+- No production behavior changes in this PR.
+
+Acceptance:
+- Files added.
+- No app source files changed.
+
+4. Phase 2: tiny stability fixes
+
+PR 2:
+- Wire PostHogErrorBoundary or a general-purpose runtime error boundary into the app.
+- Keep ChunkErrorBoundary for chunk-load recovery.
+- Do not remove existing ChunkErrorBoundary behavior.
+- Add jewelry_photoshoots_generator to TOOL_COSTS if still missing.
+- Verify whether product-shot has a separate workflow/cost key. Add it only if the backend actually uses a separate key.
+
+Acceptance:
+- App still boots.
+- Existing tests pass.
+- Error boundary behavior is manually smoke-tested or covered if practical.
+- Credit fallback for live photoshoot workflow is no longer missing.
+
+5. Phase 3: migrate photoshoot-api.ts to authenticatedFetch
+
+PR 3:
+- Target src/lib/photoshoot-api.ts.
+- Replace raw fetch calls to protected /api endpoints with authenticatedFetch.
+- Remove getAuthHeaders if no longer needed.
+- Remove getStoredToken import if no longer needed.
+- Use relative paths:
+  - /api/run/state/jewelry_photoshoots_generator
+  - /api/status/{workflowId}
+  - /api/result/{workflowId}
+  - /api/run/Product_shot_pipeline, if startPdpShot exists
+- Preserve current non-auth behavior:
+  - status 404 returns/renders running behavior
+  - result 404 retry behavior remains
+  - request payload shape does not change
+
+Tests required in same PR:
+- startPhotoshoot uses authenticatedFetch path and body.
+- getPhotoshootStatus preserves 404-as-running behavior.
+- getPhotoshootResult preserves 404 retry behavior.
+- 401 path uses authenticatedFetch/AuthExpiredError behavior.
+- startPdpShot is tested if present.
+
+6. Phase 4: remove hardcoded runtime production backend URLs
+
+PR 4:
+- src/hooks/use-image-validation.ts
+  - migrate protected calls to authenticatedFetch
+  - use relative /api paths instead of https://formanova.ai
+  - preserve validation result behavior except auth expiry should now use authenticatedFetch behavior
+- src/lib/generation-history-api.ts
+  - change runtime BASE_URL from https://formanova.ai to relative path or configured API base
+  - keep authenticatedFetch
+- src/lib/generation-enrichment.ts
+  - change https://formanova.ai/api/result/{workflowId} to /api/result/{workflowId}
+  - keep authenticatedFetch
+- src/pages/PromoAdminPage.tsx
+  - change hardcoded production API_BASE to relative /api/credits/admin/ui/promo-codes
+  - keep authenticatedFetch
+
+Tests required:
+- generation-enrichment uses relative result URL.
+- use-image-validation 401 no longer silently becomes generic classification unavailable.
+- existing generation-history tests still pass.
+
+7. Phase 5: migrate remaining protected raw /api call sites
+
+PR 5:
+- src/pages/LinkAccount.tsx
+  - replace raw fetch to /api/agent/link/complete with authenticatedFetch
+  - preserve 400/403/404/422 user-facing status mapping
+- src/lib/admin-generations-api.ts
+  - replace manual getStoredToken + fetch with authenticatedFetch
+  - preserve AdminGenerationsApiError for non-auth admin UI handling
+- src/pages/AdminFeedbackPage.tsx
+  - protected artifact/image downloads should use authenticatedFetch
+  - preserve public/signed URL behavior if the helper supports both
+
+Acceptance:
+- No protected runtime /api calls in src/lib or src/pages manually attach Bearer tokens, except explicitly excluded auth/bootstrap/admin-secret cases.
+
+8. Explicit do-not-migrate list
+
+Do not migrate these in the first pass:
+- src/lib/authenticated-fetch.ts
+  - wrapper internals
+- src/lib/auth-api.ts
+  - auth bootstrap/login/register/logout/me behavior is special
+- src/pages/Auth.tsx
+  - OAuth/auth bootstrap endpoints are not normal protected /api calls
+- validateStoredToken behavior
+  - intentionally does not redirect on 401
+- src/lib/pipeline-api.ts
+  - has X-Admin-Secret/admin behavior and appears outside current highest-risk live path
+- CADCanvas/ScissorGLBGrid dual-fetch behavior
+  - protected /artifacts through authenticatedFetch and public GLB through raw fetch is acceptable
+- TextToCAD STL signed Azure download
+  - raw fetch is acceptable if backend returns signed public Azure URL
+
+9. Phase 6: shared polling/result parsing
+
+Do not start until Phases 3-5 are merged and green.
+
+Design or implement a shared polling helper/hook that covers:
+- interval
+- timeout
+- transient 404 policy
+- error limit
+- cancellation
+- terminal states
+- optional progress callback
+- product-specific result parser
+
+Flows to eventually unify:
+- UnifiedStudio status/result polling
+- use-image-validation classification polling
+- TextToCAD CAD generation polling
+- TextToCAD weight/STL polling
+
+Before writing a new helper, evaluate whether src/lib/microservices-api.ts pollJobUntilComplete can be reused or adapted.
+
+10. Phase 7: paid-feature/credit flow
+
+Do after API/auth stabilization.
+
+Tasks:
+- Audit TOOL_COSTS keys.
+- Remove or document dead keys.
+- Confirm live workflow keys:
+  - jewelry_photoshoots_generator
+  - Product_shot_pipeline or actual product-shot cost key, if separate
+  - ring_generate_v1 and model variants
+- Verify CAD weight/STL have credit preflight if they are paid.
+- Add a new-paid-feature checklist to docs or PR template.
+
+11. Phase 8: split UnifiedStudio safely
+
+Do not start until:
+- photoshoot API migration is tested
+- polling helper exists and is tested
+- session save/restore behavior has tests
+
+Extraction target:
+- useStudioUpload
+- useStudioGeneration
+- useStudioSession
+- ResultsPanel
+- FeedbackPanel
+
+This is extraction, not rewrite.
+
+
+First Claude tasks, in exact order
+
+Task 1:
+Create AI_RULES.md exactly following the rules above.
+
+Task 2:
+Create docs/ARCHITECTURE_STABILIZATION_PLAN.md using the phase plan above.
+
+Task 3:
+Stop and report:
+- files created
+- whether any production source files were changed
+- any uncertainty found while reading the repo
+
+Do not begin PR 2 until the user explicitly approves moving from docs/guardrails to runtime code.
+
+
+Management summary
+
+This project can be saved if the team stops adding new drift immediately.
+The right move is not a rewrite.
+The right move is:
+1. write repo rules
+2. standardize protected API calls
+3. remove hardcoded runtime production URLs
+4. add tests around auth/polling/result parsing
+5. only then split the giant workflow files
+
+The goal is to restore startup velocity by making new features cheaper and less scary to ship.

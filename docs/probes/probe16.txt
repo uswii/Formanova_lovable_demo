@@ -1,0 +1,180 @@
+Probe 16: Error boundary coverage and crash blast radius
+
+- Scope:
+  - searched `src/` for:
+    - React ErrorBoundary components
+    - `componentDidCatch`
+    - `getDerivedStateFromError`
+    - `error.tsx`
+    - `error-boundary` files
+  - checked `src/App.tsx`
+  - checked `src/main.tsx`
+  - answered:
+    - if `UnifiedStudio.tsx` throws, does the whole app crash or just the studio panel?
+
+- Error boundary files/components found:
+  - `src/components/ChunkErrorBoundary.tsx`
+    - real class-based React error boundary
+    - has:
+      - `static getDerivedStateFromError(error)`
+      - `componentDidCatch(error)`
+    - active usage:
+      - yes
+      - imported and used in `src/App.tsx`
+  - `src/components/PostHogErrorBoundary.tsx`
+    - real class-based React error boundary
+    - has:
+      - `static getDerivedStateFromError()`
+      - `componentDidCatch(error, info)`
+    - active usage:
+      - no active imports/usages found in `src`
+    - status:
+      - unused/dead boundary
+  - `src/components/cad/InteractiveRing.tsx`
+    - has a function named `ErrorBoundary3D`
+    - implementation:
+      - plain function with `try/catch` around returning `{children}`
+    - active usage:
+      - local inside `InteractiveRing`
+    - status:
+      - not a real React error boundary
+    - reason:
+      - function component `try/catch` around JSX creation does not reliably catch child render/lifecycle errors the way class error boundaries do
+
+- `error.tsx` / `error-boundary` files:
+  - no Next-style `error.tsx` files found.
+  - no file named `error-boundary.*` found.
+  - only boundary-like filenames found:
+    - `src/components/ChunkErrorBoundary.tsx`
+    - `src/components/PostHogErrorBoundary.tsx`
+
+- `src/main.tsx` tree wrapping:
+  - `src/main.tsx` renders:
+    - `root.render(<App />)`
+  - There is no top-level error boundary around `<App />` in `main.tsx`.
+  - `main.tsx` has global `window` listeners for:
+    - `unhandledrejection`
+    - `error`
+  - Those handlers only react to chunk-load/dynamic-import failures.
+  - They do not provide React component-tree containment for normal render/lifecycle crashes.
+
+- `src/App.tsx` tree wrapping:
+  - `ChunkErrorBoundary` is used at:
+    - `src/App.tsx:198`
+    - closes at:
+      - `src/App.tsx:256`
+  - Wrapped area:
+    - `<Suspense fallback={<PageLoader />}>`
+    - `<Routes> ... </Routes>`
+  - Not wrapped by `ChunkErrorBoundary`:
+    - providers:
+      - `HelmetProvider`
+      - `QueryClientProvider`
+      - `ThemeProvider`
+      - `AuthProvider`
+      - `CreditsProvider`
+      - `TooltipProvider`
+    - router-level helpers:
+      - `BrowserRouter`
+      - `PostHogPageView`
+      - `PostReloadHandler`
+      - `OnboardingRedirectHandler`
+      - `VersionBanner`
+    - global decorations:
+      - `FloatingElements`
+      - `ScrollProgressIndicator`
+      - `ThemeDecorations`
+    - layout:
+      - `Header`
+    - the `<main>` element itself
+
+- Important behavior of `ChunkErrorBoundary`:
+  - It catches only chunk-load errors.
+  - `isChunkError(error)` returns true for messages like:
+    - dynamically imported module failure
+    - failed to fetch
+    - loading chunk
+    - importing module script failed
+  - For chunk errors:
+    - if generation is active:
+      - shows a modal telling user generation is still processing
+    - if generation is not active:
+      - attempts guarded auto-reload after 1.5s
+  - For non-chunk errors:
+    - `getDerivedStateFromError` does:
+      - `throw error`
+    - meaning normal component errors are deliberately not contained by this boundary.
+
+- What happens if `UnifiedStudio.tsx` throws?
+  - If the throw is a chunk-load/dynamic import error:
+    - `ChunkErrorBoundary` catches it.
+    - blast radius:
+      - route/main content is replaced by the boundary UI.
+      - global `Header` remains outside the boundary.
+      - if generation is active, user sees the generation-safe reload modal.
+  - If the throw is a normal render/lifecycle exception:
+    - `ChunkErrorBoundary` rethrows it.
+    - there is no outer React error boundary in `main.tsx`.
+    - blast radius:
+      - likely the whole React app crashes/unmounts for the user.
+      - not just the studio panel.
+  - If the throw happens inside an async event handler or promise:
+    - React error boundaries generally do not catch async errors.
+    - behavior depends on local `try/catch`.
+    - `UnifiedStudio` catches many generation-flow errors locally and maps them to UI state, but uncaught async errors can still surface globally.
+
+- Does `UnifiedStudio` have a local panel/page boundary?
+  - no.
+  - no boundary wrapping:
+    - upload step
+    - model selection
+    - generation panel
+    - result panel
+    - feedback modal
+  - Therefore a render-time crash in a child of `UnifiedStudio` is not contained to one studio section.
+
+- Does CAD have local boundaries?
+  - `TextToCAD.tsx`
+    - no real local React error boundary found.
+  - `CADCanvas.tsx`
+    - no real local React error boundary found.
+  - `InteractiveRing.tsx`
+    - has a local `ErrorBoundary3D` function, but it is not a proper React error boundary.
+  - CAD canvas/runtime errors are mostly handled manually through local loading/error state and try/catch, not through React boundary containment.
+
+- Current blast radius summary:
+  - Chunk-load failure inside a routed page:
+    - contained to the route/main area by `ChunkErrorBoundary`.
+  - Normal render/lifecycle crash inside a routed page:
+    - not contained.
+    - app-level crash risk.
+  - Normal render/lifecycle crash in `Header`, providers, router helpers, decorations, or update banner:
+    - not contained by any active boundary.
+    - app-level crash risk.
+  - Async handler/promise errors:
+    - not caught by React boundaries unless local `try/catch` handles them.
+
+- Risk score:
+  - Active real error boundaries:
+    - 1
+  - Active route/page-local workflow boundaries:
+    - 0
+  - High-risk god pages without local boundary:
+    - `UnifiedStudio.tsx`
+    - `TextToCAD.tsx`
+  - High-risk renderer without real local boundary:
+    - `CADCanvas.tsx`
+  - Boundary coverage quality:
+    - low for normal app errors
+    - medium only for chunk-load/deploy errors
+
+- Core finding:
+  - FormaNova has a chunk-load recovery boundary, not a general app safety boundary.
+  - If `UnifiedStudio.tsx` has a normal render crash, it does not merely break the studio panel.
+  - Because `ChunkErrorBoundary` rethrows non-chunk errors and `main.tsx` does not wrap `<App />`, a normal unhandled component error can tear down the whole React app for the user.
+  - For refactoring, the missing boundary is not "one more global wrapper" only.
+  - The safer target is layered containment:
+    - app-level catch-all boundary around `<App />`
+    - route-level boundary around each major tool route
+    - local boundary around CAD/WebGL rendering
+    - possibly section-level boundaries inside `UnifiedStudio` after it is split into smaller components

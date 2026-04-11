@@ -1,0 +1,346 @@
+Probe 8: Unfinished migration audit
+
+- Scope:
+  - commented-out routes/imports in `src/App.tsx`
+  - TODO/FIXME/HACK/XXX comments
+  - duplicate Temporal/workflow API clients
+  - dead `TOOL_COSTS` keys
+  - hardcoded feature flags
+  - orphaned `src/components/studio/*` components
+
+- Timeline clue from git:
+  - Commit `61d627f6 chore: delete unused studio workflow files and temporal/workflow API libs`
+  - Deleted 9 files / 5,010 lines:
+    - `src/components/studio/StepGenerate.tsx`
+    - `src/components/studio/StepRefineAndGenerate.tsx`
+    - `src/components/studio/StepRefineMask.tsx`
+    - `src/components/studio/StepUploadMark.tsx`
+    - `src/components/studio/WorkflowDebugView.tsx`
+    - `src/hooks/use-generation-workflow.ts`
+    - `src/lib/temporal-api.ts`
+    - `src/lib/workflow-api.ts`
+    - `src/pages/JewelryStudio.tsx`
+  - Interpretation:
+    - The old masked/refine workflow and duplicate API-client migration were mostly removed.
+    - Some comments, orphan components, docs/specs, and old feature flags still show the path the repo took.
+
+- Commented-out routes and imports in `src/App.tsx`:
+  - `src/App.tsx:61`
+    - commented const:
+      - `// const JewelryStudio = lazyWithRetry(() => import("./pages/JewelryStudio"));`
+    - feature name:
+      - old single-upload studio
+    - underlying file exists:
+      - no, `src/pages/JewelryStudio.tsx` does not exist
+    - status:
+      - stale preserved comment after deletion
+  - `src/App.tsx:63`
+    - commented const:
+      - `// const CategoryUploadStudio = lazyWithRetry(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));`
+    - feature name:
+      - batch upload studio / batch workflow
+    - underlying file exists:
+      - no, `src/components/bulk` does not exist
+    - status:
+      - stale preserved comment after deletion
+  - `src/App.tsx:211`
+    - commented route:
+      - `{/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}`
+    - feature name:
+      - tutorial
+    - underlying file exists:
+      - yes, `src/pages/Tutorial.tsx` exists
+    - status:
+      - disabled route, file still present
+  - `src/App.tsx:232`
+    - commented route:
+      - `{/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}`
+    - feature name:
+      - old single-upload studio
+    - underlying file exists:
+      - no, `src/pages/JewelryStudio.tsx` does not exist
+    - status:
+      - stale preserved route after deletion
+  - `src/App.tsx:234`
+    - commented route:
+      - `{/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}`
+    - feature name:
+      - batch upload route / batch workflow
+    - underlying file exists:
+      - no, `src/components/bulk` does not exist
+    - status:
+      - stale preserved route after deletion
+  - `// import` lines:
+    - none found in `src/App.tsx`
+
+- TODO/FIXME/HACK/XXX comments:
+  - In code/docs excluding lockfiles and existing probe docs:
+    - none found.
+  - Raw whole-repo scan found `XXX` only inside package integrity hashes in lockfiles, not comments:
+    - `bun.lock`
+    - `package-lock.json`
+  - Prior probe docs mention TODO/FIXME/HACK/XXX, but those are audit text, not source TODOs.
+  - Git blame age:
+    - not applicable because no source TODO/FIXME/HACK/XXX comments were found.
+
+- Duplicate API clients: `temporal-api.ts` vs `workflow-api.ts`
+  - Current status:
+    - neither `src/lib/temporal-api.ts` nor `src/lib/workflow-api.ts` exists in current `src`.
+    - both were deleted by commit `61d627f6`.
+  - Previous-client overlap from `61d627f6^`:
+    - `checkHealth`
+      - existed in both clients
+    - start masking workflow
+      - `temporal-api.ts`: `startMaskingWorkflow`
+      - `workflow-api.ts`: `startMasking`
+    - start generation workflow
+      - `temporal-api.ts`: `startGenerationWorkflow`
+      - `workflow-api.ts`: `startFluxGen`
+      - `temporal-api.ts` also had legacy `startGeneration`
+    - get status
+      - `temporal-api.ts`: `getDAGStatus`, legacy `getWorkflowStatus`
+      - `workflow-api.ts`: `getStatus`
+    - get result
+      - `temporal-api.ts`: `getDAGResult`
+      - `workflow-api.ts`: `getResult`
+    - poll until complete
+      - `temporal-api.ts`: `pollDAGUntilComplete`, legacy `pollWorkflowUntilComplete`
+      - `workflow-api.ts`: `pollUntilComplete`
+    - step progress helpers
+      - both had `getStepProgress` exports, but with different signatures/semantics
+    - base64/blob helpers
+      - both had `base64ToBlob`
+      - both had `imageSourceToBlob`
+  - Functions only in old `workflow-api.ts`:
+    - `startAllJewelryMasking`
+    - `startAllJewelryGeneration`
+  - Functions only in old `temporal-api.ts`:
+    - `startPreprocessing`
+    - `startWorkflow`
+    - `cancelWorkflow`
+    - `fetchOverlay`
+    - `fetchImages`
+    - `fetchUrlToBlob`
+  - Which one `UnifiedStudio.tsx` actually calls now:
+    - neither.
+    - `UnifiedStudio.tsx` imports from `src/lib/photoshoot-api.ts`:
+      - `getPhotoshootStatus`
+      - `getPhotoshootResult`
+      - `resolveWorkflowState`
+    - It also starts photo/product-shot generation through current photoshoot API functions, not through deleted `temporalApi` or `workflowApi`.
+  - Current replacement client:
+    - `src/lib/photoshoot-api.ts`
+    - This file still says it uses a Temporal API gateway, but it is a narrower current client for:
+      - `/api/run/state/jewelry_photoshoots_generator`
+      - `/api/run/Product_shot_pipeline`
+      - `/api/status/{workflowId}`
+      - `/api/result/{workflowId}`
+
+- Dead `TOOL_COSTS` keys:
+  - Keys in `src/lib/credits-api.ts`:
+    - `from_photo`
+    - `cad_generation`
+    - `qa_with_gpu`
+    - `ring_full_pipeline`
+    - `ring_generate_v1`
+    - `ring_generate_v1:gemini`
+    - `ring_generate_v1:claude-sonnet`
+    - `ring_generate_v1:claude-opus`
+  - Keys passed directly to `checkCredits`:
+    - `jewelry_photoshoots_generator`
+      - not present in `TOOL_COSTS`
+  - Keys passed directly to `performCreditPreflight`:
+    - `ring_generate_v1`
+  - Keys used by `useEstimatedCost`:
+    - `ring_generate_v1`
+  - Keys dynamically looked up but not directly passed:
+    - `ring_generate_v1:gemini`
+    - `ring_generate_v1:claude-sonnet`
+    - `ring_generate_v1:claude-opus`
+    - These are used via dynamic fallback key construction from workflow + model.
+  - Keys never passed to `checkCredits` or `performCreditPreflight` anywhere:
+    - `from_photo`
+    - `cad_generation`
+    - `qa_with_gpu`
+    - `ring_full_pipeline`
+    - `ring_generate_v1:gemini`
+    - `ring_generate_v1:claude-sonnet`
+    - `ring_generate_v1:claude-opus`
+  - Strongest dead-looking keys:
+    - `from_photo`
+    - `qa_with_gpu`
+    - `ring_full_pipeline`
+  - Nuance:
+    - `cad_generation` is not passed to preflight, but is used as a fallback in `TextToCAD.tsx`.
+    - model-specific `ring_generate_v1:*` keys are not passed directly, but are used by dynamic lookup.
+    - `jewelry_photoshoots_generator` is actively checked but missing from `TOOL_COSTS`, so photo pricing relies on backend estimate or fallback behavior outside this table.
+
+- Feature flags hardcoded true or false:
+  - `src/lib/feature-flags.ts:6`
+    - `isCADEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `CADGate`, `Dashboard`, `Header`
+    - deletion note:
+      - could be deleted/inlined without changing behavior if CAD is fully launched for all users.
+  - `src/lib/feature-flags.ts:14`
+    - `CAD_EDIT_TOOLS_ENABLED`
+    - hardcoded `false`
+    - users:
+      - `LeftPanel`
+    - deletion note:
+      - could be deleted only if the hidden edit/rebuild/add-on UI is intentionally abandoned; otherwise it is a dormant feature toggle.
+  - `src/lib/feature-flags.ts:21`
+    - `CAD_MODEL_SELECTOR_ENABLED`
+    - hardcoded `false`
+    - users:
+      - referenced in comments in CAD prompt/panel components; no active import found
+    - deletion note:
+      - likely removable without behavior change if model selector remains disabled/dead.
+  - `src/lib/feature-flags.ts:36`
+    - `isAltUploadLayoutEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `UnifiedStudio`
+    - deletion note:
+      - could be deleted/inlined; the old layout branch could also be deleted if no rollback is needed.
+  - `src/lib/feature-flags.ts:53`
+    - `isOnboardingEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `App`, `RolePicker`
+    - deletion note:
+      - could be deleted/inlined if onboarding is permanent.
+  - `src/lib/feature-flags.ts:60`
+    - `isAssetMetadataEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - no active usage found in source search
+    - deletion note:
+      - removable if unused.
+  - `src/lib/feature-flags.ts:67`
+    - `isViewGuideEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `AlternateUploadStep`
+    - deletion note:
+      - could be deleted/inlined if the guide button is permanent.
+  - `src/lib/feature-flags.ts:82`
+    - `isOnboardingWelcomeEnabled(...)`
+    - hardcoded `false`
+    - users:
+      - `App`, `RolePicker`
+    - deletion note:
+      - could be deleted if the onboarding welcome route is intentionally disabled; otherwise this is a dormant feature.
+  - `src/lib/feature-flags.ts:89`
+    - `AUTHENTICATED_IMAGES_ENABLED`
+    - hardcoded `true`
+    - users:
+      - authenticated image hook, CAD/generation preview components
+    - deletion note:
+      - could be deleted/inlined if authenticated artifact fetching is permanent.
+  - `src/lib/feature-flags.ts:94`
+    - `isFeedbackEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `UnifiedStudio`
+    - deletion note:
+      - could be deleted/inlined if feedback is permanent.
+  - `src/lib/feature-flags.ts:101`
+    - `isModelsApiEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `UnifiedStudio`
+    - deletion note:
+      - could be deleted/inlined if API-backed model library is permanent.
+  - `src/lib/feature-flags.ts:110`
+    - `isStudioOnboardingEnabled(...)`
+    - hardcoded `true`
+    - users:
+      - `UnifiedStudio`, `App`, `OnboardingWelcome`
+    - deletion note:
+      - could be deleted/inlined if studio onboarding is permanent.
+  - Not hardcoded true/false because they check email lists:
+    - `isWeightStlEnabled`
+    - `isCadUploadEnabled`
+    - `isShowAllVaultEnabled`
+    - `isStudioTypeSelectionEnabled`
+    - `isProductShotGuideEnabled`
+    - `isTestMenuEnabled`
+
+- Orphaned components in `src/components/studio/`:
+  - Active/imported by currently routed page `UnifiedStudio.tsx`:
+    - `AlternateUploadStep.tsx`
+    - `FeedbackModal.tsx`
+    - `ModelGuideModal.tsx`
+    - `ProductShotGuideModal.tsx`
+    - `UploadGuideModal.tsx`
+  - Orphaned / not imported by any currently-routed page:
+    - `BinaryMaskPreview.tsx`
+      - no imports found
+      - likely leftover from old mask/refine workflow
+    - `MarkingTutorial.tsx`
+      - no imports found
+      - likely leftover from old mark/mask workflow
+    - `MaskCanvas.tsx`
+      - no imports found
+      - likely leftover from old mark/mask workflow
+      - contains debug console logging
+    - `ServerOffline.tsx`
+      - no imports found
+      - likely leftover from older workflow/server health UI
+    - `BeforeAfterSlider.tsx`
+      - imported only by `src/components/BeforeAfterShowcase.tsx`
+      - `BeforeAfterShowcase.tsx` itself is not imported by App/pages/components
+      - effectively orphaned from currently routed product pages
+
+- Count of abandoned / half-finished / stale items found:
+  - Commented App entries:
+    - 5
+  - Source TODO/FIXME/HACK/XXX:
+    - 0
+  - Deleted duplicate workflow API/client migration family:
+    - 1 family
+    - 9 deleted files / 5,010 deleted lines
+  - Strong dead-looking `TOOL_COSTS` keys:
+    - 3
+    - `from_photo`, `qa_with_gpu`, `ring_full_pipeline`
+  - Additional `TOOL_COSTS` keys not directly passed to preflight/check functions:
+    - 4
+    - `cad_generation`, model-specific `ring_generate_v1:*`
+  - Hardcoded feature flags/constants:
+    - 12
+  - Orphaned `src/components/studio/` components:
+    - 5
+  - Total current audit signals:
+    - 26 if counting conservative current artifacts only:
+      - 5 App comments
+      - 3 strong dead cost keys
+      - 12 hardcoded flags
+      - 5 orphan studio components
+      - 1 deleted migration family still visible through comments/docs/history
+    - 30 if also counting non-direct `TOOL_COSTS` keys as abandoned-ish drift.
+
+- Shipped features visible in this same area:
+  - Current routed photo/on-model/product-shot studio:
+    - `UnifiedStudio`
+  - Current routed CAD tools:
+    - `CADStudio`
+    - `TextToCAD`
+    - `CADToCatalog`
+  - Current routed history/credits/admin support:
+    - `Generations`
+    - `Credits`
+    - admin routes
+  - Active studio components imported by current routed page:
+    - 5 active `src/components/studio/*` components
+
+- Core finding:
+  - The repo does show a clear migration timeline:
+    - old point-mask/refine/Temporal workflow UI
+    - duplicate `temporalApi` / `workflowApi` clients
+    - later deletion of that old system
+    - current `UnifiedStudio` / `photoshoot-api` flow
+    - remaining stale comments, hardcoded flags, dead cost keys, and orphan studio components
+  - The abandoned/half-finished artifact count is higher than the number of active studio components in the same folder and higher than the number of current routed tool surfaces.
+  - However, the worst old migration pieces were already deleted in commit `61d627f6`; what remains is cleanup debt and dormant toggles/components, not two fully competing live implementations.

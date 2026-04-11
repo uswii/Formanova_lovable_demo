@@ -1,0 +1,462 @@
+Probe 17: Hardcoded external URLs and domains
+
+Prompt:
+- Do not edit code.
+- Search `src/` for hardcoded strings matching:
+  - Azure blob domains: `blob.core.windows.net`
+  - `raresense`
+  - `formanova.ai`
+  - `http://`
+  - `https://`
+- Exclude `*.test.ts` and configuration comments.
+- Goal: find portability and environment coupling problems.
+- Any Azure blob URL hardcoded in component code means staging/production and backend storage rotation need a frontend deploy.
+
+Scope:
+- Searched `src/`.
+- Excluded test/spec files.
+- Comment-only configuration references were excluded from the main findings.
+
+Command used:
+- `rg -n --glob '!*.test.ts' --glob '!*.test.tsx' --glob '!*.spec.ts' --glob '!*.spec.tsx' "blob\.core\.windows\.net|raresense|formanova\.ai|https?://" src`
+
+High-risk environment/backend coupling
+
+- `src/hooks/use-image-validation.ts:7`
+  - `const BASE_URL = 'https://formanova.ai';`
+  - Risk:
+    - high.
+    - Image validation is hardwired to production backend.
+    - Staging/local/dev cannot change backend without source edit or deploy.
+
+- `src/pages/Auth.tsx:220`
+  - `const siteUrl = 'https://formanova.ai/login';`
+  - Risk:
+    - medium.
+    - Mobile/browser auth redirect is hardcoded to production domain.
+    - Staging auth redirects can break or send users to production.
+
+- `src/pages/Auth.tsx:223`
+  - ``intent://formanova.ai/login#Intent;scheme=https;action=android.intent.action.VIEW;end``
+  - Risk:
+    - medium.
+    - Android intent fallback is tied to production domain.
+
+- `src/pages/PromoAdminPage.tsx:24`
+  - `const API_BASE = 'https://formanova.ai/api/credits/admin/ui/promo-codes';`
+  - Risk:
+    - high.
+    - Admin promo API is hardwired to production backend.
+    - This is a direct portability problem for staging/admin testing.
+
+- `src/lib/generation-history-api.ts:9`
+  - `const BASE_URL = 'https://formanova.ai';`
+  - Risk:
+    - high.
+    - Generation history is hardwired to production backend.
+    - Environment changes require frontend changes.
+
+- `src/lib/generation-enrichment.ts:44`
+  - `authenticatedFetch(\`https://formanova.ai/api/result/${workflowId}\`)`
+  - Risk:
+    - high.
+    - Result enrichment bypasses relative/environment backend routing.
+    - This couples history/result parsing to production.
+
+- `src/main.tsx:65`
+  - `const PRODUCTION_DOMAIN = 'formanova.ai';`
+  - Risk:
+    - medium.
+    - Production redirect behavior is intentionally domain-specific, but it belongs in env/config.
+
+- `src/main.tsx:69`
+  - `window.location.hostname !== 'www.formanova.ai'`
+  - Risk:
+    - medium.
+    - Domain canonicalization is hardcoded.
+
+- `src/main.tsx:75`
+  - ``window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`)``
+  - Risk:
+    - medium.
+    - Production redirect URL is hardcoded.
+
+- `src/main.tsx:94`
+  - `api_host: 'https://relay.formanova.ai'`
+  - Risk:
+    - medium.
+    - PostHog relay host is hardcoded.
+
+- `src/main.tsx:95`
+  - `ui_host: 'https://us.posthog.com'`
+  - Risk:
+    - low-medium.
+    - External analytics UI host is hardcoded.
+
+Hardcoded Azure blob storage
+
+- `src/lib/azure-utils.ts:11`
+  - ``return `https://snapwear.blob.core.windows.net/${path}`;``
+  - Risk:
+    - high.
+    - Azure account/container URL is encoded in frontend utility logic.
+    - Storage account rotation or staging storage requires frontend deploy.
+
+- `src/lib/model-library.ts:10`
+  - `const AZURE_BASE = 'https://snapwear.blob.core.windows.net/agentic-artifacts/Models';`
+  - Risk:
+    - high.
+    - Model library is directly coupled to a production Azure blob path.
+    - This is exactly the portability problem from the probe goal.
+
+Hardcoded RareSense domains or emails
+
+- `src/lib/feature-flags.ts:26`
+  - `uswa@raresense.so`
+  - Risk:
+    - medium.
+    - Internal email gate hardcoded in frontend.
+
+- `src/lib/feature-flags.ts:43`
+  - `uswa@raresense.so`, `abdullah@raresense.so`
+  - Risk:
+    - medium.
+    - Internal CAD upload gate hardcoded in frontend.
+
+- `src/lib/feature-flags.ts:76`
+  - `email.toLowerCase() === 'uswa@raresense.so'`
+  - Risk:
+    - medium.
+    - Admin/test access is tied to a hardcoded frontend email.
+
+- `src/lib/feature-flags.ts:108`
+  - `uswa@raresense.so`
+  - Risk:
+    - medium.
+
+- `src/lib/feature-flags.ts:117`
+  - `uswa@raresense.so`
+  - Risk:
+    - medium.
+
+- `src/lib/feature-flags.ts:127`
+  - `uswa@raresense.so`
+  - Risk:
+    - medium.
+
+- `src/lib/feature-flags.ts:139`
+  - `email.toLowerCase() === 'uswa@raresense.so'`
+  - Risk:
+    - medium.
+
+- `src/pages/Welcome.tsx:206`
+  - `https://linkedin.com/company/rare-sense-inc`
+  - Risk:
+    - low.
+    - External company/social link, not backend portability.
+
+Product/domain links and contact emails
+
+- `src/pages/FeedbackRedirect.tsx:3`
+  - Google Forms survey URL.
+  - Risk:
+    - low-medium.
+    - External survey dependency is hardcoded.
+
+- `src/pages/AIJewelryPhotoshoot.tsx:35`
+  - canonical URL `https://formanova.ai/ai-jewelry-photoshoot`
+  - Risk:
+    - low.
+    - SEO/product domain hardcoding.
+
+- `src/pages/AIJewelryPhotoshoot.tsx:42`
+  - schema context `https://schema.org`
+  - Risk:
+    - low.
+    - Standard structured data URL.
+
+- `src/pages/AIJewelryCAD.tsx:33`
+  - canonical URL `https://formanova.ai/ai-jewelry-cad`
+  - Risk:
+    - low.
+    - SEO/product domain hardcoding.
+
+- `src/pages/AIJewelryCAD.tsx:40`
+  - schema context `https://schema.org`
+  - Risk:
+    - low.
+    - Standard structured data URL.
+
+- `src/pages/OnboardingWelcome.tsx:390`
+  - `https://formanova.ai/terms/`
+  - Risk:
+    - low.
+    - Product legal link hardcoded.
+
+- `src/pages/RolePicker.tsx:236`
+  - `https://formanova.ai/terms/`
+  - Risk:
+    - low.
+    - Product legal link hardcoded.
+
+- `src/pages/LinkAccount.tsx:221`
+  - `mailto:studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+- `src/pages/LinkAccount.tsx:224`
+  - `studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+- `src/components/generations/WorkflowCard.tsx:202`
+  - `mailto:studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+- `src/components/generations/WorkflowCard.tsx:205`
+  - `studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+- `src/pages/UnifiedStudio.tsx:2098`
+  - `mailto:studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+- `src/pages/UnifiedStudio.tsx:2101`
+  - `studio@formanova.ai`
+  - Risk:
+    - low.
+    - Contact email hardcoded.
+
+External public links/media
+
+- `src/pages/Tutorial.tsx:81`
+  - YouTube embed URL.
+  - Risk:
+    - low.
+    - External tutorial media dependency.
+
+- `src/pages/Welcome.tsx:160`
+  - `https://cnn.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:161`
+  - `https://techcrunch.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:162`
+  - `https://telegraph.co.uk`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:163`
+  - `https://huffpost.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:181`
+  - `https://hugoboss.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:182`
+  - `https://atoirthelabel.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:183`
+  - `https://tulleen.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+- `src/pages/Welcome.tsx:184`
+  - `https://mango.com`
+  - Risk:
+    - low.
+    - Marketing/logo link.
+
+Dynamic URL checks, not hardcoded external destinations
+
+- `src/pages/AdminGenerationDetailPage.tsx:60`
+  - `node.startsWith('http://')`
+  - Risk:
+    - low.
+    - URL detection logic, not an environment-coupled endpoint.
+
+- `src/pages/AdminGenerationDetailPage.tsx:61`
+  - `node.startsWith('https://')`
+  - Risk:
+    - low.
+    - URL detection logic.
+
+- `src/pages/AdminGenerationDetailPage.tsx:84`
+  - `value.startsWith('https://') || value.startsWith('http://')`
+  - Risk:
+    - low.
+    - URL detection logic.
+
+- `src/lib/admin-generations-api.ts:110`
+  - `value.startsWith('http://')`
+  - Risk:
+    - low.
+    - URL detection logic.
+
+- `src/lib/admin-generations-api.ts:111`
+  - `value.startsWith('https://')`
+  - Risk:
+    - low.
+    - URL detection logic.
+
+- `src/lib/generation-enrichment.ts:32`
+  - `outputUrl.startsWith('https://')`
+  - Risk:
+    - low.
+    - URL detection logic.
+
+SVG/XML namespace and data-URI matches
+
+- `src/index.css:708`
+  - inline SVG data URI includes `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+    - SVG namespace, not a backend/external dependency.
+
+- `src/pages/RolePicker.tsx:26`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/RolePicker.tsx:34`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/RolePicker.tsx:42`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/RolePicker.tsx:50`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/RolePicker.tsx:58`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/UnifiedStudio.tsx:1743`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/UnifiedStudio.tsx:1752`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/pages/UnifiedStudio.tsx:1761`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/icons/ModelSilhouette.tsx:10`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/icons/PeopleIcon.tsx:10`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/icons/RingIcon.tsx:10`
+  - SVG namespace `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/ThemeDecorations.tsx:304`
+  - inline SVG data URI includes `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/ThemeDecorations.tsx:339`
+  - inline SVG data URI includes `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+- `src/components/ThemeDecorations.tsx:431`
+  - inline SVG data URI includes `http://www.w3.org/2000/svg`
+  - Risk:
+    - low.
+
+Comment-only matches excluded from main findings
+
+- `src/hooks/useAuthenticatedImage.ts:12`
+  - comment mentions `http://localhost:8000/artifacts/...`
+
+- `src/hooks/useAuthenticatedImage.ts:13`
+  - comment mentions `https://formanova.ai/api/artifacts/...`
+
+- `src/lib/generation-history-api.ts:3`
+  - comment mentions `formanova.ai`
+
+- `src/lib/models-api.ts:8`
+  - comment mentions `https://formanova.ai/api/artifacts/<sha256>`
+
+- `src/lib/microservices-api.ts:11`
+  - comment mentions `https://formanova.ai/api/artifacts/<sha256>`
+
+Counts
+
+- Total non-test raw matches from scan:
+  - 65
+- High-risk environment/backend/storage hardcodes:
+  - 8
+- Medium-risk hardcoded production/internal config values:
+  - 13
+- Low-risk product links, public links, SVG namespaces, and URL-detection strings:
+  - 39
+- Comment-only configuration references excluded:
+  - 5
+
+Core finding
+
+- Confirmed:
+  - The frontend contains hardcoded production backend domains and hardcoded Azure blob storage domains.
+- Most concerning files:
+  - `src/hooks/use-image-validation.ts`
+  - `src/pages/PromoAdminPage.tsx`
+  - `src/lib/generation-history-api.ts`
+  - `src/lib/generation-enrichment.ts`
+  - `src/lib/azure-utils.ts`
+  - `src/lib/model-library.ts`
+- Practical meaning:
+  - Parts of the app cannot cleanly move between local, staging, and production.
+  - Backend/storage rotation can require frontend source changes and redeploys.
+  - Photo validation, history enrichment, promo admin, and model/blob loading are the biggest portability risks.
+
+Recommended cleanup target for later
+
+- Create one environment/backend URL policy:
+  - protected backend calls use relative `/api/...` plus `authenticatedFetch`, or a single configured API base.
+  - direct storage URLs are returned by backend or generated through one configurable asset helper.
+  - hardcoded production domain stays only in SEO/legal/marketing places where that is intentional.
+  - internal email gates move to backend/admin config when the temporary CAD gates become product features.

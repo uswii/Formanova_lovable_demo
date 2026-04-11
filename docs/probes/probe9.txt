@@ -1,0 +1,450 @@
+Probe 9: Test coverage vs production surface area
+
+- Scope:
+  - every test file in repo
+  - every production page routed in `src/App.tsx` and not commented out
+  - every production `src/lib/*.ts` API/helper file
+  - every React context in `src/contexts`
+  - file-based tested surface ratio
+  - explicit high-risk untested paths:
+    - credit gate logic
+    - generation polling loops
+    - session save/restore in `UnifiedStudio.tsx`
+
+- Test files found:
+  - `src/test/transform-logic.test.ts`
+    - line count: 117
+    - what it tests:
+      - local copied/minimal transform math for CAD multi-mesh move/scale
+      - pivot computation fallback
+      - no production module import from `CADCanvas.tsx`
+    - production surface directly covered:
+      - none directly; this validates duplicated logic, not imported production code
+  - `src/lib/posthog-events.test.ts`
+    - line count: 283
+    - what it tests:
+      - PostHog event helper functions
+      - first-generation localStorage guard
+      - loaded guard behavior
+      - product/category/upload/model/paywall/CAD generation/download/payment/guide/feedback/user-type event payload shapes
+    - production surface directly covered:
+      - `src/lib/posthog-events.ts`
+  - `src/lib/generation-history-api.test.ts`
+    - line count: 46
+    - what it tests:
+      - `inferSourceType`
+      - product-shot detection
+      - CAD text/render detection
+      - photo detection
+      - priority ordering between source-type heuristics
+      - unknown fallback
+    - production surface directly covered:
+      - `src/lib/generation-history-api.ts`
+  - `src/lib/generation-enrichment.test.ts`
+    - line count: 107
+    - what it tests:
+      - `extractPhotoThumbnail`
+      - `extractCadTextData`
+      - extracting base64/output URLs/screenshots/GLB data from workflow steps
+      - ignoring invalid/failed result shapes
+    - production surface directly covered:
+      - `src/lib/generation-enrichment.ts`
+
+- Routed production pages in `src/App.tsx`:
+  - `src/pages/Welcome.tsx`
+    - routes:
+      - `/`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/FeedbackRedirect.tsx`
+    - routes:
+      - `/feedback`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/Auth.tsx`
+    - routes:
+      - `/login`
+      - `/oauth-callback`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AIJewelryPhotoshoot.tsx`
+    - routes:
+      - `/ai-jewelry-photoshoot`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AIJewelryCAD.tsx`
+    - routes:
+      - `/ai-jewelry-cad`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/LinkAccount.tsx`
+    - routes:
+      - `/link`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/RolePicker.tsx`
+    - routes:
+      - `/onboarding`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/OnboardingWelcome.tsx`
+    - routes:
+      - `/onboarding-welcome`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/Dashboard.tsx`
+    - routes:
+      - `/dashboard`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/Generations.tsx`
+    - routes:
+      - `/generations`
+    - test coverage:
+      - no page/component test found
+      - related lib-only coverage exists for `generation-history-api.ts` and `generation-enrichment.ts`
+  - `src/pages/Credits.tsx`
+    - routes:
+      - `/credits`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/Pricing.tsx`
+    - routes:
+      - `/pricing`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/PaymentSuccess.tsx`
+    - routes:
+      - `/payment-success`
+      - `/success`
+    - test coverage:
+      - no page/component test found
+      - related analytics helper `trackPaymentSuccess` is tested, but the page flow is not
+  - `src/pages/PaymentCancel.tsx`
+    - routes:
+      - `/cancel`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/PhotographyStudioCategories.tsx`
+    - routes:
+      - `/studio`
+        - via `StudioGate` when studio type selection flag is false for user
+      - `/studio/categories`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/StudioTypeSelection.tsx`
+    - routes:
+      - `/studio`
+        - via `StudioGate` when studio type selection flag is true for user
+    - test coverage:
+      - no page/component test found
+  - `src/pages/ProductShotCategories.tsx`
+    - routes:
+      - `/studio/product-shot/categories`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/UnifiedStudio.tsx`
+    - routes:
+      - `/studio/:type`
+    - test coverage:
+      - no page/component test found
+      - no tests found for upload flow, validation, session restore/save, generation start, polling, result extraction, reset/regenerate, or feedback wiring
+  - `src/pages/CADStudio.tsx`
+    - routes:
+      - `/studio-cad`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/CADToCatalog.tsx`
+    - routes:
+      - `/cad-to-catalog`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/TextToCAD.tsx`
+    - routes:
+      - `/text-to-cad`
+    - test coverage:
+      - no page/component test found
+      - transform math has a separate copied-logic test, but no test imports/renders `TextToCAD.tsx`
+  - `src/pages/PromoAdminPage.tsx`
+    - routes:
+      - `/admin/promo-codes`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AdminGenerationsPage.tsx`
+    - routes:
+      - `/admin/generations`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AdminFeedbackPage.tsx`
+    - routes:
+      - `/admin/feedback`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AdminModelsPage.tsx`
+    - routes:
+      - `/admin/preset-library/models`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AdminInspirationsPage.tsx`
+    - routes:
+      - `/admin/preset-library/inspirations`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/AdminGenerationDetailPage.tsx`
+    - routes:
+      - `/admin/generations/:workflowId`
+    - test coverage:
+      - no page/component test found
+  - `src/pages/NotFound.tsx`
+    - routes:
+      - `*`
+    - test coverage:
+      - no page/component test found
+
+- Routed layout/guard components in `src/App.tsx`:
+  - `src/components/ProtectedRoute.tsx`
+    - test coverage:
+      - no test found
+  - `src/components/CADGate.tsx`
+    - test coverage:
+      - no test found
+  - `src/components/AdminRouteGuard.tsx`
+    - test coverage:
+      - no test found
+  - `src/components/admin/AdminLayout.tsx`
+    - test coverage:
+      - no test found
+  - `src/components/admin/PresetLibraryLayout.tsx`
+    - test coverage:
+      - no test found
+
+- Production pages coverage summary:
+  - routed page files counted:
+    - 28
+  - routed page files with direct tests:
+    - 0
+  - routed page coverage:
+    - 0 / 28 = 0%
+
+- Production `src/lib/*.ts` files and test coverage:
+  - `src/lib/admin-generations-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/admin-utils.ts`
+    - test coverage:
+      - no
+  - `src/lib/assets-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/auth-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/authenticated-fetch.ts`
+    - test coverage:
+      - no
+  - `src/lib/azure-utils.ts`
+    - test coverage:
+      - no
+  - `src/lib/credit-preflight.ts`
+    - test coverage:
+      - no
+  - `src/lib/credits-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/feature-flags.ts`
+    - test coverage:
+      - no
+  - `src/lib/feedback-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/generation-enrichment.ts`
+    - test coverage:
+      - yes, `src/lib/generation-enrichment.test.ts`
+  - `src/lib/generation-history-api.ts`
+    - test coverage:
+      - yes, `src/lib/generation-history-api.test.ts`
+  - `src/lib/generation-lifecycle.ts`
+    - test coverage:
+      - no
+  - `src/lib/gpu-detect.ts`
+    - test coverage:
+      - no
+  - `src/lib/image-compression.ts`
+    - test coverage:
+      - no
+  - `src/lib/image-normalize.ts`
+    - test coverage:
+      - no
+  - `src/lib/jewelry-utils.ts`
+    - test coverage:
+      - no
+  - `src/lib/mask-visualization.ts`
+    - test coverage:
+      - no
+  - `src/lib/microservices-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/model-library.ts`
+    - test coverage:
+      - no
+  - `src/lib/models-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/onboarding-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/photoshoot-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/pipeline-api.ts`
+    - test coverage:
+      - no
+  - `src/lib/posthog-events.ts`
+    - test coverage:
+      - yes, `src/lib/posthog-events.test.ts`
+  - `src/lib/reload-utils.ts`
+    - test coverage:
+      - no
+  - `src/lib/utils.ts`
+    - test coverage:
+      - no
+  - `src/lib/web-vitals.ts`
+    - test coverage:
+      - no
+  - `src/lib/workflow-fallback.ts`
+    - test coverage:
+      - no
+
+- Production lib coverage summary:
+  - production lib files counted:
+    - 29
+  - lib files with direct tests:
+    - 3
+  - lib coverage:
+    - 3 / 29 = 10.3%
+
+- Context files and test coverage:
+  - `src/contexts/AuthContext.tsx`
+    - test coverage:
+      - no
+  - `src/contexts/CreditsContext.tsx`
+    - test coverage:
+      - no
+  - `src/contexts/ThemeContext.tsx`
+    - test coverage:
+      - no
+
+- Context coverage summary:
+  - context files counted:
+    - 3
+  - context files with direct tests:
+    - 0
+  - context coverage:
+    - 0 / 3 = 0%
+
+- Tested surface / total production surface ratio:
+  - Formula:
+    - tested production files / total production files
+  - Included production surface:
+    - routed page files: 28
+    - production lib files: 29
+    - context files: 3
+  - Total production surface counted:
+    - 60 files
+  - Directly tested production files:
+    - 3 files
+      - `src/lib/posthog-events.ts`
+      - `src/lib/generation-history-api.ts`
+      - `src/lib/generation-enrichment.ts`
+  - Ratio:
+    - 3 / 60 = 5.0%
+  - If counting `src/test/transform-logic.test.ts` as coverage for `CADCanvas.tsx` by intent only:
+    - 4 / 60 = 6.7%
+  - Strict ratio should be treated as:
+    - 5.0%, because `transform-logic.test.ts` does not import the production CAD module
+
+- Highest-risk untested paths:
+  - Credit gate logic:
+    - untested files:
+      - `src/lib/credit-preflight.ts`
+      - `src/hooks/use-credit-preflight.ts`
+      - `src/lib/credits-api.ts`
+      - `src/contexts/CreditsContext.tsx`
+      - `src/pages/UnifiedStudio.tsx`
+      - `src/pages/TextToCAD.tsx`
+    - missing tests:
+      - approved vs blocked preflight
+      - backend estimate fallback to `TOOL_COSTS`
+      - missing/expired auth behavior
+      - insufficient-credit modal/inline UI behavior
+      - credit refresh after generation
+      - mismatch cases such as CAD weight/STL feature-gated workflows without frontend preflight
+  - Generation polling loops:
+    - untested files:
+      - `src/pages/UnifiedStudio.tsx`
+      - `src/lib/photoshoot-api.ts`
+      - `src/pages/TextToCAD.tsx`
+      - `src/hooks/use-image-validation.ts`
+    - missing tests:
+      - 404 retry behavior
+      - running/completed/failed state handling
+      - timeout behavior
+      - workflow result shape parsing
+      - progress state updates
+      - result fetch after completion
+      - duplicate-submit prevention
+      - abort/cancel behavior in CAD polling
+  - Session save/restore in `UnifiedStudio.tsx`:
+    - untested files:
+      - `src/pages/UnifiedStudio.tsx`
+    - missing tests:
+      - `saveStudioSession`
+      - `loadStudioSession`
+      - `clearStudioSession`
+      - restore after reload
+      - route-state preloaded asset behavior
+      - product-shot vs model-shot session separation
+      - stale asset ID cleanup
+      - start-over clearing all related state
+      - regenerate reusing only intended state
+  - Auth/session boundary:
+    - untested files:
+      - `src/lib/auth-api.ts`
+      - `src/lib/authenticated-fetch.ts`
+      - `src/contexts/AuthContext.tsx`
+      - `src/components/ProtectedRoute.tsx`
+      - `src/App.tsx` redirect handlers
+    - missing tests:
+      - token storage/removal
+      - 401 redirect behavior
+      - protected route behavior
+      - onboarding redirect behavior
+      - redirect preservation
+  - CAD canvas/render/export path:
+    - untested files:
+      - `src/components/text-to-cad/CADCanvas.tsx`
+      - `src/pages/TextToCAD.tsx`
+    - partial related coverage:
+      - `src/test/transform-logic.test.ts` covers copied transform math only
+    - missing tests:
+      - actual component behavior
+      - GLB authenticated fetch
+      - export scene blob
+      - model loading state
+      - material/mesh mutation behavior
+
+- Shipping velocity / regression conclusion:
+  - Yes, slow velocity and regressions are plausibly explained in part by missing safety net.
+  - The repo has:
+    - 0 routed page tests
+    - 0 context tests
+    - 0 tests for the main photo studio workflow
+    - 0 tests for the main CAD workflow page
+    - 0 tests for credit preflight itself
+    - 0 tests for auth/session redirect behavior
+    - 0 tests for generation polling loops
+    - 0 tests for `UnifiedStudio` session save/restore
+  - Every meaningful change to upload, credits, auth, generation, CAD polling, or result parsing currently requires manual regression testing.
+  - Without that manual testing, bugs can ship.
+  - With full manual testing, the developer slows to a crawl.
+  - This matches the user's hypothesis.

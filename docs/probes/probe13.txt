@@ -1,0 +1,297 @@
+Probe 13: eslint-disable suppression audit
+
+- Scope:
+  - searched entire `src/` tree for:
+    - `eslint-disable`
+    - `eslint-disable-line`
+    - `eslint-disable-next-line`
+  - focused on `react-hooks/exhaustive-deps`
+  - for each suppression:
+    - file
+    - line
+    - rule
+    - hook affected
+    - dependency array
+    - variables used but excluded
+    - stale-closure risk
+
+- Total suppressions in `src/`:
+  - 5
+
+- Suppressed rule count:
+  - `react-hooks/exhaustive-deps`
+    - 5
+  - other eslint rules:
+    - 0
+
+- Files with suppressions:
+  - `src/pages/UnifiedStudio.tsx`
+    - line count:
+      - 2,233
+    - suppressions:
+      - 4
+  - `src/pages/TextToCAD.tsx`
+    - line count:
+      - 1,523
+    - suppressions:
+      - 1
+
+- Suppression 1:
+  - file:
+    - `src/pages/UnifiedStudio.tsx`
+  - line:
+    - `572`
+  - comment:
+    - `// eslint-disable-line react-hooks/exhaustive-deps`
+  - suppressed rule:
+    - `react-hooks/exhaustive-deps`
+  - hook:
+    - `useEffect`
+  - purpose:
+    - auto-select first available preset category when API data loads.
+  - dependency array:
+    - `[presetCategoryIds]`
+  - variables used inside effect:
+    - `presetCategoryIds`
+    - `formanovaCategory`
+    - `setFormanovaCategory`
+  - variables excluded from deps:
+    - `formanovaCategory`
+  - stable values excluded:
+    - `setFormanovaCategory`
+      - React setter is stable and does not need to be listed.
+  - stale-closure risk:
+    - medium
+  - why it matters:
+    - If `formanovaCategory` changes while `presetCategoryIds` does not, this effect keeps the old captured category value.
+    - This is probably intentional to avoid auto-select loops, but the suppression hides that choice from future changes.
+  - feature area:
+    - photo/product-shot preset category selection.
+
+- Suppression 2:
+  - file:
+    - `src/pages/UnifiedStudio.tsx`
+  - line:
+    - `736`
+  - comment:
+    - `// eslint-disable-next-line react-hooks/exhaustive-deps`
+  - suppressed rule:
+    - `react-hooks/exhaustive-deps`
+  - hook:
+    - `useEffect`
+  - purpose:
+    - preload vault asset once from route state for Re-shoot/New Shoot from My Products/My Models.
+  - dependency array:
+    - `[]`
+  - variables used inside effect:
+    - `location.state`
+    - `setJewelryUploadedUrl`
+    - `setJewelrySasUrl`
+    - `setJewelryImage`
+    - `setJewelryAssetId`
+    - `setValidationResult`
+    - `azureUriToUrl`
+    - `setCurrentStep`
+    - `setCustomModelImage`
+    - `setModelAssetId`
+  - variables excluded from deps:
+    - `location`
+    - specifically `location.state`
+  - stable values excluded:
+    - React setters
+    - imported `azureUriToUrl`
+  - stale-closure risk:
+    - medium
+  - why it matters:
+    - The comment says this is intentionally mount-only because adding `location` would re-apply preload on in-studio navigation.
+    - That is a valid reason, but it also means any later route-state change while the component remains mounted will be ignored.
+  - feature area:
+    - photo/on-model preloading from vault/history.
+
+- Suppression 3:
+  - file:
+    - `src/pages/UnifiedStudio.tsx`
+  - line:
+    - `786`
+  - comment:
+    - `// eslint-disable-line react-hooks/exhaustive-deps`
+  - suppressed rule:
+    - `react-hooks/exhaustive-deps`
+  - hook:
+    - `useEffect`
+  - purpose:
+    - restore studio session after reload unless route state is preloading a jewelry asset.
+  - dependency array:
+    - `[]`
+  - variables used inside effect:
+    - `location.state`
+    - `loadStudioSession`
+    - `jewelryType`
+    - `clearStudioSession`
+    - `azureUriToUrl`
+    - `setJewelryImage`
+    - `setJewelryUploadedUrl`
+    - `setJewelryAssetId`
+    - `setValidationResult`
+    - `setCustomModelImage`
+    - `setModelAssetId`
+    - `modelsApiEnabled`
+    - `ALL_MODELS`
+    - `setSelectedModel`
+  - variables excluded from deps:
+    - `location`
+    - specifically `location.state`
+    - `jewelryType`
+    - `modelsApiEnabled`
+  - stable values/imports excluded:
+    - React setters
+    - imported constants/helpers:
+      - `ALL_MODELS`
+      - `azureUriToUrl`
+      - `loadStudioSession`
+      - `clearStudioSession`
+  - stale-closure risk:
+    - high
+  - why it matters:
+    - This effect decides whether to restore an uploaded item and selected model.
+    - It intentionally runs once, but it reads route state, current jewelry type, and feature-flag state.
+    - If route/state/type/flag assumptions change after mount, the restore behavior will not rerun.
+  - feature area:
+    - photo/on-model session restore.
+
+- Suppression 4:
+  - file:
+    - `src/pages/UnifiedStudio.tsx`
+  - line:
+    - `809`
+  - comment:
+    - `// eslint-disable-line react-hooks/exhaustive-deps`
+  - suppressed rule:
+    - `react-hooks/exhaustive-deps`
+  - hook:
+    - `useEffect`
+  - purpose:
+    - second-pass selected model restore after API preset model data loads.
+  - dependency array:
+    - `[presetModelsData]`
+  - variables used inside effect:
+    - `modelsApiEnabled`
+    - `presetModelsData`
+    - `selectedModel`
+    - `loadStudioSession`
+    - `setSelectedModel`
+  - variables excluded from deps:
+    - `modelsApiEnabled`
+    - `selectedModel`
+  - stable values/imports excluded:
+    - `setSelectedModel`
+    - `loadStudioSession`
+  - stale-closure risk:
+    - medium-high
+  - why it matters:
+    - The effect is supposed to restore a model only if API mode is enabled and no model is currently selected.
+    - If `selectedModel` or `modelsApiEnabled` changes independently of `presetModelsData`, the effect may use stale values.
+  - feature area:
+    - photo/on-model preset model restore.
+
+- Suppression 5:
+  - file:
+    - `src/pages/TextToCAD.tsx`
+  - line:
+    - `144`
+  - comment:
+    - `// eslint-disable-next-line react-hooks/exhaustive-deps`
+  - suppressed rule:
+    - `react-hooks/exhaustive-deps`
+  - hook:
+    - `useEffect`
+  - purpose:
+    - boot directly into CAD workspace when `?glb=` param is present, then clean URL.
+  - dependency array:
+    - `[]`
+  - variables used inside effect:
+    - `searchParams`
+    - `navigate`
+    - `setWorkspaceActive`
+    - `setHasModel`
+    - `setIsModelLoading`
+    - `setProgressStep`
+    - `setGlbUrl`
+    - `setGlbArtifact`
+  - variables excluded from deps:
+    - `searchParams`
+    - `navigate`
+  - stable values excluded:
+    - React setters
+  - stale-closure risk:
+    - medium
+  - why it matters:
+    - The effect intentionally runs only once to consume the initial `?glb=` URL.
+    - If the URL param changes while `TextToCAD` stays mounted, the page will ignore the new GLB param.
+  - feature area:
+    - CAD history-loaded model boot.
+
+- Exhaustive-deps suppression summary:
+  - Total suppressed hook dependency checks:
+    - 5
+  - In `UnifiedStudio.tsx`:
+    - 4
+  - In `TextToCAD.tsx`:
+    - 1
+  - Suppressions in files over 1,000 lines:
+    - 5 / 5
+  - Suppressions in generation/workflow pages:
+    - 5 / 5
+
+- Excluded dependency categories:
+  - Route/location state:
+    - `location.state`
+    - `searchParams`
+  - Current product/tool mode:
+    - `jewelryType`
+    - `modelsApiEnabled`
+  - Current selection state:
+    - `formanovaCategory`
+    - `selectedModel`
+  - Navigation:
+    - `navigate`
+
+- Highest stale-closure risk:
+  - `src/pages/UnifiedStudio.tsx:786`
+    - session restore effect
+    - because it reads route preload state, jewelry type, model API flag, and session data while intentionally running only once.
+  - `src/pages/UnifiedStudio.tsx:809`
+    - second-pass model restore
+    - because it uses `selectedModel` and `modelsApiEnabled` but only reruns on `presetModelsData`.
+
+- Places where suppression seems intentional but should be documented as a named boundary:
+  - `src/pages/UnifiedStudio.tsx:736`
+    - route-state preload should run once.
+  - `src/pages/TextToCAD.tsx:144`
+    - `?glb=` param consumption should run once.
+  - Better pattern later:
+    - extract explicit `useInitialRouteStatePreload(...)`
+    - extract explicit `useInitialGlbParam(...)`
+    - inside those hooks, capture initial values in refs so the behavior is intentionally one-shot without sprinkling suppressions in giant pages.
+
+- Refactoring danger score:
+  - N suppressions:
+    - 5
+  - Average line count of files containing suppressions:
+    - `(2233 + 1523) / 2 = 1878`
+  - Simple score:
+    - `5 * 1878 = 9390`
+  - Interpretation:
+    - high
+  - Reason:
+    - There are only 5 suppressions, but every one is inside a very large workflow component.
+    - Suppressing hook dependency checks in large stateful pages is more dangerous than the raw count suggests.
+
+- Core finding:
+  - The repo does not have many eslint suppressions.
+  - The problem is concentration:
+    - all suppressions are `react-hooks/exhaustive-deps`
+    - all are in high-complexity workflow pages
+    - most touch restore/preload/selection behavior
+  - These are exactly the kind of effects that can silently break when new state or route behavior is added.
+  - Refactoring danger score is high because stale closure risk sits inside `UnifiedStudio.tsx` and `TextToCAD.tsx`, not in small isolated components.

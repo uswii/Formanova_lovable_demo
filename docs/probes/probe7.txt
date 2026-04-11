@@ -1,0 +1,180 @@
+Probe 7: credits-api and feature-flags coupling
+
+- Files searched:
+  - imports/usages of `credits-api.ts`
+  - imports/usages of `feature-flags.ts`
+  - `TOOL_COSTS`
+  - `canAfford`
+  - credit preflight helpers
+  - feature flag helper calls
+
+- Generic `useFeatureFlag`:
+  - none found.
+  - The repo uses direct functions/constants from `src/lib/feature-flags.ts` instead.
+
+- Files importing `credits-api.ts` / credit cost helpers:
+  - `src/contexts/CreditsContext.tsx`
+    - imports `fetchBalance`, `TOOL_COSTS`, `CreditBalance`
+    - exposes `canAfford(toolName)` and `getToolCost(toolName)`
+  - `src/lib/credit-preflight.ts`
+    - imports `TOOL_COSTS`
+    - fallback cost source for `performCreditPreflight`
+  - `src/hooks/use-estimated-cost.ts`
+    - imports `TOOL_COSTS`
+    - shows live/fallback cost estimates for UI
+  - `src/pages/TextToCAD.tsx`
+    - imports `TOOL_COSTS`
+    - calculates `requiredCredits` locally before/around preflight
+
+- Pages/components importing `TOOL_COSTS`, `canAfford`, or similar:
+  - `src/contexts/CreditsContext.tsx`
+    - line 3 imports `TOOL_COSTS`
+    - lines 81-83 implement `canAfford`
+    - lines 86-88 implement `getToolCost`
+  - `src/lib/credit-preflight.ts`
+    - line 5 imports `TOOL_COSTS`
+    - line 28 uses `TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? 5`
+  - `src/hooks/use-estimated-cost.ts`
+    - line 6 imports `TOOL_COSTS`
+    - line 74 falls back to `TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? null`
+  - `src/pages/TextToCAD.tsx`
+    - line 10 imports `TOOL_COSTS`
+    - line 334 sets initial generation required credits
+    - line 523 sets edit/rebuild/add-part required credits
+  - `src/pages/UnifiedStudio.tsx`
+    - does not import `TOOL_COSTS`
+    - uses `useCreditPreflight` at line 51 and `checkCredits` at line 999
+
+- Pages/components calling feature flag helpers:
+  - `src/App.tsx`
+    - imports `isOnboardingEnabled`, `isOnboardingWelcomeEnabled`, `isStudioOnboardingEnabled`, `isStudioTypeSelectionEnabled`
+    - calls at lines 134 and 151
+  - `src/components/CADGate.tsx`
+    - imports/calls `isCADEnabled`
+  - `src/pages/Dashboard.tsx`
+    - imports/calls `isCADEnabled`
+  - `src/components/layout/Header.tsx`
+    - imports/calls `isCADEnabled`
+  - `src/pages/UnifiedStudio.tsx`
+    - imports `isAltUploadLayoutEnabled`, `isFeedbackEnabled`, `isModelsApiEnabled`, `isOnboardingEnabled`, `isStudioOnboardingEnabled`, `isStudioTypeSelectionEnabled`, `isProductShotGuideEnabled`, `isTestMenuEnabled`
+    - calls include:
+      - `isModelsApiEnabled` at line 541
+      - `isStudioOnboardingEnabled` at lines 638, 1697, 1726, 1741
+      - `isProductShotGuideEnabled` at line 672
+      - `isStudioTypeSelectionEnabled` at line 1305
+      - `isAltUploadLayoutEnabled` at line 1392
+      - `isFeedbackEnabled` at lines 2175 and 2188
+      - `isTestMenuEnabled` at line 2221
+  - `src/pages/TextToCAD.tsx`
+    - imports `isWeightStlEnabled`, `isCadUploadEnabled`
+    - computes `showWeightStl` at line 51
+    - computes `showCadUpload` at line 52
+    - gates GLB upload on initial screen at line 1157
+    - gates weight/STL actions at lines 1398 and 1400
+  - `src/pages/RolePicker.tsx`
+    - imports/calls `isOnboardingEnabled`, `isOnboardingWelcomeEnabled`
+  - `src/pages/OnboardingWelcome.tsx`
+    - imports/calls `isStudioOnboardingEnabled`
+  - `src/components/studio/AlternateUploadStep.tsx`
+    - imports/calls `isViewGuideEnabled`, `isShowAllVaultEnabled`
+  - `src/components/text-to-cad/LeftPanel.tsx`
+    - imports `CAD_EDIT_TOOLS_ENABLED`
+    - gates edit/rebuild/add-on UI at line 193
+  - `src/hooks/useAuthenticatedImage.ts`
+    - imports `AUTHENTICATED_IMAGES_ENABLED`
+  - `src/components/generations/CadWorkflowModal.tsx`
+    - imports `AUTHENTICATED_IMAGES_ENABLED`
+  - `src/components/generations/ScissorGLBGrid.tsx`
+    - imports `AUTHENTICATED_IMAGES_ENABLED`
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - imports `AUTHENTICATED_IMAGES_ENABLED`
+
+- Paid/generation flows found:
+  - On-model/product-shot generation:
+    - `src/pages/UnifiedStudio.tsx`
+    - line 999 calls `checkCredits('jewelry_photoshoots_generator')`
+    - starts backend workflow later in same handler
+    - no direct feature flag controlling whether this paid workflow exists
+  - CAD initial generation:
+    - `src/pages/TextToCAD.tsx`
+    - line 334 reads `TOOL_COSTS`
+    - line 336 calls `performCreditPreflight('ring_generate_v1', 1, { model })`
+    - line 361 starts `/api/run/ring_generate_v1`
+    - no specific feature flag for initial generation inside `TextToCAD`; route-level CAD access is controlled elsewhere by `CADGate`
+  - CAD edit/rebuild/add-part:
+    - `src/pages/TextToCAD.tsx`
+    - line 523 reads `TOOL_COSTS`
+    - line 525 calls `performCreditPreflight('ring_generate_v1', 1, { model })`
+    - line 547 starts `/api/run/ring_generate_v1`
+    - visible UI is gated by `CAD_EDIT_TOOLS_ENABLED` in `src/components/text-to-cad/LeftPanel.tsx:193`
+    - handler still exists in `TextToCAD.tsx` even when UI flag is off
+  - CAD weight estimation:
+    - `src/pages/TextToCAD.tsx`
+    - UI/action gated by `showWeightStl` at line 1398
+    - starts `/api/run/state/estimate_weight` at line 832
+    - no credit preflight found in `handleEstimateWeight`
+  - CAD STL export:
+    - `src/pages/TextToCAD.tsx`
+    - UI/action gated by `showWeightStl` at line 1400
+    - starts `/api/run/state/prepare_stl` at line 910
+    - no credit preflight found in `executeStlDownload`
+  - CAD GLB upload:
+    - UI gated by `showCadUpload` at line 1157
+    - no credit preflight found
+    - likely not a paid backend generation because it uses local object URLs, not `/api/run`
+
+- Places with credit check but no local feature flag:
+  - `src/pages/UnifiedStudio.tsx:999`
+    - checks credits for `jewelry_photoshoots_generator`
+    - no paid-feature flag around the generation action itself
+  - `src/pages/TextToCAD.tsx:336`
+    - checks credits for initial `ring_generate_v1`
+    - no specific generation flag in the page; CAD is route-gated by `CADGate`
+
+- Places with feature flag but no credit preflight:
+  - `src/pages/TextToCAD.tsx:832`
+    - `estimate_weight` workflow is visible through `showWeightStl`, but no preflight is run before starting the backend workflow
+  - `src/pages/TextToCAD.tsx:910`
+    - `prepare_stl` workflow is visible through `showWeightStl`, but no preflight is run before starting the backend workflow
+  - `src/pages/TextToCAD.tsx:1157`
+    - CAD upload is flag-gated, but no credit preflight
+    - likely acceptable if upload is intentionally free/local
+  - `src/components/text-to-cad/LeftPanel.tsx:193`
+    - CAD edit UI is flag-gated by `CAD_EDIT_TOOLS_ENABLED`
+    - credit preflight is not local to the component; it happens indirectly in `TextToCAD.tsx` via `runEditWithPrompt`
+
+- Places where cost display and actual charge/check are split:
+  - `src/components/text-to-cad/InitialPromptScreen.tsx`
+    - line 33 calls `useEstimatedCost({ workflowName: 'ring_generate_v1', model })`
+    - displays cost in the generate button
+    - actual preflight/start happens in `TextToCAD.tsx`
+  - `src/components/text-to-cad/LeftPanel.tsx`
+    - line 44 calls `useEstimatedCost({ workflowName: 'ring_generate_v1', model })`
+    - displays cost for generate/edit/rebuild/add-on buttons
+    - actual preflight/start happens in `TextToCAD.tsx`
+
+- New paid feature edit count estimate:
+  - Minimum likely files for a new paid workflow:
+    - `src/lib/credits-api.ts`
+      - add/confirm `TOOL_COSTS` fallback key
+    - `src/lib/feature-flags.ts`
+      - add feature flag, if gated
+    - feature page/component
+      - call `performCreditPreflight` or `useCreditPreflight`
+      - start backend workflow
+      - show insufficient-credit UI
+    - optional display component
+      - call `useEstimatedCost` if showing price before click
+  - For CAD-style paid features, likely N is 4+:
+    - `credits-api.ts`
+    - `feature-flags.ts`
+    - `TextToCAD.tsx`
+    - `InitialPromptScreen.tsx` or `LeftPanel.tsx`
+    - possibly `ViewportSideTools` / another UI component if the feature appears in the viewport toolbar
+
+- Red flag conclusion:
+  - N > 2 is confirmed for adding a new paid feature.
+  - Credits, cost display, feature gating, preflight, insufficient-credit UI, and backend workflow start are not represented by one shared "paid feature" abstraction.
+  - The repo has reusable pieces, but the developer must manually wire them together in multiple files.
+  - Highest-risk mismatch:
+    - `estimate_weight` and `prepare_stl` are flag-gated backend workflows but have no visible credit preflight in the frontend.

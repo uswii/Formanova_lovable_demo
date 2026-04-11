@@ -1,0 +1,697 @@
+# Probe 4: Backend Call Inventory
+
+## Scope
+
+- Prompt: find all places frontend calls the backend.
+- For each: endpoint URL, page/component caller, response reshaping/transformation, and endpoints called from both on-model and CAD code.
+- Constraint: no code edits. This file is an audit artifact only.
+
+## Notes
+
+- This inventory covers backend/API calls in `src`.
+- Excluded as backend calls:
+  - local static fetches such as `/version.json`,
+  - `data:` URL blob conversion in image compression helpers,
+  - local object URL usage,
+  - third-party marketing links/forms,
+  - Supabase client setup with no active query use found.
+- Dynamic artifact/image/model URLs are included where they are fetched with `authenticatedFetch` or direct `fetch`, because they hit artifact/backend-backed URLs at runtime.
+
+## Call Style Summary
+
+- `authenticatedFetch`
+  - Main shared wrapper.
+  - Used for most `/api`, `/billing`, `https://formanova.ai/...`, asset/artifact, model, feedback, history, and CAD calls.
+- Raw `fetch` with manual token headers
+  - Used in `photoshoot-api.ts`, `auth-api.ts`, `use-image-validation.ts`, `admin-generations-api.ts`, `Auth.tsx`, `AdminFeedbackPage.tsx`, `LinkAccount.tsx`, and dynamic GLB/STL downloads.
+- API helper modules
+  - Several helper modules wrap endpoints, but not all page code uses them consistently.
+- React Query
+  - Used around some backend calls:
+    - `UnifiedStudio.tsx` for preset models/inspirations.
+    - admin generations/feedback pages.
+  - CAD generation itself does not use React Query.
+
+## Shared Endpoints Called From Both On-Model and CAD
+
+- `/api/credits/estimate`
+  - On-model:
+    - `src/pages/UnifiedStudio.tsx` via `useCreditPreflight` -> `performCreditPreflight`.
+  - CAD:
+    - `src/pages/TextToCAD.tsx` via `performCreditPreflight`.
+    - `src/components/text-to-cad/InitialPromptScreen.tsx` and `src/components/text-to-cad/LeftPanel.tsx` via `useEstimatedCost`.
+  - Transform:
+    - reads `projected_max_hold`, falls back to `estimated_credits`, then falls back to local `TOOL_COSTS`.
+  - Risk:
+    - this endpoint is a real shared product contract for both tools.
+- `/api/credits/balance/me`
+  - On-model:
+    - `UnifiedStudio.tsx` via credit preflight and `refreshCredits`.
+  - CAD:
+    - `TextToCAD.tsx` via credit preflight and `refreshCredits`.
+  - Global:
+    - `src/contexts/CreditsContext.tsx` via `fetchBalance`.
+    - `src/components/layout/Header.tsx` reads the context globally.
+  - Transform:
+    - `fetchBalance` returns JSON directly.
+    - `performCreditPreflight` maps `available ?? balance ?? 0` to `currentBalance`.
+  - Risk:
+    - valid shared domain, but changes can regress both tools immediately.
+- `/api/status/{workflowId}`
+  - On-model:
+    - `src/pages/UnifiedStudio.tsx` via `getPhotoshootStatus`.
+    - `src/hooks/use-image-validation.ts` for image-classification polling.
+  - CAD:
+    - `src/pages/TextToCAD.tsx` for text-to-CAD generation/edit polling.
+  - Transform:
+    - On-model helper `resolveWorkflowState` normalizes `runtime.state`, `progress.state`, and top-level `state`.
+    - CAD page manually reads `runtime.state`, `runtime.active_nodes`, `runtime.last_exit_node_id`, and `node_visit_seq.generate_fix`.
+  - Risk:
+    - same status endpoint is interpreted differently by each workflow.
+- `/api/result/{workflowId}`
+  - On-model:
+    - `src/pages/UnifiedStudio.tsx` via `getPhotoshootResult`.
+    - `src/hooks/use-image-validation.ts` for classification result.
+    - `src/lib/generation-enrichment.ts` for product-shot thumbnail extraction.
+  - CAD:
+    - `src/pages/TextToCAD.tsx` for GLB, weight, and STL result polling.
+    - `src/lib/generation-history-api.ts` via `fetchCadResult`.
+    - `src/components/generations/CadWorkflowModal.tsx` via `fetchCadResult`.
+  - Shared history:
+    - `src/pages/Generations.tsx` indirectly calls both product-shot and CAD result extraction.
+  - Transform:
+    - On-model result extraction scans all result nodes for image URLs/base64.
+    - Product-shot history scans result entries for `output_url`, `image_url`, `result_url`, or `url`.
+    - CAD extraction checks `failed_final`, then `success_final.glb_artifact`, `success_final.original_glb_artifact`, then `success_original_glb.original_glb_artifact`.
+    - Weight/STL result polling expects result-level fields such as `success`, `weight_14k_gold_g`, `stl_artifact`.
+  - Risk:
+    - this is the most overloaded shared endpoint. Several frontend modules impose their own result schema interpretation.
+
+## On-Model / Product-Shot Generation Endpoints
+
+- `${VITE_PIPELINE_API_URL}/upload`
+  - Helper: `src/lib/microservices-api.ts` -> `uploadToAzure`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx`
+    - `src/hooks/use-image-validation.ts`
+  - Purpose:
+    - upload jewelry/model/inspiration image and register asset metadata.
+  - Transform:
+    - returns JSON as `AzureUploadResponse`.
+    - callers choose between `sas_url`, `https_url`, `uri`, and `asset_id`.
+    - `UnifiedStudio.tsx` sometimes uses `sas_url || https_url`, sometimes `https_url || sas_url` depending on flow.
+  - Used by CAD:
+    - no direct CAD usage found.
+- `https://formanova.ai/api/run/image_classification`
+  - Caller:
+    - `src/hooks/use-image-validation.ts`, used by `UnifiedStudio.tsx`.
+  - Purpose:
+    - classify uploaded jewelry photo as worn/flatlay/packshot/etc.
+  - Transform:
+    - sends payload `{ payload: { jewelry_image_url: { uri: uploadedUrl } } }`.
+    - extracts `workflow_id` from start response.
+    - final classification is mapped to `ImageValidationResult`.
+    - categories are simplified to `worn`, `flatlay`, `packshot`, or `unknown`.
+    - flags are computed client-side.
+    - failure falls back to permissive/flagged local states.
+- `https://formanova.ai/api/status/{workflowId}`
+  - Caller:
+    - `src/hooks/use-image-validation.ts`.
+  - Purpose:
+    - poll image-classification workflow.
+  - Transform:
+    - reads `runtime.state || progress.state || state`.
+    - failed/error is converted into a fallback flagged classification.
+- `https://formanova.ai/api/result/{workflowId}`
+  - Caller:
+    - `src/hooks/use-image-validation.ts`.
+  - Purpose:
+    - fetch image-classification result.
+  - Transform:
+    - reads `image_captioning[0]`.
+    - derives `label`, `reason`, `is_worn`, `flagged`, `confidence`.
+    - then updates asset metadata asynchronously.
+- `/api/run/state/jewelry_photoshoots_generator`
+  - Helper:
+    - `src/lib/photoshoot-api.ts` -> `startPhotoshoot`.
+  - Caller:
+    - `src/pages/UnifiedStudio.tsx`.
+  - Purpose:
+    - start on-model photo generation.
+  - Transform:
+    - request is transformed:
+      - validates URLs,
+      - strips asset ID fields out of `payload`,
+      - validates UUID fields,
+      - sends `{ payload, input_jewelry_asset_id?, input_model_asset_id?, input_preset_model_id? }`.
+    - response is returned as raw JSON typed as `PhotoshootStartResponse`.
+- `/api/run/Product_shot_pipeline`
+  - Helper:
+    - `src/lib/photoshoot-api.ts` -> `startPdpShot`.
+  - Caller:
+    - `src/pages/UnifiedStudio.tsx` when product-shot mode is active.
+  - Purpose:
+    - start product-shot/PDP generation.
+  - Transform:
+    - request is transformed:
+      - `jewelry_image_url` becomes `jewelry_image_urls: [jewelry_image_url]`,
+      - validates UUID IDs,
+      - chooses exactly one of `input_inspiration_asset_id` or `input_preset_inspiration_id`.
+    - response is raw JSON typed as `PhotoshootStartResponse`.
+- `/api/status/{workflowId}`
+  - Helper:
+    - `src/lib/photoshoot-api.ts` -> `getPhotoshootStatus`.
+  - Caller:
+    - `src/pages/UnifiedStudio.tsx`.
+  - Purpose:
+    - poll photo/product-shot generation.
+  - Transform:
+    - 404 is converted to `{ state: 'running' }`.
+    - `UnifiedStudio.tsx` then computes progress and display step from `progress`.
+- `/api/result/{workflowId}`
+  - Helper:
+    - `src/lib/photoshoot-api.ts` -> `getPhotoshootResult`.
+  - Caller:
+    - `src/pages/UnifiedStudio.tsx`.
+  - Purpose:
+    - fetch photo/product-shot generation output.
+  - Transform:
+    - helper retries 404s.
+    - page checks for backend activity errors inside node arrays.
+    - `extractResultImages` scans backend result nodes and returns image URLs.
+- Dynamic result image/artifact URLs
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx` `ResultImageItem` download/open.
+    - `src/pages/UnifiedStudio.tsx` selected thumbnail validation path.
+    - `src/hooks/useAuthenticatedImage.ts` for `/artifacts/` URLs.
+  - Purpose:
+    - authenticated image display/download/open.
+  - Transform:
+    - response is converted to a browser blob URL.
+
+## CAD Generation / WebGL Endpoints
+
+- `/api/run/ring_generate_v1`
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - start text-to-CAD generation and CAD edit/regeneration.
+  - Transform:
+    - request is built inline:
+      - maps UI model to `llm`,
+      - sends `payload: { llm, prompt, max_attempts: 3, skip_validation: false }`,
+      - sends `return_nodes` array.
+    - response is read for `workflow_id`.
+  - Duplication:
+    - same start/status/result loop appears separately for initial generation and edit.
+- `/api/status/{workflowId}`
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - poll text-to-CAD generation/edit.
+  - Transform:
+    - 404 retry counter.
+    - reads `runtime.state`, `runtime.active_nodes[0]`, `runtime.last_exit_node_id`, and `node_visit_seq.generate_fix`.
+    - updates UI progress step and retry count directly from backend node names.
+- `/api/result/{workflowId}`
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - fetch text-to-CAD GLB artifact after generation/edit.
+  - Transform:
+    - checks `failed_final`.
+    - extracts `glb_artifact` or `original_glb_artifact`.
+    - stores `glb_url` and `glbArtifact` in page state.
+- `/api/run/state/estimate_weight`
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - estimate physical weight from generated GLB artifact.
+  - Transform:
+    - request wraps `glbArtifact` as `{ payload: { glb_artifact, timeout_seconds: 60 } }`.
+    - polls `/api/result/{workflowId}`.
+    - maps result to `{ weight_14k_gold_g, weight_platinum_g, scale_warning }`.
+- `/api/run/state/prepare_stl`
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - prepare STL export from GLB artifact.
+  - Transform:
+    - request wraps `glbArtifact` plus STL quality parameters.
+    - polls `/api/result/{workflowId}`.
+    - expects `result.success` and `result.stl_artifact`.
+    - reads `result.stl_artifact.uri` as direct download URL.
+- Dynamic GLB URLs
+  - Callers:
+    - `src/pages/TextToCAD.tsx` download fallback.
+    - `src/components/text-to-cad/CADCanvas.tsx`.
+    - `src/components/generations/WorkflowCard.tsx`.
+    - `src/components/generations/CadWorkflowModal.tsx`.
+    - `src/components/generations/SnapshotPreviewModal.tsx`.
+    - `src/components/generations/ScissorGLBGrid.tsx`.
+  - Purpose:
+    - load/download GLB artifacts.
+  - Transform:
+    - usually converted to `ArrayBuffer`, `Blob`, or parsed by Three.js loaders.
+    - auth behavior is conditional: if URL needs auth, use `authenticatedFetch`; otherwise raw `fetch`.
+- Dynamic STL download URL
+  - Caller:
+    - `src/pages/TextToCAD.tsx`.
+  - Purpose:
+    - download prepared STL.
+  - Transform:
+    - raw fetch -> blob -> filesystem writable.
+
+## Shared Generation History Endpoints
+
+- `https://formanova.ai/history/workflows/me?limit={limit}&offset={offset}`
+  - Helper:
+    - `src/lib/generation-history-api.ts` -> `listMyWorkflows`.
+  - Callers:
+    - `src/pages/Generations.tsx`.
+    - `src/hooks/use-prefetch-generations.ts`.
+  - Purpose:
+    - load user generation history across photo, product-shot, CAD render, and text-to-CAD.
+  - Transform:
+    - normalizes array vs `{ workflows }`.
+    - maps `workflow_id`, `name`, `status`, dates.
+    - infers `source_type` client-side from workflow name.
+    - extracts `mode` from `w.input?.mode`.
+  - Shared:
+    - yes, this is intentionally shared history across both tools.
+- `https://formanova.ai/history/workflow/{workflowId}/details`
+  - Helper:
+    - `src/lib/generation-history-api.ts` -> `getWorkflowDetails`.
+  - Callers:
+    - `src/pages/Generations.tsx`.
+    - `src/hooks/use-prefetch-generations.ts`.
+  - Purpose:
+    - enrich history cards with thumbnails/screenshots/GLB metadata.
+  - Transform:
+    - normalizes wrapped response shapes: `data`, `workflow`, `result`, or raw.
+    - normalizes `workflow_steps` vs `steps`.
+    - maps `output_data` to `output`.
+    - photo thumbnails and CAD data are then extracted in `src/lib/generation-enrichment.ts`.
+- `https://formanova.ai/api/result/{workflowId}`
+  - Helpers:
+    - `src/lib/generation-history-api.ts` -> `fetchCadResult`.
+    - `src/lib/generation-enrichment.ts` -> `extractProductShotThumbnail`.
+  - Callers:
+    - `src/pages/Generations.tsx`.
+    - `src/components/generations/CadWorkflowModal.tsx`.
+  - Purpose:
+    - CAD GLB fallback and product-shot thumbnail fallback.
+  - Transform:
+    - product-shot scans arbitrary result entries for image-ish URL fields.
+    - CAD applies sink-based artifact priority.
+- `https://formanova.ai/api/credits/audit/{workflowId}`
+  - Helper:
+    - `src/lib/generation-history-api.ts` -> `fetchWorkflowCreditAudit`.
+  - Caller:
+    - `src/pages/Generations.tsx`.
+  - Purpose:
+    - show credits spent per history item.
+  - Transform:
+    - checks `actual_user_billed`,
+    - then `financials.actual_user_billed`,
+    - then `total_charged`, `total_cost`, `total`, `credits_spent`,
+    - then sums `line_items`.
+
+## Assets / Presets / Authenticated Media
+
+- `${VITE_PIPELINE_API_URL}/assets?asset_type={type}&page={page}&page_size={pageSize}&category?&intended_use?`
+  - Helper:
+    - `src/lib/assets-api.ts` -> `fetchUserAssets`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx`.
+    - `src/components/studio/AlternateUploadStep.tsx` via `useUserAssets`.
+    - `src/hooks/useUserAssets.ts`.
+    - `src/hooks/use-image-validation.ts`.
+  - Purpose:
+    - load user-uploaded jewelry/model/inspiration assets.
+  - Transform:
+    - helper returns backend page directly.
+    - callers map items into local `UserModel` objects and classification cache checks.
+- `${VITE_PIPELINE_API_URL}/assets/{assetId}`
+  - Helper:
+    - `src/lib/assets-api.ts` -> `updateAssetMetadata`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx`.
+    - `src/hooks/use-image-validation.ts`.
+  - Purpose:
+    - rename assets, mark user override, save classification metadata.
+  - Transform:
+    - request body wraps `{ metadata }`.
+    - response is returned as `UserAsset`.
+- `/api/models`
+  - Helper:
+    - `src/lib/models-api.ts`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx` via React Query.
+    - `src/pages/AdminModelsPage.tsx`.
+  - Methods:
+    - GET preset models.
+    - POST upload admin preset model.
+  - Transform:
+    - GET returns raw `PresetModelsResponse`.
+    - POST returns `PresetModel`; errors are normalized from `detail` or `message`.
+- `/api/models/{id}`
+  - Helper:
+    - `src/lib/models-api.ts` -> `updateModel`.
+  - Caller:
+    - `src/pages/AdminModelsPage.tsx`.
+  - Purpose:
+    - update preset model label/metadata.
+  - Transform:
+    - response is `PresetModel`; error body normalized.
+- `/api/inspirations`
+  - Helper:
+    - `src/lib/models-api.ts`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx` via React Query in product-shot mode.
+    - `src/pages/AdminInspirationsPage.tsx`.
+  - Methods:
+    - GET preset inspirations.
+    - POST upload admin inspiration.
+  - Transform:
+    - GET returns raw `PresetInspirationsResponse`.
+    - POST returns `PresetInspiration`; errors normalized.
+- `/api/inspirations/{id}`
+  - Helper:
+    - `src/lib/models-api.ts` -> `updateInspiration`.
+  - Caller:
+    - `src/pages/AdminInspirationsPage.tsx`.
+  - Purpose:
+    - update preset inspiration label/metadata.
+  - Transform:
+    - response is `PresetInspiration`; errors normalized.
+- Dynamic `/artifacts/` URLs
+  - Helper:
+    - `src/hooks/useAuthenticatedImage.ts`.
+  - Callers:
+    - all components using `useAuthenticatedImage`, including on-model result/model thumbnails and artifact-backed image previews.
+  - Transform:
+    - authenticated response blob becomes a temporary object URL.
+
+## Credits / Billing Endpoints
+
+- `/api/credits/estimate`
+  - Helpers:
+    - `src/lib/credit-preflight.ts` -> `performCreditPreflight`.
+    - `src/hooks/use-estimated-cost.ts`.
+  - Callers:
+    - `src/pages/UnifiedStudio.tsx` via `useCreditPreflight`.
+    - `src/pages/TextToCAD.tsx`.
+    - `src/components/text-to-cad/InitialPromptScreen.tsx`.
+    - `src/components/text-to-cad/LeftPanel.tsx`.
+  - Transform:
+    - maps `projected_max_hold ?? estimated_credits`.
+    - falls back to client `TOOL_COSTS`.
+- `/api/credits/balance/me`
+  - Helpers:
+    - `src/lib/credits-api.ts` -> `fetchBalance`.
+    - `src/lib/credit-preflight.ts`.
+  - Callers:
+    - `src/contexts/CreditsContext.tsx`.
+    - `src/pages/UnifiedStudio.tsx` indirectly.
+    - `src/pages/TextToCAD.tsx` indirectly.
+    - `src/pages/Credits.tsx`.
+    - `src/pages/Pricing.tsx`.
+    - `src/pages/PaymentSuccess.tsx`.
+  - Transform:
+    - direct balance JSON for context.
+    - preflight maps to `currentBalance`.
+- `/api/credits/redeem`
+  - Caller:
+    - `src/pages/Credits.tsx`.
+  - Purpose:
+    - redeem promo/credit code.
+  - Transform:
+    - reads `data.status === 'success'`, then refreshes credits; error message pulled from response.
+- `https://formanova.ai/api/credits/admin/ui/promo-codes?include_inactive=true`
+  - Caller:
+    - `src/pages/PromoAdminPage.tsx`.
+  - Purpose:
+    - admin promo code list.
+  - Transform:
+    - response array is stored directly in page state; errors normalize `detail/message`.
+- `https://formanova.ai/api/credits/admin/ui/promo-codes`
+  - Caller:
+    - `src/pages/PromoAdminPage.tsx`.
+  - Method:
+    - POST create promo code.
+  - Transform:
+    - no domain reshaping; error body mapped to inline error.
+- `https://formanova.ai/api/credits/admin/ui/promo-codes/{id}`
+  - Caller:
+    - `src/pages/PromoAdminPage.tsx`.
+  - Method:
+    - PATCH update/deactivate promo code.
+  - Transform:
+    - no domain reshaping; errors normalize `detail/message`.
+- `/billing/locale`
+  - Hook:
+    - `src/hooks/use-billing-locale.ts`.
+  - Callers:
+    - `src/pages/Credits.tsx`.
+    - `src/pages/Pricing.tsx`.
+    - `src/pages/PaymentSuccess.tsx`.
+  - Transform:
+    - validates `data.currency`; otherwise falls back to USD.
+- `/billing/checkout`
+  - Callers:
+    - `src/pages/Credits.tsx`.
+    - `src/pages/Pricing.tsx`.
+  - Purpose:
+    - create checkout session.
+  - Transform:
+    - reads `data.url` and redirects browser.
+- `/billing/create-checkout-session`
+  - Helper:
+    - `src/lib/credits-api.ts` -> `startCheckout`.
+  - Callers:
+    - no active caller found in `src`.
+  - Transform:
+    - reads `{ url }`, returns string.
+- `/billing/checkout/verify/{sessionId}`
+  - Caller:
+    - `src/pages/PaymentSuccess.tsx`.
+  - Purpose:
+    - verify checkout fulfillment.
+  - Transform:
+    - 404 becomes `pending`.
+    - reads `data.status === 'fulfilled'`.
+    - tracks payment and refreshes credits.
+
+## Auth / User / Onboarding Endpoints
+
+- `/auth/auth/google/authorize?redirect_uri={url}`
+  - Callers:
+    - `src/lib/auth-api.ts` -> `authApi.initiateGoogleLogin`.
+    - `src/pages/Auth.tsx` direct fetch.
+  - Transform:
+    - reads `redirect_url || authorization_url`, then redirects `window.location.href`.
+- `/auth/auth/google/callback?code={code}&state?`
+  - Callers:
+    - `src/lib/auth-api.ts` -> `exchangeCodeForToken`.
+    - `src/pages/Auth.tsx` direct fetch.
+  - Transform:
+    - reads `access_token`, stores token, fetches current user, dispatches auth state.
+- `/auth/auth/register`
+  - Helper:
+    - `src/lib/auth-api.ts` -> `register`.
+  - Caller:
+    - no active caller found in current UI.
+  - Transform:
+    - returns `AuthUser`.
+- `/auth/auth/jwt/login`
+  - Helper:
+    - `src/lib/auth-api.ts` -> `login`.
+  - Caller:
+    - no active caller found in current UI.
+  - Transform:
+    - sends form-url-encoded body; returns token JSON.
+- `/auth/auth/jwt/logout`
+  - Helper:
+    - `src/lib/auth-api.ts` -> `logout`.
+  - Caller:
+    - `src/contexts/AuthContext.tsx`, triggered from `Header`.
+  - Transform:
+    - response ignored; local token/user cleared in `finally`.
+- `/auth/users/me`
+  - Helper:
+    - `src/lib/auth-api.ts` -> `getCurrentUser`.
+  - Callers:
+    - `src/contexts/AuthContext.tsx`.
+    - `src/pages/Auth.tsx`.
+  - Transform:
+    - 401 returns `null` without clearing storage.
+    - successful user is stored in localStorage and dispatched to React.
+- `/api/user/profile`
+  - Helper:
+    - `src/lib/onboarding-api.ts`.
+  - Callers:
+    - `src/pages/RolePicker.tsx` uses `saveUserType`.
+    - no active `getUserProfile` caller found.
+  - Methods:
+    - GET current user profile.
+    - PATCH user type.
+  - Transform:
+    - GET returns typed profile.
+    - PATCH ignores response body.
+- `/api/user/acknowledgements`
+  - Helper:
+    - `src/lib/onboarding-api.ts`.
+  - Callers:
+    - `src/pages/OnboardingWelcome.tsx`.
+    - `src/pages/UnifiedStudio.tsx`.
+  - Methods:
+    - GET acknowledgement list.
+    - POST acknowledgements.
+  - Transform:
+    - GET scans list for acknowledgement type/version.
+    - POST ignores response body.
+
+## Feedback / Admin Endpoints
+
+- `/api/feedback`
+  - Helper:
+    - `src/lib/feedback-api.ts`.
+  - Callers:
+    - `src/components/studio/FeedbackModal.tsx` for submit.
+    - `src/pages/AdminFeedbackPage.tsx` for admin list.
+  - Methods:
+    - POST feedback complaint.
+    - GET filterable admin feedback list.
+  - Transform:
+    - submit returns raw `{ success, feedback_id }`.
+    - list builds query params and returns page response.
+- `/api/feedback/{id}`
+  - Helper:
+    - `src/lib/feedback-api.ts`.
+  - Caller:
+    - `src/pages/AdminFeedbackPage.tsx`.
+  - Methods:
+    - GET feedback detail.
+    - PATCH feedback status/admin notes/contacted.
+  - Transform:
+    - detail maps `reporter_email` to `user_email` if missing.
+    - PATCH returns item directly.
+- `/api/feedback/{id}/revised-output`
+  - Helper:
+    - `src/lib/feedback-api.ts` -> `uploadRevisedOutput`.
+  - Caller:
+    - `src/pages/AdminFeedbackPage.tsx`.
+  - Purpose:
+    - upload revised output image.
+  - Transform:
+    - file is converted to data URL base64 before request.
+    - returns `{ revised_output_url }`.
+- Dynamic revised/output URL
+  - Caller:
+    - `src/pages/AdminFeedbackPage.tsx`.
+  - Purpose:
+    - authenticated download/open of feedback output images.
+  - Transform:
+    - response blob -> object URL.
+- `/api/admin/generations`
+  - Helper:
+    - `src/lib/admin-generations-api.ts` -> `listAdminGenerations`.
+  - Caller:
+    - `src/pages/AdminGenerationsPage.tsx`.
+  - Transform:
+    - normalizes array vs `items` vs `generations`.
+    - maps list items to `AdminGenerationListItem`.
+- `/api/admin/generations/{workflowId}`
+  - Helper:
+    - `src/lib/admin-generations-api.ts` -> `getAdminGenerationDetail`.
+  - Caller:
+    - `src/pages/AdminGenerationDetailPage.tsx`.
+  - Transform:
+    - unwraps `data`.
+    - normalizes user, cost, input payload, steps, feedback.
+
+## Pipeline Admin / Tenant API Endpoints
+
+- Base:
+  - `${VITE_PIPELINE_API_URL}`
+  - Helper:
+    - `src/lib/pipeline-api.ts`.
+  - Callers found:
+    - `src/components/admin/PipelineCreditsModal.tsx` uses `tenantApi.topUpUser`.
+  - Endpoints exposed:
+    - `/admin/users?{params}`
+    - `/admin/tenants`
+    - `/admin/workflows?{params}`
+    - `/analytics/tenant/financials`
+    - `/credits/balance/external/{externalId}`
+    - `/credits/topup`
+    - `/credits/audit/{workflowId}`
+    - `/history/workflows/external/{externalId}`
+  - Transform:
+    - helper returns typed JSON directly.
+    - `topUpUser` caller expects optional `new_balance`.
+  - Note:
+    - several exposed helper methods appear unused in current route table/UI.
+
+## Agent Link Endpoint
+
+- `/api/agent/link/complete`
+  - Caller:
+    - `src/pages/LinkAccount.tsx`.
+  - Purpose:
+    - complete external account/link flow.
+  - Transform:
+    - reads `platform` from response.
+    - special-cases 400 response body detail containing `expired`.
+
+## Endpoint Overlap Flags
+
+- Strong overlap between on-model and CAD:
+  - `/api/credits/estimate`
+  - `/api/credits/balance/me`
+  - `/api/status/{workflowId}`
+  - `/api/result/{workflowId}`
+- Intentional shared product surface:
+  - history endpoints under `https://formanova.ai/history/...`
+  - `/api/credits/audit/{workflowId}`
+  - `/billing/*`
+  - `/auth/*`
+- Mostly on-model/product-shot only:
+  - `${VITE_PIPELINE_API_URL}/upload`
+  - `${VITE_PIPELINE_API_URL}/assets*`
+  - `/api/run/state/jewelry_photoshoots_generator`
+  - `/api/run/Product_shot_pipeline`
+  - `/api/run/image_classification`
+  - `/api/models`
+  - `/api/inspirations`
+  - `/api/user/acknowledgements` currently used by photo/onboarding, not CAD workspace.
+- Mostly CAD only:
+  - `/api/run/ring_generate_v1`
+  - `/api/run/state/estimate_weight`
+  - `/api/run/state/prepare_stl`
+
+## Main Findings
+
+- There is no single backend-call boundary.
+  - API calls live in helper modules, hooks, pages, and components.
+  - Some use `authenticatedFetch`.
+  - Some use raw `fetch` plus manual token headers.
+  - Some use absolute `https://formanova.ai`.
+  - Some use relative `/api`.
+  - Some use `VITE_PIPELINE_API_URL`.
+- `/api/result/{workflowId}` is the most fragile shared contract.
+  - It is parsed differently by photo generation, product-shot history, CAD generation, CAD history, weight estimation, and STL export.
+  - Each parser assumes different node names and fields.
+- `/api/status/{workflowId}` is also shared but interpreted differently.
+  - On-model normalizes workflow state through `resolveWorkflowState`.
+  - CAD reads specific runtime node fields inline in `TextToCAD.tsx`.
+- Some backend response reshaping is legitimate but scattered.
+  - History response normalization is centralized in `generation-history-api.ts`.
+  - CAD result extraction is duplicated between `TextToCAD.tsx` and `generation-history-api.ts`.
+  - Credit estimate/balance logic is duplicated between hooks/context/pages.
+- The highest-risk cross-tool endpoints are generation lifecycle endpoints:
+  - start workflow,
+  - poll status,
+  - fetch result,
+  - derive artifacts/images/credits from result.

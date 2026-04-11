@@ -1,0 +1,148 @@
+Probe 5: UnifiedStudio state coupling audit
+
+- File audited:
+  - `src/pages/UnifiedStudio.tsx`
+  - 2,073 physical lines by `Measure-Object`, with source references reaching line 2,233 due file/newline counting differences in `rg`.
+
+- All `useState` variables grouped by concern:
+  - Nested local card/menu state:
+    - line 260: `editing`
+    - line 261: `nameInput`
+    - line 262: `saved`
+    - line 430: `open`
+  - Route / step / mode state:
+    - line 487: `overrideJewelryType`
+    - line 495: `currentStep`
+    - line 519: `isProductShot`
+  - Guide / dialog state:
+    - line 496: `showFlaggedDialog`
+    - line 502: `uploadGuideOpen`
+    - line 503: `modelGuideOpen`
+    - line 504: `productShotGuideOpen`
+    - line 708: `feedbackOpen`
+  - Upload state:
+    - line 508: `jewelryImage`
+    - line 509: `jewelryFile`
+    - line 726: `validationResult`
+    - line 727: `jewelryUploadedUrl`
+    - line 728: `jewelrySasUrl`
+    - line 729: `jewelryAssetId`
+  - Masking state:
+    - none found in `UnifiedStudio.tsx`
+  - Model / inspiration selection state:
+    - line 512: `selectedModel`
+    - line 513: `customModelImage`
+    - line 514: `customModelFile`
+    - line 730: `modelAssetId`
+  - User model library / preset state:
+    - line 534: `myModels`
+    - line 535: `localPendingModels`
+    - line 536: `myModelsLoading`
+    - line 537: `myModelsSearch`
+    - line 538: `formanovaCategory`
+  - Generation state:
+    - line 700: `isGenerating`
+    - line 701: `generationProgress`
+    - line 702: `generationStep`
+    - line 703: `rotatingMsgIdx`
+    - line 704: `workflowId`
+    - line 706: `generationError`
+    - line 707: `regenerationCount`
+  - Results state:
+    - line 705: `resultImages`
+    - line 704: `workflowId` also feeds result downloads/feedback
+    - line 708: `feedbackOpen` also controls result feedback UI
+
+- Variables passed down to more than 2 child components:
+  - None confirmed as the exact same state variable passed as props to more than 2 named child components.
+  - Closest high-fanout variables, counting named child components plus direct JSX consumers:
+    - `jewelryImage`
+      - passed to `AlternateUploadStep` at line 1395
+      - rendered in flagged dialog at line 1623
+      - passed through derived `jewelryDisplayUrl={jewelrySasUrl || jewelryImage}` to `FeedbackModal` at line 2194
+      - also gates step navigation / generation at lines 994, 1346, 1791
+    - `isProductShot`
+      - passed to `AlternateUploadStep` at line 1417
+      - passed to `ResultImageItem` as `naturalAspect` at line 2137
+      - also controls mode switcher, queries, copy, model upload asset type, generation payload branch, and guide logic throughout the file
+    - `workflowId`
+      - passed to `ResultImageItem` at line 2137
+      - passed to `FeedbackModal` at line 2192
+    - `setUploadGuideOpen`
+      - passed to `TestMenu` at line 2227
+      - also used by local guide effect/handlers at lines 651, 655, 661
+    - `setProductShotGuideOpen`
+      - passed to `TestMenu` at line 2228
+      - also used by local guide effect/handlers at lines 685, 688, 693
+
+- `useEffect` / hook callbacks with dependency lists of 3+ state-like values:
+  - line 581:
+    - `useMemo` deps: `[isProductShot, presetInspirationsData, presetModelsData, formanovaCategory]`
+    - Concern: preset/model selection depends on mode plus API data.
+  - line 634:
+    - `useEffect` deps: `[currentStep, searchParams, setSearchParams]`
+    - Concern: route query state mirrors studio step state.
+  - line 658:
+    - `useEffect` deps: `[currentStep, initializing, user?.email, user?.id]`
+    - Concern: upload onboarding guide depends on auth, initialization, and step.
+  - line 690:
+    - `useEffect` deps: `[currentStep, initializing, isProductShot, user?.email, user?.id]`
+    - Concern: product-shot guide depends on auth, initialization, mode, and step.
+  - line 800:
+    - `useEffect` deps: `[jewelryUploadedUrl, jewelryAssetId, validationResult, selectedModel, customModelImage, modelAssetId]`
+    - Concern: session persistence combines upload, validation, model selection, and asset IDs.
+  - line 877:
+    - `useCallback` deps: `[toast, effectiveJewelryType, validateImages, isProductShot]`
+    - Concern: jewelry upload behavior depends on product mode and validation.
+  - line 962:
+    - `useEffect` deps: `[jewelryImage, handleJewelryUpload, handleModelUpload, currentStep, activeModelUrl]`
+    - Concern: paste handler crosses upload and model-selection phases.
+
+- Lines where upload-phase state changes can affect results phase:
+  - lines 789-800:
+    - session save persists `jewelryUploadedUrl`, `jewelryAssetId`, `validationResult`, `selectedModel`, `customModelImage`, and `modelAssetId`
+    - this mixes upload state with later model/result continuity.
+  - lines 819-826:
+    - new jewelry upload sets `jewelryFile`, clears uploaded URL/SAS/asset ID, sets `jewelryImage`, clears `validationResult`
+    - those same values later determine generation input and feedback payload.
+  - lines 841-858:
+    - product-shot/on-model upload and validation set `jewelryUploadedUrl`, `jewelrySasUrl`, `jewelryAssetId`, and `validationResult`
+    - these fields later flow into generation payload and result feedback.
+  - lines 994-1035:
+    - generation reads upload-phase `jewelryImage` / `jewelryUploadedUrl`; if missing, it uploads during generation and mutates `jewelryAssetId`
+    - upload and generation are not separated.
+  - lines 1069-1090:
+    - generation payload includes `jewelryUrl`, `selectedModel`, `modelAssetId`, and `jewelryAssetId`
+    - upload/model state directly defines backend workflow inputs.
+  - lines 1147-1150:
+    - result phase is entered by setting `resultImages`, `generationProgress`, `currentStep`, and `isGenerating`
+    - no explicit result object boundary is created; result screen depends on prior loose state.
+  - lines 1206-1222:
+    - `handleStartOver` clears upload, validation, model, result, workflow, generation error, and current step all in one handler.
+    - this is direct cross-phase coupling.
+  - lines 1403-1412:
+    - alternate upload clear handler clears upload/session state and may move `currentStep` back from `model` to `upload`.
+    - this is embedded inside child props rather than isolated upload reducer/state machine.
+  - lines 1418-1437:
+    - alternate upload product selection sets `jewelryImage`, `jewelryUploadedUrl`, `jewelryAssetId`, `jewelryFile`, `validationResult`, then optionally triggers validation.
+    - product selection can change generation inputs and future feedback/result metadata.
+  - line 1499:
+    - upload clear button clears session, upload state, validation state, SAS/asset IDs, and may step back from model to upload.
+  - line 1644:
+    - flagged dialog "Go Back & Re-upload" clears image/file/validation/uploaded URL/SAS but does not clear `jewelryAssetId`.
+    - this is a concrete stale-state risk: an old asset ID could survive an upload reset path.
+  - lines 2137 and 2192-2197:
+    - results UI passes `workflowId`, `isProductShot`, `jewelryUploadedUrl`, `jewelrySasUrl || jewelryImage`, `activeModelUrl`, and `resultImages[0]` into result/feedback children.
+    - result feedback is assembled from state owned by upload, model selection, generation, and results phases.
+  - lines 2155-2163:
+    - regenerate from results mutates `regenerationCount`, clears `resultImages`, sets `currentStep` to `generating`, then calls `handleGenerate`, which rereads upload/model state.
+
+- Coupling conclusion:
+  - Proven: `UnifiedStudio.tsx` is too coupled to safely add features without high regression risk.
+  - Reason: upload, validation, model selection, session persistence, generation, result display, feedback, and restart/regenerate behavior are all coordinated through many independent `useState` variables in one component.
+  - Strongest evidence:
+    - line 800 session persistence dependency array mixes 6 upload/model/validation states.
+    - line 962 paste handler crosses upload/model phases.
+    - lines 994-1090 generation consumes and mutates upload/model state directly.
+    - lines 1206-1222 one reset handler clears multiple phases.
+    - line 1644 leaves `jewelryAssetId` uncleared while clearing related upload state.

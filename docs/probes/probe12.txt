@@ -1,0 +1,459 @@
+Probe 12: Pricing and feature flag single-source-of-truth audit
+
+- Scope:
+  - list every key in `TOOL_COSTS` from `src/lib/credits-api.ts`
+  - search current source usage of each key
+  - classify usage as live route vs dead/non-pricing/reference-only
+  - list every export in `src/lib/feature-flags.ts`
+  - record current return value and live import count
+  - flag constant true/false toggles that are imported by live files
+
+- Live route baseline:
+  - Current routes are centralized in `src/App.tsx`.
+  - Live product routes include:
+    - `/studio/:type` -> `UnifiedStudio`
+    - `/text-to-cad` -> `TextToCAD`
+    - `/studio-cad` -> `CADStudio`
+    - `/cad-to-catalog` -> `CADToCatalog`
+    - `/generations` -> `Generations`
+    - `/dashboard` -> `Dashboard`
+    - admin nested routes
+  - Commented-out old `/studio/:type` route variants are dead.
+
+- `TOOL_COSTS` keys in `src/lib/credits-api.ts`:
+  - `from_photo`
+    - value:
+      - `3`
+    - current source usage:
+      - only defined in `src/lib/credits-api.ts`
+    - live route usage:
+      - none found
+    - pricing status:
+      - dead/unreferenced pricing key
+  - `cad_generation`
+    - value:
+      - `85`
+    - current source usage:
+      - `src/pages/TextToCAD.tsx:334`
+        - fallback:
+          - `TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5`
+      - `src/pages/TextToCAD.tsx:523`
+        - fallback:
+          - `TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5`
+    - live route usage:
+      - live through `/text-to-cad`
+    - pricing status:
+      - live fallback only
+      - not passed to `performCreditPreflight`
+      - not passed to `checkCredits`
+      - not used as backend workflow name
+  - `qa_with_gpu`
+    - value:
+      - `3`
+    - current source usage:
+      - only defined in `src/lib/credits-api.ts`
+    - live route usage:
+      - none found
+    - pricing status:
+      - dead/unreferenced pricing key
+  - `ring_full_pipeline`
+    - value:
+      - `85`
+    - current source usage:
+      - `src/lib/generation-history-api.ts:289`
+        - comment/reference for text-to-CAD workflow classification
+      - `src/lib/generation-history-api.ts:291`
+        - source-type inference checks `lower.includes('ring_full_pipeline')`
+      - `src/lib/generation-history-api.test.ts`
+        - tests history inference
+    - live route usage:
+      - live as history-classification string through `/generations`
+      - no live pricing enforcement usage found
+    - pricing status:
+      - dead as a pricing key
+      - live only as historical workflow-name classifier
+  - `ring_generate_v1`
+    - value:
+      - `85`
+    - current source usage:
+      - `src/pages/TextToCAD.tsx:336`
+        - `performCreditPreflight('ring_generate_v1', 1, { model })`
+      - `src/pages/TextToCAD.tsx:361`
+        - starts backend workflow `/api/run/ring_generate_v1`
+      - `src/pages/TextToCAD.tsx:525`
+        - `performCreditPreflight('ring_generate_v1', 1, { model })`
+      - `src/pages/TextToCAD.tsx:547`
+        - starts edit workflow `/api/run/ring_generate_v1`
+      - `src/components/text-to-cad/InitialPromptScreen.tsx:33`
+        - `useEstimatedCost({ workflowName: 'ring_generate_v1', model })`
+      - `src/components/text-to-cad/LeftPanel.tsx:44`
+        - `useEstimatedCost({ workflowName: 'ring_generate_v1', model })`
+      - `src/lib/credit-preflight.ts:28`
+        - fallback lookup through `TOOL_COSTS[workflowName]`
+      - `src/hooks/use-estimated-cost.ts:74`
+        - fallback lookup through `TOOL_COSTS[workflowName]`
+    - live route usage:
+      - live through `/text-to-cad`
+    - pricing status:
+      - live pricing/preflight/display fallback key
+      - backend estimate still overrides client fallback when available
+  - `ring_generate_v1:gemini`
+    - value:
+      - `85`
+    - current source usage:
+      - no literal source usage outside `src/lib/credits-api.ts`
+      - dynamic usage:
+        - `src/pages/TextToCAD.tsx:333`
+          - `const modelKey = \`ring_generate_v1:${model}\``
+        - `src/pages/TextToCAD.tsx:334`
+          - `TOOL_COSTS[modelKey]`
+        - `src/pages/TextToCAD.tsx:522`
+          - `const modelKey = \`ring_generate_v1:${model}\``
+        - `src/pages/TextToCAD.tsx:523`
+          - `TOOL_COSTS[modelKey]`
+        - `src/lib/credit-preflight.ts:24-28`
+          - dynamic fallback key from workflow + model
+        - `src/hooks/use-estimated-cost.ts:73-74`
+          - dynamic fallback key from workflow + model
+    - live route usage:
+      - live through `/text-to-cad`
+      - `TextToCAD` default model is `gemini`
+    - pricing status:
+      - live dynamic fallback key
+  - `ring_generate_v1:claude-sonnet`
+    - value:
+      - `120`
+    - current source usage:
+      - no literal source usage outside `src/lib/credits-api.ts`
+      - dynamic usage path exists through `model`
+    - live route usage:
+      - potentially live only if `model` can become `claude-sonnet`
+      - current model selector UI is commented out/hidden, so normal users likely remain on default `gemini`
+    - pricing status:
+      - dormant dynamic pricing key
+      - not dead if model selection is re-enabled
+  - `ring_generate_v1:claude-opus`
+    - value:
+      - `150`
+    - current source usage:
+      - no literal source usage outside `src/lib/credits-api.ts`
+      - dynamic usage path exists through `model`
+    - live route usage:
+      - potentially live only if `model` can become `claude-opus`
+      - current model selector UI is commented out/hidden, so normal users likely remain on default `gemini`
+    - pricing status:
+      - dormant dynamic pricing key
+      - not dead if model selection is re-enabled
+
+- Important missing pricing key:
+  - `jewelry_photoshoots_generator`
+    - not present in `TOOL_COSTS`
+    - live usage:
+      - `src/pages/UnifiedStudio.tsx:999`
+        - `checkCredits('jewelry_photoshoots_generator')`
+      - `src/lib/photoshoot-api.ts:84`
+        - starts `/api/run/state/jewelry_photoshoots_generator`
+    - risk:
+      - photo/on-model generation is live but absent from the local pricing table.
+      - frontend fallback pricing for this flow depends on backend estimate or generic defaults outside `TOOL_COSTS`.
+
+- Shared pricing helpers:
+  - `src/lib/credits-api.ts`
+    - owns `TOOL_COSTS`
+    - owns `getWorkflowCost`, but no current source calls `getWorkflowCost(...)`.
+  - `src/lib/credit-preflight.ts`
+    - uses `TOOL_COSTS` only as fallback.
+    - backend `/api/credits/estimate` can override.
+  - `src/hooks/use-estimated-cost.ts`
+    - uses `TOOL_COSTS` only as fallback for display.
+    - backend `/api/credits/estimate` can override.
+  - `src/contexts/CreditsContext.tsx`
+    - exposes `canAfford(toolName)` and `getToolCost(toolName)` based on `TOOL_COSTS`.
+    - no current source calls `canAfford(...)` or `getToolCost(...)` outside the context implementation.
+
+- Pricing conclusion:
+  - `TOOL_COSTS` is not a true single source of truth.
+  - It is a fallback table for CAD costs, plus some stale keys.
+  - Backend estimate appears to be the real authority for live preflight/display where wired.
+  - Live photo workflow key is missing from the table.
+  - Several pricing concepts are mixed:
+    - backend workflow names
+    - legacy workflow names
+    - UI fallback costs
+    - history classifier names
+    - model-specific cost variants
+
+- Feature flags in `src/lib/feature-flags.ts`:
+  - `isCADEnabled(_userEmail)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 3
+    - live importers:
+      - `src/pages/Dashboard.tsx`
+      - `src/components/CADGate.tsx`
+      - `src/components/layout/Header.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live files
+  - `CAD_EDIT_TOOLS_ENABLED`
+    - current return value:
+      - constant `false`
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/components/text-to-cad/LeftPanel.tsx`
+    - dead toggle:
+      - yes
+      - constant false and used in live CAD UI
+  - `CAD_MODEL_SELECTOR_ENABLED`
+    - current return value:
+      - constant `false`
+    - live files importing:
+      - 0
+    - notes:
+      - mentioned only in comments in `InitialPromptScreen.tsx` and `LeftPanel.tsx`
+    - dead toggle:
+      - unused constant
+      - not an active runtime toggle
+  - `isWeightStlEnabled(email)`
+    - current return value:
+      - `true` only for emails in `WEIGHT_STL_EMAILS`
+      - currently `['uswa@raresense.so']`
+      - `false` for missing email or other users
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/TextToCAD.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+  - `isAltUploadLayoutEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live photo studio
+  - `isCadUploadEnabled(email)`
+    - current return value:
+      - `true` only for emails in `CAD_UPLOAD_EMAILS`
+      - currently `['uswa@raresense.so', 'abdullah@raresense.so']`
+      - `false` for missing email or other users
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/TextToCAD.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+  - `isOnboardingEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 3
+    - live importers:
+      - `src/App.tsx`
+      - `src/pages/RolePicker.tsx`
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live app/onboarding/studio code
+  - `isAssetMetadataEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 0
+    - dead toggle:
+      - unused constant
+      - removable candidate if no planned use
+  - `isViewGuideEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/components/studio/AlternateUploadStep.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live upload step
+  - `isShowAllVaultEnabled(email)`
+    - current return value:
+      - `true` only for `uswa@raresense.so`
+      - `false` for missing email or other users
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/components/studio/AlternateUploadStep.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+  - `isOnboardingWelcomeEnabled(_email)`
+    - current return value:
+      - constant `false`
+    - live files importing:
+      - 2
+    - live importers:
+      - `src/App.tsx`
+      - `src/pages/RolePicker.tsx`
+    - dead toggle:
+      - yes
+      - constant false and used in live onboarding routing
+  - `AUTHENTICATED_IMAGES_ENABLED`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 3 direct live importers
+      - plus broad indirect usage through `useAuthenticatedImage`
+    - live direct importers:
+      - `src/hooks/useAuthenticatedImage.ts`
+      - `src/components/text-to-cad/CADCanvas.tsx`
+      - `src/components/generations/ScissorGLBGrid.tsx`
+    - non-live/dead direct importer:
+      - `src/components/generations/CadWorkflowModal.tsx`
+        - no current source imports of `CadWorkflowModal` found
+    - dead toggle:
+      - yes
+      - constant true and used in live image/artifact loading paths
+  - `isFeedbackEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live result UI
+  - `isModelsApiEnabled(_email)`
+    - current return value:
+      - constant `true`
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live model library logic
+  - `isStudioOnboardingEnabled(email)`
+    - current return value:
+      - constant `true`
+    - note:
+      - `STUDIO_ONBOARDING_EMAILS` exists but is ignored because the function returns `true`
+    - live files importing:
+      - 3
+    - live importers:
+      - `src/App.tsx`
+      - `src/pages/OnboardingWelcome.tsx`
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - yes
+      - constant true and used in live onboarding/studio UI
+  - `isStudioTypeSelectionEnabled(email)`
+    - current return value:
+      - `true` only for emails in `STUDIO_TYPE_SELECTION_EMAILS`
+      - currently `['uswa@raresense.so']`
+      - `false` for missing email or other users
+    - live files importing:
+      - 2
+    - live importers:
+      - `src/App.tsx`
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+  - `isProductShotGuideEnabled(email)`
+    - current return value:
+      - `true` only for emails in `PRODUCT_SHOT_GUIDE_EMAILS`
+      - currently `['uswa@raresense.so']`
+      - `false` for missing email or other users
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+  - `isTestMenuEnabled(email)`
+    - current return value:
+      - `true` only for `uswa@raresense.so`
+      - `false` for missing email or other users
+    - live files importing:
+      - 1
+    - live importers:
+      - `src/pages/UnifiedStudio.tsx`
+    - dead toggle:
+      - no
+      - email-gated, not constant
+
+- Constant true/false flags used by live files:
+  - `isCADEnabled`
+    - constant `true`
+    - live import count:
+      - 3
+  - `CAD_EDIT_TOOLS_ENABLED`
+    - constant `false`
+    - live import count:
+      - 1
+  - `isAltUploadLayoutEnabled`
+    - constant `true`
+    - live import count:
+      - 1
+  - `isOnboardingEnabled`
+    - constant `true`
+    - live import count:
+      - 3
+  - `isViewGuideEnabled`
+    - constant `true`
+    - live import count:
+      - 1
+  - `isOnboardingWelcomeEnabled`
+    - constant `false`
+    - live import count:
+      - 2
+  - `AUTHENTICATED_IMAGES_ENABLED`
+    - constant `true`
+    - live direct import count:
+      - 3
+  - `isFeedbackEnabled`
+    - constant `true`
+    - live import count:
+      - 1
+  - `isModelsApiEnabled`
+    - constant `true`
+    - live import count:
+      - 1
+  - `isStudioOnboardingEnabled`
+    - constant `true`
+    - live import count:
+      - 3
+
+- Unused or comment-only flags:
+  - `CAD_MODEL_SELECTOR_ENABLED`
+    - exported constant false
+    - no active imports
+    - referenced only in comments
+  - `isAssetMetadataEnabled`
+    - exported function constant true
+    - no active imports
+
+- Feature flag conclusion:
+  - `feature-flags.ts` is a mix of:
+    - real email gates
+    - constant rollout flags that are no longer real toggles
+    - unused/comment-only leftovers
+  - Constant flags used by live files create dead branches and misleading architecture.
+  - For a real single source of truth:
+    - permanent `true` flags should be removed and their enabled path made normal code
+    - permanent `false` flags should either be deleted with the hidden UI or converted to a real config/remote flag
+    - email-gated internal flags should be grouped separately from product rollout flags
+    - pricing flags and pricing keys should not live as unrelated ad hoc constants.
+
+- Core finding:
+  - Pricing and flags are not yet single-source-of-truth systems.
+  - Pricing has stale keys, missing live workflow keys, dynamic model fallbacks, and backend-estimate overrides.
+  - Feature flags have at least 10 constant true/false toggles still imported by live files.
+  - This explains why adding or changing a paid feature requires touching multiple places and still risks inconsistent UI, cost display, and enforcement.

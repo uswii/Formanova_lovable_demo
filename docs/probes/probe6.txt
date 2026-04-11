@@ -1,0 +1,101 @@
+Probe 6: Shared imports between photo/on-model group and CAD group
+
+- Group A requested:
+  - `src/pages/UnifiedStudio.tsx`
+  - `StepRefineAndGenerate.tsx`
+  - `StepUploadMark.tsx`
+
+- Group A files found:
+  - `src/pages/UnifiedStudio.tsx`
+
+- Group A files not found in current `src` / `git ls-files`:
+  - `StepRefineAndGenerate.tsx`
+  - `StepUploadMark.tsx`
+
+- Group B files found:
+  - `src/pages/TextToCAD.tsx`
+  - `src/pages/CADToCatalog.tsx`
+  - `src/components/text-to-cad/CADCanvas.tsx`
+
+- Shared components imported by both groups:
+  - `@/components/ui/button`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:24`
+    - Group B:
+      - `src/pages/CADToCatalog.tsx:4`
+
+- Shared hooks or contexts used by both groups:
+  - `@/contexts/CreditsContext`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:53`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:2`
+  - `@/contexts/AuthContext`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:54`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:18`
+  - `react-router-dom`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:3`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:3`
+
+- Shared API files from `lib/` used by both groups:
+  - `@/lib/authenticated-fetch`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:56`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:11`
+      - `src/pages/TextToCAD.tsx:12`
+      - `src/components/text-to-cad/CADCanvas.tsx:24`
+
+- Shared non-API `lib/` infrastructure also used by both:
+  - `@/lib/feature-flags`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:58`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:19`
+      - `src/components/text-to-cad/CADCanvas.tsx:25`
+  - `@/lib/posthog-events`
+    - Group A:
+      - `src/pages/UnifiedStudio.tsx:78`
+      - dynamic import at `src/pages/UnifiedStudio.tsx:219`
+    - Group B:
+      - `src/pages/TextToCAD.tsx:13`
+      - dynamic import at `src/pages/TextToCAD.tsx:755`
+      - `src/components/text-to-cad/CADCanvas.tsx:23`
+
+- Count:
+  - Strict requested shared items:
+    - shared components: 1
+    - shared hooks/contexts: 3
+    - shared `lib` API files: 1
+    - total: 5
+  - Expanded shared local/infrastructure imports:
+    - `@/components/ui/button`
+    - `@/contexts/CreditsContext`
+    - `@/contexts/AuthContext`
+    - `react-router-dom`
+    - `@/lib/authenticated-fetch`
+    - `@/lib/feature-flags`
+    - `@/lib/posthog-events`
+    - total: 7
+
+- Not shared:
+  - No shared photo/CAD workflow components found.
+  - No shared upload/validation components found.
+  - No shared generation progress component found between `UnifiedStudio.tsx` and CAD.
+  - No shared CAD components imported by `UnifiedStudio.tsx`.
+  - No shared photo studio components imported by CAD files.
+  - `UnifiedStudio.tsx` imports `@/hooks/use-toast`, `@/hooks/use-image-validation`, `@/hooks/use-credit-preflight`, `@/hooks/useAuthenticatedImage`; none are imported by the scanned CAD files.
+  - CAD imports `@/hooks/use-cad-keyboard-shortcuts`; Group A does not.
+  - `UnifiedStudio.tsx` imports photo/model APIs such as `photoshoot-api`, `models-api`, `assets-api`, `microservices-api`, `onboarding-api`; scanned CAD files do not.
+  - CAD imports `credit-preflight`, `credits-api`, `gpu-detect`, and CAD/material/WebGL modules; Group A does not.
+
+- Interpretation against the user's rule:
+  - Strict list is exactly 5, not below 5 and not above 10.
+  - Expanded infrastructure list is 7, still below the `>10` tangled threshold.
+  - This does not prove they are fully separate apps, because they share auth, credits, router, feature flags, analytics, and authenticated fetch.
+  - This also does not prove they are tangled at the component/workflow level.
+  - Best conclusion: photo/on-model and CAD are separate tool surfaces inside one shared product shell. They share platform infrastructure, but not many workflow-specific components.

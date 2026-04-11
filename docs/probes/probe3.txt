@@ -1,0 +1,384 @@
+# Probe 3: Routing, Layouts, and Global State
+
+## Scope
+
+- Prompt: identify routing structure, on-model photo generator routes, CAD generator routes, layouts, and global state readers.
+- Constraint: no code edits. This file is an audit artifact only.
+
+## Router Structure
+
+- Router type:
+  - Single Vite/React SPA using `react-router-dom`.
+  - Routes are centralized manually in `src/App.tsx`.
+  - No Next.js filesystem routing.
+  - No `layout.tsx`, `_app.tsx`, or `_document.tsx`.
+- Entrypoint:
+  - `src/main.tsx` mounts `<App />`.
+  - It also owns global chunk-load recovery and production-domain redirect behavior.
+- App shell:
+  - `src/App.tsx` wraps all routes in:
+    - `HelmetProvider`
+    - `QueryClientProvider`
+    - `ThemeProvider`
+    - `AuthProvider`
+    - `CreditsProvider`
+    - `TooltipProvider`
+    - `BrowserRouter`
+  - Then renders global route helpers:
+    - `PostHogPageView`
+    - `PostReloadHandler`
+    - `OnboardingRedirectHandler`
+    - `VersionBanner`
+    - decorative/global UI: `FloatingElements`, `ScrollProgressIndicator`, `ThemeDecorations`
+  - Then renders a single fixed global `<Header />` and `<main>` around the route table.
+
+## On-Model Photo Generator Routes / Pages
+
+- Public/marketing photo route:
+  - Route: `/ai-jewelry-photoshoot`
+  - Page: `src/pages/AIJewelryPhotoshoot.tsx`
+  - Purpose: public SEO/landing page for AI jewelry photoshoot.
+  - Layout: global app shell with global `Header`.
+- Studio entry route:
+  - Route: `/studio`
+  - Element: `ProtectedRoute` -> `StudioGate`
+  - `StudioGate` chooses:
+    - `src/pages/StudioTypeSelection.tsx` if studio type selection feature flag is enabled for the user.
+    - `src/pages/PhotographyStudioCategories.tsx` otherwise.
+  - Layout: global app shell with global `Header`.
+- On-model category route:
+  - Route: `/studio/categories`
+  - Page: `src/pages/PhotographyStudioCategories.tsx`
+  - Navigates to `/studio/:type` with `location.state.mode = 'model-shot'`.
+  - Layout: global app shell with global `Header`.
+- Product-shot category route:
+  - Route: `/studio/product-shot/categories`
+  - Page: `src/pages/ProductShotCategories.tsx`
+  - Navigates to `/studio/:type` with `location.state.mode = 'product-shot'`.
+  - This is not exactly on-model, but shares the same `UnifiedStudio` route and therefore the same photo-studio code path.
+  - Layout: global app shell with global `Header`.
+- Main photo/product studio route:
+  - Route: `/studio/:type`
+  - Page: `src/pages/UnifiedStudio.tsx`
+  - Protected by `ProtectedRoute`.
+  - Handles both model-shot and product-shot modes.
+  - Uses URL params, URL search params, `location.state`, session storage, local storage, React Query, auth context, credits context, and many local workflow states.
+  - Layout: global app shell with global `Header`.
+- Related shared/history routes:
+  - Route: `/generations`
+  - Page: `src/pages/Generations.tsx`
+  - Shows photo, product-shot, CAD render, and text-to-CAD history sections together.
+  - Layout: global app shell with global `Header`.
+- Related payment/credit routes used by photo generator:
+  - `/credits`: `src/pages/Credits.tsx`
+  - `/pricing`: `src/pages/Pricing.tsx`
+  - `/payment-success` and `/success`: `src/pages/PaymentSuccess.tsx`
+  - `/cancel`: `src/pages/PaymentCancel.tsx`
+  - These are not photo-only, but photo flows route into them.
+
+## CAD Generator Routes / Pages
+
+- Public/marketing CAD route:
+  - Route: `/ai-jewelry-cad`
+  - Page: `src/pages/AIJewelryCAD.tsx`
+  - Purpose: public SEO/landing page for text-to-CAD.
+  - Layout: global app shell with global `Header`.
+- CAD hub route:
+  - Route: `/studio-cad`
+  - Page: `src/pages/CADStudio.tsx`
+  - Wrappers: `ProtectedRoute` -> `CADGate` -> `CADStudio`.
+  - `CADGate` checks `isCADEnabled(user?.email)`.
+  - Layout: global app shell with global `Header`.
+- Text-to-CAD generator route:
+  - Route: `/text-to-cad`
+  - Page: `src/pages/TextToCAD.tsx`
+  - Wrappers: `ProtectedRoute` -> `CADGate` -> `TextToCAD`.
+  - Main CAD generation workspace.
+  - Uses `useAuth` and `useCredits`.
+  - Owns large local workflow state, CAD polling, GLB handling, export/download behavior, and viewport coordination.
+  - Layout: global app shell with global `Header`.
+- CAD-to-catalog route:
+  - Route: `/cad-to-catalog`
+  - Page: `src/pages/CADToCatalog.tsx`
+  - Wrappers: `ProtectedRoute` -> `CADGate` -> `CADToCatalog`.
+  - Uses CAD-studio components such as `StudioViewport`, `MaterialLibrary`, and `MeshInspector`.
+  - Layout: global app shell with global `Header`.
+- CAD history/result surfaces:
+  - Route: `/generations`
+  - Page: `src/pages/Generations.tsx`
+  - Includes `cad_render` and `cad_text` sections.
+  - `src/components/generations/WorkflowCard.tsx` can navigate CAD text results back into `/text-to-cad?glb=...`.
+  - `src/components/generations/CadWorkflowModal.tsx` previews/downloads CAD GLB output.
+- Related payment/credit routes used by CAD generator:
+  - `/credits`
+  - `/pricing`
+  - `/payment-success` / `/success`
+  - `/cancel`
+  - These are shared with photo flows.
+
+## Layout Files / Shells
+
+- `src/App.tsx`
+  - Primary application shell.
+  - Used by every route.
+  - Provides global providers, router, route table, global header, global route handlers, global decorative UI, and global update banner.
+  - This means public marketing, photo studio, CAD studio, admin, auth, credits, and history all share the same top-level shell.
+- `src/components/layout/Header.tsx`
+  - Global fixed header used by every route because it is rendered once in `src/App.tsx` outside the route table.
+  - Reads:
+    - `useAuth`
+    - `useCredits`
+    - `useIsAdmin`
+    - `isCADEnabled`
+  - Nav links:
+    - Home
+    - Photo Studio
+    - CAD Studio only if CAD is enabled for the current user.
+  - Shows credit balance globally, including on CAD, photo, public, admin, credits, and auth routes.
+- `src/components/ProtectedRoute.tsx`
+  - Route guard wrapper for protected app pages.
+  - Used by protected onboarding, dashboard, history, credits, pricing/payment, studio, and CAD routes.
+  - Uses `useAuth().initializing` but checks auth by `getStoredToken()` from `src/lib/auth-api.ts`.
+- `src/components/CADGate.tsx`
+  - CAD-specific gate.
+  - Used only by:
+    - `/studio-cad`
+    - `/cad-to-catalog`
+    - `/text-to-cad`
+  - Reads `useAuth` and `isCADEnabled`.
+  - Redirects disabled CAD users to `/dashboard`.
+- `src/components/AdminRouteGuard.tsx`
+  - Admin-specific gate.
+  - Used by:
+    - `/admin`
+    - `/admin/generations/:workflowId`
+  - Reads `useAuth` and `useIsAdmin`.
+- `src/components/admin/AdminLayout.tsx`
+  - Nested admin layout for `/admin`.
+  - Used by:
+    - `/admin/promo-codes`
+    - `/admin/generations`
+    - `/admin/feedback`
+    - `/admin/preset-library`
+  - Renders its own admin tab nav and `<Outlet />`.
+  - Still sits under the global `Header`.
+- `src/components/admin/PresetLibraryLayout.tsx`
+  - Nested admin sub-layout.
+  - Used by:
+    - `/admin/preset-library/models`
+    - `/admin/preset-library/inspirations`
+  - Renders model/inspiration tabs and `<Outlet />`.
+  - Still sits under `AdminLayout` and the global `Header`.
+- `src/components/ui/sidebar.tsx`
+  - Contains a local `SidebarProvider` and a `<main>` wrapper component.
+  - It does not appear to be used as an app-level layout shell in the current route table.
+
+## Global State / Providers
+
+- `AuthProvider`
+  - File: `src/contexts/AuthContext.tsx`
+  - Scope: wraps the entire app in `src/App.tsx`.
+  - State: `user`, `loading`, `initializing`.
+  - Actions/helpers: `signInWithGoogle`, `signOut`, `getAuthHeader`.
+  - Backing storage/events:
+    - `formanova_auth_token`
+    - `formanova_auth_user`
+    - `formanova_auth_state_change`
+    - browser `storage` event
+  - Readers found:
+    - `src/App.tsx`
+    - `src/components/AdminRouteGuard.tsx`
+    - `src/components/CADGate.tsx`
+    - `src/components/ProtectedRoute.tsx`
+    - `src/components/layout/Header.tsx`
+    - `src/hooks/useIsAdmin.ts`
+    - `src/hooks/use-prefetch-generations.ts`
+    - `src/pages/Credits.tsx`
+    - `src/pages/Dashboard.tsx`
+    - `src/pages/Generations.tsx`
+    - `src/pages/LinkAccount.tsx`
+    - `src/pages/OnboardingWelcome.tsx`
+    - `src/pages/Pricing.tsx`
+    - `src/pages/RolePicker.tsx`
+    - `src/pages/Welcome.tsx`
+    - `src/pages/UnifiedStudio.tsx`
+    - `src/pages/TextToCAD.tsx`
+  - Photo app usage:
+    - `UnifiedStudio`, studio gates, dashboard/history, header.
+  - CAD app usage:
+    - `CADGate`, `TextToCAD`, dashboard/history, header.
+- `CreditsProvider`
+  - File: `src/contexts/CreditsContext.tsx`
+  - Scope: wraps the entire app in `src/App.tsx`.
+  - Depends on `useAuth`.
+  - State: `credits`, `loading`, `lastDelta`.
+  - Actions/helpers: `refreshCredits`, `canAfford`, `getToolCost`.
+  - Backend: calls `fetchBalance()` from `src/lib/credits-api.ts`.
+  - Readers found:
+    - `src/components/layout/Header.tsx`
+    - `src/pages/Credits.tsx`
+    - `src/pages/PaymentSuccess.tsx`
+    - `src/pages/Pricing.tsx`
+    - `src/pages/UnifiedStudio.tsx`
+    - `src/pages/TextToCAD.tsx`
+  - Photo app usage:
+    - `UnifiedStudio` refreshes credits after generation.
+  - CAD app usage:
+    - `TextToCAD` refreshes credits after generation/edit.
+  - Shared-risk note:
+    - Header always reads and displays credits, so credit balance behavior is globally visible even when the active route is CAD/admin/public.
+- `ThemeProvider`
+  - File: `src/contexts/ThemeContext.tsx`
+  - Scope: wraps the entire app in `src/App.tsx`.
+  - State: `theme`, `themes`.
+  - Backing storage: `formanova-theme`.
+  - Readers found:
+    - `src/components/CinematicCursor.tsx`
+    - `src/components/ThemeDecorations.tsx`
+    - `src/components/ThemeLogo.tsx`
+    - `src/components/ThemeSwitcher.tsx`
+    - `src/components/ui/sonner.tsx`
+  - Shared-risk note:
+    - Theme/decorative components are global, not scoped to marketing/photo/CAD.
+- `QueryClientProvider`
+  - File: `src/App.tsx`
+  - Scope: wraps the entire app.
+  - Readers found:
+    - `src/pages/AdminFeedbackPage.tsx`
+    - `src/pages/AdminGenerationsPage.tsx`
+    - `src/pages/AdminGenerationDetailPage.tsx`
+    - `src/pages/UnifiedStudio.tsx`
+    - `src/components/admin/PipelineCreditsModal.tsx`
+  - Photo app usage:
+    - `UnifiedStudio` uses React Query for preset models/inspirations.
+  - CAD app usage:
+    - no direct `useQuery`/`useMutation` usage found in `TextToCAD.tsx`, `CADStudio.tsx`, or `CADToCatalog.tsx`.
+- Other context providers found:
+  - `src/components/generations/ScissorGLBGrid.tsx`
+    - Local `GridContext`, scoped inside that component.
+    - Not app-global.
+  - shadcn/Radix local contexts:
+    - carousel, chart, form, sidebar, toast, toggle group, tooltip.
+    - These are component-library contexts, not product-level global state.
+- Zustand/Redux/Jotai/Valtio:
+  - No active usage found in `src` or `package.json`.
+  - No Redux store, Zustand store, Jotai atoms, or Valtio proxies found.
+
+## Shared Layout / State Between Photo and CAD
+
+- Confirmed shared layout:
+  - Photo generator and CAD generator both share `src/App.tsx`.
+  - Both share `src/components/layout/Header.tsx`.
+  - Both share global `<main className="flex-1">`.
+  - Both share global decorative UI and route handlers.
+- Confirmed shared state:
+  - `AuthProvider`
+  - `CreditsProvider`
+  - `ThemeProvider`
+  - `QueryClientProvider`
+  - PostHog page-view tracking
+  - version/update banner behavior
+  - chunk-load reload behavior
+- Confirmed separate route gates:
+  - Photo routes use only `ProtectedRoute`.
+  - CAD routes use `ProtectedRoute` plus `CADGate`.
+  - CAD is feature-flagged by user email.
+- Confirmed shared history surface:
+  - `/generations` is explicitly both apps in one page:
+    - photo
+    - product shot
+    - CAD render
+    - text-to-CAD
+
+## Are These Two Apps Sharing a Repo?
+
+- Yes, at the product/workflow level they look like two app surfaces:
+  - Photo/on-model app:
+    - `/studio`
+    - `/studio/categories`
+    - `/studio/product-shot/categories`
+    - `/studio/:type`
+    - public `/ai-jewelry-photoshoot`
+  - CAD app:
+    - `/studio-cad`
+    - `/text-to-cad`
+    - `/cad-to-catalog`
+    - public `/ai-jewelry-cad`
+- No, at the technical shell level they are not separated:
+  - they are one React app,
+  - one route table,
+  - one provider tree,
+  - one global header,
+  - one auth/session boundary,
+  - one credits state,
+  - one theme system,
+  - one history page.
+
+## Risk / Regression Assessment
+
+- Highest risk: shared app shell couples unrelated product surfaces.
+  - A change to `src/App.tsx` can affect photo, CAD, admin, auth, credits, and marketing pages.
+  - Examples:
+    - onboarding redirect logic can accidentally affect CAD routes,
+    - header credit behavior can affect CAD/admin/public pages,
+    - auth initialization changes can affect both photo and CAD,
+    - query/client/provider changes can affect admin and studio pages.
+- CAD inherits photo-studio assumptions:
+  - CAD routes live under the same global `Header` where the primary nav is "Photo Studio" plus feature-gated "CAD Studio".
+  - `Welcome.tsx`, `Auth.tsx`, `RolePicker.tsx`, and onboarding defaults generally route users toward `/studio`, not CAD.
+  - `ONBOARDING_PUBLIC_PATHS` includes CAD marketing route, but protected CAD routes still sit behind the global onboarding handler.
+- Photo and CAD intentionally share credits/auth, but those domains are not isolated:
+  - both `UnifiedStudio.tsx` and `TextToCAD.tsx` call `refreshCredits`.
+  - the global header reads credit state and animates credit deltas globally.
+  - changing credit refresh behavior can regress both generation apps.
+- `/generations` is a deliberate coupling point:
+  - it merges photo, product-shot, CAD render, and text-to-CAD artifacts.
+  - it can route CAD users back into `/text-to-cad?glb=...`.
+  - changes to history card logic may break one workflow while trying to improve another.
+- There is no route-level layout isolation for CAD:
+  - CAD has `CADGate`, but not a CAD-specific layout/provider boundary.
+  - CAD cannot independently own its shell, nav, route handlers, telemetry wrappers, or state providers.
+
+## Product Intent Clarification
+
+- User-confirmed intended behavior:
+  - FormaNova should feel like one product with two tools, not two totally separate apps.
+  - Sharing the same navigation/header across photo and CAD is intended.
+  - Credit balance should be global.
+  - Combined `/generations` history for photo, product-shot, CAD render, and text-to-CAD is fine.
+  - Photo generation and CAD generation should use the same credits system long-term.
+  - Temporary CAD email gating is internal testing behavior and should not be treated as an architecture concern by itself.
+- User-confirmed behavior that needs improvement:
+  - Current default flow pushes everyone toward the photoshoot studio first.
+  - Ideally, CAD users should be able to reach CAD without inheriting photo-studio onboarding assumptions.
+  - CAD should have a more focused WebGL/workspace layout once inside the CAD tool.
+- Refined interpretation:
+  - Shared auth, credits, history, and top navigation are not the problem.
+  - The risk is over-shared route behavior:
+    - global onboarding redirects,
+    - photo-first default redirects,
+    - global shell behavior that makes CAD depend on photo-studio assumptions,
+    - lack of a CAD-specific workspace boundary under the shared product shell.
+- Practical boundary target:
+  - Keep one product shell.
+  - Keep shared header, auth, credits, and combined history.
+  - Add/strengthen a CAD workspace boundary for `/studio-cad`, `/text-to-cad`, and `/cad-to-catalog`.
+  - Separate onboarding/default routing decisions by user intent/tool entry point instead of assuming every signed-in user is headed to `/studio`.
+
+## Bottom Line
+
+- The suspicion is mostly correct:
+  - photo studio and CAD studio behave like two separate product apps,
+  - but they are mounted inside one shared SPA shell.
+- After product clarification, the intended sharing is:
+  - auth,
+  - credits,
+  - global header/navigation,
+  - combined history,
+  - one product identity.
+- The questionable sharing is narrower:
+  - photo-first onboarding/default redirects,
+  - global route handlers that affect CAD without CAD-specific intent,
+  - missing CAD workspace layout boundary inside the shared product shell.
+- The main future breakage risk is not that these two apps share a repo.
+- The risk is that CAD shares photo-studio assumptions, not that CAD shares product-level auth/credits/header/history.

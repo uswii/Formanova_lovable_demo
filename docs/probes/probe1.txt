@@ -1,0 +1,208 @@
+Probe 1: Repo Architecture / Framework / Components / Layouts / API / Risk Audit
+
+- Status
+  - No code files were edited.
+  - This file records the probe 1 audit output.
+
+- Framework
+  - Vite + React + TypeScript, not Next.js.
+  - Routing: react-router-dom in src/App.tsx.
+  - Styling/UI: Tailwind CSS, shadcn-style components in src/components/ui, Radix UI primitives, class-variance-authority, tailwind-merge, lucide-react.
+  - State/data tooling: @tanstack/react-query, custom auth/credits contexts, posthog-js.
+  - Visual/3D stack: Three.js, @react-three/fiber, @react-three/drei, @react-three/postprocessing, Framer Motion.
+  - Backend/client libraries present: Supabase client is configured, but active app backend calls mostly use fetch wrappers/custom API modules.
+
+- Component inventory: Button/Input/Modal/Dialog/Card files
+  - Button:
+    - src/components/ui/button.tsx
+  - Input:
+    - src/components/ui/input.tsx
+    - src/components/ui/input-otp.tsx
+  - Modal/Dialog:
+    - src/components/ui/dialog.tsx
+    - src/components/ui/alert-dialog.tsx
+    - src/components/DownloadRenameDialog.tsx
+    - src/components/CreditPreflightModal.tsx
+    - src/components/InsufficientCreditsModal.tsx
+    - src/components/admin/PipelineCreditsModal.tsx
+    - src/components/generations/CadWorkflowModal.tsx
+    - src/components/generations/PhotoPreviewModal.tsx
+    - src/components/generations/SnapshotPreviewModal.tsx
+    - src/components/studio/FeedbackModal.tsx
+    - src/components/studio/ModelGuideModal.tsx
+    - src/components/studio/ProductShotGuideModal.tsx
+    - src/components/studio/UploadGuideModal.tsx
+  - Card:
+    - src/components/ui/card.tsx
+    - src/components/ui/hover-card.tsx
+    - src/components/generations/WorkflowCard.tsx
+    - src/components/vault/AssetCard.tsx
+  - Duplicate notes:
+    - No obvious Button2.tsx/button2.tsx duplicate.
+    - Modal/Dialog is the most duplicated area: generic Radix wrappers plus many one-off feature modals.
+    - Card has both generic UI primitives and domain cards.
+    - File-name inventory excludes image assets whose names contain input or card.
+
+- Layouts
+  - Count: about 6 different page shells.
+  - Global top-nav app shell:
+    - src/App.tsx
+    - src/components/layout/Header.tsx
+    - Most routes render under a fixed global header and main.
+  - Marketing/full-page public shell:
+    - src/pages/Welcome.tsx
+    - src/pages/AIJewelryPhotoshoot.tsx
+    - src/pages/AIJewelryCAD.tsx
+  - Centered auth/status shell:
+    - src/pages/Auth.tsx
+    - src/pages/PaymentSuccess.tsx
+    - src/pages/PaymentCancel.tsx
+    - src/pages/NotFound.tsx
+  - Category/dashboard grid shell:
+    - src/pages/Dashboard.tsx
+    - src/pages/PhotographyStudioCategories.tsx
+    - src/pages/ProductShotCategories.tsx
+    - src/pages/CADStudio.tsx
+    - src/pages/StudioTypeSelection.tsx
+  - Full-screen/workspace shell with custom internal panels/sidebars:
+    - src/pages/UnifiedStudio.tsx
+    - src/pages/TextToCAD.tsx
+    - src/components/text-to-cad/CADCanvas.tsx
+  - Admin tab shell:
+    - src/components/admin/AdminLayout.tsx
+    - src/components/admin/PresetLibraryLayout.tsx
+    - src/pages/AdminGenerationDetailPage.tsx is a standalone admin detail page.
+  - Sidebar note:
+    - src/components/ui/sidebar.tsx exists as a shadcn primitive, but it did not appear to be used as a main app shell.
+
+- Data fetching
+  - Raw browser fetch:
+    - 31 call sites across 15 files.
+    - Used for auth, static version polling, public/proxy API calls, GLB/STL/blob/image reads, and some direct workflow calls.
+  - authenticatedFetch:
+    - 65 call sites/references across 26 files.
+    - Central wrapper in src/lib/authenticated-fetch.ts attaches Bearer token and redirects on 401.
+  - Manual token + raw fetch:
+    - At least 5 patterns/files:
+      - src/lib/photoshoot-api.ts
+      - src/lib/pipeline-api.ts
+      - src/hooks/use-image-validation.ts
+      - src/lib/admin-generations-api.ts
+      - src/pages/AdminFeedbackPage.tsx
+  - React Query:
+    - 5 useQuery/useMutation usages.
+    - Mainly admin and preset data:
+      - src/pages/AdminFeedbackPage.tsx
+      - src/pages/AdminGenerationsPage.tsx
+      - src/pages/AdminGenerationDetailPage.tsx
+      - src/pages/UnifiedStudio.tsx
+  - Supabase:
+    - Client exists in src/integrations/supabase/client.ts.
+    - No active app calls using supabase.from(...) or function invokes were found.
+  - Axios/XMLHttpRequest:
+    - None found.
+  - Server-side Python:
+    - Uses requests in:
+      - server/pipeline/api_client.py
+      - server/pipeline/autopilot.py
+      - server/pipeline/step1_fetch.py
+  - Meaningful backend access style count:
+    - 5 styles: authenticatedFetch, raw fetch, manual-token fetch helpers, React Query wrapping custom fetchers, and Python requests.
+
+- Mess score
+  - Largest files by lines:
+    - src/pages/UnifiedStudio.tsx: 2,233 lines, 67 imports.
+    - src/components/text-to-cad/CADCanvas.tsx: 2,058 lines, 17 imports.
+    - src/pages/TextToCAD.tsx: 1,523 lines, 30 imports.
+    - server/api_server.py: 1,155 lines, 26 imports.
+    - server/api_server_multi_jewelry.py: 823 lines, 25 imports.
+  - Most imports:
+    - src/pages/UnifiedStudio.tsx: 67.
+    - src/components/studio/AlternateUploadStep.tsx: 46.
+    - src/pages/TextToCAD.tsx: 30.
+    - src/pages/OnboardingWelcome.tsx: 27.
+    - server/api_server.py: 26.
+  - TODO/FIXME/HACK/XXX comments:
+    - 0 found in src and server.
+
+- Risk
+  - Highest breakage risk is src/pages/UnifiedStudio.tsx:
+    - It combines upload flow, guide UI, presets, generation orchestration, dialogs, polling, error states, and authenticated image access in one 2,233-line page.
+  - CAD changes are risky because src/pages/TextToCAD.tsx and src/components/text-to-cad/CADCanvas.tsx both own large chunks of workflow state, polling, downloads, rendering, and auth-sensitive asset fetching.
+  - Backend integration changes can easily drift because there are several fetch styles:
+    - authenticatedFetch
+    - raw fetch
+    - manual token headers
+    - hardcoded https://formanova.ai
+    - relative /api, /auth, /billing
+    - env-based VITE_PIPELINE_API_URL
+  - Auth/session behavior is coupled across:
+    - src/lib/auth-api.ts
+    - src/lib/authenticated-fetch.ts
+    - src/contexts/AuthContext.tsx
+    - src/components/ProtectedRoute.tsx
+    - route redirects in src/App.tsx
+  - Admin and credits flows are fragile because they mix React Query, manual fetchers, admin secrets, bearer tokens, modals, and nested routes across:
+    - src/pages/AdminFeedbackPage.tsx
+    - src/pages/PromoAdminPage.tsx
+    - src/lib/credits-api.ts
+    - src/contexts/CreditsContext.tsx
+
+- Probe 1 interpretation
+  - There is no single way to do a backend API call.
+  - The project has grown without a strong integration boundary.
+  - AI-assisted feature additions likely copied nearest examples and introduced multiple styles.
+  - The main technical symptom is missing enforced convention for:
+    - where API clients live,
+    - when to use React Query,
+    - when to use authenticatedFetch,
+    - how auth failures are handled,
+    - how base URLs are resolved,
+    - how polling workflows are modeled,
+    - how errors are normalized.
+
+- Next-risk notes captured after probe 1
+  - Generation workflows are the next major regression risk:
+    - src/pages/UnifiedStudio.tsx
+    - src/pages/TextToCAD.tsx
+    - src/lib/photoshoot-api.ts
+    - src/hooks/use-image-validation.ts
+    - src/lib/generation-history-api.ts
+  - Asset/artifact fetching is high risk:
+    - src/lib/assets-api.ts
+    - src/hooks/useAuthenticatedImage.ts
+    - src/components/generations/WorkflowCard.tsx
+    - src/components/generations/PhotoPreviewModal.tsx
+    - src/components/generations/SnapshotPreviewModal.tsx
+    - src/components/text-to-cad/CADCanvas.tsx
+  - Routing/onboarding/access gates are high risk:
+    - src/App.tsx
+    - src/components/ProtectedRoute.tsx
+    - src/components/CADGate.tsx
+    - src/components/AdminRouteGuard.tsx
+    - src/lib/feature-flags.ts
+    - src/lib/onboarding-api.ts
+  - Studio UI state is high risk:
+    - src/pages/UnifiedStudio.tsx
+    - src/components/studio/AlternateUploadStep.tsx
+    - src/components/studio/MaskCanvas.tsx
+    - src/components/studio/BinaryMaskPreview.tsx
+    - src/components/studio/BeforeAfterSlider.tsx
+  - CAD rendering/editing is high risk:
+    - src/pages/TextToCAD.tsx
+    - src/components/text-to-cad/CADCanvas.tsx
+    - src/components/text-to-cad/LeftPanel.tsx
+    - src/components/text-to-cad/MeshPanel.tsx
+    - src/components/text-to-cad/GemInstanceRenderer.ts
+  - Theme/global UI is medium-high risk:
+    - src/components/layout/Header.tsx
+    - src/contexts/ThemeContext.tsx
+    - src/components/ThemeDecorations.tsx
+    - src/components/FloatingElements.tsx
+    - src/index.css
+    - tailwind.config.ts
+
+- Core takeaway
+  - The repo does not just have messy files.
+  - It has features whose state, API behavior, auth behavior, UI behavior, and routing behavior are tangled together.
+  - That coupling is why changes cause regressions across multiple things.

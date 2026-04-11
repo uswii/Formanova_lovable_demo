@@ -1,0 +1,175 @@
+Probe 2: UI Primitive / Modal / Loading / CSS Audit
+
+- Status
+  - No code files were edited.
+  - This file records the probe 2 audit output.
+
+- Button / Btn / similar exports
+  - src/components/ui/button.tsx: 47 lines.
+    - Exports: Button, buttonVariants.
+    - Used by on-model page: yes, directly in src/pages/UnifiedStudio.tsx, and indirectly through its modals.
+    - Used by CAD page: yes in CAD-adjacent pages/components, especially src/pages/CADToCatalog.tsx, src/components/cad/ViewportTopBar.tsx, src/components/cad/MeshLibrary.tsx. TextToCAD.tsx itself does not directly import Button.
+  - src/components/ui/sidebar.tsx: 637 lines.
+    - Exports button-like components: SidebarTrigger, SidebarMenuButton, SidebarMenuSubButton, plus internal button-ish SidebarRail, SidebarGroupAction.
+    - Used by on-model page: no evidence.
+    - Used by CAD page: no evidence.
+  - src/components/text-to-cad/KeyboardShortcutsPanel.tsx: 111 lines.
+    - Exports: default KeyboardShortcutsPanel, named KeyboardShortcutsButton.
+    - Used by on-model page: no.
+    - Used by CAD page: yes, src/pages/TextToCAD.tsx.
+
+- Modal / Dialog / Popup / Overlay exports
+  - src/components/ui/dialog.tsx: 95 lines.
+    - Exports: Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx and its modal components.
+    - Used by CAD page: indirectly through generation/history modals; not directly in TextToCAD.tsx.
+  - src/components/ui/alert-dialog.tsx: 104 lines.
+    - Exports: AlertDialog, AlertDialogOverlay, AlertDialogContent, etc.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct evidence.
+  - src/components/ui/sheet.tsx: 107 lines.
+    - Exports: Sheet, SheetOverlay, SheetContent, etc.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct evidence.
+  - src/components/ui/drawer.tsx: 87 lines.
+    - Exports: Drawer, DrawerOverlay, etc.
+    - Used by on-model page: no evidence.
+    - Used by CAD page: no evidence.
+  - src/components/ui/command.tsx: 132 lines.
+    - Exports: CommandDialog, plus command primitives.
+    - Used by on-model page: no evidence.
+    - Used by CAD page: no evidence.
+  - src/components/CreditPreflightModal.tsx: 69 lines.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx.
+    - Used by CAD page: no direct evidence in TextToCAD.tsx / CADStudio.tsx / CADToCatalog.tsx.
+  - src/components/InsufficientCreditsModal.tsx: 63 lines.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct evidence.
+  - src/components/DownloadRenameDialog.tsx: 107 lines.
+    - Exports: DownloadRenameDialog, useDownloadRename.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: indirectly through generation preview modals, not directly in TextToCAD.tsx.
+  - src/components/admin/PipelineCreditsModal.tsx: 82 lines.
+    - Used by on-model page: no.
+    - Used by CAD page: no.
+  - src/components/generations/PhotoPreviewModal.tsx: 82 lines.
+    - Used by on-model page: not directly.
+    - Used by CAD page: no direct route-page usage; used through generation history card flow.
+  - src/components/generations/SnapshotPreviewModal.tsx: 180 lines.
+    - Used by on-model page: not directly.
+    - Used by CAD page: no direct route-page usage; used through generation history card flow.
+  - src/components/generations/CadWorkflowModal.tsx: 158 lines.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct route-page usage; generation history-related.
+  - src/components/studio/FeedbackModal.tsx: 213 lines.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx.
+    - Used by CAD page: no.
+  - src/components/studio/ModelGuideModal.tsx: 74 lines.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx.
+    - Used by CAD page: no.
+  - src/components/studio/ProductShotGuideModal.tsx: 313 lines.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx.
+    - Used by CAD page: no.
+  - src/components/studio/UploadGuideModal.tsx: 332 lines.
+    - Used by on-model page: yes, directly in UnifiedStudio.tsx.
+    - Used by CAD page: no.
+  - src/components/text-to-cad/ViewportOverlays.tsx: 236 lines.
+    - Exports: ViewportToolbar, ProgressOverlay, StatsBar, ViewportSideTools.
+    - Used by on-model page: no.
+    - Used by CAD page: yes, directly in TextToCAD.tsx.
+
+- Loading spinner / Skeleton exports
+  - src/components/ui/skeleton.tsx: 7 lines.
+    - Exports: Skeleton.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct evidence.
+    - Used by generation history: yes, through src/components/generations/WorkflowSection.tsx.
+  - src/components/ui/sidebar.tsx: 637 lines.
+    - Exports: SidebarMenuSkeleton.
+    - Used by on-model page: no evidence.
+    - Used by CAD page: no evidence.
+  - src/components/generations/WorkflowSection.tsx: 130 lines.
+    - Uses exported Skeleton.
+    - Used by on-model page: no.
+    - Used by CAD page: not directly; used by src/pages/Generations.tsx.
+  - src/components/text-to-cad/GenerationProgress.tsx: 129 lines.
+    - Loading/progress spinner component.
+    - Used by on-model page: no.
+    - Used by CAD page: yes, directly in TextToCAD.tsx.
+  - src/components/studio/ServerOffline.tsx: 38 lines.
+    - Exports loading retry UI using Loader2.
+    - Used by on-model page: no direct evidence.
+    - Used by CAD page: no direct evidence.
+  - Inline loading/spinners, not exported:
+    - On-model page has several direct Loader2 / animate-spin usages in UnifiedStudio.tsx.
+    - CAD has direct spinner UI in src/components/text-to-cad/CADCanvas.tsx, src/components/cad-studio/StudioViewport.tsx, and src/pages/CADToCatalog.tsx.
+
+- CSS files not in /components/new-ui
+  - src/index.css: 1,065 lines.
+    - Imported by src/main.tsx.
+    - Used by both on-model and CAD pages because it is global.
+  - src/App.css: 6 lines.
+    - No active import found in src; likely unused.
+
+- <style> tags not in /components/new-ui
+  - index.html: line 100.
+    - Global entry HTML. Affects app load shell, so effectively both on-model and CAD.
+  - mockup-ia.html: line 8.
+    - Static mockup; no evidence it is used by on-model or CAD app routes.
+  - mockup-studio-redesign.html: line 10.
+    - Static mockup; no evidence it is used by on-model or CAD app routes.
+  - mockup-studio-v2.html: line 10.
+    - Static mockup; no evidence it is used by on-model or CAD app routes.
+  - public/blog/ai-jewelry-photography-comparison/index.html: line 85.
+    - Static blog page; no evidence it is used by on-model or CAD app routes.
+  - src/components/CinematicCursor.tsx: line 168.
+    - No direct evidence it is used by on-model or CAD pages.
+  - src/components/ui/chart.tsx: line 69.
+    - No direct evidence it is used by on-model or CAD pages.
+
+- On-model page actual usage
+  - Main page: src/pages/UnifiedStudio.tsx.
+  - Directly uses:
+    - Button from ui/button.
+    - Dialog primitives from ui/dialog.
+    - CreditPreflightModal.
+    - FeedbackModal.
+    - UploadGuideModal.
+    - ProductShotGuideModal.
+    - ModelGuideModal.
+    - Direct Loader2 spinners and one raw animate-spin div.
+  - Indirectly uses:
+    - Button and Dialog through the modal components.
+    - Button and Loader2 through AlternateUploadStep.
+  - Does not appear to use:
+    - Skeleton.
+    - SidebarMenuSkeleton.
+    - ViewportOverlays.
+    - GenerationProgress.
+
+- CAD page actual usage
+  - Main CAD pages scanned: src/pages/TextToCAD.tsx, src/pages/CADStudio.tsx, src/pages/CADToCatalog.tsx.
+  - TextToCAD.tsx directly uses:
+    - GenerationProgress.
+    - ViewportToolbar, StatsBar, ViewportSideTools from ViewportOverlays.
+    - KeyboardShortcutsPanel.
+    - ViewportDisplayMenu.
+    - Loading overlay from CADCanvas.
+  - CADToCatalog.tsx directly uses:
+    - Button.
+    - Inline animate-spin on RotateCw.
+    - StudioViewport, which has its own loading spinner.
+  - CADStudio.tsx:
+    - No Button, modal/dialog, or skeleton usage found in the first-level page.
+  - CAD does not appear to directly use:
+    - CreditPreflightModal.
+    - FeedbackModal.
+    - UploadGuideModal.
+    - ProductShotGuideModal.
+    - ModelGuideModal.
+    - Skeleton.
+
+- Main duplication signal from probe 2
+  - There is one canonical Button, but many feature-specific modal/dialog wrappers.
+  - Loading UI is not standardized: it appears as Loader2, raw animate-spin divs, Skeleton, GenerationProgress, and local loading overlays.
+  - On-model and CAD largely use different modal/loading systems, except for shared global CSS and base UI primitives.

@@ -1,0 +1,479 @@
+Probe 14: authenticatedFetch vs raw fetch consistency
+
+- Scope:
+  - searched all `src/` files for raw `fetch(` calls
+  - for each call:
+    - file
+    - line
+    - endpoint/source
+    - whether the file also imports/uses `authenticatedFetch`
+    - whether it is a backend/API auth bypass risk
+  - goal:
+    - find places where backend calls bypass `authenticatedFetch`
+
+- Raw `fetch(` call count in `src/`:
+  - 29 lines
+
+- Raw fetch call inventory:
+  - `src/lib/authenticated-fetch.ts:60`
+    - endpoint/source:
+      - `url` argument passed to the wrapper
+    - file also imports/uses `authenticatedFetch`:
+      - this is the implementation of `authenticatedFetch`
+    - classification:
+      - expected wrapper internals
+    - auth bypass risk:
+      - no
+
+  - `src/lib/auth-api.ts:85`
+    - endpoint/source:
+      - `${AUTH_URL}/auth/google/authorize?...`
+      - via local `url`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/OAuth start
+    - auth bypass risk:
+      - no, this starts login before authenticated session exists
+
+  - `src/lib/auth-api.ts:108`
+    - endpoint/source:
+      - `${AUTH_URL}/auth/google/callback?...`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/OAuth callback token exchange
+    - auth bypass risk:
+      - no, this exchanges credentials before authenticated wrapper can be used
+
+  - `src/lib/auth-api.ts:124`
+    - endpoint/source:
+      - `${AUTH_URL}/auth/register`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/register
+    - auth bypass risk:
+      - no
+
+  - `src/lib/auth-api.ts:144`
+    - endpoint/source:
+      - `${AUTH_URL}/auth/jwt/login`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/login
+    - auth bypass risk:
+      - no
+
+  - `src/lib/auth-api.ts:164`
+    - endpoint/source:
+      - `${AUTH_URL}/auth/jwt/logout`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth/logout helper with manual token
+    - auth bypass risk:
+      - low/intentional
+      - logout also clears local auth in `finally`
+
+  - `src/lib/auth-api.ts:189`
+    - endpoint/source:
+      - `${AUTH_URL}/users/me`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth/session validation helper with manual token
+    - auth bypass risk:
+      - intentional special case
+      - comment explicitly says 401 does not clear session
+      - this is the opposite behavior from `authenticatedFetch`
+
+  - `src/pages/Auth.tsx:141`
+    - endpoint/source:
+      - `/auth/auth/google/callback?...`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/OAuth callback
+    - auth bypass risk:
+      - no
+
+  - `src/pages/Auth.tsx:188`
+    - endpoint/source:
+      - `/auth/auth/google/authorize?...`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - auth bootstrap/OAuth start
+    - auth bypass risk:
+      - no
+
+  - `src/hooks/use-version-polling.ts:20`
+    - endpoint/source:
+      - commented-out `/api/admin/active-generations`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - commented-out code
+    - auth bypass risk:
+      - no current runtime risk
+      - stale comment/example still shows manual bearer pattern
+
+  - `src/hooks/use-version-polling.ts:73`
+    - endpoint/source:
+      - `/version.json?t=${Date.now()}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - static public asset/version file
+    - auth bypass risk:
+      - no
+
+  - `src/lib/image-compression.ts:88`
+    - endpoint/source:
+      - `dataUrl`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - data URL/blob utility
+    - auth bypass risk:
+      - no
+
+  - `src/lib/image-compression.ts:153`
+    - endpoint/source:
+      - `source`
+      - only if `source` starts with `blob:` or `data:`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - blob/data utility
+    - auth bypass risk:
+      - no
+
+  - `src/lib/image-compression.ts:158`
+    - endpoint/source:
+      - `source`
+      - asset path/imported image fallback
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - static asset utility
+    - auth bypass risk:
+      - low if someone passes a protected `/api` or `/artifacts` URL into this generic helper
+
+  - `src/components/generations/CadWorkflowModal.tsx:65`
+    - endpoint/source:
+      - `glbUrl`
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - GLB asset download
+    - behavior:
+      - uses `authenticatedFetch(glbUrl)` when auth is needed
+      - uses raw `fetch(glbUrl)` otherwise
+    - auth bypass risk:
+      - no for intended direct/public GLB URLs
+      - note:
+        - `CadWorkflowModal` appears orphaned/not currently imported by live route
+
+  - `src/components/generations/ScissorGLBGrid.tsx:301`
+    - endpoint/source:
+      - `card.glbUrl`
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - GLB asset loading
+    - behavior:
+      - uses `authenticatedFetch(card.glbUrl)` for `/artifacts/`
+      - uses raw `fetch(card.glbUrl)` otherwise
+    - auth bypass risk:
+      - no for intended public/direct GLB URLs
+
+  - `src/components/text-to-cad/CADCanvas.tsx:357`
+    - endpoint/source:
+      - `url`
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - GLB asset loading
+    - behavior:
+      - uses `authenticatedFetch(url)` for `/artifacts/`
+      - uses raw `fetch(url)` otherwise
+    - auth bypass risk:
+      - no for intended public/direct GLB URLs
+
+  - `src/components/text-to-cad/CADCanvas.tsx:655`
+    - endpoint/source:
+      - `partUrl`
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - additional GLB asset loading
+    - behavior:
+      - uses `authenticatedFetch(partUrl)` for `/artifacts/`
+      - uses raw `fetch(partUrl)` otherwise
+    - auth bypass risk:
+      - no for intended public/direct GLB URLs
+
+  - `src/pages/TextToCAD.tsx:778`
+    - endpoint/source:
+      - `glbUrl`
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - user-initiated original GLB download fallback
+    - auth bypass risk:
+      - low/possible
+      - if `glbUrl` is a protected `/artifacts/` URL and canvas export is unavailable, this fallback bypasses `authenticatedFetch`
+
+  - `src/pages/TextToCAD.tsx:960`
+    - endpoint/source:
+      - `downloadUrl`
+      - from STL result artifact
+    - file also imports/uses `authenticatedFetch`:
+      - yes
+    - classification:
+      - user-initiated STL download through browser save picker
+    - auth bypass risk:
+      - low/possible
+      - if `downloadUrl` is a protected `/artifacts/` URL, this bypasses `authenticatedFetch`
+
+  - `src/pages/AdminFeedbackPage.tsx:77`
+    - endpoint/source:
+      - dynamic `url`
+      - image/revised-output download helper
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - admin image/artifact download with manual bearer token
+    - auth bypass risk:
+      - medium
+      - 401 will not use centralized token clear/redirect behavior
+      - manual token attachment duplicates wrapper behavior
+
+  - `src/pages/LinkAccount.tsx:54`
+    - endpoint/source:
+      - `/api/agent/link/complete`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected backend API call with manual auth headers from `useAuth().getAuthHeader()`
+    - auth bypass risk:
+      - high
+      - raw `/api` call bypasses centralized 401 handling
+      - session expiry can become local error UI instead of redirect/token cleanup
+
+  - `src/lib/admin-generations-api.ts:213`
+    - endpoint/source:
+      - `path`
+      - callers build:
+        - `/api/admin/generations?...`
+        - `/api/admin/generations/{workflowId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected admin API helper with manual bearer token
+    - live route usage:
+      - `src/pages/AdminGenerationsPage.tsx`
+      - `src/pages/AdminGenerationDetailPage.tsx`
+    - auth bypass risk:
+      - high
+      - 401s become `AdminGenerationsApiError`
+      - no centralized token clear/redirect
+
+  - `src/lib/pipeline-api.ts:114`
+    - endpoint/source:
+      - `${BASE_URL}${path}`
+      - exported helpers call:
+        - `/admin/users`
+        - `/admin/tenants`
+        - `/admin/workflows`
+        - `/analytics/tenant/financials`
+        - `/credits/balance/external/{externalId}`
+        - `/credits/topup`
+        - `/credits/audit/{workflowId}`
+        - `/history/workflows/external/{externalId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - admin/tenant pipeline API helper
+      - supports `X-Admin-Secret` mode and manual bearer mode
+    - live route usage:
+      - uncertain/mostly dormant
+      - `tenantApi.topUpUser` is imported by `PipelineCreditsModal`
+      - `PipelineCreditsModal` itself has no current source importer
+    - auth bypass risk:
+      - medium if used
+      - manual bearer mode duplicates auth wrapper
+      - admin secret mode is intentionally outside normal user auth but risky as frontend config
+
+  - `src/lib/photoshoot-api.ts:84`
+    - endpoint/source:
+      - `/api/run/state/jewelry_photoshoots_generator`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected live photo/on-model backend API
+    - live route usage:
+      - `UnifiedStudio`
+    - auth bypass risk:
+      - high
+      - uses `getStoredToken()` manually through `getAuthHeaders()`
+      - 401s will throw generic error and not trigger centralized auth expiry behavior
+
+  - `src/lib/photoshoot-api.ts:108`
+    - endpoint/source:
+      - `/api/status/{workflowId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected live photo/on-model status polling
+    - live route usage:
+      - `UnifiedStudio`
+    - auth bypass risk:
+      - high
+      - 401s during generation polling will not centralize redirect/token cleanup
+
+  - `src/lib/photoshoot-api.ts:139`
+    - endpoint/source:
+      - `/api/result/{workflowId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected live photo/on-model result fetch
+    - live route usage:
+      - `UnifiedStudio`
+    - auth bypass risk:
+      - high
+      - 401s during result fetch will not centralize redirect/token cleanup
+
+  - `src/lib/photoshoot-api.ts:205`
+    - endpoint/source:
+      - `/api/run/Product_shot_pipeline`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected live product-shot backend API
+    - live route usage:
+      - `UnifiedStudio`
+    - auth bypass risk:
+      - high
+      - manual token behavior duplicates auth wrapper
+
+  - `src/hooks/use-image-validation.ts:181`
+    - endpoint/source:
+      - `https://formanova.ai/api/run/image_classification`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected backend workflow start with manual bearer token
+    - live route usage:
+      - used by `UnifiedStudio`
+    - auth bypass risk:
+      - high
+      - absolute backend URL + manual bearer + no centralized 401 handling
+
+  - `src/hooks/use-image-validation.ts:212`
+    - endpoint/source:
+      - `https://formanova.ai/api/status/{workflowId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected backend status polling with manual bearer token
+    - live route usage:
+      - used by `UnifiedStudio`
+    - auth bypass risk:
+      - high
+
+  - `src/hooks/use-image-validation.ts:242`
+    - endpoint/source:
+      - `https://formanova.ai/api/result/{workflowId}`
+    - file also imports/uses `authenticatedFetch`:
+      - no
+    - classification:
+      - protected backend result fetch with manual bearer token
+    - live route usage:
+      - used by `UnifiedStudio`
+    - auth bypass risk:
+      - high
+
+- Files making raw backend/API calls without importing `authenticatedFetch`:
+  - High-risk live:
+    - `src/lib/photoshoot-api.ts`
+      - `/api/run/state/jewelry_photoshoots_generator`
+      - `/api/status/{workflowId}`
+      - `/api/result/{workflowId}`
+      - `/api/run/Product_shot_pipeline`
+    - `src/hooks/use-image-validation.ts`
+      - `https://formanova.ai/api/run/image_classification`
+      - `https://formanova.ai/api/status/{workflowId}`
+      - `https://formanova.ai/api/result/{workflowId}`
+    - `src/lib/admin-generations-api.ts`
+      - `/api/admin/generations`
+      - `/api/admin/generations/{workflowId}`
+    - `src/pages/LinkAccount.tsx`
+      - `/api/agent/link/complete`
+  - Medium-risk or context-specific:
+    - `src/pages/AdminFeedbackPage.tsx`
+      - dynamic protected artifact/image URL with manual bearer
+    - `src/lib/pipeline-api.ts`
+      - pipeline admin/tenant endpoints through `VITE_PIPELINE_API_URL`
+      - currently appears mostly dormant from live route usage
+  - Auth bootstrap/special auth client:
+    - `src/lib/auth-api.ts`
+    - `src/pages/Auth.tsx`
+    - these should remain separate from `authenticatedFetch` because they create/validate/clear auth itself
+  - Not backend auth calls:
+    - `src/hooks/use-version-polling.ts`
+    - `src/lib/image-compression.ts`
+
+- Files that import `authenticatedFetch` but still use raw fetch:
+  - `src/components/generations/CadWorkflowModal.tsx`
+    - raw fetch only for non-auth GLB URLs
+    - likely dead/orphaned component
+  - `src/components/generations/ScissorGLBGrid.tsx`
+    - raw fetch only for non-auth GLB URLs
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - raw fetch only for non-auth GLB URLs
+  - `src/pages/TextToCAD.tsx`
+    - raw fetch for `glbUrl` and `downloadUrl` user downloads
+    - possible bypass if those URLs are protected `/artifacts/`
+
+- Highest auth bypass risks:
+  - `src/lib/photoshoot-api.ts`
+    - live photo/product-shot workflow start, status, and result all bypass `authenticatedFetch`.
+  - `src/hooks/use-image-validation.ts`
+    - live classification workflow start, status, and result all bypass `authenticatedFetch` and use hardcoded `https://formanova.ai`.
+  - `src/lib/admin-generations-api.ts`
+    - live admin generations list/detail bypass centralized 401 handling.
+  - `src/pages/LinkAccount.tsx`
+    - live protected `/api/agent/link/complete` call bypasses centralized 401 handling.
+
+- Auth behavior consequence:
+  - For calls that use `authenticatedFetch`:
+    - missing token or 401 can trigger centralized auth-expiry handling.
+    - token/user cleanup and redirect behavior are centralized.
+  - For raw fetch + manual token calls:
+    - missing token behavior is local and inconsistent.
+    - 401 responses are treated as ordinary errors.
+    - token/user cleanup does not happen centrally.
+    - session expiry can appear as generation failure, validation fallback, admin error, or link failure instead of a clean re-login flow.
+
+- Core finding:
+  - The bypass pattern is widespread enough to matter, but not random everywhere.
+  - It is concentrated in exactly the risky backend workflow paths:
+    - photo generation
+    - image validation
+    - admin generation inspection
+    - account linking
+  - CAD generation is more consistent because `TextToCAD.tsx` uses `authenticatedFetch` for `/api/run`, `/api/status`, and `/api/result`.
+  - Photo/on-model still has the older direct-token pattern.
+  - The standard should be:
+    - protected `/api`, `/billing`, `/assets`, `/admin`, and artifact proxy URLs use `authenticatedFetch`
+    - raw `fetch` is allowed only for:
+      - auth bootstrap endpoints
+      - static public assets
+      - `data:` / `blob:` URLs
+      - direct public download URLs after an explicit protected-vs-public check
+      - the internals of `authenticatedFetch` itself

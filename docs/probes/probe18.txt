@@ -1,0 +1,263 @@
+Probe 18: Raw `fetch()` calls hitting `/api/` in `src/lib/` and `src/pages/`
+
+Prompt:
+- Find every raw `fetch()` call in `src/lib/` and `src/pages/` that hits `/api/`.
+- For each:
+  - file and line
+  - whether it manually gets token via `getStoredToken()`
+  - what happens on `401`
+- Goal:
+  - create a checklist to migrate all calls to `authenticatedFetch`.
+
+Scope:
+- Searched `src/lib` and `src/pages`.
+- Included raw `fetch()` calls that directly target `/api/...` or use a local constant equal to `/api`.
+- Also noted dynamic raw downloads that could become risky if passed `/api/artifacts/...`, but kept them separate because they do not statically hit `/api`.
+
+Commands used:
+- `rg -n "fetch\(" src/lib src/pages`
+- `rg -n "getStoredToken|401|Unauthorized|status === 401|status\s*==\s*401" src/lib src/pages`
+- `rg -n "downloadAuthImage\(|/api/|API_BASE|ADMIN_GENERATIONS_BASE|BASE_URL" src/pages/AdminFeedbackPage.tsx src/lib/admin-generations-api.ts src/lib/photoshoot-api.ts src/pages/LinkAccount.tsx src/pages/TextToCAD.tsx src/lib/pipeline-api.ts`
+
+Confirmed raw `/api/` fetch calls
+
+- `src/lib/photoshoot-api.ts:84`
+  - Endpoint:
+    - `/api/run/state/jewelry_photoshoots_generator`
+  - Code shape:
+    - `fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, ...)`
+    - `API_BASE = '/api'`
+  - Manually gets token via `getStoredToken()`:
+    - yes, indirectly through local `getAuthHeaders()`.
+  - 401 behavior:
+    - no special 401 handling.
+    - response body is read as text.
+    - throws generic `Error("Failed to start photoshoot: 401 ...")`.
+    - does not clear token.
+    - does not dispatch auth state change.
+    - does not redirect to login.
+  - Migration checklist:
+    - replace raw `fetch` with `authenticatedFetch`.
+    - preserve JSON `Content-Type`.
+    - preserve request body.
+    - preserve error body parsing, but let `authenticatedFetch` own 401.
+
+- `src/lib/photoshoot-api.ts:108`
+  - Endpoint:
+    - `/api/status/{workflowId}`
+  - Code shape:
+    - `fetch(`${API_BASE}/status/${workflowId}`, ...)`
+    - `API_BASE = '/api'`
+  - Manually gets token via `getStoredToken()`:
+    - yes, indirectly through local `getAuthHeaders()`.
+  - 401 behavior:
+    - no special 401 handling.
+    - 404 is treated as `{ state: 'running' }`.
+    - 401 falls through to generic `Error("Status check failed: 401 ...")`.
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - replace with `authenticatedFetch`.
+    - preserve special 404-as-running behavior.
+    - let `authenticatedFetch` own 401.
+
+- `src/lib/photoshoot-api.ts:139`
+  - Endpoint:
+    - `/api/result/{workflowId}`
+  - Code shape:
+    - `fetch(`${API_BASE}/result/${workflowId}`, ...)`
+    - `API_BASE = '/api'`
+  - Manually gets token via `getStoredToken()`:
+    - yes, indirectly through local `getAuthHeaders()`.
+  - 401 behavior:
+    - no special 401 handling.
+    - 404 is retried as "result not ready yet".
+    - 401 throws generic `Error("Result fetch failed: 401 ...")`.
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - replace with `authenticatedFetch`.
+    - preserve 404 retry behavior.
+    - let `authenticatedFetch` own 401.
+
+- `src/lib/photoshoot-api.ts:205`
+  - Endpoint:
+    - `/api/run/Product_shot_pipeline`
+  - Code shape:
+    - `fetch(`${API_BASE}/run/Product_shot_pipeline`, ...)`
+    - `API_BASE = '/api'`
+  - Manually gets token via `getStoredToken()`:
+    - yes, indirectly through local `getAuthHeaders()`.
+  - 401 behavior:
+    - no special 401 handling.
+    - response body is read as text.
+    - throws generic `Error("Failed to start PDP shot: 401 ...")`.
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - replace raw `fetch` with `authenticatedFetch`.
+    - preserve request body and ID-field validation behavior.
+    - let `authenticatedFetch` own 401.
+
+- `src/lib/admin-generations-api.ts:213`
+  - Endpoint:
+    - `/api/admin/generations`
+    - `/api/admin/generations/{workflowId}`
+  - Code shape:
+    - `fetch(path, ...)`
+    - callers pass paths built from `ADMIN_GENERATIONS_BASE = '/api/admin/generations'`.
+  - Manually gets token via `getStoredToken()`:
+    - yes, directly inside `adminGenerationsFetch(path)`.
+    - if missing token, throws `AdminGenerationsApiError(401, 'Missing authentication token.')`.
+  - 401 behavior:
+    - backend 401 becomes `AdminGenerationsApiError(401, message)`.
+    - no token cleanup.
+    - no auth event dispatch.
+    - no redirect to login.
+    - admin pages can render a 401-specific UI message, but session handling is not centralized.
+  - Migration checklist:
+    - replace helper internals with `authenticatedFetch(path)`.
+    - preserve `AdminGenerationsApiError` wrapping for non-401 admin UI behavior.
+    - decide whether `authenticatedFetch` should redirect immediately on admin 401 or whether admin pages need a no-redirect option.
+
+- `src/pages/LinkAccount.tsx:54`
+  - Endpoint:
+    - `/api/agent/link/complete`
+  - Code shape:
+    - `fetch('/api/agent/link/complete', ...)`
+  - Manually gets token via `getStoredToken()`:
+    - no.
+    - uses `getAuthHeader()` from `useAuth()`.
+  - 401 behavior:
+    - no explicit 401 branch.
+    - non-400/403/404/422 responses fall to generic `setStatus('error')`.
+    - no token cleanup.
+    - no auth state dispatch.
+    - no redirect to login.
+  - Migration checklist:
+    - replace with `authenticatedFetch`.
+    - preserve 400/403/404/422 mapping.
+    - add explicit handling for `AuthExpiredError` only if the page needs custom UI after redirect.
+
+Dynamic raw fetches that may hit `/api/` depending on runtime URL
+
+- `src/pages/AdminFeedbackPage.tsx:77`
+  - Endpoint:
+    - dynamic `url`.
+    - Called by `downloadAuthImage(url, filename)`.
+    - The helper can download authenticated images/artifacts, so it may hit protected `/api/artifacts/...` URLs.
+  - Manually gets token via `getStoredToken()`:
+    - yes, directly.
+    - if no token, returns silently.
+  - 401 behavior:
+    - no special 401 handling.
+    - if response is not ok, returns silently.
+    - 401 therefore silently fails the download.
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - if this helper is only for protected backend artifacts, use `authenticatedFetch(url)`.
+    - if it also handles public blob URLs, branch:
+      - `/api/` or protected `/artifacts/` -> `authenticatedFetch`
+      - public external/blob URL -> raw `fetch`.
+
+- `src/pages/TextToCAD.tsx:778`
+  - Endpoint:
+    - dynamic `glbUrl`.
+    - Fallback download of current model if canvas export is unavailable.
+  - Manually gets token via `getStoredToken()`:
+    - no.
+  - 401 behavior:
+    - no special 401 handling.
+    - throws generic `Error("Fetch failed: 401")`.
+    - catch block shows "Failed to download model".
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - not a guaranteed `/api/` call.
+    - if `glbUrl` can be `/api/artifacts/...` or protected `/artifacts/...`, route it through `authenticatedFetch`.
+    - if `glbUrl` is always `blob:`, `data:`, object URL, or signed public Azure URL, raw `fetch` is acceptable.
+
+- `src/pages/TextToCAD.tsx:960`
+  - Endpoint:
+    - dynamic `downloadUrl`.
+    - Comes from `result.stl_artifact.uri`.
+    - Nearby comment says it is a signed Azure Blob URL.
+  - Manually gets token via `getStoredToken()`:
+    - no.
+  - 401 behavior:
+    - no special 401 handling.
+    - if the signed URL returns 401, the save/write flow fails and fallback anchor may run depending on thrown error path.
+    - no token cleanup or redirect.
+  - Migration checklist:
+    - if backend keeps returning signed Azure URLs, raw fetch is acceptable.
+    - if backend changes this to protected `/api/artifacts/...`, route through `authenticatedFetch`.
+
+Excluded raw fetches
+
+- `src/lib/authenticated-fetch.ts:60`
+  - This is the wrapper implementation itself.
+  - It owns the desired centralized 401 behavior.
+
+- `src/lib/auth-api.ts`
+  - Raw fetches are auth bootstrap/login/register/logout/me endpoints under `/auth`, not `/api`.
+  - `validateStoredToken()` intentionally preserves session on 401.
+
+- `src/pages/Auth.tsx`
+  - Raw fetches are Google OAuth endpoints under `/auth`, not `/api`.
+
+- `src/lib/image-compression.ts`
+  - Raw fetches load `data:`, `blob:`, or image sources for compression.
+  - Not `/api` by static inspection.
+
+- `src/lib/pipeline-api.ts:114`
+  - Code shape:
+    - `fetch(`${BASE_URL}${path}`, ...)`
+  - It does not statically hit `/api/`.
+  - It is still a separate raw-fetch helper with manual token/admin-secret behavior.
+  - Keep on broader migration list, but it is outside this probe's strict `/api/` scope.
+
+Summary table
+
+| File | Line | Endpoint | Token source | 401 behavior | Priority |
+|---|---:|---|---|---|---|
+| `src/lib/photoshoot-api.ts` | 84 | `/api/run/state/jewelry_photoshoots_generator` | `getStoredToken()` via `getAuthHeaders()` | generic thrown error, no logout/redirect | high |
+| `src/lib/photoshoot-api.ts` | 108 | `/api/status/{workflowId}` | `getStoredToken()` via `getAuthHeaders()` | generic thrown error, no logout/redirect | high |
+| `src/lib/photoshoot-api.ts` | 139 | `/api/result/{workflowId}` | `getStoredToken()` via `getAuthHeaders()` | generic thrown error, no logout/redirect | high |
+| `src/lib/photoshoot-api.ts` | 205 | `/api/run/Product_shot_pipeline` | `getStoredToken()` via `getAuthHeaders()` | generic thrown error, no logout/redirect | high |
+| `src/lib/admin-generations-api.ts` | 213 | `/api/admin/generations...` | direct `getStoredToken()` | throws admin error with status 401, no logout/redirect | medium-high |
+| `src/pages/LinkAccount.tsx` | 54 | `/api/agent/link/complete` | `useAuth().getAuthHeader()` | generic page error, no logout/redirect | medium-high |
+| `src/pages/AdminFeedbackPage.tsx` | 77 | dynamic protected image/artifact URL | direct `getStoredToken()` | silent failure on 401 | medium |
+| `src/pages/TextToCAD.tsx` | 778 | dynamic `glbUrl` | none | generic download failure | conditional |
+| `src/pages/TextToCAD.tsx` | 960 | dynamic STL signed/download URL | none | generic/fallback download behavior | conditional |
+
+Core finding
+
+- The most important migration target is `src/lib/photoshoot-api.ts`.
+- Photo/product-shot generation still uses the older raw-fetch-plus-manual-token pattern for every protected workflow lifecycle call:
+  - start,
+  - status,
+  - result,
+  - product-shot start.
+- On 401, these calls currently look like workflow/generation failures instead of session expiry.
+- `authenticatedFetch` would centralize the expected behavior:
+  - clear stored token/user,
+  - dispatch auth change,
+  - redirect to login with destination preserved,
+  - throw `AuthExpiredError`.
+
+Migration checklist
+
+- Migrate first:
+  - `src/lib/photoshoot-api.ts:84`
+  - `src/lib/photoshoot-api.ts:108`
+  - `src/lib/photoshoot-api.ts:139`
+  - `src/lib/photoshoot-api.ts:205`
+- Migrate next:
+  - `src/pages/LinkAccount.tsx:54`
+  - `src/lib/admin-generations-api.ts:213`
+- Review before migrating:
+  - `src/pages/AdminFeedbackPage.tsx:77`
+  - `src/pages/TextToCAD.tsx:778`
+  - `src/pages/TextToCAD.tsx:960`
+- Preserve during migration:
+  - photo status 404 -> running behavior,
+  - photo result 404 retry behavior,
+  - admin custom error messages,
+  - account-link 400/403/404/422 status mapping,
+  - public/signed asset download behavior.

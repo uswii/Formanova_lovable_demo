@@ -1,0 +1,303 @@
+Probe 19: Hardcoded production domains, Azure blob domains, and RareSense strings with env var replacements
+
+Prompt:
+- Search for all strings matching:
+  - `https://formanova.ai/`
+  - `blob.core.windows.net`
+  - `raresense`
+- For each:
+  - file, line, context
+  - whether it is in a lib file or component
+  - suggested env var name to replace it with
+- Goal:
+  - make staging and prod separable without code changes.
+
+Scope:
+- Searched `src/`.
+- Included strict `https://formanova.ai/` path matches.
+- Also included bare `https://formanova.ai` base-domain matches because they affect the same staging/prod separation goal.
+
+Command used:
+- `rg -n "https://formanova\.ai|blob\.core\.windows\.net|raresense" src`
+
+Matches and replacement suggestions
+
+- `src/pages/AIJewelryCAD.tsx:33`
+  - Context:
+    - `<link rel="canonical" href="https://formanova.ai/ai-jewelry-cad" />`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_PUBLIC_SITE_URL`
+  - Note:
+    - low-risk SEO URL, but should still come from public site config if staging builds need staging canonicals.
+
+- `src/pages/Auth.tsx:220`
+  - Context:
+    - `const siteUrl = 'https://formanova.ai/login';`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_PUBLIC_SITE_URL`
+  - Note:
+    - auth redirect/mobile fallback should not hardcode production.
+
+- `src/pages/AIJewelryPhotoshoot.tsx:35`
+  - Context:
+    - `<link rel="canonical" href="https://formanova.ai/ai-jewelry-photoshoot" />`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_PUBLIC_SITE_URL`
+  - Note:
+    - low-risk SEO URL, but still environment-specific.
+
+- `src/hooks/useAuthenticatedImage.ts:13`
+  - Context:
+    - comment mentions `https://formanova.ai/api/artifacts/...`
+  - Type:
+    - hook file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - comment only; not runtime behavior.
+
+- `src/hooks/use-image-validation.ts:7`
+  - Context:
+    - `const BASE_URL = 'https://formanova.ai';`
+  - Type:
+    - hook file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - high-risk runtime backend coupling.
+    - image validation is pinned to production.
+
+- `src/pages/RolePicker.tsx:236`
+  - Context:
+    - `href="https://formanova.ai/terms/"`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_PUBLIC_SITE_URL`
+  - Note:
+    - product/legal link.
+
+- `src/pages/PromoAdminPage.tsx:24`
+  - Context:
+    - `const API_BASE = 'https://formanova.ai/api/credits/admin/ui/promo-codes';`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - high-risk admin backend coupling.
+    - should become a relative `/api/...` call through `authenticatedFetch` or be built from one API base.
+
+- `src/pages/OnboardingWelcome.tsx:390`
+  - Context:
+    - `href="https://formanova.ai/terms/"`
+  - Type:
+    - page component.
+  - Suggested env var:
+    - `VITE_PUBLIC_SITE_URL`
+  - Note:
+    - product/legal link.
+
+- `src/lib/models-api.ts:8`
+  - Context:
+    - comment mentions `https://formanova.ai/api/artifacts/<sha256>`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - comment only; not runtime behavior.
+
+- `src/lib/model-library.ts:10`
+  - Context:
+    - `const AZURE_BASE = 'https://snapwear.blob.core.windows.net/agentic-artifacts/Models';`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_MODEL_ASSET_BASE_URL`
+  - Note:
+    - high-risk storage coupling.
+    - model assets are pinned to a production Azure storage account/container/path.
+
+- `src/lib/microservices-api.ts:11`
+  - Context:
+    - comment mentions `https://formanova.ai/api/artifacts/<sha256>`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - comment only; not runtime behavior.
+
+- `src/lib/generation-history-api.ts:9`
+  - Context:
+    - `const BASE_URL = 'https://formanova.ai';`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - high-risk runtime backend coupling.
+    - generation history is pinned to production.
+
+- `src/lib/generation-enrichment.ts:44`
+  - Context:
+    - `authenticatedFetch(`https://formanova.ai/api/result/${workflowId}`)`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_API_BASE_URL`
+  - Note:
+    - high-risk runtime backend coupling.
+    - should likely use relative `/api/result/...` instead of absolute production URL.
+
+- `src/lib/feature-flags.ts:26`
+  - Context:
+    - `const WEIGHT_STL_EMAILS = ['uswa@raresense.so'];`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_WEIGHT_STL_ALLOWLIST_EMAILS`
+  - Note:
+    - frontend-only internal allowlist.
+    - temporary, but still staging/prod config.
+
+- `src/lib/feature-flags.ts:43`
+  - Context:
+    - `const CAD_UPLOAD_EMAILS = ['uswa@raresense.so', 'abdullah@raresense.so'];`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_CAD_UPLOAD_ALLOWLIST_EMAILS`
+  - Note:
+    - frontend-only internal allowlist.
+
+- `src/lib/feature-flags.ts:76`
+  - Context:
+    - `return email.toLowerCase() === 'uswa@raresense.so';`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS`
+  - Note:
+    - hardcoded individual allowlist check.
+
+- `src/lib/feature-flags.ts:108`
+  - Context:
+    - `const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_STUDIO_ONBOARDING_ALLOWLIST_EMAILS`
+  - Note:
+    - currently unused for behavior because `isStudioOnboardingEnabled()` returns true.
+    - can probably be deleted if onboarding is permanent.
+
+- `src/lib/feature-flags.ts:117`
+  - Context:
+    - `const STUDIO_TYPE_SELECTION_EMAILS = ['uswa@raresense.so'];`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS`
+  - Note:
+    - frontend-only internal allowlist.
+
+- `src/lib/feature-flags.ts:127`
+  - Context:
+    - `const PRODUCT_SHOT_GUIDE_EMAILS = ['uswa@raresense.so'];`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS`
+  - Note:
+    - frontend-only internal allowlist.
+
+- `src/lib/feature-flags.ts:139`
+  - Context:
+    - `return email.toLowerCase() === 'uswa@raresense.so';`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_TEST_MENU_ALLOWLIST_EMAILS`
+  - Note:
+    - hardcoded test-menu allowlist.
+
+- `src/lib/azure-utils.ts:11`
+  - Context:
+    - `return `https://snapwear.blob.core.windows.net/${path}`;`
+  - Type:
+    - lib file.
+  - Suggested env var:
+    - `VITE_AZURE_BLOB_BASE_URL`
+  - Note:
+    - high-risk storage coupling.
+    - staging/prod storage account rotation currently requires frontend source change.
+
+Suggested env var set
+
+- `VITE_API_BASE_URL`
+  - Owns backend base URL when absolute URL is truly needed.
+  - Prefer relative `/api/...` with `authenticatedFetch` for same-origin protected API calls.
+
+- `VITE_PUBLIC_SITE_URL`
+  - Owns canonical/legal/public site links.
+  - Example values:
+    - production: `https://formanova.ai`
+    - staging: `https://staging.formanova.ai`
+
+- `VITE_AZURE_BLOB_BASE_URL`
+  - Owns generic Azure blob storage base.
+  - Example:
+    - `https://snapwear.blob.core.windows.net`
+
+- `VITE_MODEL_ASSET_BASE_URL`
+  - Owns model-library asset root.
+  - Example:
+    - `https://snapwear.blob.core.windows.net/agentic-artifacts/Models`
+  - Better long-term option:
+    - backend returns model asset URLs so frontend does not know Azure account/container paths.
+
+- `VITE_WEIGHT_STL_ALLOWLIST_EMAILS`
+- `VITE_CAD_UPLOAD_ALLOWLIST_EMAILS`
+- `VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS`
+- `VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS`
+- `VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS`
+- `VITE_TEST_MENU_ALLOWLIST_EMAILS`
+
+Cleanup grouping
+
+- Backend/runtime coupling:
+  - `src/hooks/use-image-validation.ts:7`
+  - `src/pages/PromoAdminPage.tsx:24`
+  - `src/lib/generation-history-api.ts:9`
+  - `src/lib/generation-enrichment.ts:44`
+
+- Storage coupling:
+  - `src/lib/model-library.ts:10`
+  - `src/lib/azure-utils.ts:11`
+
+- Internal allowlist coupling:
+  - all `src/lib/feature-flags.ts` RareSense email matches.
+
+- Low-risk public/site links:
+  - `src/pages/AIJewelryCAD.tsx:33`
+  - `src/pages/AIJewelryPhotoshoot.tsx:35`
+  - `src/pages/Auth.tsx:220`
+  - `src/pages/RolePicker.tsx:236`
+  - `src/pages/OnboardingWelcome.tsx:390`
+
+Core finding
+
+- Staging and production are not fully separable by environment config today.
+- The biggest blockers are not SEO/legal links.
+- The real blockers are:
+  - production backend URLs inside runtime API paths,
+  - Azure blob account/container paths in frontend libs,
+  - internal email allowlists hardcoded in frontend feature flags.

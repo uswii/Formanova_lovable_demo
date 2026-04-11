@@ -1,0 +1,388 @@
+Probe 11: Timers, storage, and polling inventory for shared polling hook
+
+- Scope:
+  - find `setTimeout`, `setInterval`, `clearTimeout`, `clearInterval`
+  - find `localStorage` usage
+  - specifically inspect `UnifiedStudio.tsx` storage/session persistence
+  - specifically inspect deleted `workflow-api.ts` / `temporal-api.ts` polling if they exist
+  - specifically inspect whether `photoshoot-api.ts` owns polling or whether `UnifiedStudio.tsx` polls inline
+
+- Important correction:
+  - `UnifiedStudio.tsx` uses `localStorage` for user model/inspiration cache and test guide resets.
+  - `UnifiedStudio.tsx` uses `sessionStorage`, not `localStorage`, for the current studio upload/session save.
+
+- `UnifiedStudio.tsx` localStorage usage:
+  - `src/pages/UnifiedStudio.tsx:146`
+    - key constant:
+      - `MY_MODELS_STORAGE_KEY = 'formanova_my_models'`
+    - purpose:
+      - cache user-uploaded on-model custom models.
+  - `src/pages/UnifiedStudio.tsx:147`
+    - key constant:
+      - `MY_INSPIRATIONS_STORAGE_KEY = 'formanova_my_inspirations'`
+    - purpose:
+      - cache user-uploaded product-shot inspirations.
+  - `src/pages/UnifiedStudio.tsx:363`
+    - `localStorage.getItem(key)`
+    - key:
+      - dynamic:
+        - `formanova_my_models`
+        - or `formanova_my_inspirations`
+    - purpose:
+      - load cached custom models/inspirations.
+  - `src/pages/UnifiedStudio.tsx:366`
+    - `localStorage.removeItem(key)`
+    - key:
+      - dynamic:
+        - `formanova_my_models`
+        - or `formanova_my_inspirations`
+    - purpose:
+      - invalidate stale cache if `_v !== MY_MODELS_VERSION`.
+  - `src/pages/UnifiedStudio.tsx:373`
+    - `localStorage.setItem(key, JSON.stringify({ _v: MY_MODELS_VERSION, models }))`
+    - key:
+      - dynamic:
+        - `formanova_my_models`
+        - or `formanova_my_inspirations`
+    - purpose:
+      - save cached custom models/inspirations.
+  - `src/pages/UnifiedStudio.tsx:446`
+    - `localStorage.removeItem('formanova_upload_guide_v2_' + user.id)`
+    - key:
+      - `formanova_upload_guide_v2_{userId}`
+    - purpose:
+      - test menu reset for upload guide.
+  - `src/pages/UnifiedStudio.tsx:458`
+    - `localStorage.removeItem('formanova_product_shot_guide_v1_' + user.id)`
+    - key:
+      - `formanova_product_shot_guide_v1_{userId}`
+    - purpose:
+      - test menu reset for product-shot guide.
+  - `src/pages/UnifiedStudio.tsx:470`
+    - `localStorage.removeItem('formanova_onboarding_' + user.id)`
+    - key:
+      - `formanova_onboarding_{userId}`
+    - purpose:
+      - test menu reset for onboarding/role picker.
+
+- `UnifiedStudio.tsx` sessionStorage usage:
+  - `src/pages/UnifiedStudio.tsx:152`
+    - key constant:
+      - `STUDIO_SESSION_KEY = 'formanova_studio_session_v1'`
+    - purpose:
+      - session persistence for current studio upload/selection state.
+  - `src/pages/UnifiedStudio.tsx:166`
+    - `sessionStorage.getItem(STUDIO_SESSION_KEY)`
+    - key:
+      - `formanova_studio_session_v1`
+    - purpose:
+      - restore upload/session data after reload.
+  - `src/pages/UnifiedStudio.tsx:174`
+    - `sessionStorage.setItem(STUDIO_SESSION_KEY, JSON.stringify({ ...existing, ...patch }))`
+    - key:
+      - `formanova_studio_session_v1`
+    - purpose:
+      - save upload/session state.
+    - saved fields:
+      - `jewelryType`
+      - `jewelryUploadedUrl`
+      - `jewelryAssetId`
+      - `validationResult`
+      - `selectedModelId`
+      - `customModelImage`
+      - `modelAssetId`
+  - `src/pages/UnifiedStudio.tsx:179`
+    - `sessionStorage.removeItem(STUDIO_SESSION_KEY)`
+    - key:
+      - `formanova_studio_session_v1`
+    - purpose:
+      - clear current studio upload/session state.
+  - `src/pages/UnifiedStudio.tsx:180`
+    - `sessionStorage.removeItem('formanova_studio_mode')`
+    - key:
+      - `formanova_studio_mode`
+    - purpose:
+      - clear product-shot mode marker.
+  - `src/pages/UnifiedStudio.tsx:523`
+    - `sessionStorage.setItem('formanova_studio_mode', 'product-shot')`
+    - key:
+      - `formanova_studio_mode`
+    - purpose:
+      - remember product-shot mode.
+  - `src/pages/UnifiedStudio.tsx:527`
+    - `sessionStorage.removeItem('formanova_studio_mode')`
+    - key:
+      - `formanova_studio_mode`
+    - purpose:
+      - clear product-shot mode marker.
+  - `src/pages/UnifiedStudio.tsx:530`
+    - `sessionStorage.getItem('formanova_studio_mode') === 'product-shot'`
+    - key:
+      - `formanova_studio_mode`
+    - purpose:
+      - detect product-shot mode.
+
+- `UnifiedStudio.tsx` timer usage:
+  - `src/pages/UnifiedStudio.tsx:270`
+    - `setTimeout(() => setSaved(false), 1800)`
+    - purpose:
+      - transient "Saved!" label after renaming a cached model/inspiration.
+    - not workflow polling.
+  - `src/pages/UnifiedStudio.tsx:716`
+    - `setInterval(() => setRotatingMsgIdx(i => i + 1), 4000)`
+    - cleanup:
+      - `src/pages/UnifiedStudio.tsx:717`
+        - `clearInterval(id)`
+    - purpose:
+      - rotate generation loading messages while `isGenerating`.
+    - not backend polling.
+  - `src/pages/UnifiedStudio.tsx:1103`
+    - `setInterval(..., 300)`
+    - cleanup:
+      - `src/pages/UnifiedStudio.tsx:1130`
+      - `src/pages/UnifiedStudio.tsx:1141`
+      - `src/pages/UnifiedStudio.tsx:1170`
+    - purpose:
+      - fake/decelerating progress ticker from current progress toward 90%.
+    - not backend polling.
+  - `src/pages/UnifiedStudio.tsx:1112`
+    - `await new Promise(r => setTimeout(r, 3000))`
+    - purpose:
+      - actual inline backend polling wait between status checks.
+
+- `UnifiedStudio.tsx` actual polling loop:
+  - Location:
+    - `src/pages/UnifiedStudio.tsx:1109-1168`
+  - Start source:
+    - workflow starts through:
+      - `startPdpShot(...)`
+      - or `startPhotoshoot(...)`
+    - both return `workflow_id`.
+  - Endpoint polled:
+    - `/api/status/{workflowId}`
+    - called through `getPhotoshootStatus(startResponse.workflow_id)`.
+  - Interval:
+    - 3 seconds.
+  - Timeout:
+    - `TIMEOUT = 720000`
+    - 12 minutes.
+  - Exit conditions:
+    - success:
+      - `resolveWorkflowState(status) === 'completed'`
+      - then fetch result via `getPhotoshootResult(startResponse.workflow_id)`.
+    - failure:
+      - `resolveWorkflowState(status) === 'failed'`
+      - throws `status.error || 'Photoshoot generation failed'`.
+    - timeout:
+      - loop exits after 12 minutes and throws.
+    - result-level failure:
+      - after status completed, result is scanned for activity errors:
+        - any item with `action === 'error'` or `status === 'failed'`
+      - then sets `generationError = 'workflow-failed'`.
+  - Progress behavior:
+    - status progress fields can move progress from 35% to 95%.
+    - a separate 300ms ticker moves apparent progress toward 90% even before real progress data arrives.
+  - Coupling note:
+    - polling, progress UI, result fetching, result parsing, credit refresh, analytics, and phase transition all live in the page.
+
+- `src/lib/workflow-api.ts` polling:
+  - Current file existence:
+    - no.
+  - Current polling loops:
+    - none.
+  - Current importers:
+    - none.
+  - Conclusion:
+    - no live polling remains in this deleted file.
+
+- `src/lib/temporal-api.ts` polling:
+  - Current file existence:
+    - no.
+  - Current polling loops:
+    - none.
+  - Current importers:
+    - none.
+  - Conclusion:
+    - no live polling remains in this deleted file.
+
+- `src/lib/photoshoot-api.ts` polling/retry behavior:
+  - Does it poll workflow status?
+    - no.
+  - Does it own a full poll-until-complete loop?
+    - no.
+  - Status helper:
+    - `src/lib/photoshoot-api.ts:105`
+      - `getPhotoshootStatus(workflowId)`
+      - single GET to `/api/status/{workflowId}`.
+    - `src/lib/photoshoot-api.ts:113`
+      - returns `{ state: 'running' }` on 404.
+  - Result helper:
+    - `src/lib/photoshoot-api.ts:127`
+      - `getPhotoshootResult(workflowId, maxRetries = 5, retryDelayMs = 1000)`
+    - endpoint:
+      - `/api/result/{workflowId}`
+    - retry loop:
+      - retries only result fetches after status completed.
+    - interval:
+      - default 1 second.
+    - max attempts:
+      - attempts `0` through `maxRetries`, so default is up to 6 total attempts.
+    - retry condition:
+      - HTTP 404 means result not written yet.
+    - exit conditions:
+      - success:
+        - first OK response returns JSON.
+      - failure:
+        - non-OK non-404 throws.
+      - retry exhausted:
+        - throws last 404 error or generic exhausted error.
+  - Conclusion:
+    - `photoshoot-api.ts` has result-write retry, but not workflow polling.
+    - `UnifiedStudio.tsx` polls inline.
+
+- Other current polling/timer patterns relevant to a shared hook:
+  - `src/hooks/use-image-validation.ts`
+    - starts classification workflow, then polls `/api/status/{workflowId}`.
+    - interval:
+      - 1 second.
+    - status endpoint:
+      - `${BASE_URL}/api/status/{workflowId}`.
+    - result endpoint:
+      - `${BASE_URL}/api/result/{workflowId}`.
+    - status exit:
+      - completed/succeeded breaks.
+      - failed/error returns fallback flagged result.
+      - 404 is treated as not ready and continues.
+    - result retry:
+      - retries 404 with 1 second delay.
+    - abort timeout:
+      - request abort timeout at 120 seconds.
+  - `src/pages/TextToCAD.tsx`
+    - main CAD generation polls `/api/status/{workflow_id}`.
+    - interval:
+      - 2 seconds.
+    - timeout:
+      - 60 minutes.
+    - 404 behavior:
+      - allows 3 consecutive 404s, then fails.
+    - repeated non-OK/errors:
+      - allows up to 10 poll errors, then fails.
+    - terminal states:
+      - completed breaks.
+      - failed/budget_exhausted throws.
+    - terminal nodes:
+      - `success_final`
+      - `success_original_glb`
+      - `failed_final`
+    - result retry:
+      - `/api/result/{workflow_id}`
+      - up to 5 attempts.
+      - 404 retry delay is 1 second.
+  - `src/pages/TextToCAD.tsx`
+    - CAD edit workflow duplicates the same status polling shape.
+  - `src/pages/TextToCAD.tsx`
+    - weight estimation polls `/api/result/{workflow_id}` directly.
+    - interval:
+      - 2 seconds.
+    - timeout:
+      - 2 minutes.
+    - exit:
+      - result exists and `data.status !== 'running'`.
+  - `src/pages/TextToCAD.tsx`
+    - STL export polls `/api/result/{workflow_id}` directly.
+    - interval:
+      - 2 seconds.
+    - timeout:
+      - 5 minutes.
+    - exit:
+      - result exists and `data.status !== 'running'`.
+  - `src/lib/microservices-api.ts`
+    - `pollJobUntilComplete(pollFn, options)`
+    - generic loop over a provided `pollFn`.
+    - default interval:
+      - 1 second.
+    - default attempts:
+      - 120.
+    - success:
+      - `status === 'completed' || status === 'succeeded'`.
+    - failure:
+      - `status === 'failed'`.
+    - timeout:
+      - throws after max attempts.
+    - note:
+      - generic helper exists, but the high-risk generation flows are not using it.
+  - `src/hooks/use-version-polling.ts`
+    - polls app version/build metadata on an interval.
+    - not generation workflow polling.
+  - `src/pages/PaymentSuccess.tsx`
+    - interval refresh/poll after payment success.
+    - billing-specific, not generation workflow polling.
+
+- Whole-source timer categories:
+  - Backend/workflow polling:
+    - `UnifiedStudio.tsx`
+    - `TextToCAD.tsx`
+    - `use-image-validation.ts`
+    - `microservices-api.ts`
+  - Result-write retry:
+    - `photoshoot-api.ts`
+    - `TextToCAD.tsx`
+  - Request/network timeout:
+    - `auth-api.ts`
+    - `use-image-validation.ts`
+    - `Generations.tsx`
+  - App/update polling:
+    - `use-version-polling.ts`
+    - chunk reload helpers
+  - UI-only timers:
+    - toasts
+    - copy/save labels
+    - carousel/hero animations
+    - CAD canvas transient overlays
+    - modal shake animations
+
+- Shared polling hook design requirements implied by the audit:
+  - Accept:
+    - `workflowId`
+    - status endpoint builder
+    - result endpoint builder
+    - auth fetcher strategy:
+      - `authenticatedFetch`
+      - or direct fetch with headers
+    - poll interval
+    - timeout
+    - allowed 404 count policy
+    - allowed transient error count
+    - terminal state parser
+    - terminal node parser
+    - result readiness parser
+    - abort signal/cancel support
+    - `onProgress` callback
+    - `onNodeChange` callback
+  - Return:
+    - status data
+    - parsed state
+    - result data
+    - progress info
+    - error
+    - cancel function
+  - Must support at least three current workflow styles:
+    - photo/on-model:
+      - poll `/api/status`
+      - then retry `/api/result` on 404
+    - CAD generation/edit:
+      - poll `/api/status`
+      - terminal node support
+      - then retry `/api/result` on 404
+    - weight/STL:
+      - poll `/api/result` directly until status is not `running`
+  - Should not own product-specific result parsing:
+    - photo image extraction should stay in a photo parser
+    - CAD GLB/STL/weight extraction should stay in CAD parsers
+    - hook should only coordinate lifecycle and cancellation.
+
+- Core finding:
+  - There is no single current polling abstraction for generation workflows.
+  - The deleted `workflow-api.ts` and `temporal-api.ts` are not the current problem because they no longer exist.
+  - The live problem is duplicated inline polling across `UnifiedStudio.tsx`, `TextToCAD.tsx`, and `use-image-validation.ts`, plus partial retry logic inside `photoshoot-api.ts`.
+  - A shared polling hook for the new zone should replace inline `while + setTimeout` loops and should separate lifecycle polling from product-specific result parsing.

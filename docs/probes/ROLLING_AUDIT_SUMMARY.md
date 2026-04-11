@@ -1,0 +1,955 @@
+# Rolling Audit Summary
+
+## Context
+
+- Repo: FormaNova frontend.
+- Goal: audit architecture drift, duplication, coupling, and regression risk.
+- Working mode: probes only.
+- Code files should not be edited during probes.
+- Probe report files may be written under `docs/probes/`.
+- Current saved probes:
+  - `probe1.txt`
+  - `probe2.txt`
+  - `probe3.txt`
+  - `probe4.txt`
+  - `probe5.txt`
+  - `probe6.txt`
+  - `probe7.txt`
+  - `probe8.txt`
+  - `probe9.txt`
+  - `probe10.txt`
+  - `probe11.txt`
+  - `probe12.txt`
+  - `probe13.txt`
+  - `probe14.txt`
+  - `probe15.txt`
+  - `probe16.txt`
+  - `probe17.txt`
+  - `probe18.txt`
+  - `probe19.txt`
+
+## Probe Index
+
+- Probe 1: framework, UI inventory, layouts, backend API patterns, mess score, regression risk.
+- Probe 2: Button/Dialog/Modal/Overlay/Skeleton/loading/CSS inventory and on-model vs CAD usage.
+- Probe 3: routing structure, photo vs CAD route split, layouts, global state, and whether they are two app surfaces sharing one SPA shell.
+- Probe 4: backend call inventory, endpoint URLs, callers, frontend response transformations, and on-model/CAD overlap.
+- Probe 5: `UnifiedStudio.tsx` state coupling audit across upload, masking, generation, and results phases.
+- Probe 6: shared import comparison between photo/on-model files and CAD files.
+- Probe 7: credits-api and feature-flags coupling for paid feature rollout risk.
+- Probe 8: unfinished migration audit across commented routes, TODOs, duplicate API clients, dead costs, hardcoded flags, and orphan studio components.
+- Probe 9: test coverage vs production surface area.
+- Probe 10: confirmation that deleted `temporal-api.ts` and `workflow-api.ts` no longer exist or feed live routes.
+- Probe 11: timers, storage, and polling inventory for designing a shared polling hook.
+- Probe 12: pricing keys and feature flags audit for single-source-of-truth cleanup.
+- Probe 13: eslint-disable suppression audit focused on `react-hooks/exhaustive-deps` stale-closure risk.
+- Probe 14: raw `fetch()` vs `authenticatedFetch` consistency audit for auth bypass holes.
+- Probe 15: TypeScript escape hatch count and density audit.
+- Probe 16: error boundary coverage and crash blast-radius audit.
+- Probe 17: hardcoded external URLs/domains audit for production, Azure blob, RareSense, and environment portability coupling.
+- Probe 18: raw `fetch()` calls in `src/lib` and `src/pages` that hit `/api/`, with token source and 401 behavior.
+- Probe 19: hardcoded production domain, Azure blob, and RareSense strings with suggested env var replacements.
+
+## Confirmed Themes
+
+- The app is Vite + React + TypeScript, not Next.js.
+- UI stack is Tailwind + shadcn/Radix primitives + lucide-react, with Framer Motion and Three.js/react-three for visual/CAD experiences.
+- There is one canonical `Button`, but many feature-specific modal/dialog wrappers.
+- Loading UI is not standardized:
+  - `Loader2`
+  - raw `animate-spin` divs
+  - `Skeleton`
+  - `GenerationProgress`
+  - local canvas/model loading overlays
+- Backend calls are not standardized:
+  - `authenticatedFetch`
+  - raw `fetch`
+  - manual token + raw `fetch`
+  - React Query around custom fetchers
+  - Python `requests`
+- Base URL strategy is inconsistent:
+  - relative `/api`, `/auth`, `/billing`
+  - env-based `VITE_PIPELINE_API_URL`
+  - hardcoded `https://formanova.ai`
+- Environment portability is weak in several places:
+  - hardcoded production backend domains,
+  - hardcoded Azure blob storage paths,
+  - hardcoded internal email gates,
+  - production-domain redirect and analytics hosts in app startup.
+- Auth/session behavior is split across multiple files instead of one clean session boundary.
+- Admin and credits flows mix React Query, manual fetchers, bearer tokens, admin secrets, modals, context state, and nested routes.
+- On-model and CAD pages mostly use separate modal/loading systems.
+- On-model/photo and CAD routes are two product surfaces inside one shared React Router SPA shell.
+- Both photo and CAD share the same `App.tsx` provider tree, global `Header`, auth context, credits context, theme context, update banner, onboarding redirect handler, and history page.
+- Product clarification: shared header, auth, credits, and combined history are intended; photo-first onboarding/default routing assumptions are the suspect coupling.
+- CAD has a `CADGate`, but it does not have its own layout/provider boundary.
+- Probe 4 confirmed the highest-risk backend overlap is `/api/result/{workflowId}` and `/api/status/{workflowId}` because photo/product-shot/CAD parse the same endpoint family differently.
+- The repo’s main regression risk is coupling: UI state, backend calls, auth, routing, polling, credits, and asset fetching are often mixed in large feature files.
+
+## High-Risk Files
+
+- `src/pages/UnifiedStudio.tsx`
+  - 2,233 lines.
+  - Highest-risk on-model/studio file.
+  - Combines upload flow, guide UI, presets, validation, generation orchestration, polling, credits, dialogs, error states, and authenticated image access.
+- `src/pages/TextToCAD.tsx`
+  - 1,523 lines.
+  - High-risk CAD workflow page.
+  - Owns generation state, polling, export/download behavior, model loading state, weight/STL actions, and viewport coordination.
+- `src/components/text-to-cad/CADCanvas.tsx`
+  - 2,058 lines.
+  - High-risk CAD rendering component.
+  - Combines Three.js rendering, model loading, auth-sensitive asset fetches, transforms, export logic, and loading overlay.
+- `src/App.tsx`
+  - Central route declaration, protected route wiring, onboarding redirect behavior, lazy loading, app providers, update banner, and global shell.
+- `src/lib/authenticated-fetch.ts`
+  - Central token attachment and 401 redirect behavior.
+- `src/lib/auth-api.ts`
+  - Token/user storage plus auth endpoint calls.
+- `src/contexts/AuthContext.tsx`
+  - React auth state and auth helper exposure.
+- `src/contexts/CreditsContext.tsx`
+  - Global credit balance state and refresh behavior.
+- `src/pages/AdminFeedbackPage.tsx`
+  - Mixes React Query, direct token/fetch logic, admin UI, dialogs/sheets, and mutation state.
+- `src/pages/PromoAdminPage.tsx`
+  - Promo admin UI, dialogs, API calls, and mutation state in page.
+
+## Probe 1 Key Findings
+
+- Framework:
+  - Vite + React + TypeScript.
+  - React Router.
+  - Tailwind + shadcn/Radix.
+  - React Query exists but is not consistently used for all server state.
+  - Supabase client exists but no active `supabase.from(...)` or function invoke usage was found.
+- Component inventory:
+  - Button: `src/components/ui/button.tsx`.
+  - Inputs: `src/components/ui/input.tsx`, `src/components/ui/input-otp.tsx`.
+  - Modals/dialogs are scattered across base UI and feature components.
+  - Cards include base card primitives and domain cards.
+- Layouts:
+  - About 6 page shells:
+    - global top-nav app shell,
+    - marketing/public pages,
+    - centered auth/status pages,
+    - category/dashboard grids,
+    - full-screen workspace pages,
+    - admin tab shell.
+- Backend access:
+  - Raw fetch: 31 call sites across 15 files.
+  - `authenticatedFetch`: 65 call sites/references across 26 files.
+  - Manual token + raw fetch: at least 5 files.
+  - React Query: 5 `useQuery`/`useMutation` usages.
+  - Axios/XMLHttpRequest: none found.
+- Mess score:
+  - Largest files:
+    - `src/pages/UnifiedStudio.tsx`
+    - `src/components/text-to-cad/CADCanvas.tsx`
+    - `src/pages/TextToCAD.tsx`
+    - `server/api_server.py`
+    - `server/api_server_multi_jewelry.py`
+  - TODO/FIXME/HACK/XXX comments: 0 found in `src` and `server`.
+
+## Probe 2 Key Findings
+
+- Button exports:
+  - `src/components/ui/button.tsx`: canonical `Button`.
+  - `src/components/ui/sidebar.tsx`: button-like sidebar exports, apparently unused as main shell.
+  - `src/components/text-to-cad/KeyboardShortcutsPanel.tsx`: `KeyboardShortcutsButton`.
+- Dialog/modal/overlay exports:
+  - Base primitives:
+    - `src/components/ui/dialog.tsx`
+    - `src/components/ui/alert-dialog.tsx`
+    - `src/components/ui/sheet.tsx`
+    - `src/components/ui/drawer.tsx`
+    - `src/components/ui/command.tsx`
+  - Feature modals:
+    - `CreditPreflightModal`
+    - `InsufficientCreditsModal`
+    - `DownloadRenameDialog`
+    - `PipelineCreditsModal`
+    - `PhotoPreviewModal`
+    - `SnapshotPreviewModal`
+    - `CadWorkflowModal`
+    - `FeedbackModal`
+    - `ModelGuideModal`
+    - `ProductShotGuideModal`
+    - `UploadGuideModal`
+    - `ViewportOverlays`
+- Loading exports:
+  - `Skeleton`
+  - `SidebarMenuSkeleton`
+  - `GenerationProgress`
+  - `ServerOffline`
+  - Plus many inline `Loader2` and raw `animate-spin` instances.
+- CSS / style:
+  - `src/index.css`: global, 1,065 lines, imported by `src/main.tsx`.
+  - `src/App.css`: 6 lines, likely unused.
+  - `<style>` tags exist in root/static HTML, `CinematicCursor.tsx`, and `ui/chart.tsx`.
+- On-model page:
+  - Main page: `src/pages/UnifiedStudio.tsx`.
+  - Uses `Button`, `Dialog`, `CreditPreflightModal`, `FeedbackModal`, `UploadGuideModal`, `ProductShotGuideModal`, `ModelGuideModal`, `AlternateUploadStep`, inline loaders.
+- CAD page:
+  - Main pages scanned: `TextToCAD.tsx`, `CADStudio.tsx`, `CADToCatalog.tsx`.
+  - `TextToCAD.tsx` uses `GenerationProgress`, `ViewportOverlays`, `KeyboardShortcutsPanel`, `ViewportDisplayMenu`, and `CADCanvas` loading overlay.
+  - `CADToCatalog.tsx` uses `Button`, inline spinner, and `StudioViewport` loading.
+  - `CADStudio.tsx` did not show direct Button/modal/skeleton usage in the first-level page.
+
+## Probe 3 Key Findings
+
+- Routing:
+  - Single centralized route table in `src/App.tsx`.
+  - No Next-style `layout.tsx`, `_app.tsx`, or filesystem routing.
+  - `src/main.tsx` mounts `<App />` and also owns global chunk-load recovery plus production-domain redirect behavior.
+- On-model/photo routes:
+  - `/ai-jewelry-photoshoot` -> `AIJewelryPhotoshoot`
+  - `/studio` -> `ProtectedRoute` -> `StudioGate`
+  - `/studio/categories` -> `PhotographyStudioCategories`
+  - `/studio/product-shot/categories` -> `ProductShotCategories`
+  - `/studio/:type` -> `UnifiedStudio`
+  - `/generations` is shared history and includes photo/product-shot results.
+- CAD routes:
+  - `/ai-jewelry-cad` -> `AIJewelryCAD`
+  - `/studio-cad` -> `ProtectedRoute` -> `CADGate` -> `CADStudio`
+  - `/text-to-cad` -> `ProtectedRoute` -> `CADGate` -> `TextToCAD`
+  - `/cad-to-catalog` -> `ProtectedRoute` -> `CADGate` -> `CADToCatalog`
+  - `/generations` is shared history and includes CAD render/text-to-CAD results.
+- Layouts:
+  - `App.tsx` is the global shell for every route.
+  - `Header.tsx` is globally rendered for every route and reads auth, credits, admin status, and CAD feature flag.
+  - `AdminLayout.tsx` and `PresetLibraryLayout.tsx` are nested admin layouts only.
+  - `CADGate.tsx` is a gate, not a layout shell.
+- Global state:
+  - `AuthProvider`: read by global app handlers, guards, header, dashboard/history, photo studio, CAD studio.
+  - `CreditsProvider`: read by header, credits/pricing/payment pages, `UnifiedStudio`, and `TextToCAD`.
+  - `ThemeProvider`: read by global theme/logo/decorative/toast components.
+  - `QueryClientProvider`: global, used mostly by admin pages plus `UnifiedStudio` presets.
+  - No Zustand/Redux/Jotai/Valtio usage found.
+- Conclusion:
+  - Photo and CAD are separate product surfaces, but not separate technical apps.
+  - Shared auth, credits, top navigation/header, and combined history are intended product behavior.
+  - The refined risk is CAD inheriting photo-first onboarding/default redirects and lacking a CAD-specific workspace boundary inside the shared product shell.
+
+## Product Intent Clarifications
+
+- FormaNova should feel like one product with two tools:
+  - photo/on-model generation,
+  - text-to-CAD/WebGL CAD generation.
+- Intended sharing:
+  - same navigation/header,
+  - global credit balance,
+  - same credit system,
+  - combined generation history,
+  - one product identity.
+- Temporary/internal behavior:
+  - CAD email gating is temporary internal testing behavior and should not be treated as an architecture problem by itself.
+- Unintended or needs-improvement behavior:
+  - everyone is currently pushed toward the photoshoot studio first,
+  - CAD users should be able to reach CAD without photo-studio onboarding assumptions,
+  - CAD should have a more focused WebGL/workspace layout once inside the CAD tool.
+- Refined architecture target:
+  - keep one shared product shell,
+  - keep shared auth/credits/header/history,
+  - add or strengthen route-level CAD workspace boundaries,
+  - separate onboarding/default redirect decisions by user intent/tool entry point.
+
+## Probe 4 Key Findings
+
+- Backend calls are spread across:
+  - helper modules in `src/lib/*-api.ts`,
+  - hooks,
+  - route pages,
+  - generation/history components.
+- Call styles include:
+  - `authenticatedFetch`,
+  - raw `fetch` with manual bearer token,
+  - raw `fetch` without auth for direct blob/GLB/STL URLs,
+  - absolute `https://formanova.ai/...`,
+  - relative `/api/...`,
+  - `VITE_PIPELINE_API_URL`.
+- Endpoints called from both on-model/photo and CAD code:
+  - `/api/credits/estimate`
+  - `/api/credits/balance/me`
+  - `/api/status/{workflowId}`
+  - `/api/result/{workflowId}`
+- `/api/result/{workflowId}` is the most overloaded backend contract:
+  - photo generation scans result nodes for image URLs,
+  - product-shot history scans arbitrary URL fields,
+  - CAD generation extracts `glb_artifact` / `original_glb_artifact`,
+  - CAD history has a separate sink-based fallback extractor,
+  - weight/STL flows expect different top-level result fields.
+- `/api/status/{workflowId}` is shared but interpreted differently:
+  - photo uses a helper to normalize workflow state,
+  - CAD reads runtime node IDs inline for progress display.
+- Legitimate shared domains:
+  - auth,
+  - credits,
+  - billing,
+  - combined history.
+- Risk:
+  - generation lifecycle APIs are shared across tools, but result/status parsing is not centralized by workflow type.
+
+## Probe 5 Key Findings
+
+- `UnifiedStudio.tsx` has no masking state.
+- Top-level state is spread across route/step/mode, guides/dialogs, upload, validation, model/inspiration selection, user model library, generation, results, and feedback.
+- No exact state variable was confirmed as being passed as props to more than 2 named child components, but `jewelryImage`, `isProductShot`, `workflowId`, and guide setters have high fanout through direct JSX, derived values, and child props.
+- High-coupling dependency arrays:
+  - session save depends on `jewelryUploadedUrl`, `jewelryAssetId`, `validationResult`, `selectedModel`, `customModelImage`, and `modelAssetId`.
+  - paste handling depends on upload, model selection, current step, and active model URL.
+  - product-shot guide handling depends on current step, auth/init state, mode, and user identity.
+- Upload state directly affects results:
+  - generation reads and mutates upload/model state,
+  - results/feedback use upload URLs, SAS URLs, model URL, workflow ID, and result image state together,
+  - reset/regenerate handlers cross multiple phases.
+- Concrete stale-state risk found:
+  - flagged-image reupload path clears image/file/validation/uploaded URL/SAS but does not clear `jewelryAssetId`.
+- Probe conclusion:
+  - `UnifiedStudio.tsx` is too coupled to safely add features without first creating narrower boundaries around upload, generation, result, and feedback state.
+
+## Probe 6 Key Findings
+
+- Requested Group A files `StepRefineAndGenerate.tsx` and `StepUploadMark.tsx` were not found in current `src` or `git ls-files`.
+- Shared imports between found Group A and Group B files are limited.
+- Strict requested shared items:
+  - `@/components/ui/button`
+  - `@/contexts/CreditsContext`
+  - `@/contexts/AuthContext`
+  - `react-router-dom`
+  - `@/lib/authenticated-fetch`
+- Additional shared non-API infrastructure:
+  - `@/lib/feature-flags`
+  - `@/lib/posthog-events`
+- No shared photo/CAD workflow components were found.
+- No shared upload/validation components were found.
+- No shared generation progress component was found between `UnifiedStudio.tsx` and CAD.
+- Conclusion:
+  - Photo/on-model and CAD are separate tool surfaces inside one shared product shell.
+  - They are not tangled through many shared workflow components.
+  - Their sharing is mostly platform infrastructure: auth, credits, routing, feature flags, analytics, and authenticated fetch.
+
+## Probe 7 Key Findings
+
+- No generic `useFeatureFlag` hook was found.
+- Feature flags are direct functions/constants from `src/lib/feature-flags.ts`.
+- Credit/cost logic is spread across:
+  - `src/lib/credits-api.ts`
+  - `src/lib/credit-preflight.ts`
+  - `src/hooks/use-credit-preflight.ts`
+  - `src/hooks/use-estimated-cost.ts`
+  - `src/contexts/CreditsContext.tsx`
+  - feature pages/components.
+- `UnifiedStudio.tsx` checks credits through `useCreditPreflight`, but does not import `TOOL_COSTS` directly.
+- `TextToCAD.tsx` imports both `TOOL_COSTS` and `performCreditPreflight`, so CAD cost/preflight logic is more page-local.
+- Cost display and actual credit checks are split in CAD:
+  - `InitialPromptScreen.tsx` and `LeftPanel.tsx` show estimated cost.
+  - `TextToCAD.tsx` performs the actual preflight and starts workflows.
+- Flag/check mismatch:
+  - CAD weight estimation and STL export are feature-gated by `isWeightStlEnabled`, but no frontend credit preflight was found before starting their backend workflows.
+  - CAD edit/rebuild/add-on UI is flag-gated by `CAD_EDIT_TOOLS_ENABLED`, while the credit preflight happens indirectly in `TextToCAD.tsx`.
+- New paid feature likely requires edits in more than 2 files:
+  - `credits-api.ts`
+  - `feature-flags.ts`
+  - page handler/preflight/backend workflow starter
+  - cost display component
+  - possibly toolbar/panel component.
+- Probe conclusion:
+  - N > 2 red flag is confirmed.
+  - The repo has reusable pieces but lacks one shared paid-feature abstraction that ties together flag, cost estimate, preflight, insufficient-credit UI, and backend start.
+
+## Probe 8 Key Findings
+
+- Strong timeline clue:
+  - commit `61d627f6` deleted unused studio workflow files and temporal/workflow API libs.
+  - 9 files / 5,010 lines were removed, including `StepGenerate`, `StepRefineAndGenerate`, `StepUploadMark`, `use-generation-workflow`, `temporal-api.ts`, `workflow-api.ts`, and `JewelryStudio.tsx`.
+- `App.tsx` still contains 5 commented route/import artifacts:
+  - old `JewelryStudio` const and route, but the file no longer exists.
+  - old `CategoryUploadStudio` const and route, but `src/components/bulk` no longer exists.
+  - hidden `/tutorial` route, while `Tutorial.tsx` still exists.
+- No real source TODO/FIXME/HACK/XXX comments were found; only lockfile hash false positives and prior probe text.
+- `temporal-api.ts` and `workflow-api.ts` no longer exist, but their previous versions overlapped heavily around health checks, masking/generation starts, status/result fetching, polling, and blob helpers.
+- `UnifiedStudio.tsx` now calls neither old API client; it uses current `photoshoot-api.ts`.
+- Dead/drifted `TOOL_COSTS` signals:
+  - `from_photo`, `qa_with_gpu`, and `ring_full_pipeline` look strongly dead.
+  - `jewelry_photoshoots_generator` is actively checked but absent from `TOOL_COSTS`.
+- Hardcoded feature flags/constants:
+  - 12 hardcoded true/false items were found.
+  - Several could be deleted/inlined if their behavior is now permanent.
+- Orphaned `src/components/studio/*` components:
+  - `BinaryMaskPreview.tsx`
+  - `MarkingTutorial.tsx`
+  - `MaskCanvas.tsx`
+  - `ServerOffline.tsx`
+  - `BeforeAfterSlider.tsx` via orphaned `BeforeAfterShowcase`
+- Probe conclusion:
+  - Conservative current abandoned/half-finished signal count is 26.
+  - The old duplicate workflow migration was mostly cleaned up, but stale comments, dormant flags, dead cost keys, and orphan components remain.
+
+## Probe 9 Key Findings
+
+- Test files found:
+  - `src/test/transform-logic.test.ts`
+  - `src/lib/posthog-events.test.ts`
+  - `src/lib/generation-history-api.test.ts`
+  - `src/lib/generation-enrichment.test.ts`
+- Directly tested production files:
+  - `src/lib/posthog-events.ts`
+  - `src/lib/generation-history-api.ts`
+  - `src/lib/generation-enrichment.ts`
+- `transform-logic.test.ts` validates copied CAD transform math but does not import `CADCanvas.tsx`.
+- Coverage by production surface:
+  - routed page files: 0 / 28
+  - production lib files: 3 / 29
+  - contexts: 0 / 3
+  - strict total: 3 / 60 = 5.0%
+- Highest-risk untested paths:
+  - credit preflight/gate logic,
+  - generation polling loops,
+  - `UnifiedStudio` session save/restore,
+  - auth/session redirects,
+  - CAD canvas/render/export behavior.
+- Probe conclusion:
+  - The repo has almost no automated safety net for the main product flows.
+  - Regressions and slow shipping are plausibly explained by the need for full manual regression on nearly every meaningful change.
+
+## Probe 10 Key Findings
+
+- `src/lib/temporal-api.ts` does not exist in current `src`.
+- `src/lib/workflow-api.ts` does not exist in current `src`.
+- `rg -n 'temporal-api|workflow-api' src` found no current source references.
+- No current source file imports either deleted client.
+- No currently routed page in `src/App.tsx` depends on either deleted client.
+- The live photo/on-model route `/studio/:type` uses `src/pages/UnifiedStudio.tsx`.
+- `UnifiedStudio.tsx` imports the current replacement client from `src/lib/photoshoot-api.ts`:
+  - `startPhotoshoot`
+  - `startPdpShot`
+  - `getPhotoshootStatus`
+  - `getPhotoshootResult`
+  - `resolveWorkflowState`
+- Current `photoshoot-api.ts` exports:
+  - `PhotoshootStartRequest`
+  - `PhotoshootStartResponse`
+  - `PhotoshootStatusResponse`
+  - `PhotoshootResultResponse`
+  - `startPhotoshoot`
+  - `getPhotoshootStatus`
+  - `getPhotoshootResult`
+  - `PdpStartRequest`
+  - `startPdpShot`
+  - `resolveWorkflowState`
+- Overlap with the deleted clients is by purpose, not by current import path:
+  - start workflow
+  - poll/check status
+  - fetch result
+- Old masking/refine helpers and blob/image helpers from the deleted clients do not have direct current exports in `photoshoot-api.ts`.
+- Remaining non-source references are only in audit docs and old Temporal documentation files.
+- Remaining cleanup to call later:
+  - `TEMPORAL_INTEGRATION_CHECKLIST.md` still tells the reader to create/use `src/lib/temporal-api.ts`, which no longer exists.
+  - `TEMPORAL_DEVELOPMENT_PROMPT.md` still contains old Temporal setup language.
+  - `src/App.tsx` still has stale commented route/lazy-load artifacts for deleted `JewelryStudio` and `CategoryUploadStudio` implementations.
+  - `src/lib/photoshoot-api.ts` still mentions a Temporal API gateway in its header; this may describe the backend, but it is easy to confuse with the deleted `temporal-api.ts` client.
+  - `photoshoot-api.ts` is not yet a full workflow boundary because polling orchestration, result extraction, and phase transitions still live in `UnifiedStudio.tsx`.
+- Probe conclusion:
+  - The duplicate Temporal/workflow API clients have already been removed from live code.
+  - Deleting them cannot break live code because they are already gone.
+  - Remaining generation risk is now in the current `photoshoot-api.ts` plus `UnifiedStudio.tsx` split, not in the old deleted files.
+
+## Probe 11 Key Findings
+
+- `UnifiedStudio.tsx` uses `localStorage` for cached custom models/inspirations and test guide resets.
+- `UnifiedStudio.tsx` uses `sessionStorage`, not `localStorage`, for studio upload/session save.
+- Studio session key:
+  - `formanova_studio_session_v1`
+- Studio mode key:
+  - `formanova_studio_mode`
+- Cached model/inspiration keys:
+  - `formanova_my_models`
+  - `formanova_my_inspirations`
+- Guide/onboarding reset keys:
+  - `formanova_upload_guide_v2_{userId}`
+  - `formanova_product_shot_guide_v1_{userId}`
+  - `formanova_onboarding_{userId}`
+- `src/lib/workflow-api.ts` and `src/lib/temporal-api.ts` do not exist, so they contain no current polling loops.
+- `src/lib/photoshoot-api.ts` does not own full workflow polling.
+- `photoshoot-api.ts` only has:
+  - one-shot status fetch:
+    - `/api/status/{workflowId}`
+  - result-write retry:
+    - `/api/result/{workflowId}`
+    - default 1 second delay
+    - default 5 retries, effectively up to 6 attempts
+    - retries 404 only
+- `UnifiedStudio.tsx` polls photo/product-shot status inline:
+  - endpoint:
+    - `/api/status/{workflowId}`
+  - interval:
+    - 3 seconds
+  - timeout:
+    - 12 minutes
+  - success:
+    - resolved state is `completed`
+  - failure:
+    - resolved state is `failed`
+  - then fetches result through `getPhotoshootResult`.
+- `UnifiedStudio.tsx` also has a separate 300ms fake progress ticker and 4 second loading-message interval.
+- Other live generation polling exists in:
+  - `use-image-validation.ts`
+    - classification status/result polling
+    - 1 second waits
+    - 120 second request abort timeout
+  - `TextToCAD.tsx`
+    - CAD generation/edit status polling
+    - 2 second interval
+    - 60 minute timeout
+    - 3 consecutive 404 limit
+    - 10 poll error limit
+    - terminal node support
+  - `TextToCAD.tsx`
+    - weight/STL result polling directly against `/api/result/{workflowId}`
+    - 2 second interval
+    - 2 minute weight timeout
+    - 5 minute STL timeout
+  - `microservices-api.ts`
+    - generic `pollJobUntilComplete`, but current high-risk generation flows do not use it.
+- Probe conclusion:
+  - There is no single current polling abstraction for generation workflows.
+  - The old deleted clients are not the blocker.
+  - The live cleanup target is replacing inline `while + setTimeout` loops with a shared polling hook/helper that supports status polling, result retry, cancellation, terminal states/nodes, transient 404s, progress callbacks, and product-specific result parsers.
+
+## Probe 12 Key Findings
+
+- `TOOL_COSTS` keys:
+  - `from_photo`
+  - `cad_generation`
+  - `qa_with_gpu`
+  - `ring_full_pipeline`
+  - `ring_generate_v1`
+  - `ring_generate_v1:gemini`
+  - `ring_generate_v1:claude-sonnet`
+  - `ring_generate_v1:claude-opus`
+- Dead/unreferenced pricing keys:
+  - `from_photo`
+  - `qa_with_gpu`
+- Dead as pricing, but live as history classifier:
+  - `ring_full_pipeline`
+- Live fallback-only key:
+  - `cad_generation`
+- Live CAD pricing/preflight/display keys:
+  - `ring_generate_v1`
+  - `ring_generate_v1:gemini`
+- Dormant dynamic model pricing keys:
+  - `ring_generate_v1:claude-sonnet`
+  - `ring_generate_v1:claude-opus`
+  - These can become live if CAD model selector is re-enabled.
+- Important missing pricing key:
+  - `jewelry_photoshoots_generator`
+  - Live in `UnifiedStudio.tsx` credit check and `photoshoot-api.ts` workflow start.
+  - Not present in `TOOL_COSTS`.
+- `getWorkflowCost(...)` exists but has no current callers.
+- `canAfford(...)` and `getToolCost(...)` are exposed by `CreditsContext` but have no current callers outside the context implementation.
+- Constant true/false flags used by live files:
+  - `isCADEnabled`
+  - `CAD_EDIT_TOOLS_ENABLED`
+  - `isAltUploadLayoutEnabled`
+  - `isOnboardingEnabled`
+  - `isViewGuideEnabled`
+  - `isOnboardingWelcomeEnabled`
+  - `AUTHENTICATED_IMAGES_ENABLED`
+  - `isFeedbackEnabled`
+  - `isModelsApiEnabled`
+  - `isStudioOnboardingEnabled`
+- Unused/comment-only flags:
+  - `CAD_MODEL_SELECTOR_ENABLED`
+  - `isAssetMetadataEnabled`
+- Real email-gated flags still in use:
+  - `isWeightStlEnabled`
+  - `isCadUploadEnabled`
+  - `isShowAllVaultEnabled`
+  - `isStudioTypeSelectionEnabled`
+  - `isProductShotGuideEnabled`
+  - `isTestMenuEnabled`
+- Probe conclusion:
+  - Pricing and flags are not single-source-of-truth systems.
+  - Pricing mixes stale keys, fallback costs, backend-estimate overrides, history-classifier names, and missing live workflow keys.
+  - Feature flags mix real email gates with dead constant toggles.
+  - Adding or changing a paid feature still risks inconsistent cost display, credit enforcement, and UI gating.
+
+## Probe 13 Key Findings
+
+- Total eslint suppressions in `src/`:
+  - 5
+- Suppressed rule:
+  - `react-hooks/exhaustive-deps`
+    - 5
+- Other eslint suppression rules:
+  - 0
+- Files with suppressions:
+  - `src/pages/UnifiedStudio.tsx`
+    - 2,233 lines
+    - 4 suppressions
+  - `src/pages/TextToCAD.tsx`
+    - 1,523 lines
+    - 1 suppression
+- `UnifiedStudio.tsx:572`
+  - preset category auto-select
+  - dependency array includes:
+    - `presetCategoryIds`
+  - excluded:
+    - `formanovaCategory`
+  - risk:
+    - medium
+- `UnifiedStudio.tsx:736`
+  - one-shot route-state preload from vault/history
+  - dependency array:
+    - `[]`
+  - excluded:
+    - `location.state`
+  - risk:
+    - medium
+- `UnifiedStudio.tsx:786`
+  - one-shot studio session restore
+  - dependency array:
+    - `[]`
+  - excluded:
+    - `location.state`
+    - `jewelryType`
+    - `modelsApiEnabled`
+  - risk:
+    - high
+- `UnifiedStudio.tsx:809`
+  - second-pass selected model restore after preset API data loads
+  - dependency array includes:
+    - `presetModelsData`
+  - excluded:
+    - `modelsApiEnabled`
+    - `selectedModel`
+  - risk:
+    - medium-high
+- `TextToCAD.tsx:144`
+  - one-shot `?glb=` param consumption
+  - dependency array:
+    - `[]`
+  - excluded:
+    - `searchParams`
+    - `navigate`
+  - risk:
+    - medium
+- Refactoring danger score:
+  - suppressions:
+    - 5
+  - average line count of files containing suppressions:
+    - 1,878
+  - score:
+    - 9,390
+  - interpretation:
+    - high, because all suppressions are inside large workflow pages.
+- Probe conclusion:
+  - The raw suppression count is not huge.
+  - The concentration is the problem:
+    - all suppressions are hook dependency suppressions
+    - all are in high-risk workflow pages
+    - most involve preload/session/selection behavior
+  - These are plausible stale-closure/regression points when route state, onboarding, model APIs, or workspace entry flows change.
+
+## Probe 14 Key Findings
+
+- Raw `fetch(` call count in `src/`:
+  - 29 lines
+- Raw fetch that is expected/safe:
+  - `authenticatedFetch` internals
+  - auth bootstrap/login/register/OAuth calls
+  - static `/version.json`
+  - `data:` / `blob:` / imported asset utilities
+  - public/direct GLB downloads when explicitly not `/artifacts/`
+- High-risk live backend calls bypassing `authenticatedFetch`:
+  - `src/lib/photoshoot-api.ts`
+    - `/api/run/state/jewelry_photoshoots_generator`
+    - `/api/status/{workflowId}`
+    - `/api/result/{workflowId}`
+    - `/api/run/Product_shot_pipeline`
+  - `src/hooks/use-image-validation.ts`
+    - `https://formanova.ai/api/run/image_classification`
+    - `https://formanova.ai/api/status/{workflowId}`
+    - `https://formanova.ai/api/result/{workflowId}`
+  - `src/lib/admin-generations-api.ts`
+    - `/api/admin/generations`
+    - `/api/admin/generations/{workflowId}`
+  - `src/pages/LinkAccount.tsx`
+    - `/api/agent/link/complete`
+- Medium/context-specific bypasses:
+  - `src/pages/AdminFeedbackPage.tsx`
+    - protected artifact/image download with manual bearer
+  - `src/lib/pipeline-api.ts`
+    - pipeline/admin/tenant helper with manual bearer or `X-Admin-Secret`
+    - appears mostly dormant from current live imports
+  - `src/pages/TextToCAD.tsx`
+    - raw `fetch(glbUrl)` and `fetch(downloadUrl)` download fallbacks
+    - safe only if those URLs are public/direct; bypass risk if they are `/artifacts/`
+- Files that import `authenticatedFetch` but still use raw fetch intentionally for public assets:
+  - `CADCanvas.tsx`
+  - `ScissorGLBGrid.tsx`
+  - `CadWorkflowModal.tsx`
+- CAD generation itself is more consistent:
+  - `/api/run`
+  - `/api/status`
+  - `/api/result`
+  - all use `authenticatedFetch` in `TextToCAD.tsx`.
+- Photo/on-model generation is not consistent:
+  - `photoshoot-api.ts` and `use-image-validation.ts` use `getStoredToken()` / manual headers instead of `authenticatedFetch`.
+- Probe conclusion:
+  - Auth bypass risk is concentrated in the photo/on-model generation stack, image validation, admin generation APIs, and account linking.
+  - Bypassing `authenticatedFetch` means 401/session-expiry handling is inconsistent:
+    - no centralized token/user cleanup
+    - no centralized redirect
+    - errors can appear as generation failures, validation fallbacks, admin errors, or link failures.
+  - Standardization target:
+    - protected backend calls use `authenticatedFetch`
+    - raw `fetch` is reserved for auth bootstrap, static files, `data:`/`blob:` URLs, public direct downloads, and the wrapper implementation itself.
+
+## Probe 15 Key Findings
+
+- Compiler safety context:
+  - `tsconfig.app.json`
+    - `strict: false`
+  - `tsconfig.json`
+    - `strictNullChecks: false`
+- Total TypeScript escape hatches in `src/`:
+  - `90`
+- Totals by pattern:
+  - `as any`
+    - `34`
+  - `: any`
+    - `32`
+  - `@ts-ignore`
+    - `2`
+  - `@ts-expect-error`
+    - `0`
+  - `as unknown as`
+    - `0`
+  - non-null assertions matching `!.` or `!;`
+    - `22`
+- Top files by raw count:
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - `23`
+  - `src/lib/generation-enrichment.ts`
+    - `16`
+  - `src/lib/posthog-events.test.ts`
+    - `7`
+  - `src/pages/TextToCAD.tsx`
+    - `6`
+  - `src/main.tsx`
+    - `4`
+- Top production files by density:
+  - `src/lib/generation-enrichment.ts`
+    - `9.64` per 100 lines
+  - `src/main.tsx`
+    - `3.70` per 100 lines
+  - `src/utils/lazyWithRetry.ts`
+    - `2.00` per 100 lines
+  - `src/components/ChunkErrorBoundary.tsx`
+    - `1.67` per 100 lines
+  - `src/hooks/use-version-polling.ts`
+    - `1.43` per 100 lines
+- `@ts-ignore` usage:
+  - `src/pages/AdminModelsPage.tsx`
+    - `webkitdirectory`
+  - `src/pages/AdminInspirationsPage.tsx`
+    - `webkitdirectory`
+- Highest refactoring-risk files:
+  - `CADCanvas.tsx`
+    - many non-null assertions around refs/materials/Three.js assumptions.
+  - `generation-enrichment.ts`
+    - dense `any` use around backend/history payload parsing.
+  - `TextToCAD.tsx`
+    - `any` around downloads, workflow results, weight/STL paths.
+  - `generation-history-api.ts`
+    - `any` around API response normalization.
+  - `main.tsx`, `use-version-polling.ts`, `ChunkErrorBoundary.tsx`
+    - weak global `window.__generationInProgress` contract.
+- Probe conclusion:
+  - Escape hatches are not uniformly spread.
+  - They cluster around CAD rendering/export, generation history/result parsing, and global reload coordination.
+  - With strict null checking disabled, these files should be treated as "tests first" before major refactors.
+
+## Probe 16 Key Findings
+
+- Real error boundary components found:
+  - `src/components/ChunkErrorBoundary.tsx`
+    - active
+  - `src/components/PostHogErrorBoundary.tsx`
+    - unused/no active imports found
+- `InteractiveRing.tsx` has a function named `ErrorBoundary3D`, but it is not a real React error boundary.
+- No Next-style `error.tsx` files found.
+- `main.tsx` renders `<App />` directly.
+  - no top-level error boundary around the whole app.
+- `App.tsx` wraps only `<Suspense><Routes /></Suspense>` in `ChunkErrorBoundary`.
+- `Header`, providers, router helpers, update banner, and decorations are outside `ChunkErrorBoundary`.
+- `ChunkErrorBoundary` only handles chunk-load/dynamic-import errors.
+- For non-chunk errors, `ChunkErrorBoundary.getDerivedStateFromError` rethrows.
+- If `UnifiedStudio.tsx` throws a chunk-load error:
+  - route/main content is contained by `ChunkErrorBoundary`.
+  - header remains.
+- If `UnifiedStudio.tsx` throws a normal render/lifecycle error:
+  - it is not contained to the studio panel.
+  - with no outer boundary in `main.tsx`, the whole React app can crash/unmount for the user.
+- `UnifiedStudio.tsx`, `TextToCAD.tsx`, and `CADCanvas.tsx` have no local real React error boundary.
+- Boundary coverage quality:
+  - medium for deploy/chunk-load failures.
+  - low for normal component crashes.
+- Probe conclusion:
+  - FormaNova has chunk-load recovery, not general crash containment.
+  - A god component crash in `UnifiedStudio` has app-level blast radius.
+  - Refactor target should be layered containment:
+    - app-level catch-all boundary
+    - route-level tool boundaries
+    - CAD/WebGL boundary
+    - section boundaries after `UnifiedStudio` is split.
+
+## Probe 17 Key Findings
+
+- Hardcoded production backend/domain values were found in live source:
+  - `src/hooks/use-image-validation.ts`
+    - `https://formanova.ai`
+  - `src/pages/PromoAdminPage.tsx`
+    - `https://formanova.ai/api/credits/admin/ui/promo-codes`
+  - `src/lib/generation-history-api.ts`
+    - `https://formanova.ai`
+  - `src/lib/generation-enrichment.ts`
+    - `https://formanova.ai/api/result/{workflowId}`
+  - `src/main.tsx`
+    - production domain redirect and PostHog relay/UI hosts.
+- Hardcoded Azure blob storage values were found:
+  - `src/lib/azure-utils.ts`
+    - `https://snapwear.blob.core.windows.net/{path}`
+  - `src/lib/model-library.ts`
+    - `https://snapwear.blob.core.windows.net/agentic-artifacts/Models`
+- Internal RareSense email gates are hardcoded in `src/lib/feature-flags.ts`.
+- Low-risk matches include:
+  - SEO canonical URLs,
+  - legal/contact links,
+  - public marketing links,
+  - SVG XML namespaces,
+  - URL-detection strings like `startsWith('https://')`.
+- Core finding:
+  - Parts of the frontend are coupled directly to production backend and production Azure storage.
+  - Staging/local backend changes and storage rotation can require frontend code edits and redeploys.
+- Highest-priority cleanup:
+  - centralize backend base URL policy,
+  - keep protected API calls relative or configured,
+  - stop constructing Azure blob URLs in scattered frontend code,
+  - keep hardcoded production URLs only for intentional SEO/legal/marketing destinations.
+
+## Probe 18 Key Findings
+
+- Confirmed raw `/api/` fetch migration targets:
+  - `src/lib/photoshoot-api.ts:84`
+    - `/api/run/state/jewelry_photoshoots_generator`
+  - `src/lib/photoshoot-api.ts:108`
+    - `/api/status/{workflowId}`
+  - `src/lib/photoshoot-api.ts:139`
+    - `/api/result/{workflowId}`
+  - `src/lib/photoshoot-api.ts:205`
+    - `/api/run/Product_shot_pipeline`
+  - `src/lib/admin-generations-api.ts:213`
+    - `/api/admin/generations...`
+  - `src/pages/LinkAccount.tsx:54`
+    - `/api/agent/link/complete`
+- Dynamic raw fetches that may become `/api/` risks depending on runtime URLs:
+  - `src/pages/AdminFeedbackPage.tsx:77`
+    - authenticated image/artifact download helper.
+  - `src/pages/TextToCAD.tsx:778`
+    - dynamic `glbUrl` download fallback.
+  - `src/pages/TextToCAD.tsx:960`
+    - dynamic STL download URL, currently expected to be signed Azure Blob.
+- `photoshoot-api.ts` manually uses `getStoredToken()` through local `getAuthHeaders()`.
+- `admin-generations-api.ts` manually uses `getStoredToken()` directly.
+- `LinkAccount.tsx` uses `useAuth().getAuthHeader()`, not `getStoredToken()` directly.
+- Current 401 behavior is inconsistent:
+  - photo/product-shot API calls throw generic workflow errors,
+  - admin generations throw an admin-specific 401 error but do not clear auth or redirect,
+  - account linking falls to generic page error,
+  - admin feedback download silently fails.
+- Core finding:
+  - the photo/product-shot API client is the highest-priority migration target to `authenticatedFetch`.
+  - On 401, photo/on-model can currently show generation failure instead of session expiry/login flow.
+- Migration must preserve:
+  - photo status 404 -> running behavior,
+  - photo result 404 retry behavior,
+  - admin custom error display,
+  - account-link 400/403/404/422 status mapping,
+  - public/signed asset download behavior.
+
+## Probe 19 Key Findings
+
+- Found 21 hardcoded production/storage/internal strings in `src` matching:
+  - `https://formanova.ai`
+  - `blob.core.windows.net`
+  - `raresense`
+- Highest-risk backend/runtime coupling:
+  - `src/hooks/use-image-validation.ts:7`
+    - suggested `VITE_API_BASE_URL`
+  - `src/pages/PromoAdminPage.tsx:24`
+    - suggested `VITE_API_BASE_URL`
+  - `src/lib/generation-history-api.ts:9`
+    - suggested `VITE_API_BASE_URL`
+  - `src/lib/generation-enrichment.ts:44`
+    - suggested `VITE_API_BASE_URL`
+- Highest-risk storage coupling:
+  - `src/lib/azure-utils.ts:11`
+    - suggested `VITE_AZURE_BLOB_BASE_URL`
+  - `src/lib/model-library.ts:10`
+    - suggested `VITE_MODEL_ASSET_BASE_URL`
+- Public/domain links should use:
+  - `VITE_PUBLIC_SITE_URL`
+- Internal RareSense allowlists in `src/lib/feature-flags.ts` should either move to backend/admin config or use explicit env allowlists:
+  - `VITE_WEIGHT_STL_ALLOWLIST_EMAILS`
+  - `VITE_CAD_UPLOAD_ALLOWLIST_EMAILS`
+  - `VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS`
+  - `VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS`
+  - `VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS`
+  - `VITE_TEST_MENU_ALLOWLIST_EMAILS`
+- Core finding:
+  - staging and production are not fully separable by environment config today.
+  - The real blockers are production backend URLs, Azure blob paths, and frontend hardcoded internal email gates.
+
+## Current Assessment Direction
+
+- This is not just a messy-component problem.
+- The main architectural issue is missing standardization across feature boundaries.
+- The app has grown through vertical feature slices, likely from AI-assisted local changes.
+- Each slice copied or invented local patterns for:
+  - API calls,
+  - auth handling,
+  - polling,
+  - loading state,
+  - dialogs/modals,
+  - layout shells,
+  - asset fetching.
+- Future regressions are most likely when changing:
+  - generation workflows,
+  - asset/artifact fetching,
+  - auth redirects/session expiry,
+  - credits/billing/admin flows,
+  - studio UI state,
+  - CAD rendering/export logic.
+
+## Open Questions For Later Probes
+
+- Are there duplicated domain models/types across API files and pages?
+- Are there duplicate generation workflow state machines?
+- Are error messages and toast patterns centralized or scattered?
+- Which files own upload/image validation, and are there duplicate validation paths?
+- Are there hidden legacy components/routes still imported or only dead code?
+- Are CSS/theme tokens centralized or overridden in many places?
+- Are there duplicate artifact URL normalization functions?
+- Are tests covering the high-risk flows or only utility functions?
+
+## Final Assessment Hooks
+
+- Use the saved probe files, not chat memory, as source of truth.
+- Likely final framing:
+  - "The product is feature-rich but architecture-light."
+  - "The main regression driver is coupling, not lack of effort."
+  - "The highest leverage fix is not a rewrite; it is standardizing boundaries and stopping new drift."
+  - "Refactor should proceed by extracting stable interfaces around API, auth/session, generation workflows, assets, credits, and modals."

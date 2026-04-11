@@ -1,0 +1,384 @@
+Probe 15: TypeScript escape hatch count
+
+- Scope:
+  - searched `src/` for:
+    - `as any`
+    - `: any`
+    - `@ts-ignore`
+    - `@ts-expect-error`
+    - `as unknown as`
+    - non-null assertion forms requested:
+      - `!.`
+      - `!;`
+  - counted by file
+  - calculated density as:
+    - escape hatches per 100 lines
+
+- Compiler safety context:
+  - `tsconfig.app.json`
+    - `strict: false`
+  - `tsconfig.json`
+    - `strictNullChecks: false`
+  - `tsconfig.node.json`
+    - `strict: true`
+  - Interpretation:
+    - the app code is already compiled with weak null/type safety.
+    - escape hatches on top of this reduce refactoring confidence further.
+
+- Total escape hatches in `src/`:
+  - `90`
+
+- Totals by pattern:
+  - `as any`
+    - `34`
+  - `: any`
+    - `32`
+  - `@ts-ignore`
+    - `2`
+  - `@ts-expect-error`
+    - `0`
+  - `as unknown as`
+    - `0`
+  - non-null assertions matching `!.` or `!;`
+    - `22`
+
+- Counts by file:
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - lines:
+      - `2059`
+    - total:
+      - `23`
+    - density per 100 lines:
+      - `1.12`
+    - `as any`:
+      - `6`
+    - `: any`:
+      - `2`
+    - `@ts-ignore`:
+      - `0`
+    - `@ts-expect-error`:
+      - `0`
+    - `as unknown as`:
+      - `0`
+    - non-null `!.` / `!;`:
+      - `15`
+  - `src/lib/generation-enrichment.ts`
+    - lines:
+      - `166`
+    - total:
+      - `16`
+    - density per 100 lines:
+      - `9.64`
+    - `as any`:
+      - `6`
+    - `: any`:
+      - `10`
+    - non-null:
+      - `0`
+  - `src/lib/posthog-events.test.ts`
+    - lines:
+      - `323`
+    - total:
+      - `7`
+    - density per 100 lines:
+      - `2.17`
+    - `as any`:
+      - `7`
+    - note:
+      - test-only file
+  - `src/pages/TextToCAD.tsx`
+    - lines:
+      - `1524`
+    - total:
+      - `6`
+    - density per 100 lines:
+      - `0.39`
+    - `as any`:
+      - `2`
+    - `: any`:
+      - `4`
+  - `src/main.tsx`
+    - lines:
+      - `108`
+    - total:
+      - `4`
+    - density per 100 lines:
+      - `3.70`
+    - `as any`:
+      - `3`
+    - non-null:
+      - `1`
+  - `src/lib/generation-history-api.ts`
+    - lines:
+      - `324`
+    - total:
+      - `4`
+    - density per 100 lines:
+      - `1.23`
+    - `: any`:
+      - `4`
+  - `src/lib/admin-generations-api.ts`
+    - lines:
+      - `292`
+    - total:
+      - `3`
+    - density per 100 lines:
+      - `1.03`
+    - `: any`:
+      - `3`
+  - `src/lib/gpu-detect.ts`
+    - lines:
+      - `392`
+    - total:
+      - `3`
+    - density per 100 lines:
+      - `0.77`
+    - `as any`:
+      - `2`
+    - non-null:
+      - `1`
+  - `src/pages/AdminInspirationsPage.tsx`
+    - lines:
+      - `502`
+    - total:
+      - `3`
+    - density per 100 lines:
+      - `0.60`
+    - `: any`:
+      - `2`
+    - `@ts-ignore`:
+      - `1`
+  - `src/pages/AdminModelsPage.tsx`
+    - lines:
+      - `506`
+    - total:
+      - `3`
+    - density per 100 lines:
+      - `0.59`
+    - `: any`:
+      - `2`
+    - `@ts-ignore`:
+      - `1`
+  - `src/pages/UnifiedStudio.tsx`
+    - lines:
+      - `2234`
+    - total:
+      - `3`
+    - density per 100 lines:
+      - `0.13`
+    - `as any`:
+      - `1`
+    - `: any`:
+      - `2`
+  - `src/components/ChunkErrorBoundary.tsx`
+    - lines:
+      - `120`
+    - total:
+      - `2`
+    - density per 100 lines:
+      - `1.67`
+    - `as any`:
+      - `2`
+  - `src/hooks/use-version-polling.ts`
+    - lines:
+      - `140`
+    - total:
+      - `2`
+    - density per 100 lines:
+      - `1.43`
+    - `as any`:
+      - `2`
+  - `src/lib/mask-visualization.ts`
+    - lines:
+      - `182`
+    - total:
+      - `2`
+    - density per 100 lines:
+      - `1.10`
+    - non-null:
+      - `2`
+  - `src/utils/lazyWithRetry.ts`
+    - lines:
+      - `50`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `2.00`
+    - `as any`:
+      - `1`
+  - `src/lib/microservices-api.ts`
+    - lines:
+      - `84`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `1.19`
+    - `as any`:
+      - `1`
+  - `src/contexts/CreditsContext.tsx`
+    - lines:
+      - `104`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.96`
+    - `: any`:
+      - `1`
+  - `src/components/text-to-cad/GemInstanceRenderer.ts`
+    - lines:
+      - `108`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.93`
+    - non-null:
+      - `1`
+  - `src/components/KineticText.tsx`
+    - lines:
+      - `212`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.47`
+    - `as any`:
+      - `1`
+  - `src/pages/Generations.tsx`
+    - lines:
+      - `412`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.24`
+    - `: any`:
+      - `1`
+  - `src/hooks/use-image-validation.ts`
+    - lines:
+      - `435`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.23`
+    - `: any`:
+      - `1`
+  - `src/components/generations/ScissorGLBGrid.tsx`
+    - lines:
+      - `542`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.18`
+    - non-null:
+      - `1`
+  - `src/pages/AdminFeedbackPage.tsx`
+    - lines:
+      - `625`
+    - total:
+      - `1`
+    - density per 100 lines:
+      - `0.16`
+    - non-null:
+      - `1`
+
+- Top 5 files by raw escape hatch count:
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - `23`
+  - `src/lib/generation-enrichment.ts`
+    - `16`
+  - `src/lib/posthog-events.test.ts`
+    - `7`
+  - `src/pages/TextToCAD.tsx`
+    - `6`
+  - `src/main.tsx`
+    - `4`
+
+- Top 5 files by escape hatch density, including tests:
+  - `src/lib/generation-enrichment.ts`
+    - `9.64` per 100 lines
+  - `src/main.tsx`
+    - `3.70` per 100 lines
+  - `src/lib/posthog-events.test.ts`
+    - `2.17` per 100 lines
+  - `src/utils/lazyWithRetry.ts`
+    - `2.00` per 100 lines
+  - `src/components/ChunkErrorBoundary.tsx`
+    - `1.67` per 100 lines
+
+- Top 5 production files by escape hatch density, excluding tests:
+  - `src/lib/generation-enrichment.ts`
+    - `9.64` per 100 lines
+  - `src/main.tsx`
+    - `3.70` per 100 lines
+  - `src/utils/lazyWithRetry.ts`
+    - `2.00` per 100 lines
+  - `src/components/ChunkErrorBoundary.tsx`
+    - `1.67` per 100 lines
+  - `src/hooks/use-version-polling.ts`
+    - `1.43` per 100 lines
+
+- `@ts-ignore` details:
+  - `src/pages/AdminModelsPage.tsx:367`
+    - suppresses TypeScript for:
+      - `webkitdirectory=""`
+    - context:
+      - folder upload input
+    - risk:
+      - low/medium
+      - common browser-specific input attribute, but should eventually be typed instead of ignored.
+  - `src/pages/AdminInspirationsPage.tsx:363`
+    - suppresses TypeScript for:
+      - `webkitdirectory=""`
+    - context:
+      - folder upload input
+    - risk:
+      - low/medium
+      - same browser-specific input attribute.
+
+- Highest refactoring-risk files:
+  - `src/components/text-to-cad/CADCanvas.tsx`
+    - highest raw count:
+      - `23`
+    - risk reason:
+      - combines WebGL, Three.js, refs, imperative handles, material lookups, GLB loading, and non-null assertions.
+      - `15` non-null assertions mean runtime crashes are likely if scene/material/ref assumptions break.
+  - `src/lib/generation-enrichment.ts`
+    - highest density:
+      - `9.64` per 100 lines
+    - risk reason:
+      - parses loose backend/history payload shapes with `any`.
+      - refactors to history/result formats can silently produce wrong thumbnails or CAD metadata.
+  - `src/pages/TextToCAD.tsx`
+    - moderate raw count:
+      - `6`
+    - risk reason:
+      - `any` appears around File System Access API and workflow result objects.
+      - those are near download, weight, and STL flows.
+  - `src/lib/generation-history-api.ts`
+    - risk reason:
+      - typed API boundary still uses `any` while normalizing backend history payloads.
+  - `src/main.tsx` / `use-version-polling.ts` / `ChunkErrorBoundary.tsx`
+    - risk reason:
+      - shared global `window.__generationInProgress` uses `as any`.
+      - this weak global contract coordinates refresh behavior during generation.
+
+- Refactoring confidence assessment:
+  - The escape hatch count is not catastrophic across the entire repo, but it is concentrated in dangerous places.
+  - The worst raw-count file is the CAD renderer:
+    - `CADCanvas.tsx`
+  - The worst density file is the history/result enrichment layer:
+    - `generation-enrichment.ts`
+  - Both are runtime-shape-heavy areas:
+    - GLB/Three.js object assumptions
+    - backend result payload assumptions
+  - With `strictNullChecks: false`, TypeScript is already allowing many null/undefined risks.
+  - The escape hatches add another layer where wrong assumptions can become runtime crashes during refactors.
+
+- Core finding:
+  - Total escape hatches:
+    - `90`
+  - The main refactor danger is not evenly spread.
+  - It clusters around:
+    - CAD rendering/export internals
+    - generation history/result parsing
+    - global update/reload coordination
+    - CAD workflow result/download flows
+  - These should be treated as "handle with tests first" areas before major refactors.

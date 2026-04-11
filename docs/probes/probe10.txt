@@ -1,0 +1,211 @@
+Probe 10: Temporal/workflow API deletion confirmation
+
+- Scope:
+  - check whether `src/lib/temporal-api.ts` exists
+  - check whether `src/lib/workflow-api.ts` exists
+  - list current source importers if either exists
+  - compare the old client purpose to current `src/lib/photoshoot-api.ts`
+  - confirm whether deleting both files would break live code
+
+- Current file existence:
+  - `src/lib/temporal-api.ts`
+    - exists now:
+      - no
+  - `src/lib/workflow-api.ts`
+    - exists now:
+      - no
+
+- Current imports:
+  - Source search:
+    - `rg -n 'temporal-api|workflow-api' src`
+  - Result:
+    - no matches in `src`
+  - Importers of `src/lib/temporal-api.ts`:
+    - none
+  - Importers of `src/lib/workflow-api.ts`:
+    - none
+
+- Live route status of importers:
+  - Not applicable because there are no current source importers.
+  - The currently live photo route in `src/App.tsx` is:
+    - `src/App.tsx:229`
+      - `/studio/:type` -> `UnifiedStudio`
+  - `UnifiedStudio` imports the current replacement client:
+    - `src/pages/UnifiedStudio.tsx:44`
+      - `startPhotoshoot`
+    - `src/pages/UnifiedStudio.tsx:45`
+      - `startPdpShot`
+    - `src/pages/UnifiedStudio.tsx:46`
+      - `getPhotoshootStatus`
+    - `src/pages/UnifiedStudio.tsx:47`
+      - `getPhotoshootResult`
+    - `src/pages/UnifiedStudio.tsx:48`
+      - `resolveWorkflowState`
+    - all from `@/lib/photoshoot-api`
+
+- Exported functions and types from `src/lib/temporal-api.ts`:
+  - Current exports:
+    - none, because the file does not exist.
+  - Historical note from probe 8 / git history:
+    - the deleted file previously overlapped with the workflow client around:
+      - health checks
+      - workflow start calls
+      - status calls
+      - result calls
+      - polling helpers
+      - step progress helpers
+      - blob/image helpers
+
+- Exported functions and types from `src/lib/workflow-api.ts`:
+  - Current exports:
+    - none, because the file does not exist.
+  - Historical note from probe 8 / git history:
+    - the deleted file previously overlapped with the temporal client around:
+      - health checks
+      - masking workflow starts
+      - generation workflow starts
+      - status calls
+      - result calls
+      - polling helpers
+      - step progress helpers
+      - blob/image helpers
+
+- Current exports from `src/lib/photoshoot-api.ts`:
+  - `src/lib/photoshoot-api.ts:15`
+    - `PhotoshootStartRequest`
+  - `src/lib/photoshoot-api.ts:26`
+    - `PhotoshootStartResponse`
+  - `src/lib/photoshoot-api.ts:34`
+    - `PhotoshootStatusResponse`
+  - `src/lib/photoshoot-api.ts:48`
+    - `PhotoshootResultResponse`
+  - `src/lib/photoshoot-api.ts:67`
+    - `startPhotoshoot`
+  - `src/lib/photoshoot-api.ts:105`
+    - `getPhotoshootStatus`
+  - `src/lib/photoshoot-api.ts:127`
+    - `getPhotoshootResult`
+  - `src/lib/photoshoot-api.ts:164`
+    - `PdpStartRequest`
+  - `src/lib/photoshoot-api.ts:176`
+    - `startPdpShot`
+  - `src/lib/photoshoot-api.ts:227`
+    - `resolveWorkflowState`
+
+- Current `photoshoot-api.ts` live users:
+  - `src/pages/UnifiedStudio.tsx:44-50`
+    - imports all current photoshoot API helpers.
+  - Generation start calls:
+    - `src/pages/UnifiedStudio.tsx:1068`
+      - `startPdpShot(...)`
+    - `src/pages/UnifiedStudio.tsx:1082`
+      - `startPhotoshoot(...)`
+  - Polling/result calls:
+    - `src/pages/UnifiedStudio.tsx:1114`
+      - `getPhotoshootStatus(...)`
+    - `src/pages/UnifiedStudio.tsx:1115`
+      - `resolveWorkflowState(...)`
+    - `src/pages/UnifiedStudio.tsx:1135`
+      - `getPhotoshootResult(...)`
+
+- Overlap with the deleted API clients by purpose:
+  - Start generation:
+    - old temporal/workflow clients:
+      - generic masking/generation start helpers
+    - current photoshoot client:
+      - `startPhotoshoot`
+      - `startPdpShot`
+    - overlap:
+      - yes by purpose, not by current name.
+      - current client is narrower and photo/product-shot specific.
+  - Poll status:
+    - old temporal/workflow clients:
+      - generic status helpers.
+    - current photoshoot client:
+      - `getPhotoshootStatus`
+      - `resolveWorkflowState`
+    - overlap:
+      - yes by purpose.
+  - Fetch result:
+    - old temporal/workflow clients:
+      - generic result helpers.
+    - current photoshoot client:
+      - `getPhotoshootResult`
+    - overlap:
+      - yes by purpose.
+  - Poll until complete:
+    - old temporal/workflow clients:
+      - generic polling helpers.
+    - current photoshoot client:
+      - no exported full poll-until-complete helper.
+      - polling is currently orchestrated in `UnifiedStudio`.
+    - overlap:
+      - partial by behavior, but no direct replacement function name.
+  - Masking/refine workflow helpers:
+    - old temporal/workflow clients:
+      - masking/start/refine-era helpers.
+    - current photoshoot client:
+      - no masking/refine helpers.
+    - overlap:
+      - no current overlap; this old workflow appears removed.
+  - Blob/image helper functions:
+    - old temporal/workflow clients:
+      - blob/image conversion and URL fetch helpers.
+    - current photoshoot client:
+      - no blob helper exports.
+    - overlap:
+      - no current overlap.
+
+- Current non-source references:
+  - `docs/probes/ROLLING_AUDIT_SUMMARY.md`
+    - audit notes mention the deleted files.
+  - `docs/probes/probe8.txt`
+    - prior unfinished migration audit mentions the deleted files.
+  - `TEMPORAL_INTEGRATION_CHECKLIST.md`
+    - old documentation says to create `src/lib/temporal-api.ts`.
+  - `TEMPORAL_DEVELOPMENT_PROMPT.md`
+    - old documentation references Temporal API setup.
+  - These are docs, not live imports.
+
+- Deletion verdict:
+  - Confirmed:
+    - both files have already been deleted from current `src`.
+  - Confirmed:
+    - no current source file imports either one.
+  - Confirmed:
+    - no currently routed page depends on either one.
+  - Practical conclusion:
+    - deleting `src/lib/temporal-api.ts` and `src/lib/workflow-api.ts` cannot break live code because they are already gone.
+  - Remaining cleanup:
+    - old Temporal documentation files still mention the deleted client path.
+    - stale `App.tsx` comments from the old studio migration remain, but not specifically imports of these two API clients.
+
+- Remaining cleanup to specifically call later:
+  - Old Temporal docs still describe creating or using a deleted client:
+    - `TEMPORAL_INTEGRATION_CHECKLIST.md`
+      - still references creating `src/lib/temporal-api.ts`
+      - likely obsolete now that live photo generation uses `src/lib/photoshoot-api.ts`
+    - `TEMPORAL_DEVELOPMENT_PROMPT.md`
+      - still references Temporal API setup language
+      - likely historical planning material, not current implementation guidance
+  - `src/App.tsx` still contains stale migration comments around deleted studio routes:
+    - old `JewelryStudio` lazy route/comment
+    - old `CategoryUploadStudio` lazy route/comment
+    - commented `/studio/:type` route variants for deleted/removed implementations
+    - these do not break runtime, but they mislead future AI/humans into thinking old route options still exist
+  - Current `src/lib/photoshoot-api.ts` file header still says:
+    - `Photoshoot Generation API`
+    - `Uses direct JWT auth to the Temporal API gateway at /api`
+    - this may be technically true if the backend is still Temporal-backed, but it can be confusing because the old `temporal-api.ts` client is gone
+  - Current replacement is not a complete workflow abstraction:
+    - `photoshoot-api.ts` starts workflows and fetches status/result
+    - `UnifiedStudio.tsx` still owns polling loop timing, generation progress UI state, result extraction, and phase transitions
+    - if cleanup continues, the target should be a photo-generation workflow helper/hook, not resurrecting the old generic `temporal-api.ts`
+  - Old docs plus stale comments should be treated as cleanup debt, not live-code blockers:
+    - they are safe to clean after the audit
+    - they should not be used as evidence that deleted clients are still active
+
+- Core finding:
+  - The duplicate API-client migration has already been completed at the filesystem/source-import level.
+  - The current live photo studio depends on `src/lib/photoshoot-api.ts`, not the deleted generic Temporal/workflow clients.
+  - Remaining risk is not from these deleted files; it is from the current pattern where `photoshoot-api.ts` centralizes only part of the generation lifecycle while polling orchestration and result interpretation still live inside `UnifiedStudio.tsx`.
