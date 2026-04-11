@@ -224,9 +224,9 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border shrink-0">
           <DialogTitle className="sr-only">{STEPS[step].title}</DialogTitle>
-          <span className="font-mono text-xs sm:text-sm text-muted-foreground ml-auto">
+          <span className="font-mono text-sm text-muted-foreground ml-auto">
             {step + 1} / {TOTAL}
           </span>
         </div>
@@ -241,21 +241,21 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Tip — reserved space, invisible unless needed */}
-        <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-2 sm:py-3 border-transparent">
+        <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-3 border-transparent">
           <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 invisible" />
           <p className="text-xs leading-relaxed invisible">placeholder</p>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-2 sm:py-4 border-t border-border flex items-center justify-end gap-3 sm:gap-4 shrink-0">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex items-center justify-end gap-4 shrink-0">
           {step > 0 && (
-            <Button variant="ghost" size="default" className="min-w-[100px] sm:min-w-[130px]" onClick={() => setStep(s => s - 1)}>
+            <Button variant="ghost" size="default" className="min-w-[130px]" onClick={() => setStep(s => s - 1)}>
               Back
             </Button>
           )}
           <Button
             size="default"
-            className="min-w-[100px] sm:min-w-[130px]"
+            className="min-w-[130px]"
             onClick={() => {
               if (step < TOTAL - 1) setStep(s => s + 1);
               else if (!checked) triggerShake();
