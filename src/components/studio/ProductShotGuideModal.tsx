@@ -46,7 +46,7 @@ function ColLabel({ ok, children }: { ok: boolean; children: React.ReactNode }) 
 
 function ImgSlot({ src, alt, imgClass = '' }: { src: string; alt: string; imgClass?: string }) {
   return (
-    <div className="flex-1 min-h-[50px] sm:min-h-[70px] overflow-hidden bg-muted/10">
+    <div className="flex-1 min-h-0 overflow-hidden bg-muted/10">
       <img src={src} alt={alt} className={`w-full h-full object-contain ${imgClass}`} />
     </div>
   );
@@ -65,7 +65,7 @@ interface PairColProps {
 
 function PairCol({ ok, label, inputSrc, outputSrc, inputClass = '', caption }: PairColProps) {
   return (
-    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
+    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border overflow-hidden ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
       <ColLabel ok={ok}>{label}</ColLabel>
       <ImgSlot src={inputSrc} alt="input" imgClass={inputClass} />
       <ArrowDown className="shrink-0 mx-auto h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -86,7 +86,7 @@ interface SingleColProps {
 
 function SingleCol({ ok, label, src, caption }: SingleColProps) {
   return (
-    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
+    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border overflow-hidden ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
       <ColLabel ok={ok}>{label}</ColLabel>
       <ImgSlot src={src} alt={label} />
       <p className="text-[10px] sm:text-xs text-center text-muted-foreground shrink-0 leading-tight">{caption}</p>
