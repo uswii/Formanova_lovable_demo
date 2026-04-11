@@ -150,7 +150,7 @@ function Step2() {
           label="Blurry photo"
           inputSrc={psBlurInput}
           outputSrc={psBlurResult}
-          inputClass="blur-[3px]"
+          inputClass="blur-[1.5px]"
           caption="Blurry in. Wrong design out."
         />
         <PairCol
