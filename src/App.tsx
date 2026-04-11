@@ -12,9 +12,7 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
-import { isOnboardingComplete, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkUploadInstructionsSeen } from '@/lib/onboarding-api';
-import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
-import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
+import { isOnboardingComplete } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
@@ -146,40 +144,6 @@ function OnboardingRedirectHandler() {
 
 /* GlobalOnboardingGate removed — guide is now handled inside UnifiedStudio */
 
-const DEV_EMAILS = ['uswa@raresense.so', 'uswaashfaque@gmail.com'];
-
-/** Dev test panel — always visible to dev emails, bottom-left of every page. */
-function TestPanel() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  if (!user?.email || !DEV_EMAILS.includes(user.email.toLowerCase())) return null;
-
-  return (
-    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-1">
-      <button
-        type="button"
-        onClick={() => {
-          if (user) localStorage.removeItem('formanova_onboarding_' + user.id);
-          navigate('/onboarding');
-        }}
-        className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-primary transition-colors"
-      >
-        ↩ role picker
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          if (user) localStorage.removeItem('formanova_tos_' + user.id);
-          window.location.href = '/studio';
-        }}
-        className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 hover:text-primary transition-colors"
-      >
-        ↩ upload guide
-      </button>
-    </div>
-  );
-}
 
 /** Routes /studio to the pre-selection screen for gated users; others see categories as before. */
 function StudioGate() {
@@ -219,7 +183,6 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <OnboardingRedirectHandler />
-            <TestPanel />
             <VersionBanner />
             
             <DeferredDecorations>

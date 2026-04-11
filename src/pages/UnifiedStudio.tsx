@@ -419,9 +419,10 @@ function getStepFromQuery(stepParam: string | null): StudioStep {
 
 // ─── Test menu (uswa-only) ────────────────────────────────────────────────────
 
-function TestMenu({ user, navigate, hasCheckedProductShotGuide, setUploadGuideOpen, setProductShotGuideOpen }: {
+function TestMenu({ user, navigate, hasCheckedUploadGuide, hasCheckedProductShotGuide, setUploadGuideOpen, setProductShotGuideOpen }: {
   user: any;
   navigate: (path: string) => void;
+  hasCheckedUploadGuide: React.MutableRefObject<boolean>;
   hasCheckedProductShotGuide: React.MutableRefObject<boolean>;
   setUploadGuideOpen: (v: boolean) => void;
   setProductShotGuideOpen: (v: boolean) => void;
@@ -440,7 +441,12 @@ function TestMenu({ user, navigate, hasCheckedProductShotGuide, setUploadGuideOp
         <div className="flex flex-col items-start gap-1 pl-2 border-l border-border/20">
           <button
             type="button"
-            onClick={() => { setOpen(false); setUploadGuideOpen(true); }}
+            onClick={() => {
+              setOpen(false);
+              if (user) localStorage.removeItem('formanova_upload_guide_v2_' + user.id);
+              hasCheckedUploadGuide.current = false;
+              setUploadGuideOpen(true);
+            }}
             className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground transition-colors"
           >
             upload guide
@@ -2216,6 +2222,7 @@ export default function UnifiedStudio() {
         <TestMenu
           user={user}
           navigate={navigate}
+          hasCheckedUploadGuide={hasCheckedUploadGuide}
           hasCheckedProductShotGuide={hasCheckedProductShotGuide}
           setUploadGuideOpen={setUploadGuideOpen}
           setProductShotGuideOpen={setProductShotGuideOpen}
