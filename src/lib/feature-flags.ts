@@ -78,7 +78,6 @@ export function isShowAllVaultEnabled(email: string | undefined | null): boolean
 
 /**
  * Onboarding welcome screen — input quality guidelines + Terms of Service gate.
- * Enabled for all users.
  */
 export function isOnboardingWelcomeEnabled(_email: string | undefined | null): boolean {
   return false;
@@ -86,7 +85,6 @@ export function isOnboardingWelcomeEnabled(_email: string | undefined | null): b
 
 /**
  * Authenticated image fetching via blob URLs for /artifacts/ paths.
- * Set to true when the backend proxy is confirmed stable in production.
  */
 export const AUTHENTICATED_IMAGES_ENABLED = true;
 
@@ -98,8 +96,7 @@ export function isFeedbackEnabled(_email: string | undefined | null): boolean {
 }
 
 /**
- * Dynamic preset model library — fetches models from GET /api/models
- * instead of using hardcoded public Azure blob URLs.
+ * Dynamic preset model library — fetches models from GET /api/models.
  */
 export function isModelsApiEnabled(_email: string | undefined | null): boolean {
   return true;
@@ -107,9 +104,6 @@ export function isModelsApiEnabled(_email: string | undefined | null): boolean {
 
 /**
  * In-studio onboarding popup (multi-step) + model guide button on the model canvas.
- * For these users, the /onboarding-welcome redirect is skipped and the popup
- * is shown inside UnifiedStudio instead.
- * Gated until ready to roll out to everyone.
  */
 const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];
 
@@ -118,8 +112,7 @@ export function isStudioOnboardingEnabled(email: string | undefined | null): boo
 }
 
 /**
- * Pre-selection screen at /studio — choose Model Shot or Product Shot
- * before the jewelry category picker. Gated for early-access testing.
+ * Pre-selection screen at /studio — choose Model Shot or Product Shot.
  */
 const STUDIO_TYPE_SELECTION_EMAILS = ['uswa@raresense.so'];
 
@@ -130,11 +123,18 @@ export function isStudioTypeSelectionEnabled(email: string | undefined | null): 
 
 /**
  * Product shot upload guide modal — shown once before the user's first product shot.
- * Gated for early-access testing.
  */
 const PRODUCT_SHOT_GUIDE_EMAILS = ['uswa@raresense.so'];
 
 export function isProductShotGuideEnabled(email: string | undefined | null): boolean {
   if (!email) return false;
   return PRODUCT_SHOT_GUIDE_EMAILS.includes(email.toLowerCase());
+}
+
+/**
+ * Bottom-left test menu (upload guide, product shot guide, role picker).
+ */
+export function isTestMenuEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase() === 'uswa@raresense.so';
 }
