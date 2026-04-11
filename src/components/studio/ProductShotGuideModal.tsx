@@ -46,7 +46,7 @@ function ColLabel({ ok, children }: { ok: boolean; children: React.ReactNode }) 
 
 function ImgSlot({ src, alt, imgClass = '' }: { src: string; alt: string; imgClass?: string }) {
   return (
-    <div className="flex-1 min-h-0 overflow-hidden bg-muted/10">
+    <div className="flex-1 min-h-[50px] sm:min-h-[70px] overflow-hidden bg-muted/10">
       <img src={src} alt={alt} className={`w-full h-full object-contain ${imgClass}`} />
     </div>
   );
@@ -150,7 +150,7 @@ function Step2() {
           label="Blurry photo"
           inputSrc={psBlurInput}
           outputSrc={psBlurResult}
-          inputClass="blur-[1.5px]"
+          inputClass="blur-[1.8px]"
           caption="Blurry in. Wrong design out."
         />
         <PairCol
