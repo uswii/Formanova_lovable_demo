@@ -26,40 +26,70 @@ const STEPS = [
 
 const TOTAL = STEPS.length;
 
-// ─── Shared image cell ────────────────────────────────────────────────────────
-
-function Img({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
-  return (
-    <div className="aspect-square w-full overflow-hidden border border-border/30 bg-muted/10">
-      <img src={src} alt={alt} className={`w-full h-full object-contain ${className}`} />
-    </div>
-  );
-}
-
 // ─── Shared column label ──────────────────────────────────────────────────────
 
 function ColLabel({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 h-7 sm:h-8">
+    <div className="flex items-center gap-1.5 h-7 sm:h-8 shrink-0">
       {ok
-        ? <CheckCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-formanova-success shrink-0" />
-        : <XCircle      className="h-4 w-4 sm:h-6 sm:w-6 text-destructive shrink-0" />
+        ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-formanova-success shrink-0" />
+        : <XCircle      className="h-4 w-4 sm:h-5 sm:w-5 text-destructive shrink-0" />
       }
-      <span className={`text-[10px] sm:text-sm font-semibold uppercase tracking-widest truncate ${ok ? 'text-formanova-success' : 'text-destructive'}`}>
+      <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-widest truncate ${ok ? 'text-formanova-success' : 'text-destructive'}`}>
         {children}
       </span>
     </div>
   );
 }
 
-// ─── Shared before→after pair ─────────────────────────────────────────────────
+// ─── Shared image slot ────────────────────────────────────────────────────────
 
-function Pair({ before, after, beforeClass = '' }: { before: string; after: string; beforeClass?: string }) {
+function ImgSlot({ src, alt, imgClass = '' }: { src: string; alt: string; imgClass?: string }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] gap-0.5 sm:gap-1 items-center">
-      <Img src={before} alt="before" className={beforeClass} />
-      <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
-      <Img src={after} alt="after" />
+    <div className="flex-1 min-h-0 overflow-hidden bg-muted/10">
+      <img src={src} alt={alt} className={`w-full h-full object-contain ${imgClass}`} />
+    </div>
+  );
+}
+
+// ─── Two-column layout with input→arrow→output ────────────────────────────────
+
+interface PairColProps {
+  ok: boolean;
+  label: string;
+  inputSrc: string;
+  outputSrc: string;
+  inputClass?: string;
+  caption: string;
+}
+
+function PairCol({ ok, label, inputSrc, outputSrc, inputClass = '', caption }: PairColProps) {
+  return (
+    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
+      <ColLabel ok={ok}>{label}</ColLabel>
+      <ImgSlot src={inputSrc} alt="input" imgClass={inputClass} />
+      <ArrowDown className="shrink-0 mx-auto h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+      <ImgSlot src={outputSrc} alt="output" />
+      <p className="text-[10px] sm:text-xs text-center text-muted-foreground shrink-0 leading-tight">{caption}</p>
+    </div>
+  );
+}
+
+// ─── Single-image column (no arrow) ──────────────────────────────────────────
+
+interface SingleColProps {
+  ok: boolean;
+  label: string;
+  src: string;
+  caption: string;
+}
+
+function SingleCol({ ok, label, src, caption }: SingleColProps) {
+  return (
+    <div className={`flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 border ${ok ? 'border-formanova-success/40' : 'border-destructive/40'}`}>
+      <ColLabel ok={ok}>{label}</ColLabel>
+      <ImgSlot src={src} alt={label} />
+      <p className="text-[10px] sm:text-xs text-center text-muted-foreground shrink-0 leading-tight">{caption}</p>
     </div>
   );
 }
@@ -81,21 +111,26 @@ function Step0() {
 
 function Step1() {
   return (
-    <div className="flex flex-col gap-3 sm:gap-5 h-full">
-      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-2 sm:gap-3 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
         LIGHTING AFFECTS YOUR JEWELRY
       </p>
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={false}>Dim light</ColLabel>
-          <Pair before={psDimInput} after={psDimResult} beforeClass="brightness-[0.55]" />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Dim light in. Dull jewelry out.</p>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={true}>Bright light</ColLabel>
-          <Pair before={psBrightInput} after={psBrightResult} />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Bright in. Sharp out.</p>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
+        <PairCol
+          ok={false}
+          label="Dim light"
+          inputSrc={psDimInput}
+          outputSrc={psDimResult}
+          inputClass="brightness-[0.55]"
+          caption="Dim light in. Dull jewelry out."
+        />
+        <PairCol
+          ok={true}
+          label="Bright light"
+          inputSrc={psBrightInput}
+          outputSrc={psBrightResult}
+          caption="Bright in. Sharp out."
+        />
       </div>
     </div>
   );
@@ -105,21 +140,26 @@ function Step1() {
 
 function Step2() {
   return (
-    <div className="flex flex-col gap-3 sm:gap-5 h-full">
-      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-2 sm:gap-3 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
         BLUR CHANGES YOUR DESIGN
       </p>
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={false}>Blurry photo</ColLabel>
-          <Pair before={psBlurInput} after={psBlurResult} beforeClass="blur-[3px]" />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Blurry in. Wrong design out.</p>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={true}>Clear photo</ColLabel>
-          <Pair before={psBlurClearInput} after={psBlurClearResult} />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Clear photo. Correct design out.</p>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
+        <PairCol
+          ok={false}
+          label="Blurry photo"
+          inputSrc={psBlurInput}
+          outputSrc={psBlurResult}
+          inputClass="blur-[3px]"
+          caption="Blurry in. Wrong design out."
+        />
+        <PairCol
+          ok={true}
+          label="Clear photo"
+          inputSrc={psBlurClearInput}
+          outputSrc={psBlurClearResult}
+          caption="Clear photo. Correct design out."
+        />
       </div>
     </div>
   );
@@ -129,21 +169,23 @@ function Step2() {
 
 function Step3() {
   return (
-    <div className="flex flex-col gap-3 sm:gap-5 h-full">
-      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center">
+    <div className="flex flex-col gap-2 sm:gap-3 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
         AVOID THESE INPUTS
       </p>
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={false}>Screenshot</ColLabel>
-          <Img src={screenshotExample} alt="Social media screenshot" />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">UI noise. Wrong output.</p>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <ColLabel ok={false}>Packaged / bundle</ColLabel>
-          <Img src={multipleAndPacked} alt="Multiple and packed jewelry" />
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">Bundles confuse the AI.</p>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
+        <SingleCol
+          ok={false}
+          label="Screenshot"
+          src={screenshotExample}
+          caption="UI noise. Wrong output."
+        />
+        <SingleCol
+          ok={false}
+          label="Packaged / bundle"
+          src={multipleAndPacked}
+          caption="Bundles confuse the AI."
+        />
       </div>
     </div>
   );
@@ -240,7 +282,7 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
           {step === 4 && <Step4 checked={checked} onCheck={() => setChecked(c => !c)} shake={shake} />}
         </div>
 
-        {/* Tip — reserved space, invisible unless needed */}
+        {/* Tip — reserved space, always invisible */}
         <div className="px-4 sm:px-6 -mt-px flex items-start gap-3 border-y py-3 border-transparent">
           <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 invisible" />
           <p className="text-xs leading-relaxed invisible">placeholder</p>
