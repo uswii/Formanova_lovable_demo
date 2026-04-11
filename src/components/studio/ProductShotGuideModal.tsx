@@ -232,7 +232,7 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-3 sm:px-6 py-3 sm:py-5 flex-1 min-h-0 overflow-hidden">
+        <div className="px-3 sm:px-6 py-3 sm:py-5 h-[480px] max-h-[calc(100dvh-14rem)] min-h-[280px] overflow-hidden">
           {step === 0 && <Step0 />}
           {step === 1 && <Step1 />}
           {step === 2 && <Step2 />}
