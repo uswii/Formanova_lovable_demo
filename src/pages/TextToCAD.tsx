@@ -741,6 +741,7 @@ export default function TextToCAD() {
         payload: { glb_artifact: glbArtifact, timeout_seconds: 60 },
       };
       console.log('[Weight] Request payload:', weightPayload);
+      // estimate_weight is intentionally free after a generated/imported GLB exists; no credit preflight.
       const startRes = await authenticatedFetch('/api/run/state/estimate_weight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -811,6 +812,7 @@ export default function TextToCAD() {
         },
       };
       console.log('[STL] Request payload:', stlPayload);
+      // prepare_stl is intentionally free after a generated/imported GLB exists; no credit preflight.
       const startRes = await authenticatedFetch('/api/run/state/prepare_stl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
