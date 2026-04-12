@@ -41,7 +41,7 @@ export async function extractProductShotThumbnail(
 ): Promise<string | null> {
   try {
     const { authenticatedFetch } = await import('@/lib/authenticated-fetch');
-    const res = await authenticatedFetch(`https://formanova.ai/api/result/${workflowId}`);
+    const res = await authenticatedFetch(`/api/result/${workflowId}`);
     if (!res.ok) return null;
     const data = await res.json();
     for (const items of Object.values(data)) {

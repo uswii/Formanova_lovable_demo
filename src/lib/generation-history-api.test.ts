@@ -1,5 +1,67 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { inferSourceType } from './generation-history-api';
+
+// ── URL tests: verify no hardcoded production domain ──────────────────────────
+
+const mockAuthFetch = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/authenticated-fetch', () => ({ authenticatedFetch: mockAuthFetch }));
+
+import { listMyWorkflows, getWorkflowDetails, fetchCadResult, fetchWorkflowCreditAudit } from './generation-history-api';
+
+function okJson(body: unknown) {
+  return Promise.resolve({
+    ok: true, status: 200,
+    headers: { get: () => 'application/json' },
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  } as unknown as Response);
+}
+
+function notOk(status = 500) {
+  return Promise.resolve({
+    ok: false, status,
+    headers: { get: () => 'text/plain' },
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve('error'),
+  } as unknown as Response);
+}
+
+beforeEach(() => mockAuthFetch.mockReset());
+
+describe('generation-history-api URL shapes', () => {
+  it('listMyWorkflows calls a relative /history path', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson([]));
+    await listMyWorkflows(10, 0);
+    const [url] = mockAuthFetch.mock.calls[0];
+    expect(url).toMatch(/^\/history\//);
+    expect(url).not.toContain('formanova.ai');
+  });
+
+  it('getWorkflowDetails calls a relative /history path', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({ summary: {}, steps: [] }));
+    await getWorkflowDetails('wf-1');
+    const [url] = mockAuthFetch.mock.calls[0];
+    expect(url).toMatch(/^\/history\//);
+    expect(url).toContain('wf-1');
+    expect(url).not.toContain('formanova.ai');
+  });
+
+  it('fetchCadResult calls a relative /api/result path', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({}));
+    await fetchCadResult('wf-2');
+    const [url] = mockAuthFetch.mock.calls[0];
+    expect(url).toMatch(/^\/api\/result\//);
+    expect(url).not.toContain('formanova.ai');
+  });
+
+  it('fetchWorkflowCreditAudit calls a relative /api/credits/audit path', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({ actual_user_billed: 10 }));
+    await fetchWorkflowCreditAudit('wf-3');
+    const [url] = mockAuthFetch.mock.calls[0];
+    expect(url).toMatch(/^\/api\/credits\/audit\//);
+    expect(url).not.toContain('formanova.ai');
+  });
+});
 
 describe('inferSourceType', () => {
   it('identifies product_shot workflows', () => {

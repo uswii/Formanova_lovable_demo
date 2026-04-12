@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react';
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
 
-const BASE_URL = 'https://formanova.ai';
-const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
-const STATUS_URL = `${BASE_URL}/api/status`;
-const RESULT_URL = `${BASE_URL}/api/result`;
+const CLASSIFICATION_URL = '/api/run/image_classification';
+const STATUS_URL = '/api/status';
+const RESULT_URL = '/api/result';
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 const VALIDATION_UNAVAILABLE_REASONS = new Set([
   'classification_unavailable',
@@ -60,17 +59,6 @@ export interface ValidationState {
   results: ImageValidationResult[] | null;
   flaggedCount: number;
   error: string | null;
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getStoredToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
 }
 
 /**
@@ -170,17 +158,16 @@ export function useImageValidation() {
       }
 
       // 3. POST /api/run/image_classification
-      const authHeaders = getAuthHeaders();
       const classificationPayload = {
         payload: {
           jewelry_image_url: { uri: uploadedUrl },
         },
       };
       console.log('[ImageValidation] Sending classification request:', JSON.stringify(classificationPayload));
-      
-      const runRes = await fetch(CLASSIFICATION_URL, {
+
+      const runRes = await authenticatedFetch(CLASSIFICATION_URL, {
         method: 'POST',
-        headers: authHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(classificationPayload),
         signal: controller.signal,
       });
@@ -209,9 +196,7 @@ export function useImageValidation() {
       for (let i = 0; i < maxPolls; i++) {
         await new Promise(r => setTimeout(r, 1000));
         
-        const statusRes = await fetch(`${STATUS_URL}/${workflowId}`, {
-          method: 'GET',
-          headers: authHeaders,
+        const statusRes = await authenticatedFetch(`${STATUS_URL}/${workflowId}`, {
           signal: controller.signal,
         });
 
@@ -239,9 +224,7 @@ export function useImageValidation() {
       let resultData: any = null;
       const maxResultRetries = 5;
       for (let i = 0; i < maxResultRetries; i++) {
-        const resultRes = await fetch(`${RESULT_URL}/${workflowId}`, {
-          method: 'GET',
-          headers: authHeaders,
+        const resultRes = await authenticatedFetch(`${RESULT_URL}/${workflowId}`, {
           signal: controller.signal,
         });
 

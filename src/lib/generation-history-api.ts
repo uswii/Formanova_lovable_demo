@@ -1,12 +1,10 @@
 /**
  * Generation History API
- * Fetches workflow history from formanova.ai backend (NOT Supabase).
+ * Fetches workflow history from the backend using relative /api paths.
  * Uses authenticatedFetch for JWT Bearer auth.
  */
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-
-const BASE_URL = 'https://formanova.ai';
 const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -74,7 +72,7 @@ export async function listMyWorkflows(
   offset = 0,
 ): Promise<WorkflowSummary[]> {
   const res = await authenticatedFetch(
-    `${BASE_URL}/history/workflows/me?limit=${limit}&offset=${offset}`,
+    `/history/workflows/me?limit=${limit}&offset=${offset}`,
   );
 
   if (!res.ok) {
@@ -131,7 +129,7 @@ export async function getWorkflowDetails(
   workflowId: string,
 ): Promise<WorkflowDetail> {
   const res = await authenticatedFetch(
-    `${BASE_URL}/history/workflow/${workflowId}/details`,
+    `/history/workflow/${workflowId}/details`,
   );
 
   if (!res.ok) {
@@ -201,7 +199,7 @@ export async function fetchCadResult(
 
   try {
     const res = await authenticatedFetch(
-      `${BASE_URL}/api/result/${workflowId}`,
+      `/api/result/${workflowId}`,
     );
     if (!res.ok) return { glb_url: null, azure_source: null };
 
@@ -246,7 +244,7 @@ export async function fetchWorkflowCreditAudit(
 ): Promise<number | null> {
   try {
     const res = await authenticatedFetch(
-      `${BASE_URL}/api/credits/audit/${workflowId}`,
+      `/api/credits/audit/${workflowId}`,
     );
 
     if (!res.ok) {
