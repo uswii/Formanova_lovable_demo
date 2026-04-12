@@ -22,11 +22,11 @@ export interface ClassificationResult {
   confidence: number;
   reason: string;
   flagged: boolean;
-  /** URL of the uploaded image — reuse to avoid double uploads */
+  /** URL of the uploaded image - reuse to avoid double uploads */
   uploaded_url?: string;
   /** SAS URL for browser display (short-lived signed URL) */
   sas_url?: string;
-  /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
+  /** Asset ID from Azure registration - pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
 
@@ -39,11 +39,11 @@ export interface ImageValidationResult {
   confidence: number;
   message: string;
   category: string;
-  /** URL of the uploaded image — reuse for photoshoot generation */
+  /** URL of the uploaded image - reuse for photoshoot generation */
   uploaded_url?: string;
   /** SAS URL for browser display (short-lived signed URL) */
   sas_url?: string;
-  /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
+  /** Asset ID from Azure registration - pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
 
@@ -88,10 +88,10 @@ function buildFlags(result: ClassificationResult): string[] {
  * Hook for validating uploaded jewelry images.
  *
  * Flow:
- * 1. Upload image via azure-upload edge function → get URL
+ * 1. Upload image via azure-upload edge function -> get URL
  * 2. POST /api/run/image_classification with { payload: { jewelry_image_url } }
  * 3. Poll GET /api/status/{workflow_id} until completed
- * 4. GET /api/result/{workflow_id} → { image_captioning: [{ label, confidence, reason, flagged }] }
+ * 4. GET /api/result/{workflow_id} -> { image_captioning: [{ label, confidence, reason, flagged }] }
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -130,12 +130,12 @@ export function useImageValidation() {
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
-      // 2. Check if already classified — skip workflow if metadata.display_type is set
+      // 2. Check if already classified - skip workflow if metadata.display_type is set
       if (uploadedAssetId) {
         try {
           const assetsPage = await fetchUserAssets('jewelry_photo', 0, 200);
           const cached = assetsPage.items.find(a => a.id === uploadedAssetId);
-          console.log('[ImageValidation] Cache check — asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
+          console.log('[ImageValidation] Cache check - asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
           if (cached?.metadata?.display_type) {
             clearTimeout(timeoutId);
             const userOverride = cached.metadata.user_override === 'true';
@@ -286,7 +286,7 @@ export function useImageValidation() {
       return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
     } catch (error) {
       clearTimeout(timeoutId);
-      // Auth expiry must propagate — authenticatedFetch already redirected to login.
+      // Auth expiry must propagate - authenticatedFetch already redirected to login.
       // Do not convert it to a validation fallback.
       if (error instanceof AuthExpiredError) throw error;
       if (error instanceof Error && error.name === 'AbortError') {
@@ -366,7 +366,7 @@ export function useImageValidation() {
           : 'All images passed validation',
       };
     } catch (error) {
-      // Auth expiry must propagate — do not swallow into validation fallback.
+      // Auth expiry must propagate - do not swallow into validation fallback.
       if (error instanceof AuthExpiredError) throw error;
 
       console.error('Image validation error:', error);
