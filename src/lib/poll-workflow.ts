@@ -122,7 +122,7 @@ export interface PollWorkflowOptions<TResult> {
 
 function defaultResolveState(statusData: unknown): string {
   if (!statusData || typeof statusData !== 'object') return 'unknown';
-  const d = statusData as Record<string, any>;
+  const d = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
   return d.runtime?.state || d.progress?.state || d.state || 'unknown';
 }
 
@@ -173,6 +173,7 @@ export async function pollWorkflow<TResult>(
       await sleep(intervalMs);
 
       if (isCancelled(signal)) return { status: 'cancelled' };
+      if (Date.now() > deadline) break;
 
       let res: Response;
       try {
@@ -219,6 +220,7 @@ export async function pollWorkflow<TResult>(
     await sleep(intervalMs);
 
     if (isCancelled(signal)) return { status: 'cancelled' };
+    if (Date.now() > deadline) throw new Error(`Workflow timed out after ${timeoutMs}ms`);
 
     // -- Fetch status --
     let statusRes: Response;
@@ -268,8 +270,8 @@ export async function pollWorkflow<TResult>(
     }
 
     if (state === 'failed' || state === 'budget_exhausted') {
-      const d = statusData as Record<string, any>;
-      throw new Error(d?.error || d?.message || `Workflow ${state}`);
+      const d = statusData as { error?: string; message?: string };
+      throw new Error(d.error || d.message || `Workflow ${state}`);
     }
 
     // -- Optional terminal node check (CAD) --

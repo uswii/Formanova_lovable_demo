@@ -168,20 +168,30 @@ describe('pollWorkflow - status-then-result mode', () => {
     expect(fetchResult).toHaveBeenCalledTimes(3);
   });
 
-  it('test 7: timeout -> throws', async () => {
-    // Never reaches terminal state; timeout after 1 poll interval
-    const fetchStatus = vi.fn()
-      .mockResolvedValue(okJson({ state: 'running' }));
+  it('test 7: timeout -> throws, no extra fetch after deadline', async () => {
+    // Mock Date.now so the deadline is computable but expires immediately:
+    //   call 0 (deadline = Date.now() + 100): returns 0  -> deadline = 100
+    //   call 1+ (loop checks):                returns 200 -> 200 > 100, throws before fetchStatus
+    let nowCall = 0;
+    vi.spyOn(Date, 'now').mockImplementation(() => nowCall++ === 0 ? 0 : 200);
+
+    const fetchStatus = vi.fn().mockResolvedValue(okJson({ state: 'running' }));
     const fetchResult = vi.fn();
 
-    await expect(
-      pollWorkflow({
-        ...statusOpts(fetchStatus, fetchResult),
-        // intervalMs 0 but timeoutMs 1 means deadline is already past after first sleep
-        intervalMs: 0,
-        timeoutMs: 1,
-      }),
-    ).rejects.toThrow('timed out');
+    try {
+      await expect(
+        pollWorkflow({
+          ...statusOpts(fetchStatus, fetchResult),
+          intervalMs: 0,
+          timeoutMs: 100,
+        }),
+      ).rejects.toThrow('timed out');
+
+      expect(fetchStatus).not.toHaveBeenCalled();
+      expect(fetchResult).not.toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it('test 8: AbortSignal cancellation -> returns cancelled', async () => {
@@ -227,7 +237,10 @@ describe('pollWorkflow - result-direct mode', () => {
     expect(fetchResult).toHaveBeenCalledTimes(2);
   });
 
-  it('test 11: result-direct timeout -> throws', async () => {
+  it('test 11: result-direct timeout -> throws, no extra fetch after deadline', async () => {
+    // timeoutMs: 0 sets deadline = Date.now() + 0, so the while condition
+    // Date.now() < deadline is immediately false. The loop never enters,
+    // fetchResult is never called, and the timeout error is thrown instantly.
     const fetchResult = vi.fn()
       .mockResolvedValue(okJson({ status: 'running' }));
 
@@ -235,9 +248,11 @@ describe('pollWorkflow - result-direct mode', () => {
       pollWorkflow({
         ...directOpts(fetchResult),
         intervalMs: 0,
-        timeoutMs: 1,
+        timeoutMs: 0,
       }),
     ).rejects.toThrow('timed out');
+
+    expect(fetchResult).not.toHaveBeenCalled();
   });
 
 });
