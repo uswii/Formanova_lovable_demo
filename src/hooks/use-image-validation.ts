@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
@@ -286,6 +286,9 @@ export function useImageValidation() {
       return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
     } catch (error) {
       clearTimeout(timeoutId);
+      // Auth expiry must propagate — authenticatedFetch already redirected to login.
+      // Do not convert it to a validation fallback.
+      if (error instanceof AuthExpiredError) throw error;
       if (error instanceof Error && error.name === 'AbortError') {
         console.warn('[ImageValidation] Request timed out');
       } else {
@@ -363,6 +366,9 @@ export function useImageValidation() {
           : 'All images passed validation',
       };
     } catch (error) {
+      // Auth expiry must propagate — do not swallow into validation fallback.
+      if (error instanceof AuthExpiredError) throw error;
+
       console.error('Image validation error:', error);
 
       const fallbackResults: ImageValidationResult[] = files.map((_, idx) => ({
