@@ -6,7 +6,7 @@ vi.mock('./azure-utils', () => ({
   azureUriToUrl: (uri: string) => uri.replace('azure://', 'https://cdn.example.com/'),
 }));
 
-// Mock authenticated-fetch — intercepted for both static and dynamic imports
+// Mock authenticated-fetch - intercepted for both static and dynamic imports
 const mockAuthFetch = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/authenticated-fetch', () => ({ authenticatedFetch: mockAuthFetch }));
 
@@ -125,7 +125,7 @@ describe('extractCadTextData', () => {
   });
 });
 
-// ── extractProductShotThumbnail — URL shape ──────────────────────────────────
+// -- extractProductShotThumbnail - URL shape --
 
 describe('extractProductShotThumbnail', () => {
   it('calls authenticatedFetch with a relative /api/result path', async () => {

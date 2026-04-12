@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { inferSourceType } from './generation-history-api';
 
-// ── URL tests: verify no hardcoded production domain ──────────────────────────
+// -- URL tests: verify no hardcoded production domain --
 
 const mockAuthFetch = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/authenticated-fetch', () => ({ authenticatedFetch: mockAuthFetch }));
