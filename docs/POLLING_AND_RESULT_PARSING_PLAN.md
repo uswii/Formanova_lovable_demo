@@ -1,6 +1,6 @@
 # Polling and Result Parsing Plan
 
-Design document for Phase 7: shared polling helper.
+Design document for Phase 6: shared polling helper.
 No runtime code changes in this phase.
 
 ---
@@ -210,9 +210,9 @@ export interface PollWorkflowOptions<TResult> {
   onProgress?: (info: { node?: string; retryCount?: number }) => void;
 }
 
-export interface PollWorkflowResult<TResult> {
-  result: TResult;
-}
+export type PollWorkflowResult<TResult> =
+  | { status: 'completed'; result: TResult }
+  | { status: 'cancelled'; result?: never };
 
 export async function pollWorkflow<TResult>(
   options: PollWorkflowOptions<TResult>,
@@ -233,7 +233,7 @@ export async function pollWorkflow<TResult>(
 
 6. `AuthExpiredError` is always rethrown (not caught). Callers handle it in their own catch block.
 
-7. `AbortError` is swallowed inside the helper and resolves as a graceful cancel (no throw). Callers that need to distinguish cancel from success can check `signal?.aborted` after the call.
+7. `AbortError` (from `signal`) returns `{ status: 'cancelled' }` - NOT a throw. The discriminated union makes it impossible to confuse cancelled with completed without a type check. Callers check `result.status === 'cancelled'` and return early. This matches current TextToCAD behavior where `AbortError` silently returns.
 
 ---
 
@@ -251,13 +251,9 @@ Ordered by risk (low to high) and independence (no shared state dependencies fir
 
 ---
 
-### Step 2 - `photoshoot-api.ts` `getPhotoshootResult` retry loop
+### Step 2 - `photoshoot-api.ts` `getPhotoshootResult`
 
-**Why second:** The simplest piece - just result-fetch retry, no status polling. Isolated in a helper file with 21 tests.
-
-**Migration:** Replace the `for (let attempt = 0; ...)` result retry loop with `pollWorkflow({ mode: 'status-then-result', fetchStatus: undefined, fetchResult: ..., maxResultRetries: 5 })` or extract into a standalone `retryFetchResult` internal helper if `pollWorkflow` scope is too broad for this use case.
-
-**Alternative:** Keep `getPhotoshootResult` as-is; it is already well-tested and small. Only migrate if the result-retry logic is needed in more places.
+**Decision: leave as-is.** The function is 20 lines, has 21 passing tests, and does exactly one thing (result-fetch retry). There is no duplication to eliminate here - it is not copy-pasted anywhere. Absorbing it into `pollWorkflow` would require introducing a partial-mode API (`fetchStatus: undefined`) that complicates the helper's contract for no measurable benefit. Revisit only if result-retry logic is needed in a third location.
 
 ---
 
@@ -289,7 +285,38 @@ Ordered by risk (low to high) and independence (no shared state dependencies fir
 
 ---
 
-## 5. What the Helper Must NOT Own
+## 5. Implementation Rules
+
+**Rule: helper and tests ship in the same PR before any migration.**
+
+The first implementation PR must:
+1. Create `src/lib/poll-workflow.ts` with the `pollWorkflow` function.
+2. Create `src/lib/poll-workflow.test.ts` with the full test suite below.
+3. All tests must pass.
+4. Do NOT migrate any existing loop in this PR.
+
+Migration of existing loops starts only after the helper test suite is green on `main`.
+This prevents the same drift pattern that created the current duplication.
+
+### Required test cases for `poll-workflow.test.ts`
+
+| # | Test name | What it verifies |
+|---|---|---|
+| 1 | status completed - returns result | Status resolves to `completed`, result is fetched and parsed, returns `{ status: 'completed', result }` |
+| 2 | status failed - throws | Status resolves to `failed`, helper throws before fetching result |
+| 3 | status 404 budget - throws after N consecutive | 404 counter increments; throws when `consecutive404s >= max404s` |
+| 4 | status 404 below budget - continues polling | N-1 consecutive 404s, then success; helper does not throw |
+| 5 | result retry 404 - succeeds on retry | First result fetch returns 404, second returns OK; `result` is parsed from second |
+| 6 | result retry exhausted - throws | All result fetches return 404; helper throws after `maxResultRetries` |
+| 7 | timeout - throws | Wall-clock or iteration limit exceeded before terminal state; helper throws |
+| 8 | AbortSignal cancellation - returns cancelled | `signal.abort()` called during polling; returns `{ status: 'cancelled' }`, does not throw |
+| 9 | AuthExpiredError propagation - rethrows | `authenticatedFetch` throws `AuthExpiredError`; helper rethrows it, does not return cancelled |
+| 10 | result-direct running then success | Mode `result-direct`; first poll returns `{ status: 'running' }`, second returns done data; result parsed |
+| 11 | result-direct timeout - throws | Mode `result-direct`; all polls return running until deadline; throws |
+
+---
+
+## 6. What the Helper Must NOT Own
 
 - The decelerating progress ticker (`setInterval` at 300 ms in `UnifiedStudio.tsx`). That is a UI-only animation concern, not a polling concern.
 - Photo image URL extraction (`extractResultImages`). Caller-supplied via `parseResult`.
@@ -300,7 +327,7 @@ Ordered by risk (low to high) and independence (no shared state dependencies fir
 
 ---
 
-## 6. Uncertainties
+## 7. Uncertainties
 
 1. **Result-direct 404 handling.** Loops 4 and 5 throw on any non-ok response including 404. If the backend can return 404 while a weight/STL job is starting up, callers will need a `max404s` budget in result-direct mode too. Needs confirmation from backend behavior.
 
@@ -308,6 +335,4 @@ Ordered by risk (low to high) and independence (no shared state dependencies fir
 
 3. **`onProgress` typing.** The CAD loops extract `runtime.active_nodes[0]`, `runtime.last_exit_node_id`, and `node_visit_seq.generate_fix`. The photo loop uses `progress.visited`. These have different shapes. The `onProgress` callback signature needs to be generic enough for both, or `resolveProgressNode` should be optional and CAD-specific only.
 
-4. **`getPhotoshootResult` migration.** The existing helper is well-tested and small. It may be cleaner to leave it in place and have `pollWorkflow` call it as its result-fetch strategy, rather than absorbing it into the helper's retry logic.
-
-5. **Test strategy for page-level loops.** Loops 1, 2, 3 live inside `useCallback` closures with many page-state side effects. After extraction, the `pollWorkflow` function itself is unit-testable in isolation. The page-level integration is harder to test without a full mount. Decide before Step 3 whether integration tests or component tests are needed, or whether `pollWorkflow` unit tests plus the existing behavior-level tests are sufficient.
+4. **Test strategy for page-level loops.** Loops 1, 2, 3 live inside `useCallback` closures with many page-state side effects. After extraction, the `pollWorkflow` function itself is unit-testable in isolation. The page-level integration is harder to test without a full mount. Decide before Step 3 whether integration tests or component tests are needed, or whether `pollWorkflow` unit tests plus the existing behavior-level tests are sufficient.
