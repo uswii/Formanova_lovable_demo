@@ -1,6 +1,6 @@
 # CAD Generation + Edit Polling Migration Plan
 
-Prep document for Phase 13.
+Prep document for Phase 12. Implementation is the next branch (Phase 13).
 No runtime code changes in this file.
 
 ---
@@ -298,6 +298,10 @@ Confirm before implementing.
 
 ### resolveCadTerminalNode
 
+Note: `resolveCadTerminalNode` returning 'failure' triggers `pollWorkflow` to throw
+`new Error('Workflow failed at terminal node')`. This is the intentional bug-fix path described
+in section 8 -- the helper throws immediately rather than swallowing and looping.
+
 ```typescript
 export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failure' | null {
   const d = statusData as {
@@ -333,6 +337,10 @@ export function resolveCadProgressNode(statusData: unknown): { node: string; ret
 
 ### parseCadResult
 
+The same parser is shared by generation and edit. Error messages must be neutral (not
+"Generation failed") so the edit outer catch can display them in a toast without misleading the
+user. A `context` label is accepted for cases where caller-specific messaging is needed.
+
 ```typescript
 interface CadGlbArtifact {
   uri: string;
@@ -346,10 +354,13 @@ interface CadGenerationResult {
   artifact: CadGlbArtifact;
 }
 
-export function parseCadResult(d: unknown): CadGenerationResult {
+export function parseCadResult(
+  d: unknown,
+  context: 'generation' | 'edit' = 'generation',
+): CadGenerationResult {
   const result = d as Record<string, unknown>;
   const hasFailed = Array.isArray(result["failed_final"]) && (result["failed_final"] as unknown[]).length > 0;
-  if (hasFailed) throw new Error("Generation failed -- no valid model produced");
+  if (hasFailed) throw new Error("No valid CAD model produced");
 
   const successFinalArr = result["success_final"] as Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }> | undefined;
   const successOriginalArr = result["success_original_glb"] as Array<{ original_glb_artifact?: CadGlbArtifact }> | undefined;
@@ -359,10 +370,14 @@ export function parseCadResult(d: unknown): CadGenerationResult {
     successFinalArr?.[0]?.original_glb_artifact ||
     successOriginalArr?.[0]?.original_glb_artifact;
 
-  if (!artifact?.uri) throw new Error("No GLB model found in results");
+  if (!artifact?.uri) throw new Error(`No GLB model found in ${context} results`);
   return { glb_url: artifact.uri, artifact };
 }
 ```
+
+Callers:
+- Generation: `parseResult: (d) => parseCadResult(d, 'generation')`
+- Edit: `parseResult: (d) => parseCadResult(d, 'edit')`
 
 ---
 
@@ -404,28 +419,41 @@ pollAbortRef.current?.abort();
 const pollAbort = new AbortController();
 pollAbortRef.current = pollAbort;
 
-const pollResult = await pollWorkflow<CadGenerationResult>({
-  mode: 'status-then-result',
-  fetchStatus: () => authenticatedFetch(
-    `/api/status/${encodeURIComponent(workflow_id)}`,
-    { signal: pollAbort.signal }
-  ),
-  fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
-  resolveTerminalNode: resolveCadTerminalNode,
-  resolveProgressNode: resolveCadProgressNode,
-  parseResult: parseCadResult,
-  onProgress: ({ node, retryCount }) => {
-    setProgressStep(node);
-    if (retryCount > 0) setRetryAttempt(retryCount);
-  },
-  intervalMs: 2000,
-  timeoutMs: 60 * 60 * 1000,
-  max404s: 3,
-  maxPollErrors: 10,
-  maxResultRetries: 5,
-  resultRetryDelayMs: 1000,
-  signal: pollAbort.signal,
-});
+let pollResult: Awaited<ReturnType<typeof pollWorkflow<CadGenerationResult>>>;
+try {
+  pollResult = await pollWorkflow<CadGenerationResult>({
+    mode: 'status-then-result',
+    fetchStatus: () => authenticatedFetch(
+      `/api/status/${encodeURIComponent(workflow_id)}`,
+      { signal: pollAbort.signal }
+    ),
+    fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+    resolveTerminalNode: resolveCadTerminalNode,
+    resolveProgressNode: resolveCadProgressNode,
+    parseResult: (d) => parseCadResult(d, 'generation'),
+    onProgress: ({ node, retryCount }) => {
+      setProgressStep(node);
+      if (retryCount > 0) setRetryAttempt(retryCount);
+    },
+    onStatusData: (statusData) => {
+      const s = statusData as { runtime?: { state?: string } };
+      const state = (s.runtime?.state || "").toLowerCase();
+      if (state === "failed" || state === "budget_exhausted") {
+        setProgressStep("failed_final");
+      }
+    },
+    intervalMs: 2000,
+    timeoutMs: 60 * 60 * 1000,
+    max404s: 13,   // preserves current effective tolerance (3 trigger + 10 inner-catch absorptions)
+    maxPollErrors: 10,
+    maxResultRetries: 5,
+    resultRetryDelayMs: 1000,
+    signal: pollAbort.signal,
+  });
+} catch (err) {
+  if (err instanceof AuthExpiredError) return; // redirect already in progress -- do not set generationFailed
+  throw err; // re-throw to outer catch (sets generationFailed, clears progress)
+}
 
 if (pollResult.status === 'cancelled') return;
 
@@ -434,38 +462,40 @@ const { glb_url, artifact } = pollResult.result;
 setGlbArtifact(artifact);
 ```
 
-### Behavior changes vs. current code (must be accepted before implementation)
+### Behavior changes vs. current code
 
-1. **Failed-state infinite loop fixed.** The current inner-catch structure swallows the "Generation
-   failed" throw and loops for 60 minutes on a failed workflow. `pollWorkflow` throws immediately
-   when `resolveTerminalNode` returns 'failure' or `resolveState` returns 'failed'. This is correct
-   behavior but IS a behavior change.
+1. **Failed-state infinite loop -- intentional bug fix (approved).** The current inner-catch
+   structure swallows terminal failure throws and re-enters the while loop. A workflow stuck in
+   "failed" state therefore loops for up to 60 minutes before timing out. `pollWorkflow` throws
+   immediately when `resolveTerminalNode` returns 'failure' or `resolveState` returns 'failed'.
+   This is a strict UX improvement and an approved behavior change.
 
-2. **Effective 404 tolerance changes from ~13 to exactly 3.** The inner-catch structure in the
-   current code absorbs the "Workflow not found" throw against the `pollErrors` budget (10 more
-   absorptions after the 3-consecutive trigger). `pollWorkflow` throws after exactly `max404s`
-   consecutive 404s. Set `max404s: 3` to match the intended (not accidental) behavior.
+2. **Effective 404 tolerance preserved at ~13.** The current code has `MAX_404_RETRIES = 3` as the
+   explicit trigger, but the inner-catch absorbs the resulting throw against the `pollErrors`
+   budget, adding up to 10 more absorbed 404-throws before the error finally propagates. The
+   effective tolerance is approximately 13 consecutive 404s. Setting `max404s: 13` preserves this.
+   After backend confirms that /api/status creation latency is reliably below 6 seconds (3 polls x
+   2s), `max404s` can be reduced to 3 in a later behavior-change PR.
 
 3. **`setProgressStep("failed_final")` on state-level failure.** The current code explicitly calls
    `setProgressStep("failed_final")` when `state === "failed"` or `"budget_exhausted"`, before
    throwing. With `pollWorkflow`, `resolveProgressNode` runs before terminal checks, so
    `setProgressStep` is driven by `activeNode/lastExitNode`. If the active node is NOT
    "failed_final" when the state is "failed", the progress step will NOT be set to "failed_final"
-   by the onProgress callback. Mitigation: add `onStatusData` to handle this case:
-   ```typescript
-   onStatusData: (statusData) => {
-     const s = statusData as { runtime?: { state?: string } };
-     const state = (s.runtime?.state || "").toLowerCase();
-     if (state === "failed" || state === "budget_exhausted") {
-       setProgressStep("failed_final");
-     }
-   },
-   ```
+   by the onProgress callback. Mitigation: the `onStatusData` callback in the migration snippet
+   handles this explicitly.
 
-4. **Double `setProgressStep("_loading")` removed.** Line 459-460 sets "\_loading" twice in a row
+4. **Double `setProgressStep("_loading")` removed.** Lines 459-460 set "\_loading" twice in a row
    (apparent dev leftover). The migration sets it once after `pollResult` returns.
 
-5. **Result fetch has no AbortController in current code.** This is preserved: `fetchResult` does
+5. **AuthExpiredError: silent return preserved via explicit catch.** The current inner-catch does
+   `if (err instanceof AuthExpiredError) return`, which exits the entire function silently and lets
+   the redirect from `authenticatedFetch` proceed. `pollWorkflow` rethrows `AuthExpiredError`
+   unconditionally. The migration wraps `pollWorkflow` in an explicit try/catch that catches
+   `AuthExpiredError` and returns, so the outer catch (which sets `generationFailed` and would show
+   a broken UI state) is never reached.
+
+6. **Result fetch has no AbortController in current code.** This is preserved: `fetchResult` does
    not pass a signal. If the component unmounts mid-result-fetch, the fetch completes silently.
 
 ---
@@ -505,9 +535,10 @@ All tests go in `src/lib/cad-poll-resolvers.test.ts` (or inline with the helper 
 | success_final with glb_artifact | `{ success_final: [{ glb_artifact: { uri: "gs://...", ... } }] }` | resolves `glb_url` from glb_artifact |
 | success_final fallback to original_glb_artifact | `{ success_final: [{ original_glb_artifact: { uri: "gs://..." } }] }` | resolves from original_glb_artifact |
 | success_original_glb path | `{ success_original_glb: [{ original_glb_artifact: { uri: "gs://..." } }] }` | resolves from success_original_glb |
-| failed_final present | `{ failed_final: [{}] }` | throws "Generation failed -- no valid model produced" |
-| no artifact in success_final | `{ success_final: [{}] }` | throws "No GLB model found" |
-| empty result object | `{}` | throws "No GLB model found" |
+| failed_final present | `{ failed_final: [{}] }` | throws "No valid CAD model produced" |
+| no artifact in success_final (generation) | `{ success_final: [{}] }, 'generation'` | throws "No GLB model found in generation results" |
+| no artifact in success_final (edit) | `{ success_final: [{}] }, 'edit'` | throws "No GLB model found in edit results" |
+| empty result object | `{}` | throws "No GLB model found in generation results" |
 
 ### Integration smoke test (poll-workflow.test.ts additions)
 
@@ -524,25 +555,23 @@ Add one test per new option combination used in the CAD migration:
 
 ## 10. Risks and rollback plan
 
-### Risk 1: Failed-state infinite loop fix is a behavioral change
+### Risk 1: Failed-state infinite loop fix (approved intentional change)
 
 **Current:** workflow with state "failed" loops for ~60 minutes then times out.
 **After:** workflow with state "failed" throws immediately.
 
-**Risk level:** Low. The fix is strictly better UX and correct behavior.
-**Rollback:** Revert to current inner-catch-swallowing structure (do not use pollWorkflow for state
-"failed" detection). Not recommended.
+**Risk level:** Low. Strictly better UX. Approved before implementation starts.
+**Rollback:** Not applicable -- this fix is intentional.
 
-### Risk 2: Effective 404 tolerance reduction
+### Risk 2: 404 tolerance preserved at 13
 
-**Current:** ~13 consecutive 404s before propagation (3 consecutive triggers + 10 inner-catch
-absorptions).
-**After:** exactly 3 consecutive 404s.
+**Current:** ~13 consecutive 404s before propagation.
+**After:** exactly 13 consecutive 404s (`max404s: 13`).
 
-**Risk level:** Medium if the backend has a startup window during which /api/status returns 404
-for longer than 6 seconds (3 x 2s interval). No evidence of this from prior migrations.
-**Mitigation:** Increase `max404s` to 10 or 13 if we see regressions in QA.
-**Rollback:** Increase `max404s`.
+**Risk level:** None at first migration. Behavior-identical.
+**Future:** Reduce to `max404s: 3` in a follow-up PR once backend confirms status creation
+latency is always below 6 seconds.
+**Rollback:** Not needed.
 
 ### Risk 3: setProgressStep("failed_final") race on state-level failure
 
@@ -566,9 +595,16 @@ way. Behavior is preserved.
 
 ### Risk 6: Edit loop outer catch uses toast.error(err.message)
 
-If `parseCadResult` throws "Generation failed -- no valid model produced", the edit outer catch
-will display that exact string in a toast. Verify the message is user-appropriate. Consider a
-separate `parseCadEditResult` with an edit-specific error message if needed.
+`parseCadResult` now throws "No valid CAD model produced" (neutral) or
+"No GLB model found in edit results" (context-specific). Both are safe to display in a toast.
+No risk.
+
+### Risk 7: AuthExpiredError bypasses outer catch
+
+The explicit inner catch `if (err instanceof AuthExpiredError) return` must be present in BOTH
+the generation and edit `pollWorkflow` wrappers. If it is missing from either, the outer catch
+runs `setGenerationFailed(true)` and may display a toast, while `authenticatedFetch` has already
+triggered a redirect. Verify both wrappers in review.
 
 ### Rollback plan
 
@@ -589,8 +625,10 @@ Before opening the Phase 13 implementation PR:
 - [ ] `src/lib/cad-poll-resolvers.ts` created with all three resolver functions
 - [ ] `src/lib/cad-poll-resolvers.test.ts` green (all resolver unit tests passing)
 - [ ] `poll-workflow.test.ts` additions green (resolveTerminalNode + onProgress integration tests)
-- [ ] Behavior change list from section 8 reviewed and accepted
-- [ ] `max404s: 3` confirmed as acceptable (or increased based on backend behavior evidence)
+- [ ] Behavior changes from section 8 reviewed -- failed-state fix approved, 404 tolerance at 13
+- [ ] Both generation and edit pollWorkflow wrappers include AuthExpiredError inner catch
+- [ ] parseCadResult called with correct context label ('generation' vs 'edit') in each caller
 - [ ] Manual QA: generate a ring, verify progress steps update, verify GLB loads
 - [ ] Manual QA: start generation, start second generation immediately (abort test)
-- [ ] Manual QA: edit, verify toast on success and failure
+- [ ] Manual QA: edit, verify toast on success and on failure
+- [ ] Follow-up ticket created: reduce max404s from 13 to 3 after backend latency confirmed
