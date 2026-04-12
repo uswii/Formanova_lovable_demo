@@ -2,10 +2,15 @@
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
+// Client-side fallback costs used by performCreditPreflight when the backend
+// /api/credits/estimate call fails or returns a non-positive value.
+// The backend estimate is always preferred; these are last-resort guards only.
+// Keys must match the workflow_name sent to the backend.
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
-  jewelry_photoshoots_generator: 10,
-  Product_shot_pipeline: 10,
+  // Photoshoot workflows — confirmed fallback: 10 credits each
+  jewelry_photoshoots_generator: 10, // model-shot (UnifiedStudio default mode)
+  Product_shot_pipeline: 10,         // product-shot (UnifiedStudio product-shot mode)
   cad_generation: 85,
   qa_with_gpu: 3,
   ring_full_pipeline: 85,
