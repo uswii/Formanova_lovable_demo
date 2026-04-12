@@ -43,11 +43,10 @@ import { useImageValidation, type ImageValidationResult } from '@/hooks/use-imag
 import {
   startPhotoshoot,
   startPdpShot,
-  getPhotoshootStatus,
-  getPhotoshootResult,
-  resolveWorkflowState,
   type PhotoshootResultResponse,
+  type PhotoshootStatusResponse,
 } from '@/lib/photoshoot-api';
+import { pollWorkflow } from '@/lib/poll-workflow';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -1095,10 +1094,8 @@ export default function UnifiedStudio() {
       markGenerationStarted(startResponse.workflow_id);
 
       setGenerationStep('Generating photoshoot...');
-      const pollStart = Date.now();
-      const TIMEOUT = 720000; // 12 minutes (Sonnet-safe)
 
-      // Decelerating ticker — starts fast (~2%/tick at 35%), slows near 90%.
+      // Decelerating ticker -- starts fast (~2%/tick at 35%), slows near 90%.
       // Keeps bar visibly moving even when API returns no progress data yet.
       const ticker = setInterval(() => {
         setGenerationProgress(prev => {
@@ -1108,64 +1105,71 @@ export default function UnifiedStudio() {
       }, 300);
 
       try {
-        while (Date.now() - pollStart < TIMEOUT) {
-          await new Promise(r => setTimeout(r, 3000));
-
-          const status = await getPhotoshootStatus(startResponse.workflow_id);
-          const state = resolveWorkflowState(status);
-
-          if (status.progress) {
-            const total = status.progress.total_nodes || 1;
-            const completed = status.progress.completed_nodes || 0;
-            const realPct = Math.min(35 + Math.round((completed / total) * 60), 95);
-            setGenerationProgress(prev => Math.max(prev, realPct));
-
-            const visited = status.progress.visited || [];
-            if (visited.length > 0) {
-              setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
+        const pollResult = await pollWorkflow<PhotoshootResultResponse>({
+          mode: 'status-then-result',
+          fetchStatus: () => authenticatedFetch(`/api/status/${startResponse.workflow_id}`),
+          fetchResult: () => authenticatedFetch(`/api/result/${startResponse.workflow_id}`),
+          onStatusData: (statusData: unknown) => {
+            const s = statusData as PhotoshootStatusResponse;
+            if (s.progress) {
+              const total = s.progress.total_nodes || 1;
+              const done = s.progress.completed_nodes || 0;
+              const realPct = Math.min(35 + Math.round((done / total) * 60), 95);
+              setGenerationProgress(prev => Math.max(prev, realPct));
+              const visited = s.progress.visited || [];
+              if (visited.length > 0) {
+                setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
+              }
             }
-          }
+          },
+          parseResult: (d) => d as PhotoshootResultResponse,
+          intervalMs: 3000,
+          timeoutMs: 720_000,
+          maxPollErrors: 1,        // original threw immediately on any status error
+          maxResultRetries: 6,     // matches getPhotoshootResult's attempt 0..5 (6 total)
+          resultRetryDelayMs: 1000,
+        });
 
-          if (state === 'completed') {
-            clearInterval(ticker);
-            // Hold at 95% while we fetch the result — only jump to 100% once we have it
-            setGenerationProgress(95);
-            setGenerationStep('Fetching results...');
+        clearInterval(ticker);
 
-            const result = await getPhotoshootResult(startResponse.workflow_id);
-            // Detect backend activity error returned as a completed workflow
-            const hasActivityError = Object.values(result).some(
-              (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
-            );
-            if (hasActivityError) {
-              clearInterval(ticker);
-              setGenerationError('workflow-failed');
-              setIsGenerating(false);
-              return;
-            }
-            const images = extractResultImages(result);
-            setResultImages(images);
-            setGenerationProgress(100);
-            setCurrentStep('results');
-            setIsGenerating(false);
-            markGenerationCompleted(_genWorkflowId, _genStartTime);
-            trackGenerationComplete({
-              source: 'unified-studio',
-              category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-              upload_type: validationResult?.category ?? null,
-              duration_ms: Date.now() - _genStartTime,
-              is_first_ever: consumeFirstGeneration(),
-            });
-            refreshCredits();
-            return;
-          }
-
-          if (state === 'failed') {
-            throw new Error(status.error || 'Photoshoot generation failed');
-          }
+        if (pollResult.status === 'cancelled') {
+          // Unreachable: no AbortSignal is passed. Satisfies type checker.
+          return;
         }
 
-        throw new Error('Generation timed out after 5 minutes');
+        // pollResult.status === 'completed'; result is already in hand.
+        // Note: setGenerationProgress(95) + setGenerationStep are batched with the
+        // subsequent 100% update, so the user skips directly to 100%. Acceptable UX delta.
+        setGenerationProgress(95);
+        setGenerationStep('Fetching results...');
+
+        const result = pollResult.result;
+
+        // Detect backend activity error returned as a completed workflow
+        const hasActivityError = Object.values(result).some(
+          (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
+        );
+        if (hasActivityError) {
+          setGenerationError('workflow-failed');
+          setIsGenerating(false);
+          return;
+        }
+
+        const images = extractResultImages(result);
+        setResultImages(images);
+        setGenerationProgress(100);
+        setCurrentStep('results');
+        setIsGenerating(false);
+        markGenerationCompleted(_genWorkflowId, _genStartTime);
+        trackGenerationComplete({
+          source: 'unified-studio',
+          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
+          upload_type: validationResult?.category ?? null,
+          duration_ms: Date.now() - _genStartTime,
+          is_first_ever: consumeFirstGeneration(),
+        });
+        refreshCredits();
+        return;
       } finally {
         clearInterval(ticker);
       }

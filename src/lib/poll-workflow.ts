@@ -137,6 +137,14 @@ export interface PollWorkflowOptions<TResult> {
   onProgress?: (info: { node: string; retryCount: number }) => void;
 
   /**
+   * Called after each successful status JSON parse, before terminal-state checks.
+   * Not called on 404 or non-ok responses (those skip JSON parsing).
+   * Use this to update progress UI from raw status data without coupling the
+   * caller to resolveProgressNode's CAD-specific shape.
+   */
+  onStatusData?: (statusData: unknown) => void;
+
+  /**
    * result-direct mode only: the value of data.status that means still running.
    * Default: 'running'.
    */
@@ -185,6 +193,7 @@ export async function pollWorkflow<TResult>(
     statusNonOkBehavior = 'count-error',
     signal,
     onProgress,
+    onStatusData,
     resultRunningValue = 'running',
   } = options;
 
@@ -294,6 +303,9 @@ export async function pollWorkflow<TResult>(
     // -- Parse status --
     const statusData = await statusRes.json();
     const state = resolveState(statusData).toLowerCase();
+
+    // -- Raw status data callback (before terminal checks) --
+    if (onStatusData) onStatusData(statusData);
 
     // -- Progress callback --
     if (onProgress && resolveProgressNode) {

@@ -391,6 +391,90 @@ describe('pollWorkflow - optional features', () => {
     expect(fetchStatus).toHaveBeenCalledTimes(3);
   });
 
+  it('onStatusData: called once per successful status poll', async () => {
+    const onStatusData = vi.fn();
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(okJson({ state: 'running' }))
+      .mockResolvedValueOnce(okJson({ state: 'running' }))
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({}));
+
+    await pollWorkflow({ ...statusOpts(fetchStatus, fetchResult), onStatusData });
+
+    expect(onStatusData).toHaveBeenCalledTimes(3);
+    expect(onStatusData).toHaveBeenCalledWith({ state: 'running' });
+    expect(onStatusData).toHaveBeenCalledWith({ state: 'completed' });
+  });
+
+  it('onStatusData: called on the completed poll, before result fetch', async () => {
+    const callOrder: string[] = [];
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockImplementation(async () => {
+      callOrder.push('fetchResult');
+      return okJson({});
+    });
+    const onStatusData = vi.fn().mockImplementation(() => {
+      callOrder.push('onStatusData');
+    });
+
+    await pollWorkflow({ ...statusOpts(fetchStatus, fetchResult), onStatusData });
+
+    // onStatusData must fire before fetchResult is called
+    expect(callOrder).toEqual(['onStatusData', 'fetchResult']);
+  });
+
+  it('onStatusData: not called on 404 status response', async () => {
+    const onStatusData = vi.fn();
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({}));
+
+    await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      max404s: 5,
+      onStatusData,
+    });
+
+    // Called once for the completed poll; NOT called for the 404 poll
+    expect(onStatusData).toHaveBeenCalledTimes(1);
+    expect(onStatusData).toHaveBeenCalledWith({ state: 'completed' });
+  });
+
+  it('onStatusData: not called on non-ok status response', async () => {
+    const onStatusData = vi.fn();
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(notOk(500))
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({}));
+
+    await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      statusNonOkBehavior: 'continue',
+      onStatusData,
+    });
+
+    // Called once for the completed poll; NOT called for the non-ok poll
+    expect(onStatusData).toHaveBeenCalledTimes(1);
+    expect(onStatusData).toHaveBeenCalledWith({ state: 'completed' });
+  });
+
+  it('maxPollErrors: 1 throws on the first non-ok status response', async () => {
+    const fetchStatus = vi.fn().mockResolvedValue(notOk(503));
+    const fetchResult = vi.fn();
+
+    await expect(
+      pollWorkflow({
+        ...statusOpts(fetchStatus, fetchResult),
+        maxPollErrors: 1,
+      }),
+    ).rejects.toThrow('503');
+
+    expect(fetchStatus).toHaveBeenCalledTimes(1);
+    expect(fetchResult).not.toHaveBeenCalled();
+  });
+
   it('missing fetchStatus in status-then-result mode throws immediately', async () => {
     await expect(
       pollWorkflow({
