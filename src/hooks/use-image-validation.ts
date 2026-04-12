@@ -3,6 +3,7 @@ import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch'
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
+import { pollWorkflow } from '@/lib/poll-workflow';
 
 const CLASSIFICATION_URL = '/api/run/image_classification';
 const STATUS_URL = '/api/status';
@@ -190,56 +191,49 @@ export function useImageValidation() {
       const workflowId = runData.workflow_id;
       console.log('[ImageValidation] Workflow started:', workflowId);
 
-      // 3. Poll /api/status/{workflow_id} until completed
-      let statusState = 'running';
-      const maxPolls = 60; // 60s max
-      for (let i = 0; i < maxPolls; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        
-        const statusRes = await authenticatedFetch(`${STATUS_URL}/${workflowId}`, {
+      // 3. Poll status then fetch result via pollWorkflow
+      let classificationFailed = false;
+
+      let pollResult: Awaited<ReturnType<typeof pollWorkflow>>;
+      try {
+        pollResult = await pollWorkflow({
+          mode: 'status-then-result',
+          fetchStatus: () => authenticatedFetch(`${STATUS_URL}/${workflowId}`, { signal: controller.signal }),
+          fetchResult: () => authenticatedFetch(`${RESULT_URL}/${workflowId}`, { signal: controller.signal }),
+          resolveState: (statusData: unknown) => {
+            const d = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const s = d.runtime?.state || d.progress?.state || d.state || 'running';
+            console.log('[ImageValidation] Poll status:', s);
+            if (s === 'succeeded') return 'completed';
+            if (s === 'failed' || s === 'error') { classificationFailed = true; return 'failed'; }
+            return s;
+          },
+          parseResult: (d) => d,
+          intervalMs: 1000,
+          timeoutMs: 120_000,
+          max404s: 60,        // tolerate 404s throughout the polling window
+          maxResultRetries: 5,
+          resultRetryDelayMs: 1000,
           signal: controller.signal,
         });
-
-        if (statusRes.status === 404) {
-          // Not ready yet, keep polling
-          continue;
+      } catch (err) {
+        if (err instanceof AuthExpiredError) throw err;
+        clearTimeout(timeoutId);
+        if (classificationFailed) {
+          console.warn('[ImageValidation] Workflow failed');
+          return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
         }
-
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          console.log('[ImageValidation] Full status response:', JSON.stringify(statusData));
-          statusState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'running';
-          console.log('[ImageValidation] Poll status:', statusState);
-          if (statusState === 'completed' || statusState === 'succeeded') break;
-          if (statusState === 'failed' || statusState === 'error') {
-            console.warn('[ImageValidation] Workflow failed. Error:', statusData.error || statusData.message || JSON.stringify(statusData));
-            clearTimeout(timeoutId);
-            // On failure, return uploaded_url but flag as not-worn so user reviews
-            return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
-          }
-        }
+        console.warn('[ImageValidation] Polling failed or timed out');
+        return null;
       }
 
-      // 4. GET /api/result/{workflow_id}
-      let resultData: any = null;
-      const maxResultRetries = 5;
-      for (let i = 0; i < maxResultRetries; i++) {
-        const resultRes = await authenticatedFetch(`${RESULT_URL}/${workflowId}`, {
-          signal: controller.signal,
-        });
-
-        if (resultRes.status === 404) {
-          console.log(`[ImageValidation] Result not ready, retry ${i + 1}/${maxResultRetries}`);
-          await new Promise(r => setTimeout(r, 1000));
-          continue;
-        }
-
-        if (resultRes.ok) {
-          resultData = await resultRes.json();
-          break;
-        }
+      if (pollResult.status === 'cancelled') {
+        console.warn('[ImageValidation] Polling cancelled');
+        clearTimeout(timeoutId);
+        return null;
       }
 
+      const resultData = pollResult.result;
       if (!resultData) {
         console.warn('[ImageValidation] Could not fetch result');
         clearTimeout(timeoutId);
@@ -247,7 +241,7 @@ export function useImageValidation() {
       }
 
       console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
-      const captioning = resultData.image_captioning;
+      const captioning = (resultData as { image_captioning?: Array<{ label?: string; reason?: string; confidence?: number; flagged?: boolean }> })?.image_captioning;
 
       if (captioning && captioning.length > 0) {
         const raw = captioning[0];

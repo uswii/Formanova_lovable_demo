@@ -7,7 +7,7 @@
  * jsdom <21 does not implement Blob.prototype.arrayBuffer - polyfilled below.
  */
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, type MockedFunction } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
@@ -34,6 +34,7 @@ beforeAll(() => {
 // -- Mocks --
 
 const mockAuthFetch = vi.hoisted(() => vi.fn());
+const mockPollWorkflow = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/authenticated-fetch', () => ({
   authenticatedFetch: mockAuthFetch,
@@ -64,6 +65,12 @@ vi.mock('@/lib/microservices-api', () => ({
 vi.mock('@/lib/assets-api', () => ({
   fetchUserAssets: vi.fn(async () => ({ items: [] })),
   updateAssetMetadata: vi.fn(async () => {}),
+}));
+
+// pollWorkflow: default to unresolved so tests that don't reach it are unaffected.
+// Cancellation test configures it to return { status: 'cancelled' }.
+vi.mock('@/lib/poll-workflow', () => ({
+  pollWorkflow: mockPollWorkflow,
 }));
 
 // -- Hook test harness --
@@ -150,6 +157,25 @@ describe('useImageValidation - AuthExpiredError propagation', () => {
     const mounted = await mountHook();
     unmount = mounted.unmount;
 
+    const result = await mounted.api.validateImages([makeFile()], 'rings');
+    expect(result).not.toBeNull();
+    expect(result?.all_acceptable).toBe(true);
+  });
+
+  it('pollWorkflow cancellation returns fallback result, does not crash', async () => {
+    // Simulate: classification start succeeds, then pollWorkflow returns cancelled
+    // (e.g. the AbortController fires during status polling).
+    mockAuthFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ workflow_id: 'wf-cancel' }),
+    } as unknown as Response);
+    mockPollWorkflow.mockResolvedValueOnce({ status: 'cancelled' });
+
+    const mounted = await mountHook();
+    unmount = mounted.unmount;
+
+    // Cancellation must not throw - validateImages returns acceptable fallback
     const result = await mounted.api.validateImages([makeFile()], 'rings');
     expect(result).not.toBeNull();
     expect(result?.all_acceptable).toBe(true);
