@@ -91,8 +91,9 @@ if (
   // NOTE: getStoredUser is already imported at line 5 — do not add a duplicate.
   // NOTE: distinctId lowercase — PostHog SDK is case-sensitive; distinctID silently no-ops.
   const storedUser = getStoredUser();
+  const posthogApiHost = import.meta.env.VITE_POSTHOG_API_HOST || 'https://relay.formanova.ai';
   posthog.init('phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC', {
-    api_host: 'https://relay.formanova.ai',
+    api_host: posthogApiHost,
     ui_host: 'https://us.posthog.com',
     autocapture: true,
     capture_pageview: true,
