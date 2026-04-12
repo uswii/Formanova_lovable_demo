@@ -506,4 +506,20 @@ describe('pollWorkflow - optional features', () => {
     ).rejects.toThrow('fetchStatus is required');
   });
 
+  it('onProgress is NOT called when resolveProgressNode returns null', async () => {
+    const onProgress = vi.fn();
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(okJson({ state: 'running' }))
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({}));
+
+    await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      resolveProgressNode: () => null,
+      onProgress,
+    });
+
+    expect(onProgress).not.toHaveBeenCalled();
+  });
+
 });
