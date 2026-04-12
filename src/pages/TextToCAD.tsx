@@ -10,7 +10,7 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
-import { pollWorkflow } from "@/lib/poll-workflow";
+import { pollWorkflow, type PollWorkflowResult } from "@/lib/poll-workflow";
 import {
   resolveCadTerminalNode,
   resolveCadProgressNode,
@@ -389,7 +389,7 @@ export default function TextToCAD() {
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
 
-      let genPollResult: any;
+      let genPollResult: PollWorkflowResult<CadGenerationResult>;
       try {
         genPollResult = await pollWorkflow<CadGenerationResult>({
           mode: 'status-then-result',
@@ -509,7 +509,7 @@ export default function TextToCAD() {
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
 
-      let editPollResult: any;
+      let editPollResult: PollWorkflowResult<CadGenerationResult>;
       try {
         editPollResult = await pollWorkflow<CadGenerationResult>({
           mode: 'status-then-result',
