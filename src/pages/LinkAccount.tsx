@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Link2, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ interface LinkResult {
 export default function LinkAccount() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, initializing, getAuthHeader } = useAuth();
+  const { user, initializing } = useAuth();
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState<LinkStatus>(token ? 'loading' : 'missing_token');
@@ -46,14 +47,9 @@ export default function LinkAccount() {
     const linkAccount = async () => {
       setStatus('loading');
       try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        };
-
-        const response = await fetch('/api/agent/link/complete', {
+        const response = await authenticatedFetch('/api/agent/link/complete', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ link_token: token }),
         });
 
@@ -89,7 +85,7 @@ export default function LinkAccount() {
     };
 
     linkAccount();
-  }, [user, token, initializing, getAuthHeader]);
+  }, [user, token, initializing]);
 
   // While auth is initializing, show loader
   if (initializing) {
