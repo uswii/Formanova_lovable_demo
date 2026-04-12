@@ -5,7 +5,7 @@ const ADMIN_SECRET = import.meta.env.VITE_API_ADMIN_SECRET ?? '';
 export interface PresetModel {
   id: string;
   label: string;
-  /** Proxy URL: https://formanova.ai/api/artifacts/<sha256> — fetch with auth headers */
+  /** Proxy URL: /api/artifacts/<sha256> — fetch with auth headers */
   url: string;
   metadata?: Record<string, string> | null;
   /** Optional category id, when returned by the backend */

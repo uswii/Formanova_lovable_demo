@@ -9,8 +9,8 @@ import { AUTHENTICATED_IMAGES_ENABLED } from "@/lib/feature-flags";
  *   returns a temporary blob URL. Revokes the blob URL on cleanup.
  * - All other URLs (static assets, external CDN, null) are returned as-is.
  *
- * The "/artifacts/" check covers both dev (http://localhost:8000/artifacts/...)
- * and prod (https://formanova.ai/api/artifacts/...) without env-specific logic.
+ * The "/artifacts/" check covers artifact paths such as /api/artifacts/<sha256>
+ * without env-specific logic.
  */
 export function useAuthenticatedImage(url: string | null | undefined): string | null {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
