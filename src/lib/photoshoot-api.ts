@@ -2,11 +2,11 @@
  * Photoshoot Generation API
  * POST /run/state/jewelry_photoshoots_generator
  *
- * Uses direct JWT auth to the Temporal API gateway at /api.
- * Jewelry image URL comes from the classification step (azure-upload → classify → reuse URL).
+ * All protected calls go through authenticatedFetch so 401 responses
+ * trigger centralized session cleanup and redirect to /login.
  */
 
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const API_BASE = '/api';
 
@@ -49,19 +49,6 @@ export interface PhotoshootResultResponse {
   [key: string]: unknown[];
 }
 
-// ─── Auth Headers ───────────────────────────────────────────────────
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getStoredToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
 // ─── Start Photoshoot ───────────────────────────────────────────────
 
 export async function startPhotoshoot(
@@ -81,9 +68,9 @@ export async function startPhotoshoot(
   const modelId = input_model_asset_id && UUID_RE.test(input_model_asset_id) ? input_model_asset_id : undefined;
   const presetModelId = input_preset_model_id && UUID_RE.test(input_preset_model_id) ? input_preset_model_id : undefined;
 
-  const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
+  const res = await authenticatedFetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       payload,
       ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
@@ -105,10 +92,7 @@ export async function startPhotoshoot(
 export async function getPhotoshootStatus(
   workflowId: string,
 ): Promise<PhotoshootStatusResponse> {
-  const res = await fetch(`${API_BASE}/status/${workflowId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const res = await authenticatedFetch(`${API_BASE}/status/${workflowId}`);
 
   if (res.status === 404) {
     return { state: 'running' };
@@ -136,10 +120,7 @@ export async function getPhotoshootResult(
       await new Promise(r => setTimeout(r, retryDelayMs));
     }
 
-    const res = await fetch(`${API_BASE}/result/${workflowId}`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE}/result/${workflowId}`);
 
     // 404 = result not written yet — retry
     if (res.status === 404) {
@@ -202,9 +183,9 @@ export async function startPdpShot(
     ? { input_preset_inspiration_id: presetInspirationId }
     : {};
 
-  const res = await fetch(`${API_BASE}/run/Product_shot_pipeline`, {
+  const res = await authenticatedFetch(`${API_BASE}/run/Product_shot_pipeline`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       payload,
       ...(jewelryId ? { input_jewelry_asset_id: jewelryId } : {}),
