@@ -1125,6 +1125,7 @@ export default function UnifiedStudio() {
           parseResult: (d) => d as PhotoshootResultResponse,
           intervalMs: 3000,
           timeoutMs: 720_000,
+          max404s: Number.MAX_SAFE_INTEGER, // original getPhotoshootStatus treated status 404 as running until timeout
           maxPollErrors: 1,        // original threw immediately on any status error
           maxResultRetries: 6,     // matches getPhotoshootResult's attempt 0..5 (6 total)
           resultRetryDelayMs: 1000,

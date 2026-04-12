@@ -460,6 +460,27 @@ describe('pollWorkflow - optional features', () => {
     expect(onStatusData).toHaveBeenCalledWith({ state: 'completed' });
   });
 
+  it('max404s: Number.MAX_SAFE_INTEGER tolerates many 404s and succeeds when status completes', async () => {
+    // Simulates getPhotoshootStatus behavior: 404s mean "not ready yet", tolerated until terminal state
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(r404())
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({ output: 'ok.jpg' }));
+
+    const out = await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      max404s: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(out.status).toBe('completed');
+    expect(fetchStatus).toHaveBeenCalledTimes(6);
+    expect(fetchResult).toHaveBeenCalledTimes(1);
+  });
+
   it('maxPollErrors: 1 throws on the first non-ok status response', async () => {
     const fetchStatus = vi.fn().mockResolvedValue(notOk(503));
     const fetchResult = vi.fn();
