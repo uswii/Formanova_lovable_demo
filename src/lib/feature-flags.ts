@@ -96,13 +96,6 @@ export function isFeedbackEnabled(_email: string | undefined | null): boolean {
 }
 
 /**
- * Dynamic preset model library — fetches models from GET /api/models.
- */
-export function isModelsApiEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
-/**
  * In-studio onboarding popup (multi-step) + model guide button on the model canvas.
  */
 const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];

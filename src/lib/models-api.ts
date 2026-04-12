@@ -8,7 +8,7 @@ export interface PresetModel {
   /** Proxy URL: https://formanova.ai/api/artifacts/<sha256> — fetch with auth headers */
   url: string;
   metadata?: Record<string, string> | null;
-  /** Category id — present on legacy ModelImage, absent on API models */
+  /** Optional category id, when returned by the backend */
   category?: string;
 }
 

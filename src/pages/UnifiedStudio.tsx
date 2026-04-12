@@ -35,7 +35,6 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
-import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
 import { fetchPresetModels, fetchPresetInspirations, type PresetModel, type PresetModelsResponse, type PresetInspirationsResponse } from '@/lib/models-api';
 import { useQuery } from '@tanstack/react-query';
 import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
@@ -54,7 +53,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isModelsApiEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isFeedbackEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
@@ -536,19 +535,18 @@ export default function UnifiedStudio() {
   const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
 
-  // Fetch preset models from API (feature-flagged)
-  const modelsApiEnabled = isModelsApiEnabled(user?.email);
-  const { data: presetModelsData } = useQuery<PresetModelsResponse>({
+  // Fetch preset models from the backend. No local fallback catalog is used.
+  const { data: presetModelsData, isLoading: presetModelsLoading, isError: presetModelsError } = useQuery<PresetModelsResponse>({
     queryKey: ['preset-models'],
     queryFn: fetchPresetModels,
-    enabled: modelsApiEnabled,
+    enabled: !isProductShot,
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  const { data: presetInspirationsData } = useQuery<PresetInspirationsResponse>({
+  const { data: presetInspirationsData, isLoading: presetInspirationsLoading, isError: presetInspirationsError } = useQuery<PresetInspirationsResponse>({
     queryKey: ['preset-inspirations'],
     queryFn: fetchPresetInspirations,
-    enabled: modelsApiEnabled && isProductShot,
+    enabled: isProductShot,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -578,6 +576,10 @@ export default function UnifiedStudio() {
     const cat = presetModelsData?.categories.find(c => c.id === formanovaCategory);
     return cat?.models ?? [];
   }, [isProductShot, presetInspirationsData, presetModelsData, formanovaCategory]);
+
+  const activePresetLoading = isProductShot ? presetInspirationsLoading : presetModelsLoading;
+  const activePresetError = isProductShot ? presetInspirationsError : presetModelsError;
+  const activePresetEmpty = !activePresetLoading && !activePresetError && activePresetCategories.length === 0;
 
   // Fetch user-uploaded models from backend API
   const fetchMyModels = useCallback(async () => {
@@ -774,14 +776,7 @@ export default function UnifiedStudio() {
     if (session.validationResult) setValidationResult(session.validationResult);
     if (session.customModelImage) setCustomModelImage(session.customModelImage);
     if (session.modelAssetId) setModelAssetId(session.modelAssetId);
-    if (session.selectedModelId) {
-      // When API is enabled, the model data hasn't loaded yet — skip restore here;
-      // the effect below will pick it up once presetModelsData is available.
-      if (!modelsApiEnabled) {
-        const model = ALL_MODELS.find(m => m.id === session.selectedModelId);
-        if (model) setSelectedModel(model);
-      }
-    }
+    // Preset model selection is restored after backend preset data loads.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Session save — persist whenever key upload/selection state changes ─────
@@ -800,12 +795,12 @@ export default function UnifiedStudio() {
 
   // ─── Second-pass model restore when API data loads ────────────────
   useEffect(() => {
-    if (!modelsApiEnabled || !presetModelsData || selectedModel) return;
+    if (isProductShot || !presetModelsData || selectedModel) return;
     const session = loadStudioSession();
     if (!session?.selectedModelId) return;
     const model = presetModelsData.categories.flatMap(c => c.models).find(m => m.id === session.selectedModelId);
     if (model) setSelectedModel(model);
-  }, [presetModelsData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isProductShot, presetModelsData, selectedModel]);
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
@@ -926,7 +921,7 @@ export default function UnifiedStudio() {
     }
   }, [toast]);
 
-  const handleSelectLibraryModel = (model: PresetModel, isApiModel = false) => {
+  const handleSelectLibraryModel = (model: PresetModel) => {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
@@ -1233,37 +1228,6 @@ export default function UnifiedStudio() {
   const canProceed = jewelryImage && !isValidating;
 
   // ─── Formanova Model Grid (no upload card) ────────────────────────
-
-  const FormanovaModelGrid = ({ models }: { models: ModelImage[] }) => (
-    <div className="grid grid-cols-3 gap-3">
-      {models.map((model) => {
-        const isSelected = selectedModel?.id === model.id && !customModelImage;
-        return (
-          <button
-            key={model.id}
-            onClick={() => handleSelectLibraryModel(model)}
-            className={`group relative aspect-[3/4] overflow-hidden border transition-all ${
-              isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-            }`}
-          >
-            <img
-              src={model.url}
-              alt={model.label}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-            {isSelected && (
-              <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                  <Check className="h-3.5 w-3.5 text-background" />
-                </div>
-              </div>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
 
   const handleDeleteUserModel = (modelId: string) => {
     setMyModels(prev => prev.filter(m => m.id !== modelId));
@@ -1917,10 +1881,7 @@ export default function UnifiedStudio() {
                       */}
                       <div className="columns-3 gap-2">
                         {/* Category buttons */}
-                        {(modelsApiEnabled
-                          ? activePresetCategories
-                          : [{ id: 'ecom', label: 'E-Commerce' }, { id: 'editorial', label: 'Editorial' }]
-                        ).map((cat) => (
+                        {activePresetCategories.map((cat) => (
                           <div key={cat.id} className="break-inside-avoid mb-2">
                             <button
                               onClick={() => setFormanovaCategory(cat.id)}
@@ -1937,43 +1898,40 @@ export default function UnifiedStudio() {
                           </div>
                         ))}
                         {/* Model thumbnails */}
-                        {modelsApiEnabled ? (
+                        {activePresetLoading ? (
+                          <div className="break-inside-avoid mb-2 col-span-full">
+                            <div className="border border-border/20 p-4 text-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50 mx-auto mb-3" />
+                              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                                Loading Formanova models
+                              </p>
+                            </div>
+                          </div>
+                        ) : activePresetError ? (
+                          <div className="break-inside-avoid mb-2 col-span-full">
+                            <div className="border border-border/20 p-4 text-center">
+                              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                                Formanova models are unavailable
+                              </p>
+                            </div>
+                          </div>
+                        ) : activePresetEmpty ? (
+                          <div className="break-inside-avoid mb-2 col-span-full">
+                            <div className="border border-border/20 p-4 text-center">
+                              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                                No Formanova models found
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
                           presetModelsForCategory.map((model) => (
                             <PresetModelThumb
                               key={model.id}
                               model={model}
                               isSelected={selectedModel?.id === model.id && !customModelImage}
-                              onSelect={() => handleSelectLibraryModel(model, true)}
+                              onSelect={() => handleSelectLibraryModel(model)}
                             />
                           ))
-                        ) : (
-                          (formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
-                            const isSelected = selectedModel?.id === model.id && !customModelImage;
-                            return (
-                              <div key={model.id} className="break-inside-avoid mb-2">
-                                <button
-                                  onClick={() => handleSelectLibraryModel(model)}
-                                  className={`group relative overflow-hidden border transition-all duration-200 w-full ${
-                                    isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-                                  }`}
-                                >
-                                  <img
-                                    src={model.url}
-                                    alt={model.label}
-                                    className="w-full block group-hover:scale-105 transition-transform duration-300"
-                                    loading="lazy"
-                                  />
-                                  {isSelected && (
-                                    <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                                      <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                                        <Check className="h-3.5 w-3.5 text-background" />
-                                      </div>
-                                    </div>
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          })
                         )}
                       </div>
                     </div>
