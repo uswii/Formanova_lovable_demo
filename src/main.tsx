@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { reloadPreservingSession } from "./lib/reload-utils";
+import PostHogErrorBoundary from "./components/PostHogErrorBoundary";
 import { getStoredUser } from "./lib/auth-api";
 import posthog from 'posthog-js';
 
@@ -103,5 +104,9 @@ if (
       : undefined,
   });
 
-  root.render(<App />);
+  root.render(
+    <PostHogErrorBoundary>
+      <App />
+    </PostHogErrorBoundary>
+  );
 }

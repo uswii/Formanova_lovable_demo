@@ -4,6 +4,8 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
+  jewelry_photoshoots_generator: 10,
+  Product_shot_pipeline: 10,
   cad_generation: 85,
   qa_with_gpu: 3,
   ring_full_pipeline: 85,

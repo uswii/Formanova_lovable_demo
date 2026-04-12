@@ -996,7 +996,7 @@ export default function UnifiedStudio() {
       return;
     }
 
-    const hasCredits = await checkCredits('jewelry_photoshoots_generator');
+    const hasCredits = await checkCredits(isProductShot ? 'Product_shot_pipeline' : 'jewelry_photoshoots_generator');
     if (!hasCredits) {
       trackPaywallHit({
         category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
