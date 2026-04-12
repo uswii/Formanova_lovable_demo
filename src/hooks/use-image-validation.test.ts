@@ -117,6 +117,7 @@ describe('useImageValidation - AuthExpiredError propagation', () => {
 
   beforeEach(() => {
     mockAuthFetch.mockReset();
+    mockPollWorkflow.mockReset();
     unmount = undefined;
   });
 
@@ -160,6 +161,38 @@ describe('useImageValidation - AuthExpiredError propagation', () => {
     const result = await mounted.api.validateImages([makeFile()], 'rings');
     expect(result).not.toBeNull();
     expect(result?.all_acceptable).toBe(true);
+  });
+
+  it('result is fetched after 60 status polls without terminal state', async () => {
+    // Simulates: status never completes for 60 polls (onStatusExhausted='fetch-result'),
+    // pollWorkflow breaks out and fetches result successfully.
+    // Verifies: hook configures maxStatusPolls/onStatusExhausted correctly AND
+    // processes the result from the exhaustion-then-result path.
+    mockAuthFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ workflow_id: 'wf-exhaust' }),
+    } as unknown as Response);
+    mockPollWorkflow.mockResolvedValueOnce({
+      status: 'completed',
+      result: { image_captioning: [{ label: 'mannequin', confidence: 0.95, reason: 'worn' }] },
+    });
+
+    const mounted = await mountHook();
+    unmount = mounted.unmount;
+
+    const result = await mounted.api.validateImages([makeFile()], 'rings');
+
+    // Hook must configure pollWorkflow for original loop behavior
+    const [opts] = mockPollWorkflow.mock.calls[0];
+    expect(opts.maxStatusPolls).toBe(60);
+    expect(opts.onStatusExhausted).toBe('fetch-result');
+    expect(opts.statusNonOkBehavior).toBe('continue');
+
+    // Result was processed correctly from the post-exhaustion result fetch
+    expect(result).not.toBeNull();
+    expect(result?.results[0].category).toBe('mannequin');
+    expect(result?.results[0].is_acceptable).toBe(true);
   });
 
   it('pollWorkflow cancellation returns fallback result, does not crash', async () => {

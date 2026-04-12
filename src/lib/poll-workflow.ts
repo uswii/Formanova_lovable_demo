@@ -90,6 +90,31 @@ export interface PollWorkflowOptions<TResult> {
   maxPollErrors?: number;
 
   /**
+   * Maximum number of status poll iterations (count-based, not time-based).
+   * When reached without a terminal state, takes the action specified by onStatusExhausted.
+   * If undefined, polling continues until timeoutMs expires.
+   * Only applies to status-then-result mode.
+   */
+  maxStatusPolls?: number;
+
+  /**
+   * What to do when maxStatusPolls iterations complete without a terminal state.
+   * 'throw' (default): throw an error.
+   * 'fetch-result': break out of the status loop and attempt the result fetch anyway.
+   * Only applies when maxStatusPolls is set.
+   */
+  onStatusExhausted?: 'throw' | 'fetch-result';
+
+  /**
+   * How to handle non-ok (non-404) status responses.
+   * 'count-error' (default): count against maxPollErrors budget and eventually throw.
+   * 'continue': silently skip without counting as an error (matches callers that
+   *   treat transient HTTP errors as "not ready yet").
+   * Only applies to status-then-result mode.
+   */
+  statusNonOkBehavior?: 'continue' | 'count-error';
+
+  /**
    * Number of result-fetch attempts (including the first) on /api/result.
    * Retries on 404 only. Default: 5.
    * Only applies to status-then-result mode.
@@ -155,6 +180,9 @@ export async function pollWorkflow<TResult>(
     maxPollErrors = 10,
     maxResultRetries = 5,
     resultRetryDelayMs = 1000,
+    maxStatusPolls,
+    onStatusExhausted = 'throw',
+    statusNonOkBehavior = 'count-error',
     signal,
     onProgress,
     resultRunningValue = 'running',
@@ -209,6 +237,7 @@ export async function pollWorkflow<TResult>(
 
   let consecutive404s = 0;
   let pollErrors = 0;
+  let pollCount = 0;
 
   while (true) {
     if (isCancelled(signal)) return { status: 'cancelled' };
@@ -217,7 +246,14 @@ export async function pollWorkflow<TResult>(
       throw new Error(`Workflow timed out after ${timeoutMs}ms`);
     }
 
+    // -- Count-based exhaustion check (before sleep, so exactly maxStatusPolls fetches run) --
+    if (maxStatusPolls !== undefined && pollCount >= maxStatusPolls) {
+      if (onStatusExhausted === 'fetch-result') break;
+      throw new Error(`Status polling exhausted ${maxStatusPolls} attempts without completing`);
+    }
+
     await sleep(intervalMs);
+    pollCount++;
 
     if (isCancelled(signal)) return { status: 'cancelled' };
     if (Date.now() > deadline) throw new Error(`Workflow timed out after ${timeoutMs}ms`);
@@ -246,6 +282,7 @@ export async function pollWorkflow<TResult>(
 
     // -- Non-ok budget --
     if (!statusRes.ok) {
+      if (statusNonOkBehavior === 'continue') { continue; }
       pollErrors++;
       if (pollErrors >= maxPollErrors) {
         throw new Error(`Status polling failed ${maxPollErrors} times (last status: ${statusRes.status})`);

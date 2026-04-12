@@ -340,6 +340,57 @@ describe('pollWorkflow - optional features', () => {
     ).rejects.toThrow('503');
   });
 
+  it('maxStatusPolls + fetch-result: proceeds to result fetch after N polls without terminal state', async () => {
+    // All status polls return 'running'; after 3 iterations exhaustion fires -> result fetch
+    const fetchStatus = vi.fn().mockResolvedValue(okJson({ state: 'running' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({ output: 'late.jpg' }));
+
+    const out = await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      maxStatusPolls: 3,
+      onStatusExhausted: 'fetch-result',
+    });
+
+    expect(out.status).toBe('completed');
+    expect((out as any).result).toEqual({ output: 'late.jpg' });
+    expect(fetchStatus).toHaveBeenCalledTimes(3);
+    expect(fetchResult).toHaveBeenCalledTimes(1);
+  });
+
+  it('maxStatusPolls + throw: throws after N polls without terminal state', async () => {
+    const fetchStatus = vi.fn().mockResolvedValue(okJson({ state: 'running' }));
+    const fetchResult = vi.fn();
+
+    await expect(
+      pollWorkflow({
+        ...statusOpts(fetchStatus, fetchResult),
+        maxStatusPolls: 3,
+        onStatusExhausted: 'throw',
+      }),
+    ).rejects.toThrow('exhausted');
+
+    expect(fetchStatus).toHaveBeenCalledTimes(3);
+    expect(fetchResult).not.toHaveBeenCalled();
+  });
+
+  it('statusNonOkBehavior=continue: non-ok responses do not count against error budget', async () => {
+    const fetchStatus = vi.fn()
+      .mockResolvedValueOnce(notOk(500))
+      .mockResolvedValueOnce(notOk(503))
+      .mockResolvedValueOnce(okJson({ state: 'completed' }));
+    const fetchResult = vi.fn().mockResolvedValueOnce(okJson({}));
+
+    // maxPollErrors: 1 would normally throw on the first non-ok, but continue mode skips counting
+    const out = await pollWorkflow({
+      ...statusOpts(fetchStatus, fetchResult),
+      statusNonOkBehavior: 'continue',
+      maxPollErrors: 1,
+    });
+
+    expect(out.status).toBe('completed');
+    expect(fetchStatus).toHaveBeenCalledTimes(3);
+  });
+
   it('missing fetchStatus in status-then-result mode throws immediately', async () => {
     await expect(
       pollWorkflow({

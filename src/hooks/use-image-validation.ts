@@ -210,8 +210,11 @@ export function useImageValidation() {
           },
           parseResult: (d) => d,
           intervalMs: 1000,
-          timeoutMs: 120_000,
-          max404s: 60,        // tolerate 404s throughout the polling window
+          timeoutMs: 120_000,           // outer wall-clock safety net
+          maxStatusPolls: 60,           // original loop: 60 iterations at 1s
+          onStatusExhausted: 'fetch-result', // original: always attempts result fetch
+          statusNonOkBehavior: 'continue',   // original: non-ok silently continues
+          max404s: 999,                 // original: no 404 budget, just continue
           maxResultRetries: 5,
           resultRetryDelayMs: 1000,
           signal: controller.signal,
