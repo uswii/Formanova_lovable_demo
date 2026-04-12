@@ -10,6 +10,7 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { pollWorkflow } from "@/lib/poll-workflow";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
@@ -843,27 +844,18 @@ export default function TextToCAD() {
       const { workflow_id } = weightStartBody;
 
       // Poll until done (2s interval, ~2 min timeout)
-      const POLL_INTERVAL = 2000;
-      const POLL_TIMEOUT = 120_000;
-      const deadline = Date.now() + POLL_TIMEOUT;
-      let result: any = null;
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-        if (!pollRes.ok) {
-          const err = await pollRes.json().catch(() => ({}));
-          throw new Error(err?.error || "Polling failed");
-        }
-        const data = await pollRes.json();
-        console.log('[Weight] Poll response:', data);
-        if (data?.status === 'running') continue;
-        result = data;
-        break;
-      }
-      if (!result) {
-        toast.error("Weight estimation timed out — try again");
-        return;
-      }
+      const pollResult = await pollWorkflow({
+        mode: 'result-direct',
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+        parseResult: (d) => d as { success: boolean; error?: string; scale_warning?: boolean; weight_14k_gold_g?: number; weight_platinum_g?: number },
+        intervalMs: 2000,
+        timeoutMs: 120_000,
+      });
+
+      if (pollResult.status === 'cancelled') return; // unreachable: no signal passed
+
+      const result = pollResult.result;
+      console.log('[Weight] Poll result:', result);
       if (!result.success) {
         toast.error(result.error || "Weight estimation failed");
         return;
@@ -877,7 +869,8 @@ export default function TextToCAD() {
         scale_warning: result.scale_warning,
       });
     } catch (err) {
-      toast.error("Weight estimation failed");
+      const isTimeout = err instanceof Error && err.message.includes('timed out');
+      toast.error(isTimeout ? "Weight estimation timed out — try again" : "Weight estimation failed");
       console.error('[Weight]', err);
     } finally {
       setWeightLoading(false);
@@ -921,27 +914,18 @@ export default function TextToCAD() {
       const { workflow_id } = stlStartBody;
 
       // Poll until done (2s interval, ~5 min timeout for high quality)
-      const POLL_INTERVAL = 2000;
-      const POLL_TIMEOUT = 300_000;
-      const deadline = Date.now() + POLL_TIMEOUT;
-      let result: any = null;
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-        if (!pollRes.ok) {
-          const err = await pollRes.json().catch(() => ({}));
-          throw new Error(err?.error || "Polling failed");
-        }
-        const data = await pollRes.json();
-        console.log('[STL] Poll response:', data);
-        if (data?.status === 'running') continue;
-        result = data;
-        break;
-      }
-      if (!result) {
-        toast.error("STL preparation timed out — try Standard quality or a simpler model");
-        return;
-      }
+      const pollResult = await pollWorkflow({
+        mode: 'result-direct',
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+        parseResult: (d) => d as { success: boolean; error_text?: string; stl_artifact?: { uri: string } },
+        intervalMs: 2000,
+        timeoutMs: 300_000,
+      });
+
+      if (pollResult.status === 'cancelled') return; // unreachable: no signal passed
+
+      const result = pollResult.result;
+      console.log('[STL] Poll result:', result);
       if (!result.success || !result.stl_artifact) {
         toast.error(result.error_text || "STL export failed");
         return;
@@ -969,7 +953,8 @@ export default function TextToCAD() {
         }
       }
     } catch (err) {
-      toast.error("STL export failed");
+      const isTimeout = err instanceof Error && err.message.includes('timed out');
+      toast.error(isTimeout ? "STL preparation timed out — try Standard quality or a simpler model" : "STL export failed");
       console.error('[STL Export]', err);
     } finally {
       setStlExporting(false);
