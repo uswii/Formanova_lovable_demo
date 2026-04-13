@@ -3,6 +3,7 @@
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { TOOL_COSTS } from '@/lib/credits-api';
+import { resolveCadGenerationTier } from '@/lib/cad-tier';
 
 export interface PreflightResult {
   approved: boolean;
@@ -34,7 +35,7 @@ export async function performCreditPreflight(
       body: JSON.stringify({
         workflow_name: workflowName,
         num_variations: numVariations,
-        ...(metadata?.model ? { pricing_context: { llm: metadata.model } } : {}),
+        ...(metadata?.model ? { pricing_context: { tier: resolveCadGenerationTier(metadata.model) } } : {}),
       }),
     });
 
