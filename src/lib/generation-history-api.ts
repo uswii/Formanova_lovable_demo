@@ -224,6 +224,15 @@ export async function fetchCadResult(
       return { glb_url: originalUri, azure_source: 'success_original_glb' };
     }
 
+    // 4. ring_edit_v1 currently returns build nodes rather than success sinks.
+    const buildUri = extractArtifactUri(data, 'build_retry', 'glb_artifact')
+      || extractArtifactUri(data, 'build_retry', 'original_glb_artifact')
+      || extractArtifactUri(data, 'build_initial', 'glb_artifact')
+      || extractArtifactUri(data, 'build_initial', 'original_glb_artifact');
+    if (buildUri) {
+      return { glb_url: buildUri, azure_source: 'build_retry' };
+    }
+
     return { glb_url: null, azure_source: null };
   } catch (e) {
     if (__DEV__) console.warn('[HistoryAPI] fetchCadResult error:', workflowId, e);

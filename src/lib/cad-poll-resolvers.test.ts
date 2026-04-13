@@ -48,6 +48,24 @@ describe('resolveCadTerminalNode', () => {
     })).toBe('failure');
   });
 
+  it('returns success when runtime state is completed', () => {
+    expect(resolveCadTerminalNode({
+      runtime: { state: 'completed', last_exit_node_id: 'build_retry' },
+    })).toBe('success');
+  });
+
+  it('returns success when runtime state is succeeded', () => {
+    expect(resolveCadTerminalNode({
+      runtime: { state: 'succeeded' },
+    })).toBe('success');
+  });
+
+  it('returns failure when runtime state is failed', () => {
+    expect(resolveCadTerminalNode({
+      runtime: { state: 'failed' },
+    })).toBe('failure');
+  });
+
   it('returns null for a non-terminal active node', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['build_initial'] },
@@ -150,6 +168,20 @@ describe('parseCadResult', () => {
     const result = parseCadResult({
       success_original_glb: [{ original_glb_artifact: artifact }],
     });
+    expect(result.glb_url).toBe('gs://bucket/model.glb');
+  });
+
+  it('resolves edit output from build_retry.glb_artifact', () => {
+    const result = parseCadResult({
+      build_retry: [{ glb_artifact: artifact }],
+    }, 'edit');
+    expect(result.glb_url).toBe('gs://bucket/model.glb');
+  });
+
+  it('resolves edit output from build_initial.original_glb_artifact', () => {
+    const result = parseCadResult({
+      build_initial: [{ original_glb_artifact: artifact }],
+    }, 'edit');
     expect(result.glb_url).toBe('gs://bucket/model.glb');
   });
 

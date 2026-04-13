@@ -54,6 +54,17 @@ describe('generation-history-api URL shapes', () => {
     expect(url).not.toContain('formanova.ai');
   });
 
+  it('fetchCadResult reads ring edit output from build nodes', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      build_retry: [{ glb_artifact: { uri: 'gs://bucket/edit.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-edit')).resolves.toEqual({
+      glb_url: 'gs://bucket/edit.glb',
+      azure_source: 'build_retry',
+    });
+  });
+
   it('fetchWorkflowCreditAudit calls a relative /api/credits/audit path', async () => {
     mockAuthFetch.mockReturnValueOnce(okJson({ actual_user_billed: 10 }));
     await fetchWorkflowCreditAudit('wf-3');

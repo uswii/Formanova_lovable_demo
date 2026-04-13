@@ -42,4 +42,23 @@ describe('performCreditPreflight', () => {
     const estimateBody = JSON.parse(mockAuthFetch.mock.calls[0][1].body);
     expect(estimateBody.pricing_context).not.toHaveProperty('llm');
   });
+
+  it('estimates ring edit credits with the ring_edit_v1 workflow name', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce(okJson({ projected_max_hold: 85 }))
+      .mockResolvedValueOnce(okJson({ available: 100 }));
+
+    const result = await performCreditPreflight('ring_edit_v1', 1, { model: 'gemini' });
+
+    expect(result).toEqual({ approved: true, estimatedCredits: 85, currentBalance: 100 });
+    expect(mockAuthFetch).toHaveBeenNthCalledWith(1, '/api/credits/estimate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workflow_name: 'ring_edit_v1',
+        num_variations: 1,
+        pricing_context: { tier: 'standard' },
+      }),
+    });
+  });
 });

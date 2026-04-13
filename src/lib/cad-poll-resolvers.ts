@@ -34,10 +34,14 @@ const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed
  */
 export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failure' | null {
   const d = statusData as {
-    runtime?: { active_nodes?: string[]; last_exit_node_id?: string };
+    runtime?: { active_nodes?: string[]; last_exit_node_id?: string; state?: string };
   };
   const activeNode = d.runtime?.active_nodes?.[0] || "";
   const lastExitNode = d.runtime?.last_exit_node_id || "";
+  const state = (d.runtime?.state || "").toLowerCase();
+
+  if (state === "failed" || state === "budget_exhausted" || state === "failure") return 'failure';
+  if (state === "completed" || state === "succeeded" || state === "success") return 'success';
 
   if (!TERMINAL_NODES.has(activeNode) && !TERMINAL_NODES.has(lastExitNode)) return null;
 
@@ -97,11 +101,21 @@ export function parseCadResult(
   const successOriginalArr = result["success_original_glb"] as
     | Array<{ original_glb_artifact?: CadGlbArtifact }>
     | undefined;
+  const buildRetryArr = result["build_retry"] as
+    | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
+    | undefined;
+  const buildInitialArr = result["build_initial"] as
+    | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
+    | undefined;
 
   const artifact =
     successFinalArr?.[0]?.glb_artifact ||
     successFinalArr?.[0]?.original_glb_artifact ||
-    successOriginalArr?.[0]?.original_glb_artifact;
+    successOriginalArr?.[0]?.original_glb_artifact ||
+    buildRetryArr?.[0]?.glb_artifact ||
+    buildRetryArr?.[0]?.original_glb_artifact ||
+    buildInitialArr?.[0]?.glb_artifact ||
+    buildInitialArr?.[0]?.original_glb_artifact;
 
   if (!artifact?.uri) throw new Error(`No GLB model found in ${context} results`);
   return { glb_url: artifact.uri, artifact };
