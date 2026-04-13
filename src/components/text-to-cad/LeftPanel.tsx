@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
-import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
+import { PART_REGEN_PARTS } from "./types";
+import { CAD_EDIT_WORKFLOW, CAD_GENERATION_WORKFLOW } from "@/lib/cad-workflows";
 import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
 
 interface LeftPanelProps {
@@ -13,15 +14,11 @@ interface LeftPanelProps {
   setPrompt: (p: string) => void;
   editPrompt: string;
   setEditPrompt: (p: string) => void;
-  selectedModules: string[];
-  toggleModule: (mod: string) => void;
   isGenerating: boolean;
   isEditing: boolean;
   hasModel: boolean;
-  modules: string[];
   onGenerate: () => void;
   onEdit: () => void;
-  onQuickEdit: (preset: string) => void;
   magicTexturing: boolean;
   onMagicTexturingChange: (on: boolean) => void;
   onGlbUpload: (file: File) => void;
@@ -33,15 +30,15 @@ interface LeftPanelProps {
 
 export default function LeftPanel({
   model, setModel, prompt, setPrompt, editPrompt, setEditPrompt,
-  selectedModules, toggleModule,
-  isGenerating, isEditing, hasModel, modules,
-  onGenerate, onEdit, onQuickEdit, magicTexturing, onMagicTexturingChange, onGlbUpload,
+  isGenerating, isEditing, hasModel,
+  onGenerate, onEdit, magicTexturing, onMagicTexturingChange, onGlbUpload,
   onRebuildPart, onAddPart,
   onReset,
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
-  const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
+  const { cost: generationCost, loading: generationCostLoading } = useEstimatedCost({ workflowName: CAD_GENERATION_WORKFLOW, model });
+  const { cost: editCost, loading: editCostLoading } = useEstimatedCost({ workflowName: CAD_EDIT_WORKFLOW, model });
   const [rebuildOpen, setRebuildOpen] = useState(false);
   const [addPartOpen, setAddPartOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
@@ -118,7 +115,7 @@ export default function LeftPanel({
                   <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                     <span className="text-[11px] lg:text-[13px] font-mono font-semibold">≤</span>
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
+                    <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{generationCostLoading ? '…' : (generationCost !== null ? generationCost : '—')}</span>
                   </span>
                 </>
               )}
@@ -160,35 +157,6 @@ export default function LeftPanel({
           */}
         </section>
 
-        {/* Modules */}
-        <AnimatePresence>
-          {hasModel && modules.length > 0 && (
-            <motion.section
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Components</h3>
-              <div className="flex flex-wrap gap-1.5 min-w-0">
-                {modules.map((mod) => (
-                  <button
-                    key={mod}
-                    onClick={() => toggleModule(mod)}
-                    className={`px-3 lg:px-4 py-2 lg:py-2.5 text-[10px] lg:text-[11px] font-semibold cursor-pointer transition-all duration-200 tracking-wide border truncate max-w-full ${
-                      selectedModules.includes(mod)
-                        ? "text-foreground bg-accent border-border"
-                        : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
-                    }`}
-                  >
-                    {mod}
-                  </button>
-                ))}
-              </div>
-              <p className="font-mono text-[9px] text-muted-foreground/60 mt-2 tracking-wide">Click a component to target your edits</p>
-            </motion.section>
-          )}
-        </AnimatePresence>
-
         {/* Edit section */}
         {CAD_EDIT_TOOLS_ENABLED && (
         <AnimatePresence>
@@ -200,7 +168,7 @@ export default function LeftPanel({
               className="relative p-4 lg:p-5 bg-muted/30 border border-border min-w-0 overflow-hidden"
             >
               <h3 className="font-display text-base lg:text-lg tracking-[0.12em] lg:tracking-[0.15em] text-foreground uppercase mb-1">Edit Your Ring</h3>
-              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide">Describe changes, rebuild parts, or add new elements</p>
+              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide">Describe the change you want to apply</p>
 
               {/* Text edit prompt */}
               <textarea
@@ -219,12 +187,12 @@ export default function LeftPanel({
                 <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                   <span className="text-[11px] lg:text-[13px] font-mono font-semibold">≤</span>
                   <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
+                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{editCostLoading ? '…' : (editCost !== null ? editCost : '—')}</span>
                 </span>
               </button>
 
               {/* ═══ PRIMARY PART TOOLS ═══ */}
-              <div className="mt-6 space-y-3">
+              <div className="hidden mt-6 space-y-3">
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}
@@ -284,7 +252,7 @@ export default function LeftPanel({
                             <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                               <span className="text-[11px] lg:text-[12px] font-mono font-semibold">≤</span>
                               <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{editCostLoading ? '…' : (editCost !== null ? editCost : '—')}</span>
                             </span>
                           </button>
                         </div>
@@ -333,7 +301,7 @@ export default function LeftPanel({
                             <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
                               <span className="text-[11px] lg:text-[12px] font-mono font-semibold">≤</span>
                               <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{editCostLoading ? '…' : (editCost !== null ? editCost : '—')}</span>
                             </span>
                           </button>
                         </div>

@@ -10,7 +10,12 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
-import { resolveCadGenerationTier } from "@/lib/cad-tier";
+import {
+  CAD_EDIT_WORKFLOW,
+  CAD_GENERATION_WORKFLOW,
+  buildCadEditStartBody,
+  buildCadGenerationStartBody,
+} from "@/lib/cad-workflows";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
@@ -55,7 +60,6 @@ export default function TextToCAD() {
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,12 +67,11 @@ export default function TextToCAD() {
   const [progressStep, setProgressStep] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
-  const [showPartRegen, setShowPartRegen] = useState(false);
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [glbArtifact, setGlbArtifact] = useState<{ uri: string; type: string; bytes: number; sha256: string } | null>(null);
+  const [sourceWorkflowId, setSourceWorkflowId] = useState<string | null>(null);
   const [generationFailed, setGenerationFailed] = useState(false);
   const wasManualUploadRef = useRef(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
@@ -131,11 +134,13 @@ export default function TextToCAD() {
   useEffect(() => {
     const glbParam = searchParams.get('glb');
     if (!glbParam) return;
+    const workflowIdParam = searchParams.get('workflow_id');
     setWorkspaceActive(true);
     setHasModel(true);
     setIsModelLoading(true);
     setProgressStep("_loading");
     setGlbUrl(glbParam);
+    setSourceWorkflowId(workflowIdParam?.trim() || null);
     // Synthesise an artifact so weight/STL tools work on history-loaded models.
     // Only the uri field is used by the backend to fetch the file; type/bytes/sha256
     // are metadata that we don't have here but won't block the API calls.
@@ -281,12 +286,6 @@ export default function TextToCAD() {
     }
   }, []);
 
-  const toggleModule = (mod: string) => {
-    setSelectedModules((prev) =>
-      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]
-    );
-  };
-
   const simulateGeneration = useCallback(async () => {
     if (isGenerating) return;
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
@@ -317,22 +316,19 @@ export default function TextToCAD() {
       }
 
       setGlbUrl("/models/ring.glb");
+      setSourceWorkflowId(null);
       setIsModelLoading(true);
       setIsGenerating(false);
       setHasModel(true);
-      setShowPartRegen(true);
       toast.success("Demo model loaded — no credits used");
       return;
     }
 
     // ── Real generation ──
-    const tier = resolveCadGenerationTier(model);
-    
-
-    const modelKey = `ring_generate_v1:${model}`;
+    const modelKey = `${CAD_GENERATION_WORKFLOW}:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
     try {
-      const result = await performCreditPreflight('ring_generate_v1', 1, { model });
+      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, { model });
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
@@ -353,17 +349,15 @@ export default function TextToCAD() {
     setGenerationFailed(false);
     setRetryAttempt(0);
     setHasModel(false);
+    setSourceWorkflowId(null);
     setProgressStep("generate_initial");
 
     try {
       // Step 1: Start generation
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`/api/run/${CAD_GENERATION_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payload: { tier, prompt: prompt.trim(), max_attempts: 3 },
-          return_nodes: ["build_initial", "build_retry", "build_corrected", "success_original_glb", "failed_final"],
-        }),
+        body: JSON.stringify(buildCadGenerationStartBody(prompt, model)),
       });
 
       if (!startRes.ok) {
@@ -436,12 +430,11 @@ export default function TextToCAD() {
           if (state === "completed") break;
           if (state === "failed" || state === "budget_exhausted") {
             setProgressStep("failed_final");
-            throw new Error(`Generation ${state}`);
+            break;
           }
           if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
             if (activeNode === "failed_final" || lastExitNode === "failed_final") {
               setProgressStep("failed_final");
-              throw new Error("Generation failed");
             }
             break; // success node reached
           }
@@ -467,12 +460,19 @@ export default function TextToCAD() {
           // success_original_glb → original_glb_artifact
           // failed_final → error
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          if (hasFailed) throw new Error("Generation failed — no valid model produced");
 
           const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
             || result["success_final"]?.[0]?.original_glb_artifact;
           const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
-          const artifact = successFinalArtifact || successOriginalArtifact;
+          const buildRetryArtifact = result["build_retry"]?.[0]?.glb_artifact
+            || result["build_retry"]?.[0]?.original_glb_artifact;
+          const buildInitialArtifact = result["build_initial"]?.[0]?.glb_artifact
+            || result["build_initial"]?.[0]?.original_glb_artifact;
+          const artifact = successFinalArtifact || successOriginalArtifact || buildRetryArtifact || buildInitialArtifact;
+          if (hasFailed && !successFinalArtifact && !successOriginalArtifact) {
+            if (buildInitialArtifact?.uri) { glb_url = buildInitialArtifact.uri; setGlbArtifact(buildInitialArtifact); break; }
+            throw new Error("Generation failed - no valid model produced");
+          }
           console.log('[TextToCAD] Generation result keys:', Object.keys(result), '| artifact:', artifact);
           if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found in results");
@@ -500,7 +500,7 @@ export default function TextToCAD() {
       setIsGenerating(false);
       refreshCredits().catch(() => {});
       setHasModel(true);
-      setShowPartRegen(true);
+      setSourceWorkflowId(workflow_id);
 
     } catch (err) {
       console.error("Generation failed:", err);
@@ -513,14 +513,16 @@ export default function TextToCAD() {
   const runEditWithPrompt = useCallback(async (promptText: string, label: string) => {
     if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
     if (isGenerating || isEditing) return;
-
-    const tier = resolveCadGenerationTier(model);
+    if (!sourceWorkflowId) {
+      toast.error("Generate a ring before editing");
+      return;
+    }
 
     // Credit preflight
-    const modelKey = `ring_generate_v1:${model}`;
-    const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
+    const modelKey = `${CAD_EDIT_WORKFLOW}:${model}`;
+    const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS[CAD_EDIT_WORKFLOW] ?? 5;
     try {
-      const result = await performCreditPreflight('ring_generate_v1', 1, { model });
+      const result = await performCreditPreflight(CAD_EDIT_WORKFLOW, 1, { model });
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
@@ -541,14 +543,11 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start generation with edit prompt
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      // Step 1: Start edit workflow
+      const startRes = await authenticatedFetch(`/api/run/${CAD_EDIT_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payload: { tier, prompt: promptText.trim(), max_attempts: 3 },
-          return_nodes: ["build_initial", "build_retry", "build_corrected", "success_original_glb", "failed_final"],
-        }),
+        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model)),
       });
 
       if (!startRes.ok) {
@@ -597,9 +596,9 @@ export default function TextToCAD() {
           if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
 
           if (state === "completed") break;
-          if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
+          if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); break; }
           if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
-            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); }
             break;
           }
         } catch (err) {
@@ -619,12 +618,19 @@ export default function TextToCAD() {
         if (resultRes.ok) {
           const result = await resultRes.json();
           const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          if (hasFailed) throw new Error("Edit failed — no valid model produced");
 
           const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
             || result["success_final"]?.[0]?.original_glb_artifact;
           const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
-          const artifact = successFinalArtifact || successOriginalArtifact;
+          const buildRetryArtifact = result["build_retry"]?.[0]?.glb_artifact
+            || result["build_retry"]?.[0]?.original_glb_artifact;
+          const buildInitialArtifact = result["build_initial"]?.[0]?.glb_artifact
+            || result["build_initial"]?.[0]?.original_glb_artifact;
+          const artifact = successFinalArtifact || successOriginalArtifact || buildRetryArtifact || buildInitialArtifact;
+          if (hasFailed && !successFinalArtifact && !successOriginalArtifact) {
+            if (buildInitialArtifact?.uri) { glb_url = buildInitialArtifact.uri; setGlbArtifact(buildInitialArtifact); break; }
+            throw new Error("Edit failed - no valid model produced");
+          }
           console.log('[TextToCAD] Edit result keys:', Object.keys(result), '| artifact:', artifact);
           if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found");
@@ -645,6 +651,7 @@ export default function TextToCAD() {
       setIsEditing(false);
       refreshCredits().catch(() => {});
       setHasModel(true);
+      setSourceWorkflowId(workflow_id);
       toast.success(`${label} applied`);
 
     } catch (err) {
@@ -654,7 +661,7 @@ export default function TextToCAD() {
       setIsEditing(false);
       setProgressStep("");
     }
-  }, [model, isGenerating, isEditing, pushUndo]);
+  }, [model, isGenerating, isEditing, sourceWorkflowId, pushUndo]);
 
   const simulateEdit = useCallback(async () => {
     await runEditWithPrompt(editPrompt, "AI edit");
@@ -668,10 +675,6 @@ export default function TextToCAD() {
   const handleAddPart = useCallback((description: string) => {
     runEditWithPrompt(`Add new part: ${description}`, "Add part");
   }, [runEditWithPrompt]);
-
-  const handleQuickEdit = useCallback((preset: string) => {
-    setEditPrompt(preset);
-  }, []);
 
   const [additionalParts, setAdditionalParts] = useState<string[]>([]);
 
@@ -697,10 +700,9 @@ export default function TextToCAD() {
       setIsModelLoading(true);
       setProgressStep("_loading");
       setGlbUrl(url);
+      setSourceWorkflowId(null);
       setHasModel(true);
-      setShowPartRegen(true);
       setMeshes([]);
-      setModules([]);
       setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
       setUndoStack([]);
       setRedoStack([]);
@@ -731,13 +733,11 @@ export default function TextToCAD() {
   const handleReset = () => {
     // Keep prompt populated for quick iteration; clear everything else
     setEditPrompt("");
-    setSelectedModules([]);
     setHasModel(false);
     setRetryAttempt(0);
     setProgressStep("");
-    setShowPartRegen(false);
     setMeshes([]);
-    setModules([]);
+    setSourceWorkflowId(null);
     setUndoStack([]);
     setRedoStack([]);
     // Stay in workspace — do NOT reset workspaceActive
@@ -1191,14 +1191,12 @@ export default function TextToCAD() {
               model={model} setModel={setModel}
               prompt={prompt} setPrompt={setPrompt}
               editPrompt={editPrompt} setEditPrompt={setEditPrompt}
-              selectedModules={selectedModules} toggleModule={toggleModule}
               isGenerating={isGenerating} isEditing={isEditing}
-              hasModel={hasModel} modules={modules}
+              hasModel={hasModel}
               onGenerate={simulateGeneration}
               onEdit={simulateEdit}
               onRebuildPart={handleRebuildPart}
               onAddPart={handleAddPart}
-              onQuickEdit={handleQuickEdit}
               magicTexturing={magicTexturing}
               onMagicTexturingChange={(on) => {
                 setMagicTexturing(on);

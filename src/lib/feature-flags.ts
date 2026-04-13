@@ -8,8 +8,8 @@ export function isCADEnabled(_userEmail: string | undefined | null): boolean {
 }
 
 /**
- * Toggle to show/hide the Edit, Rebuild Part, and Add-On tools
- * in the Text-to-CAD left panel. Set to true to re-enable.
+ * Main keeps CAD edit hidden while the API wiring is staged.
+ * Remove this gate after production QA approves ring_edit_v1.
  */
 export const CAD_EDIT_TOOLS_ENABLED = false;
 

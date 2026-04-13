@@ -1,6 +1,59 @@
-import { describe, it, expect } from 'vitest';
-import { inferSourceType } from './generation-history-api';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
+const mockAuthFetch = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/authenticated-fetch', () => ({ authenticatedFetch: mockAuthFetch }));
+
+import { fetchCadResult, inferSourceType } from './generation-history-api';
+
+function okJson(body: unknown) {
+  return Promise.resolve({
+    ok: true, status: 200,
+    headers: { get: () => 'application/json' },
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  } as unknown as Response);
+}
+
+beforeEach(() => mockAuthFetch.mockReset());
+
+describe('fetchCadResult', () => {
+  it('fetchCadResult reads ring edit output from build nodes', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      build_retry: [{ glb_artifact: { uri: 'gs://bucket/edit.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-edit')).resolves.toEqual({
+      glb_url: 'gs://bucket/edit.glb',
+      azure_source: 'build_retry',
+    });
+  });
+
+  it('fetchCadResult uses only build_initial when failed_final is present', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      failed_final: [{}],
+      build_retry: [{ glb_artifact: { uri: 'gs://bucket/retry.glb' } }],
+      build_initial: [{ glb_artifact: { uri: 'gs://bucket/initial.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-failed')).resolves.toEqual({
+      glb_url: 'gs://bucket/initial.glb',
+      azure_source: 'build_initial',
+    });
+  });
+
+  it('fetchCadResult prefers success output when failed_final is also present', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      failed_final: [{}],
+      success_final: [{ glb_artifact: { uri: 'gs://bucket/final.glb' } }],
+      build_initial: [{ glb_artifact: { uri: 'gs://bucket/initial.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-final')).resolves.toEqual({
+      glb_url: 'gs://bucket/final.glb',
+      azure_source: 'success_final',
+    });
+  });
+});
 describe('inferSourceType', () => {
   it('identifies product_shot workflows', () => {
     expect(inferSourceType('product_shot_workflow')).toBe('product_shot');

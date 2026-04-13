@@ -134,7 +134,11 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const handleLoadInStudio = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workflow.glb_url) return;
-    navigate(`/text-to-cad?glb=${encodeURIComponent(workflow.glb_url)}`);
+    const params = new URLSearchParams({
+      glb: workflow.glb_url,
+      workflow_id: workflow.workflow_id,
+    });
+    navigate(`/text-to-cad?${params.toString()}`);
   };
 
   return (

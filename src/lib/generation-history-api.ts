@@ -207,23 +207,37 @@ export async function fetchCadResult(
 
     const data = await res.json();
 
-    // 1. Check failed_final first
-    const failedArr = data['failed_final'];
-    if (Array.isArray(failedArr) && failedArr.length > 0) {
-      return { glb_url: null, azure_source: 'failed_final' };
-    }
-
-    // 2. success_final: prefer glb_artifact (final output), fallback original_glb_artifact
+    // 1. success_final: prefer glb_artifact (final output), fallback original_glb_artifact
     const finalUri = extractArtifactUri(data, 'success_final', 'glb_artifact')
       || extractArtifactUri(data, 'success_final', 'original_glb_artifact');
     if (finalUri) {
       return { glb_url: finalUri, azure_source: 'success_final' };
     }
 
-    // 3. success_original_glb: use original_glb_artifact only
+    // 2. success_original_glb: use original_glb_artifact only
     const originalUri = extractArtifactUri(data, 'success_original_glb', 'original_glb_artifact');
     if (originalUri) {
       return { glb_url: originalUri, azure_source: 'success_original_glb' };
+    }
+
+    // 3. failed_final: only build_initial is allowed as fallback
+    const failedArr = data['failed_final'];
+    if (Array.isArray(failedArr) && failedArr.length > 0) {
+      const failedInitialUri = extractArtifactUri(data, 'build_initial', 'glb_artifact')
+        || extractArtifactUri(data, 'build_initial', 'original_glb_artifact');
+      if (failedInitialUri) {
+        return { glb_url: failedInitialUri, azure_source: 'build_initial' };
+      }
+      return { glb_url: null, azure_source: 'failed_final' };
+    }
+
+    // 4. ring_edit_v1 currently returns build nodes rather than success sinks.
+    const buildUri = extractArtifactUri(data, 'build_retry', 'glb_artifact')
+      || extractArtifactUri(data, 'build_retry', 'original_glb_artifact')
+      || extractArtifactUri(data, 'build_initial', 'glb_artifact')
+      || extractArtifactUri(data, 'build_initial', 'original_glb_artifact');
+    if (buildUri) {
+      return { glb_url: buildUri, azure_source: 'build_retry' };
     }
 
     return { glb_url: null, azure_source: null };
