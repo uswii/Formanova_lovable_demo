@@ -29,7 +29,8 @@ const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed
 
 /**
  * Returns 'success' when a success terminal node is active or last-exited.
- * Returns 'failure' when failed_final is active or last-exited.
+ * Returns 'success' for any terminal node, including failed_final, so callers
+ * can fetch /result and decide whether a failed workflow has a usable fallback.
  * Returns null when no terminal node is detected (keep polling).
  */
 export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failure' | null {
@@ -45,7 +46,6 @@ export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failur
 
   if (!TERMINAL_NODES.has(activeNode) && !TERMINAL_NODES.has(lastExitNode)) return null;
 
-  if (activeNode === "failed_final" || lastExitNode === "failed_final") return 'failure';
   return 'success';
 }
 
@@ -75,8 +75,9 @@ export function resolveCadProgressNode(
 
 /**
  * Parses the /api/result response for CAD generation and edit workflows.
- * Throws on failed_final or missing artifact so pollWorkflow propagates the
- * error to the caller's outer catch.
+ * When failed_final is present, only build_initial is allowed as a fallback.
+ * Otherwise, success sinks are preferred, with build nodes available for edit
+ * workflows that do not emit success sinks.
  *
  * Error messages are neutral (not generation-specific) so they can be shown
  * in the edit outer catch's toast.error(err.message) without misleading the user.
@@ -90,11 +91,6 @@ export function parseCadResult(
 ): CadGenerationResult {
   const result = d as Record<string, unknown>;
 
-  const hasFailed =
-    Array.isArray(result["failed_final"]) &&
-    (result["failed_final"] as unknown[]).length > 0;
-  if (hasFailed) throw new Error("No valid CAD model produced");
-
   const successFinalArr = result["success_final"] as
     | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
     | undefined;
@@ -107,15 +103,28 @@ export function parseCadResult(
   const buildInitialArr = result["build_initial"] as
     | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
     | undefined;
-
-  const artifact =
-    successFinalArr?.[0]?.glb_artifact ||
-    successFinalArr?.[0]?.original_glb_artifact ||
-    successOriginalArr?.[0]?.original_glb_artifact ||
-    buildRetryArr?.[0]?.glb_artifact ||
-    buildRetryArr?.[0]?.original_glb_artifact ||
+  const buildInitialArtifact =
     buildInitialArr?.[0]?.glb_artifact ||
     buildInitialArr?.[0]?.original_glb_artifact;
+  const successArtifact =
+    successFinalArr?.[0]?.glb_artifact ||
+    successFinalArr?.[0]?.original_glb_artifact ||
+    successOriginalArr?.[0]?.original_glb_artifact;
+
+  if (successArtifact?.uri) return { glb_url: successArtifact.uri, artifact: successArtifact };
+
+  const hasFailed =
+    Array.isArray(result["failed_final"]) &&
+    (result["failed_final"] as unknown[]).length > 0;
+  if (hasFailed) {
+    if (buildInitialArtifact?.uri) return { glb_url: buildInitialArtifact.uri, artifact: buildInitialArtifact };
+    throw new Error("No valid CAD model produced");
+  }
+
+  const artifact =
+    buildRetryArr?.[0]?.glb_artifact ||
+    buildRetryArr?.[0]?.original_glb_artifact ||
+    buildInitialArtifact;
 
   if (!artifact?.uri) throw new Error(`No GLB model found in ${context} results`);
   return { glb_url: artifact.uri, artifact };

@@ -65,6 +65,32 @@ describe('generation-history-api URL shapes', () => {
     });
   });
 
+  it('fetchCadResult uses only build_initial when failed_final is present', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      failed_final: [{}],
+      build_retry: [{ glb_artifact: { uri: 'gs://bucket/retry.glb' } }],
+      build_initial: [{ glb_artifact: { uri: 'gs://bucket/initial.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-failed')).resolves.toEqual({
+      glb_url: 'gs://bucket/initial.glb',
+      azure_source: 'build_initial',
+    });
+  });
+
+  it('fetchCadResult prefers success output when failed_final is also present', async () => {
+    mockAuthFetch.mockReturnValueOnce(okJson({
+      failed_final: [{}],
+      success_final: [{ glb_artifact: { uri: 'gs://bucket/final.glb' } }],
+      build_initial: [{ glb_artifact: { uri: 'gs://bucket/initial.glb' } }],
+    }));
+
+    await expect(fetchCadResult('wf-final')).resolves.toEqual({
+      glb_url: 'gs://bucket/final.glb',
+      azure_source: 'success_final',
+    });
+  });
+
   it('fetchWorkflowCreditAudit calls a relative /api/credits/audit path', async () => {
     mockAuthFetch.mockReturnValueOnce(okJson({ actual_user_billed: 10 }));
     await fetchWorkflowCreditAudit('wf-3');

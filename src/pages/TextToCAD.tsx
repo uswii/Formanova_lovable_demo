@@ -391,6 +391,11 @@ export default function TextToCAD() {
             { signal: pollAbort.signal }
           ),
           fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+          resolveState: (statusData) => {
+            const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
+            return state === 'failed' || state === 'budget_exhausted' ? 'completed' : state;
+          },
           resolveTerminalNode: resolveCadTerminalNode,
           resolveProgressNode: resolveCadProgressNode,
           parseResult: (d) => parseCadResult(d, 'generation'),
@@ -509,6 +514,11 @@ export default function TextToCAD() {
             { signal: pollAbort.signal }
           ),
           fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+          resolveState: (statusData) => {
+            const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
+            return state === 'failed' || state === 'budget_exhausted' ? 'completed' : state;
+          },
           resolveTerminalNode: resolveCadTerminalNode,
           resolveProgressNode: resolveCadProgressNode,
           parseResult: (d) => parseCadResult(d, 'edit'),
