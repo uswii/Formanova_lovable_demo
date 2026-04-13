@@ -17,6 +17,7 @@ import {
   parseCadResult,
   type CadGenerationResult,
 } from "@/lib/cad-poll-resolvers";
+import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
@@ -332,9 +333,7 @@ export default function TextToCAD() {
     }
 
     // ── Real generation ──
-    const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
-    const LABEL_MAP: Record<string, string> = { "gemini": "Lite", "claude-sonnet": "Standard", "claude-opus": "Premium" };
-    const llm = LLM_MAP[model] ?? "gemini";
+    const tier = resolveCadGenerationTier(model);
     
 
     const modelKey = `ring_generate_v1:${model}`;
@@ -369,8 +368,8 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: prompt.trim(), max_attempts: 3, skip_validation: false },
-          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
+          payload: { tier, prompt: prompt.trim(), max_attempts: 3 },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "success_original_glb", "failed_final"],
         }),
       });
 
@@ -457,8 +456,7 @@ export default function TextToCAD() {
     if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
     if (isGenerating || isEditing) return;
 
-    const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
-    const llm = LLM_MAP[model] ?? "gemini";
+    const tier = resolveCadGenerationTier(model);
 
     // Credit preflight
     const modelKey = `ring_generate_v1:${model}`;
@@ -490,8 +488,8 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: promptText.trim(), max_attempts: 3, skip_validation: false },
-          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
+          payload: { tier, prompt: promptText.trim(), max_attempts: 3 },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "success_original_glb", "failed_final"],
         }),
       });
 
