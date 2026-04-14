@@ -171,6 +171,7 @@ export default function UnifiedStudio() {
   const [selectedModel, setSelectedModel] = useState<PresetModel | null>(null);
   const [customModelImage, setCustomModelImage] = useState<string | null>(null);
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
+  const [modelAssetId, setModelAssetId] = useState<string | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
   // Must be declared before anything that references location or isProductShot
