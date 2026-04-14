@@ -11,7 +11,6 @@ import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { getStoredToken } from "@/lib/auth-api";
-import { parseCadResult } from "@/lib/cad-poll-resolvers";
 import { pollWorkflow, type PollWorkflowResult } from "@/lib/poll-workflow";
 import {
   resolveCadTerminalNode,
@@ -50,6 +49,10 @@ import { runMicroBenchmark } from "@/lib/gpu-detect";
 import type { GemMode } from "@/components/text-to-cad/CADCanvas";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
+
+// Status can complete before /api/result is materialized in staging.
+const CAD_RESULT_MAX_RETRIES = 180;
+const CAD_RESULT_RETRY_DELAY_MS = 2000;
 
 // Full undo entry captures both UI mesh list AND 3D canvas state
 interface UndoEntry {
@@ -416,8 +419,8 @@ export default function TextToCAD() {
           timeoutMs: 60 * 60 * 1000,
           max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
           maxPollErrors: 10,
-          maxResultRetries: 5,
-          resultRetryDelayMs: 1000,
+          maxResultRetries: CAD_RESULT_MAX_RETRIES,
+          resultRetryDelayMs: CAD_RESULT_RETRY_DELAY_MS,
           signal: pollAbort.signal,
         });
       } catch (err) {
@@ -539,8 +542,8 @@ export default function TextToCAD() {
           timeoutMs: 60 * 60 * 1000,
           max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
           maxPollErrors: 10,
-          maxResultRetries: 5,
-          resultRetryDelayMs: 1000,
+          maxResultRetries: CAD_RESULT_MAX_RETRIES,
+          resultRetryDelayMs: CAD_RESULT_RETRY_DELAY_MS,
           signal: pollAbort.signal,
         });
       } catch (err) {
