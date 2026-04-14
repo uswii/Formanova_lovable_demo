@@ -62,6 +62,8 @@ import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 import { ModelCard, type UserModel } from '@/components/studio/ModelCard';
+import { useStudioModels } from '@/hooks/useStudioModels';
+import { useStudioGeneration } from '@/hooks/useStudioGeneration';
 import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { PresetModelThumb } from '@/components/studio/PresetModelThumb';
 import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
@@ -146,10 +148,6 @@ const LABEL_NAMES: Record<string, string> = {
   floating: 'a floating product',
 };
 
-const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
-const MY_INSPIRATIONS_STORAGE_KEY = 'formanova_my_inspirations';
-const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
-
 // ─── Studio session persistence (survives reloads, cleared on reset) ──────────
 const STUDIO_SESSION_KEY = 'formanova_studio_session_v1';
 
@@ -180,23 +178,6 @@ function saveStudioSession(patch: Partial<StudioSession>) {
 function clearStudioSession() {
   sessionStorage.removeItem(STUDIO_SESSION_KEY);
   sessionStorage.removeItem('formanova_studio_mode');
-}
-
-
-function loadMyModels(isProductShot = false): UserModel[] {
-  const key = isProductShot ? MY_INSPIRATIONS_STORAGE_KEY : MY_MODELS_STORAGE_KEY;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(key); return []; }
-    return Array.isArray(parsed.models) ? parsed.models : [];
-  } catch { return []; }
-}
-
-function saveMyModels(models: UserModel[], isProductShot = false) {
-  const key = isProductShot ? MY_INSPIRATIONS_STORAGE_KEY : MY_MODELS_STORAGE_KEY;
-  localStorage.setItem(key, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
 }
 
 
@@ -257,11 +238,6 @@ export default function UnifiedStudio() {
     return sessionStorage.getItem('formanova_studio_mode') === 'product-shot';
   });
 
-  // My Models — backend-fetched + optimistic local additions for instant feedback
-  const [myModels, setMyModels] = useState<UserModel[]>([]);
-  const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(() => loadMyModels(isProductShot));
-  const [myModelsLoading, setMyModelsLoading] = useState(true);
-  const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<string>('ecom');
 
   // Fetch preset models from the backend. No local fallback catalog is used.
@@ -309,43 +285,6 @@ export default function UnifiedStudio() {
   const activePresetLoading = isProductShot ? presetInspirationsLoading : presetModelsLoading;
   const activePresetError = isProductShot ? presetInspirationsError : presetModelsError;
   const activePresetEmpty = !activePresetLoading && !activePresetError && activePresetCategories.length === 0;
-
-  // Fetch user-uploaded models from backend API
-  const fetchMyModels = useCallback(async () => {
-    try {
-      setMyModelsLoading(true);
-      const data = await fetchUserAssets(isProductShot ? 'inspiration_photo' : 'model_photo', 0, 100);
-      const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
-        id: a.id,
-        name: a.metadata?.name || a.name || '',
-        url: a.thumbnail_url,
-        uploadedAt: new Date(a.created_at).getTime(),
-      }));
-      setMyModels(backendModels);
-      // Clear local pending models that now exist in backend (matched by ID)
-      const backendIds = new Set(backendModels.map(m => m.id));
-      setLocalPendingModels(prev => {
-        const remaining = prev.filter(m => !backendIds.has(m.id));
-        saveMyModels(remaining, isProductShot);
-        return remaining;
-      });
-    } catch (e) {
-      console.warn('[MyModels] Failed to fetch from backend, falling back to localStorage', e);
-    } finally {
-      setMyModelsLoading(false);
-    }
-  }, [isProductShot]);
-
-  useEffect(() => { fetchMyModels(); }, [fetchMyModels]);
-
-  // Merged list: local pending (optimistic) + backend models, deduplicated by ID
-  const mergedMyModels = useMemo(() => {
-    const backendIds = new Set(myModels.map(m => m.id));
-    const unique = localPendingModels.filter(m => !backendIds.has(m.id));
-    return [...unique, ...myModels];
-  }, [myModels, localPendingModels]);
-
-  const isMyModelsEmptyState = !myModelsLoading && mergedMyModels.length === 0;
 
   // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
   useEffect(() => {
@@ -426,26 +365,6 @@ export default function UnifiedStudio() {
     markProductShotGuideSeen().catch(() => {});
   }, [user]);
 
-  // Generation
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStep, setGenerationStep] = useState('');
-  const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
-  const [workflowId, setWorkflowId] = useState<string | null>(null);
-  const [resultImages, setResultImages] = useState<string[]>([]);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [regenerationCount, setRegenerationCount] = useState(0);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-
-  // Persist only local pending models to localStorage
-  useEffect(() => { saveMyModels(localPendingModels, isProductShot); }, [localPendingModels, isProductShot]);
-
-  // Cycle rotating messages every 4s while generating
-  useEffect(() => {
-    if (!isGenerating) { setRotatingMsgIdx(0); return; }
-    const id = setInterval(() => setRotatingMsgIdx(i => i + 1), 4000);
-    return () => clearInterval(id);
-  }, [isGenerating]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
@@ -530,6 +449,63 @@ export default function UnifiedStudio() {
     const model = presetModelsData.categories.flatMap(c => c.models).find(m => m.id === session.selectedModelId);
     if (model) setSelectedModel(model);
   }, [isProductShot, presetModelsData, selectedModel]);
+
+  // ─── Extracted hooks ─────────────────────────────────────────────
+  // useStudioModels owns: my-models vault state, backend fetch, local-pending optimistic list,
+  // delete and rename operations. Receives setters so it can clear the active selection when
+  // the selected model is deleted.
+  const {
+    myModels,
+    setMyModels,
+    localPendingModels,
+    setLocalPendingModels,
+    myModelsLoading,
+    myModelsSearch,
+    setMyModelsSearch,
+    mergedMyModels,
+    isMyModelsEmptyState,
+    fetchMyModels,
+    handleDeleteUserModel,
+    handleRenameUserModel,
+  } = useStudioModels({ isProductShot, customModelImage, setCustomModelImage, setModelAssetId });
+
+  // useStudioGeneration owns: all generation state (progress, step, results, error, etc.),
+  // the polling loop, and PostHog analytics for generation events.
+  // It receives snapshots of upload state on every render; handleGenerate closes over the
+  // latest values via its useCallback dependency array.
+  const {
+    isGenerating,
+    generationProgress,
+    generationStep,
+    rotatingMsgIdx,
+    workflowId,
+    resultImages,
+    generationError,
+    regenerationCount,
+    setRegenerationCount,
+    feedbackOpen,
+    setFeedbackOpen,
+    handleGenerate,
+    resetGeneration,
+  } = useStudioGeneration({
+    isProductShot,
+    effectiveJewelryType,
+    jewelryImage,
+    activeModelUrl,
+    jewelryUploadedUrl,
+    jewelryAssetId,
+    selectedModel,
+    customModelImage,
+    modelAssetId,
+    validationResult,
+    checkCredits,
+    refreshCredits,
+    toast,
+    setCurrentStep,
+    setJewelryAssetId,
+    clearStudioSession,
+    clearValidation,
+  });
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
@@ -710,228 +686,6 @@ export default function UnifiedStudio() {
     setCurrentStep('model');
   };
 
-  // ─── Generate ─────────────────────────────────────────────────────
-
-  const handleGenerate = async () => {
-    if (isGenerating) return; // Prevent duplicate submit
-    if (!jewelryImage || !activeModelUrl) {
-      toast({ variant: 'destructive', title: 'Missing inputs', description: 'Upload a jewelry image and select a model.' });
-      return;
-    }
-
-    const hasCredits = await checkCredits(isProductShot ? 'Product_shot_pipeline' : 'jewelry_photoshoots_generator');
-    if (!hasCredits) {
-      trackPaywallHit({
-        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-        steps_completed: 2,
-      });
-      return;
-    }
-
-    clearStudioSession();
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    setGenerationStep('Preparing...');
-    setGenerationError(null);
-    setCurrentStep('generating');
-
-    let _genWorkflowId = 'unknown';
-    const _genStartTime = Date.now();
-    try {
-      setGenerationProgress(5);
-      let jewelryUrl: string;
-      if (jewelryUploadedUrl) {
-        jewelryUrl = jewelryUploadedUrl;
-        setGenerationProgress(20);
-      } else {
-        setGenerationStep('Uploading jewelry image...');
-        const jewelryBlob = await imageSourceToBlob(jewelryImage);
-        const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(compressedJewelry);
-        });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
-        jewelryUrl = isProductShot ? (azResult.sas_url || azResult.https_url) : (azResult.https_url || azResult.sas_url);
-        setJewelryAssetId(azResult.asset_id ?? null);
-        setGenerationProgress(20);
-      }
-
-      setGenerationProgress(20);
-      setGenerationStep('Preparing model image...');
-      let modelUrl: string;
-
-      if (selectedModel) {
-        // Preset models already have HTTPS URLs — use directly
-        modelUrl = selectedModel.url;
-      } else if (customModelImage && customModelImage.startsWith('http')) {
-        // Model was uploaded at selection time (handleModelUpload) — customModelImage is a SAS URL.
-        // startsWith('http') guards against 'data:' URL previews set briefly before the Azure upload completes.
-        modelUrl = customModelImage;
-      } else {
-        throw new Error('No model selected');
-      }
-
-      setGenerationProgress(35);
-      setGenerationStep('Starting AI photoshoot...');
-
-      if (!jewelryUrl || !modelUrl) {
-        toast({ variant: 'destructive', title: 'Missing images', description: 'Please select both a jewelry image and a model before generating.' });
-        setIsGenerating(false);
-        setCurrentStep('model');
-        return;
-      }
-
-      const idempotencyKey = `${Date.now()}-${effectiveJewelryType}-${selectedModel?.id || 'custom'}`;
-      const category = TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType;
-
-      const startResponse = isProductShot
-        ? await startPdpShot({
-            jewelry_image_url: jewelryUrl,
-            inspiration_image_url: modelUrl,
-            category,
-            idempotency_key: idempotencyKey,
-            ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
-            // Preset inspiration selected → input_preset_inspiration_id
-            // User-uploaded inspiration → input_inspiration_asset_id
-            ...(selectedModel?.id
-              ? { input_preset_inspiration_id: selectedModel.id }
-              : modelAssetId
-              ? { input_inspiration_asset_id: modelAssetId }
-              : {}),
-          })
-        : await startPhotoshoot({
-            jewelry_image_url: jewelryUrl,
-            model_image_url: modelUrl,
-            category,
-            idempotency_key: idempotencyKey,
-            ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
-            ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
-            // Preset model selected (not user-uploaded) — audit field only
-            ...(selectedModel?.id && !modelAssetId ? { input_preset_model_id: selectedModel.id } : {}),
-          });
-      _genWorkflowId = startResponse.workflow_id;
-
-      setWorkflowId(startResponse.workflow_id);
-      markGenerationStarted(startResponse.workflow_id);
-
-      setGenerationStep('Generating photoshoot...');
-
-      // Decelerating ticker -- starts fast (~2%/tick at 35%), slows near 90%.
-      // Keeps bar visibly moving even when API returns no progress data yet.
-      const ticker = setInterval(() => {
-        setGenerationProgress(prev => {
-          if (prev >= 90) return prev;
-          return Math.min(prev + Math.max((90 - prev) * 0.04, 0.1), 90);
-        });
-      }, 300);
-
-      try {
-        const pollResult = await pollWorkflow<PhotoshootResultResponse>({
-          mode: 'status-then-result',
-          fetchStatus: () => authenticatedFetch(`/api/status/${startResponse.workflow_id}`),
-          fetchResult: () => authenticatedFetch(`/api/result/${startResponse.workflow_id}`),
-          onStatusData: (statusData: unknown) => {
-            const s = statusData as PhotoshootStatusResponse;
-            if (s.progress) {
-              const total = s.progress.total_nodes || 1;
-              const done = s.progress.completed_nodes || 0;
-              const realPct = Math.min(35 + Math.round((done / total) * 60), 95);
-              setGenerationProgress(prev => Math.max(prev, realPct));
-              const visited = s.progress.visited || [];
-              if (visited.length > 0) {
-                setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
-              }
-            }
-          },
-          parseResult: (d) => d as PhotoshootResultResponse,
-          intervalMs: 3000,
-          timeoutMs: 720_000,
-          max404s: Number.MAX_SAFE_INTEGER, // original getPhotoshootStatus treated status 404 as running until timeout
-          maxPollErrors: 1,        // original threw immediately on any status error
-          maxResultRetries: 6,     // matches getPhotoshootResult's attempt 0..5 (6 total)
-          resultRetryDelayMs: 1000,
-        });
-
-        clearInterval(ticker);
-
-        if (pollResult.status === 'cancelled') {
-          // Unreachable: no AbortSignal is passed. Satisfies type checker.
-          return;
-        }
-
-        // pollResult.status === 'completed'; result is already in hand.
-        // Note: setGenerationProgress(95) + setGenerationStep are batched with the
-        // subsequent 100% update, so the user skips directly to 100%. Acceptable UX delta.
-        setGenerationProgress(95);
-        setGenerationStep('Fetching results...');
-
-        const result = pollResult.result;
-
-        // Detect backend activity error returned as a completed workflow
-        const hasActivityError = Object.values(result).some(
-          (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
-        );
-        if (hasActivityError) {
-          setGenerationError('workflow-failed');
-          setIsGenerating(false);
-          return;
-        }
-
-        const images = extractResultImages(result);
-        setResultImages(images);
-        setGenerationProgress(100);
-        setCurrentStep('results');
-        setIsGenerating(false);
-        markGenerationCompleted(_genWorkflowId, _genStartTime);
-        trackGenerationComplete({
-          source: 'unified-studio',
-          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-          upload_type: validationResult?.category ?? null,
-          duration_ms: Date.now() - _genStartTime,
-          is_first_ever: consumeFirstGeneration(),
-        });
-        refreshCredits();
-        return;
-      } finally {
-        clearInterval(ticker);
-      }
-    } catch (error) {
-      markGenerationFailed(
-        _genWorkflowId,
-        error instanceof Error ? error.message : String(error),
-        _genStartTime,
-      );
-      setGenerationError('unavailable');
-      setIsGenerating(false);
-    }
-  };
-
-  function extractResultImages(result: PhotoshootResultResponse): string[] {
-    const images: string[] = [];
-    for (const key of Object.keys(result)) {
-      const items = result[key];
-      if (!Array.isArray(items)) continue;
-      for (const item of items) {
-        if (!item || typeof item !== 'object') continue;
-        const obj = item as Record<string, unknown>;
-        for (const k of ['output_url', 'image_url', 'result_url', 'url', 'image_b64', 'output_image']) {
-          const val = obj[k];
-          if (typeof val === 'string' && val.length > 0) {
-            if (val.startsWith('azure://')) {
-              images.push(azureUriToUrl(val));
-            } else if (val.startsWith('http') || val.startsWith('data:')) {
-              images.push(val);
-            }
-          }
-        }
-      }
-    }
-    return images;
-  }
-
   const handleStartOver = () => {
     clearStudioSession();
     setJewelryImage(null);
@@ -944,9 +698,7 @@ export default function UnifiedStudio() {
     setCustomModelFile(null);
     setModelAssetId(null);
     setValidationResult(null);
-    setResultImages([]);
-    setWorkflowId(null);
-    setGenerationError(null);
+    resetGeneration(); // clears resultImages, workflowId, generationError, progress, etc.
     setCurrentStep('upload');
     clearValidation();
   };
@@ -956,20 +708,7 @@ export default function UnifiedStudio() {
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed3;
   const canProceed = jewelryImage && !isValidating;
 
-  // ─── Formanova Model Grid (no upload card) ────────────────────────
-
-  const handleDeleteUserModel = (modelId: string) => {
-    setMyModels(prev => prev.filter(m => m.id !== modelId));
-    setLocalPendingModels(prev => prev.filter(m => m.id !== modelId));
-    // If the deleted model was the active selection, clear it
-    if (customModelImage) {
-      const deleted = mergedMyModels.find(m => m.id === modelId);
-      if (deleted && deleted.url === customModelImage) {
-        setCustomModelImage(null);
-        setModelAssetId(null);
-      }
-    }
-  };
+  // handleDeleteUserModel and handleRenameUserModel come from useStudioModels above.
 
   // Hidden file input for model uploads
   const modelFileInput = (
@@ -1584,13 +1323,7 @@ export default function UnifiedStudio() {
                                 isActive={isActive}
                                 onSelect={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
                                 onDelete={() => handleDeleteUserModel(model.id)}
-                                onRename={async (newName) => {
-                                  if (!model.id.startsWith('user-')) {
-                                    try { await updateAssetMetadata(model.id, { name: newName }); } catch (e) { console.warn('[ModelCard] Rename failed:', e); }
-                                  }
-                                  setMyModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
-                                  setLocalPendingModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
-                                }}
+                                onRename={(newName) => handleRenameUserModel(model.id, newName)}
                               />
                             );
                           })}
