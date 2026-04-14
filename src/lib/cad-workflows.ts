@@ -37,7 +37,8 @@ export function buildCadEditStartBody(
   token?: string | null,
   userId?: string | null,
 ) {
-  const backendUrl = import.meta.env.VITE_PIPELINE_API_URL || undefined;
+  const pipelineUrl = import.meta.env.VITE_PIPELINE_API_URL || '';
+  const backendUrl = pipelineUrl.startsWith('http') ? pipelineUrl : undefined;
   return {
     payload: {
       tier: resolveCadGenerationTier(model),
