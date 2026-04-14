@@ -15,6 +15,7 @@ import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnab
 import { isOnboardingComplete } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useVersionPolling } from '@/hooks/use-version-polling';
 
@@ -195,8 +196,9 @@ const App = () => (
             <div className="min-h-screen flex flex-col relative z-10">
               <Header />
               <main className="flex-1">
+              <RouteErrorBoundary>
               <ChunkErrorBoundary>
-                
+
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
@@ -254,6 +256,7 @@ const App = () => (
                 </Routes>
                 </Suspense>
               </ChunkErrorBoundary>
+              </RouteErrorBoundary>
               </main>
             </div>
           </BrowserRouter>
