@@ -46,6 +46,7 @@ import {
   type PhotoshootStatusResponse,
 } from '@/lib/photoshoot-api';
 import { pollWorkflow } from '@/lib/poll-workflow';
+import { resolveWorkflowApiUrl } from '@/lib/workflow-urls';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -1089,6 +1090,14 @@ export default function UnifiedStudio() {
       markGenerationStarted(startResponse.workflow_id);
 
       setGenerationStep('Generating photoshoot...');
+      const statusUrl = resolveWorkflowApiUrl(
+        startResponse.status_url,
+        `/api/status/${encodeURIComponent(startResponse.workflow_id)}`,
+      );
+      const resultUrl = resolveWorkflowApiUrl(
+        startResponse.result_url,
+        `/api/result/${encodeURIComponent(startResponse.workflow_id)}`,
+      );
 
       // Decelerating ticker -- starts fast (~2%/tick at 35%), slows near 90%.
       // Keeps bar visibly moving even when API returns no progress data yet.
@@ -1102,8 +1111,8 @@ export default function UnifiedStudio() {
       try {
         const pollResult = await pollWorkflow<PhotoshootResultResponse>({
           mode: 'status-then-result',
-          fetchStatus: () => authenticatedFetch(`/api/status/${startResponse.workflow_id}`),
-          fetchResult: () => authenticatedFetch(`/api/result/${startResponse.workflow_id}`),
+          fetchStatus: () => authenticatedFetch(statusUrl),
+          fetchResult: () => authenticatedFetch(resultUrl),
           onStatusData: (statusData: unknown) => {
             const s = statusData as PhotoshootStatusResponse;
             if (s.progress) {
