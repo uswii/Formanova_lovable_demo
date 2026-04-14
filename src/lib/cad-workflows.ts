@@ -37,6 +37,7 @@ export function buildCadEditStartBody(
   token?: string | null,
   userId?: string | null,
 ) {
+  const backendUrl = import.meta.env.VITE_PIPELINE_API_URL || undefined;
   return {
     payload: {
       tier: resolveCadGenerationTier(model),
@@ -44,6 +45,7 @@ export function buildCadEditStartBody(
       description: description.trim(),
       ring_id: sourceWorkflowId,
       source_workflow_id: sourceWorkflowId,
+      ...(backendUrl ? { state_backend_url: backendUrl } : {}),
       ...(token ? { state_backend_bearer_token: token } : {}),
       ...(userId ? { state_on_behalf_of: userId } : {}),
     },
