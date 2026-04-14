@@ -12,7 +12,6 @@ import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { getStoredToken } from "@/lib/auth-api";
 import { pollWorkflow, type PollWorkflowResult } from "@/lib/poll-workflow";
-import { resolveWorkflowApiUrl } from "@/lib/workflow-urls";
 import {
   resolveCadTerminalNode,
   resolveCadProgressNode,
@@ -54,13 +53,6 @@ import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 // Status can complete before /api/result is materialized in staging.
 const CAD_RESULT_MAX_RETRIES = 180;
 const CAD_RESULT_RETRY_DELAY_MS = 2000;
-
-interface WorkflowStartResponse {
-  workflow_id?: string;
-  status_url?: string;
-  result_url?: string;
-  error?: string;
-}
 
 // Full undo entry captures both UI mesh list AND 3D canvas state
 interface UndoEntry {
@@ -385,17 +377,8 @@ export default function TextToCAD() {
         throw new Error(err.error || err.detail || `Failed to start generation (${startRes.status})`);
       }
 
-      const startData = await startRes.json() as WorkflowStartResponse;
-      const { workflow_id } = startData;
+      const { workflow_id } = await startRes.json();
       if (!workflow_id) throw new Error("No workflow_id returned");
-      const statusUrl = resolveWorkflowApiUrl(
-        startData.status_url,
-        `/api/status/${encodeURIComponent(workflow_id)}`,
-      );
-      const resultUrl = resolveWorkflowApiUrl(
-        startData.result_url,
-        `/api/result/${encodeURIComponent(workflow_id)}`,
-      );
 
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
@@ -409,10 +392,10 @@ export default function TextToCAD() {
         genPollResult = await pollWorkflow<CadGenerationResult>({
           mode: 'status-then-result',
           fetchStatus: () => authenticatedFetch(
-            statusUrl,
+            `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
           ),
-          fetchResult: () => authenticatedFetch(resultUrl),
+          fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
           resolveState: (statusData) => {
             const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
             const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
@@ -518,17 +501,8 @@ export default function TextToCAD() {
         throw new Error(err.error || err.detail || `Failed to start edit (${startRes.status})`);
       }
 
-      const startData = await startRes.json() as WorkflowStartResponse;
-      const { workflow_id } = startData;
+      const { workflow_id } = await startRes.json();
       if (!workflow_id) throw new Error("No workflow_id returned");
-      const statusUrl = resolveWorkflowApiUrl(
-        startData.status_url,
-        `/api/status/${encodeURIComponent(workflow_id)}`,
-      );
-      const resultUrl = resolveWorkflowApiUrl(
-        startData.result_url,
-        `/api/result/${encodeURIComponent(workflow_id)}`,
-      );
       console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflow_id);
 
       // Step 2 + 3: Poll status then fetch result
@@ -541,10 +515,10 @@ export default function TextToCAD() {
         editPollResult = await pollWorkflow<CadGenerationResult>({
           mode: 'status-then-result',
           fetchStatus: () => authenticatedFetch(
-            statusUrl,
+            `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
           ),
-          fetchResult: () => authenticatedFetch(resultUrl),
+          fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
           resolveState: (statusData) => {
             const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
             const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
@@ -779,20 +753,12 @@ export default function TextToCAD() {
         toast.error(weightStartBody?.error || "Failed to start weight estimation");
         return;
       }
-      const { workflow_id } = weightStartBody as WorkflowStartResponse;
-      if (!workflow_id) {
-        toast.error("No workflow_id returned");
-        return;
-      }
-      const resultUrl = resolveWorkflowApiUrl(
-        (weightStartBody as WorkflowStartResponse).result_url,
-        `/api/result/${encodeURIComponent(workflow_id)}`,
-      );
+      const { workflow_id } = weightStartBody;
 
       // Poll until done (2s interval, ~2 min timeout)
       const pollResult = await pollWorkflow({
         mode: 'result-direct',
-        fetchResult: () => authenticatedFetch(resultUrl),
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
         parseResult: (d) => d as { success: boolean; error?: string; scale_warning?: boolean; weight_14k_gold_g?: number; weight_platinum_g?: number },
         intervalMs: 2000,
         timeoutMs: 120_000,
@@ -858,20 +824,12 @@ export default function TextToCAD() {
         toast.error(stlStartBody?.error || "Failed to start STL export");
         return;
       }
-      const { workflow_id } = stlStartBody as WorkflowStartResponse;
-      if (!workflow_id) {
-        toast.error("No workflow_id returned");
-        return;
-      }
-      const resultUrl = resolveWorkflowApiUrl(
-        (stlStartBody as WorkflowStartResponse).result_url,
-        `/api/result/${encodeURIComponent(workflow_id)}`,
-      );
+      const { workflow_id } = stlStartBody;
 
       // Poll until done (2s interval, ~5 min timeout for high quality)
       const pollResult = await pollWorkflow({
         mode: 'result-direct',
-        fetchResult: () => authenticatedFetch(resultUrl),
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
         parseResult: (d) => d as { success: boolean; error_text?: string; stl_artifact?: { uri: string } },
         intervalMs: 2000,
         timeoutMs: 300_000,
