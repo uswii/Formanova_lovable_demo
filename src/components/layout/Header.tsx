@@ -17,6 +17,15 @@ import {
 import { ThemeLogo } from '@/components/ThemeLogo';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
+type NavLink = { path: string; label: string; activePaths?: string[] };
+
+export function isNavLinkActivePath(pathname: string, link: Pick<NavLink, 'path' | 'activePaths'>) {
+  const activePaths = link.activePaths ?? [link.path];
+  return activePaths.some((path) => (
+    pathname === path || pathname.startsWith(path + '/')
+  ));
+}
+
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,12 +67,20 @@ export function Header() {
 
   const cadEnabled = isCADEnabled(user?.email);
 
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'Photo Studio' },
-    ...(cadEnabled ? [{ path: '/studio-cad', label: 'CAD Studio' }] : []),
+    ...(cadEnabled
+      ? [{
+          path: '/studio-cad',
+          label: 'CAD Studio',
+          activePaths: ['/studio-cad', '/text-to-cad', '/cad-to-catalog'],
+        }]
+      : []),
     // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
+
+  const isNavLinkActive = (link: NavLink) => isNavLinkActivePath(location.pathname, link);
 
   return (
     <>
@@ -95,7 +112,7 @@ export function Header() {
                 key={link.path}
                 to={link.path}
                 className={`text-sm font-medium transition-colors whitespace-nowrap ${
-                  location.pathname === link.path || location.pathname.startsWith(link.path + '/')
+                  isNavLinkActive(link)
                     ? 'text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -243,7 +260,7 @@ export function Header() {
               key={link.path}
               to={link.path}
               className={`font-display text-4xl tracking-wide transition-all duration-500 ${
-                location.pathname === link.path
+                isNavLinkActive(link)
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               } ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
