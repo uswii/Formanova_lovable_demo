@@ -396,7 +396,7 @@ export default function TextToCAD() {
           resolveState: (statusData) => {
             const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
             const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
-            return state === 'failed' || state === 'budget_exhausted' ? 'completed' : state;
+            return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
           },
           resolveTerminalNode: resolveCadTerminalNode,
           resolveProgressNode: resolveCadProgressNode,
@@ -519,7 +519,7 @@ export default function TextToCAD() {
           resolveState: (statusData) => {
             const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
             const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
-            return state === 'failed' || state === 'budget_exhausted' ? 'completed' : state;
+            return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
           },
           resolveTerminalNode: resolveCadTerminalNode,
           resolveProgressNode: resolveCadProgressNode,

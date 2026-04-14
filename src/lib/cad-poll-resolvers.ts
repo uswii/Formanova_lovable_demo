@@ -46,7 +46,7 @@ export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failur
   const lastExitNode = d.runtime?.last_exit_node_id || "";
   const state = (d.runtime?.state || "").toLowerCase();
 
-  if (state === "failed" || state === "budget_exhausted" || state === "failure") return 'failure';
+  if (state === "failed" || state === "budget_exhausted" || state === "failure" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") return 'failure';
   if (state === "completed" || state === "succeeded" || state === "success") return 'success';
 
   if (!TERMINAL_NODES.has(activeNode) && !TERMINAL_NODES.has(lastExitNode)) return null;
@@ -65,10 +65,10 @@ export function resolveCadProgressNode(
   statusData: unknown,
 ): { node: string; retryCount: number } | null {
   const d = statusData as {
-    runtime?: { active_nodes?: string[]; last_exit_node_id?: string };
+    runtime?: { active_nodes?: string[]; current_node?: string; last_exit_node_id?: string };
     node_visit_seq?: { generate_fix?: number };
   };
-  const activeNode = d.runtime?.active_nodes?.[0] || "";
+  const activeNode = d.runtime?.active_nodes?.[0] || d.runtime?.current_node || "";
   const lastExitNode = d.runtime?.last_exit_node_id || "";
   const retryCount = d.node_visit_seq?.generate_fix || 0;
   const displayNode = activeNode || lastExitNode;
