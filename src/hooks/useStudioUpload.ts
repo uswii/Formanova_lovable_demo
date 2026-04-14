@@ -12,8 +12,6 @@
  *
  * WHAT IT MANAGES
  * ---------------
- * - Jewelry upload state: jewelryImage, jewelryFile, jewelryUploadedUrl,
- *   jewelrySasUrl, jewelryAssetId, validationResult
  * - handleJewelryUpload: normalise -> preview -> compress -> upload to Azure
  *   -> validate (model-shot) or skip validation (product-shot)
  * - handleModelUpload: normalise -> preview -> compress -> upload to Azure
@@ -22,25 +20,26 @@
  *
  * WHAT STAYS IN UnifiedStudio
  * ---------------------------
- * - customModelImage / selectedModel / modelAssetId -- shared with
- *   useStudioModels and useStudioGeneration; passed in as option setters
- * - Paste handler useEffect -- needs currentStep + activeModelUrl from
- *   UnifiedStudio scope
- * - handleStartOver / handleNextStep / handleContinueAnyway -- touch
- *   generation and step state, not upload state
+ * All state (jewelryImage, jewelryFile, validationResult, jewelryUploadedUrl,
+ * jewelrySasUrl, jewelryAssetId, customModelImage, modelAssetId, selectedModel)
+ * stays in UnifiedStudio and is passed in as setter options. This avoids TDZ
+ * errors in the production bundle -- session restore useEffects run before this
+ * hook is called in the component body, so all setters must be initialized
+ * as inline useState before those effects.
  *
  * HOW TO USE
  * ----------
- * Call after useStudioModels (needs setLocalPendingModels + fetchMyModels)
- * and before useStudioGeneration (returns jewelryAssetId etc. that generation needs):
+ * Call after useStudioModels (needs setLocalPendingModels + fetchMyModels):
  *
- *   const { jewelryImage, handleJewelryUpload, ... } = useStudioUpload({
- *     isProductShot, effectiveJewelryType, validateImages, toast,
- *     setCustomModelImage, setCustomModelFile, setModelAssetId, setSelectedModel,
- *     setLocalPendingModels, fetchMyModels,
- *   });
+ *   const { handleJewelryUpload, handleModelUpload, handleSelectLibraryModel } =
+ *     useStudioUpload({ isProductShot, effectiveJewelryType, validateImages, toast,
+ *       setJewelryImage, setJewelryFile, setValidationResult,
+ *       setJewelryUploadedUrl, setJewelrySasUrl, setJewelryAssetId,
+ *       setCustomModelImage, setCustomModelFile, setModelAssetId, setSelectedModel,
+ *       setLocalPendingModels, fetchMyModels,
+ *     });
  */
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
@@ -56,10 +55,13 @@ interface UseStudioUploadOptions {
   effectiveJewelryType: string;
   validateImages: (files: File[], category: string, metadata?: Record<string, string>) => Promise<any>;
   toast: ReturnType<typeof useToast>['toast'];
-  // jewelry state setters -- owned by UnifiedStudio (needed for resolvedJewelryImage hook ordering)
+  // all state setters -- owned by UnifiedStudio, passed in to avoid TDZ in production bundle
   setJewelryImage: (url: string | null) => void;
   setJewelryFile: (file: File | null) => void;
-  // model state setters -- owned by UnifiedStudio, shared with useStudioModels + useStudioGeneration
+  setValidationResult: (result: ImageValidationResult | null) => void;
+  setJewelryUploadedUrl: (url: string | null) => void;
+  setJewelrySasUrl: (url: string | null) => void;
+  setJewelryAssetId: (id: string | null) => void;
   setCustomModelImage: (url: string | null) => void;
   setCustomModelFile: (file: File | null) => void;
   setModelAssetId: (id: string | null) => void;
@@ -76,6 +78,10 @@ export function useStudioUpload({
   toast,
   setJewelryImage,
   setJewelryFile,
+  setValidationResult,
+  setJewelryUploadedUrl,
+  setJewelrySasUrl,
+  setJewelryAssetId,
   setCustomModelImage,
   setCustomModelFile,
   setModelAssetId,
@@ -83,12 +89,6 @@ export function useStudioUpload({
   setLocalPendingModels,
   fetchMyModels,
 }: UseStudioUploadOptions) {
-  // jewelryImage + jewelryFile stay in UnifiedStudio so useAuthenticatedImage can reference
-  // jewelryImage before this hook is called. Setters are passed in as options above.
-  const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
-  const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
-  const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
-  const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
 
   const handleJewelryUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -219,14 +219,6 @@ export function useStudioUpload({
   }, [effectiveJewelryType, setSelectedModel, setCustomModelImage, setCustomModelFile, setModelAssetId]);
 
   return {
-    validationResult,
-    setValidationResult,
-    jewelryUploadedUrl,
-    setJewelryUploadedUrl,
-    jewelrySasUrl,
-    setJewelrySasUrl,
-    jewelryAssetId,
-    setJewelryAssetId,
     handleJewelryUpload,
     handleModelUpload,
     handleSelectLibraryModel,

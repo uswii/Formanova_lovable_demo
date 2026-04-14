@@ -325,6 +325,13 @@ export default function UnifiedStudio() {
   // Validation hook (isValidating + clearValidation used inline; validateImages passed to useStudioUpload)
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
 
+  // Upload state -- declared here (before session restore effects) so setters are initialized
+  // before any effect runs. Passed as setter options into useStudioUpload below.
+  const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
+  const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
+  const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
+  const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
+
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
   // Intentionally empty deps: pre-load runs once on mount from route state.
@@ -416,18 +423,9 @@ export default function UnifiedStudio() {
     handleRenameUserModel,
   } = useStudioModels({ isProductShot, customModelImage, setCustomModelImage, setModelAssetId });
 
-  // useStudioUpload owns: upload-related state (validationResult, jewelryUploadedUrl, jewelrySasUrl,
-  // jewelryAssetId) and the async upload flows for jewelry + model images.
-  // jewelryImage/jewelryFile stay in UnifiedStudio so useAuthenticatedImage can use them above.
+  // useStudioUpload owns the async upload flows for jewelry and model images.
+  // All state is declared inline above so setters are available before any effect runs.
   const {
-    validationResult,
-    setValidationResult,
-    jewelryUploadedUrl,
-    setJewelryUploadedUrl,
-    jewelrySasUrl,
-    setJewelrySasUrl,
-    jewelryAssetId,
-    setJewelryAssetId,
     handleJewelryUpload,
     handleModelUpload,
     handleSelectLibraryModel,
@@ -438,6 +436,10 @@ export default function UnifiedStudio() {
     toast,
     setJewelryImage,
     setJewelryFile,
+    setValidationResult,
+    setJewelryUploadedUrl,
+    setJewelrySasUrl,
+    setJewelryAssetId,
     setCustomModelImage,
     setCustomModelFile,
     setModelAssetId,
