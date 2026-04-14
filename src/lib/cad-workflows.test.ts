@@ -7,6 +7,26 @@ import {
 } from './cad-workflows';
 
 describe('CAD workflow request bodies', () => {
+  it('uses the backend return nodes for ring generation', () => {
+    expect(CAD_GENERATION_RETURN_NODES).toEqual([
+      'generate_initial',
+      'build_initial',
+      'build_retry',
+      'validate_output',
+      'build_corrected',
+    ]);
+  });
+
+  it('uses the backend return nodes for ring edits', () => {
+    expect(CAD_EDIT_RETURN_NODES).toEqual([
+      'load_state',
+      'edit_code_initial',
+      'build_initial',
+      'edit_code_fix',
+      'build_retry',
+    ]);
+  });
+
   it('builds the ring generation start body with tier pricing context', () => {
     expect(buildCadGenerationStartBody('  rose ring  ', 'gemini')).toEqual({
       payload: {

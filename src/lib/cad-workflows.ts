@@ -4,17 +4,19 @@ export const CAD_GENERATION_WORKFLOW = 'ring_generate_v1';
 export const CAD_EDIT_WORKFLOW = 'ring_edit_v1';
 
 export const CAD_GENERATION_RETURN_NODES = [
+  'generate_initial',
   'build_initial',
   'build_retry',
+  'validate_output',
   'build_corrected',
-  'success_original_glb',
-  'failed_final',
 ] as const;
 
 export const CAD_EDIT_RETURN_NODES = [
+  'load_state',
+  'edit_code_initial',
   'build_initial',
+  'edit_code_fix',
   'build_retry',
-  'failed_final',
 ] as const;
 
 export function buildCadGenerationStartBody(prompt: string, model?: string | null) {

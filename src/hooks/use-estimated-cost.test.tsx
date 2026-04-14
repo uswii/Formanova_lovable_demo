@@ -40,7 +40,7 @@ describe('useEstimatedCost', () => {
     container.remove();
   });
 
-  it('sends CAD tier pricing context instead of legacy llm context', async () => {
+  it('sends the backend estimate body shape without pricing context', async () => {
     mockAuthFetch.mockResolvedValueOnce(okJson({ projected_max_hold: 85 }));
 
     function Harness() {
@@ -58,11 +58,14 @@ describe('useEstimatedCost', () => {
       body: JSON.stringify({
         workflow_name: 'ring_generate_v1',
         num_variations: 1,
-        pricing_context: { tier: 'standard' },
       }),
     }));
 
     const estimateBody = JSON.parse(mockAuthFetch.mock.calls[0][1].body);
-    expect(estimateBody.pricing_context).not.toHaveProperty('llm');
+    expect(estimateBody).toEqual({
+      workflow_name: 'ring_generate_v1',
+      num_variations: 1,
+    });
+    expect(estimateBody).not.toHaveProperty('pricing_context');
   });
 });
