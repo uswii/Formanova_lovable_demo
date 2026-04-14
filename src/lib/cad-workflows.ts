@@ -34,6 +34,8 @@ export function buildCadEditStartBody(
   description: string,
   sourceWorkflowId: string,
   model?: string | null,
+  token?: string | null,
+  userId?: string | null,
 ) {
   return {
     payload: {
@@ -42,6 +44,8 @@ export function buildCadEditStartBody(
       description: description.trim(),
       ring_id: sourceWorkflowId,
       source_workflow_id: sourceWorkflowId,
+      ...(token ? { state_backend_bearer_token: token } : {}),
+      ...(userId ? { state_on_behalf_of: userId } : {}),
     },
     return_nodes: [...CAD_EDIT_RETURN_NODES],
   };

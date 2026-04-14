@@ -10,6 +10,8 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { getStoredToken } from "@/lib/auth-api";
+import { parseCadResult } from "@/lib/cad-poll-resolvers";
 import { pollWorkflow, type PollWorkflowResult } from "@/lib/poll-workflow";
 import {
   resolveCadTerminalNode,
@@ -488,7 +490,7 @@ export default function TextToCAD() {
       const startRes = await authenticatedFetch(`/api/run/${CAD_EDIT_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model)),
+        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model, getStoredToken(), user?.id)),
       });
 
       if (!startRes.ok) {
