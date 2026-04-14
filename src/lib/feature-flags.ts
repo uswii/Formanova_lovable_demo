@@ -1,7 +1,22 @@
 /**
  * Frontend feature flags for gating features to specific users.
- * This is a UI-only gate — not a security boundary.
+ * This is a UI-only gate - not a security boundary.
  */
+
+function getAllowlist(envKey: string): string[] {
+  const rawValue = import.meta.env[envKey];
+  if (!rawValue || typeof rawValue !== 'string') return [];
+
+  return rawValue
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAllowlistedEmail(email: string | undefined | null, envKey: string): boolean {
+  if (!email) return false;
+  return getAllowlist(envKey).includes(email.trim().toLowerCase());
+}
 
 export function isCADEnabled(_userEmail: string | undefined | null): boolean {
   return true;
@@ -17,11 +32,8 @@ export const CAD_MODEL_SELECTOR_ENABLED = false;
 /**
  * Users allowed to see the weight estimation + STL export tools.
  */
-const WEIGHT_STL_EMAILS = ['uswa@raresense.so'];
-
 export function isWeightStlEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return WEIGHT_STL_EMAILS.includes(email.toLowerCase());
+  return isAllowlistedEmail(email, 'VITE_WEIGHT_STL_ALLOWLIST_EMAILS');
 }
 
 /**
@@ -34,11 +46,8 @@ export function isAltUploadLayoutEnabled(_email: string | undefined | null): boo
 /**
  * Users allowed to see the "Upload CAD File" button on the initial prompt screen.
  */
-const CAD_UPLOAD_EMAILS = ['uswa@raresense.so', 'abdullah@raresense.so'];
-
 export function isCadUploadEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return CAD_UPLOAD_EMAILS.includes(email.toLowerCase());
+  return isAllowlistedEmail(email, 'VITE_CAD_UPLOAD_ALLOWLIST_EMAILS');
 }
 
 /**
@@ -66,8 +75,7 @@ export function isViewGuideEnabled(_email: string | undefined | null): boolean {
  * "Show all" toggle in the jewelry vault picker — bypasses intended_use filter.
  */
 export function isShowAllVaultEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return email.toLowerCase() === 'uswa@raresense.so';
+  return isAllowlistedEmail(email, 'VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS');
 }
 
 /**
@@ -92,36 +100,27 @@ export function isFeedbackEnabled(_email: string | undefined | null): boolean {
 /**
  * In-studio onboarding popup (multi-step) + model guide button on the model canvas.
  */
-const STUDIO_ONBOARDING_EMAILS = ['uswa@raresense.so'];
-
-export function isStudioOnboardingEnabled(email: string | undefined | null): boolean {
+export function isStudioOnboardingEnabled(_email: string | undefined | null): boolean {
   return true;
 }
 
 /**
  * Pre-selection screen at /studio — choose Model Shot or Product Shot.
  */
-const STUDIO_TYPE_SELECTION_EMAILS = ['uswa@raresense.so'];
-
 export function isStudioTypeSelectionEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return STUDIO_TYPE_SELECTION_EMAILS.includes(email.toLowerCase());
+  return isAllowlistedEmail(email, 'VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS');
 }
 
 /**
  * Product shot upload guide modal — shown once before the user's first product shot.
  */
-const PRODUCT_SHOT_GUIDE_EMAILS = ['uswa@raresense.so'];
-
 export function isProductShotGuideEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return PRODUCT_SHOT_GUIDE_EMAILS.includes(email.toLowerCase());
+  return isAllowlistedEmail(email, 'VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS');
 }
 
 /**
  * Bottom-left test menu (upload guide, product shot guide, role picker).
  */
 export function isTestMenuEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return email.toLowerCase() === 'uswa@raresense.so';
+  return isAllowlistedEmail(email, 'VITE_TEST_MENU_ALLOWLIST_EMAILS');
 }
