@@ -33,7 +33,7 @@ const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed
 // -- resolveCadTerminalNode --
 
 /**
- * Returns 'success' when a success terminal node is active or last-exited.
+ * Returns 'success' when a terminal node has exited.
  * Returns 'success' for any terminal node, including failed_final, so callers
  * can fetch /result and decide whether a failed workflow has a usable fallback.
  * Returns null when no terminal node is detected (keep polling).
@@ -42,14 +42,13 @@ export function resolveCadTerminalNode(statusData: unknown): 'success' | 'failur
   const d = statusData as {
     runtime?: { active_nodes?: string[]; last_exit_node_id?: string; state?: string };
   };
-  const activeNode = d.runtime?.active_nodes?.[0] || "";
   const lastExitNode = d.runtime?.last_exit_node_id || "";
   const state = (d.runtime?.state || "").toLowerCase();
 
   if (state === "failed" || state === "budget_exhausted" || state === "failure" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") return 'failure';
   if (state === "completed" || state === "succeeded" || state === "success") return 'success';
 
-  if (!TERMINAL_NODES.has(activeNode) && !TERMINAL_NODES.has(lastExitNode)) return null;
+  if (!TERMINAL_NODES.has(lastExitNode)) return null;
 
   return 'success';
 }

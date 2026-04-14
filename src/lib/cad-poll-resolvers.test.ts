@@ -18,16 +18,16 @@ import {
 
 describe('resolveCadTerminalNode', () => {
 
-  it('returns success when active node is success_final', () => {
+  it('keeps polling when active node is success_final', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['success_final'] },
-    })).toBe('success');
+    })).toBeNull();
   });
 
-  it('returns success when active node is success_original_glb', () => {
+  it('keeps polling when active node is success_original_glb', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['success_original_glb'] },
-    })).toBe('success');
+    })).toBeNull();
   });
 
   it('returns success when last exit node is success_original_glb', () => {
@@ -36,10 +36,10 @@ describe('resolveCadTerminalNode', () => {
     })).toBe('success');
   });
 
-  it('fetches result when active node is failed_final', () => {
+  it('keeps polling when active node is failed_final', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['failed_final'] },
-    })).toBe('success');
+    })).toBeNull();
   });
 
   it('fetches result when last exit node is failed_final', () => {
@@ -80,13 +80,13 @@ describe('resolveCadTerminalNode', () => {
     expect(resolveCadTerminalNode({ runtime: {} })).toBeNull();
   });
 
-  it('active node takes priority over non-terminal last exit', () => {
+  it('keeps polling when terminal node is active over non-terminal last exit', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['success_final'], last_exit_node_id: 'build_initial' },
-    })).toBe('success');
+    })).toBeNull();
   });
 
-  it('fetches result when failed_final is active over success last exit', () => {
+  it('fetches result when terminal last exit is present even if failed_final is active', () => {
     expect(resolveCadTerminalNode({
       runtime: { active_nodes: ['failed_final'], last_exit_node_id: 'success_final' },
     })).toBe('success');
