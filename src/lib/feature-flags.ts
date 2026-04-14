@@ -8,6 +8,12 @@ export function isCADEnabled(_userEmail: string | undefined | null): boolean {
 }
 
 /**
+ * Main keeps CAD edit hidden while the API wiring is staged.
+ * Remove this gate after production QA approves ring_edit_v1.
+ */
+export const CAD_EDIT_TOOLS_ENABLED = false;
+
+/**
  * Toggle to show/hide the AI model quality selector
  * in the Text-to-CAD studio. When false, defaults to 'gemini' (Lite).
  * Set to true to re-enable model selection.

@@ -135,12 +135,10 @@ describe('inferSourceType', () => {
   });
 
   it('product_shot takes priority over photo keywords', () => {
-    // A workflow named product_shot should never fall through to photo
     expect(inferSourceType('product_shot_jewelry')).toBe('product_shot');
   });
 
   it('cad_text takes priority over cad_render for ring pipelines', () => {
-    // ring_full_pipeline contains neither 'cad' nor 'render', so it should still be cad_text
     expect(inferSourceType('ring_full_pipeline')).toBe('cad_text');
   });
 
