@@ -27,18 +27,13 @@ function resolveStateBackendUrl(): string | undefined {
 export function buildCadGenerationStartBody(
   prompt: string,
   model?: string | null,
-  token?: string | null,
-  userId?: string | null,
 ) {
-  const backendUrl = resolveStateBackendUrl();
   return {
     payload: {
       tier: resolveCadGenerationTier(model),
       prompt: prompt.trim(),
       max_attempts: 3,
-      ...(backendUrl ? { state_backend_url: backendUrl } : {}),
-      ...(token ? { state_backend_bearer_token: token } : {}),
-      ...(userId ? { state_on_behalf_of: userId } : {}),
+      skip_validation: false,
     },
     return_nodes: [...CAD_GENERATION_RETURN_NODES],
   };

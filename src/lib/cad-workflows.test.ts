@@ -33,23 +33,18 @@ describe('CAD workflow request bodies', () => {
         tier: 'standard',
         prompt: 'rose ring',
         max_attempts: 3,
+        skip_validation: false,
       },
       return_nodes: [...CAD_GENERATION_RETURN_NODES],
     });
   });
 
-  it('builds the ring generation start body with auth fields when provided', () => {
-    const body = buildCadGenerationStartBody('rose ring', 'gemini', 'jwt-token-123', 'user-uuid-456');
-    expect(body.payload).toMatchObject({
-      state_backend_bearer_token: 'jwt-token-123',
-      state_on_behalf_of: 'user-uuid-456',
-    });
-  });
-
-  it('omits generation state_backend_url when VITE_PIPELINE_API_URL is a relative path', () => {
-    // import.meta.env.VITE_PIPELINE_API_URL is '' in test env
-    const body = buildCadGenerationStartBody('rose ring', 'gemini', null, null);
+  it('does not put auth or state callback fields in the ring generation payload', () => {
+    const body = buildCadGenerationStartBody('rose ring', 'gemini');
+    expect(body.payload).not.toHaveProperty('backend_api_key');
     expect(body.payload).not.toHaveProperty('state_backend_url');
+    expect(body.payload).not.toHaveProperty('state_backend_bearer_token');
+    expect(body.payload).not.toHaveProperty('state_on_behalf_of');
   });
 
   it('builds the ring edit start body without tenant API key or OBO fields', () => {

@@ -369,7 +369,7 @@ export default function TextToCAD() {
       const startRes = await authenticatedFetch(`/api/run/${CAD_GENERATION_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadGenerationStartBody(prompt, model, getStoredToken(), user?.id)),
+        body: JSON.stringify(buildCadGenerationStartBody(prompt, model)),
       });
 
       if (!startRes.ok) {
@@ -401,7 +401,6 @@ export default function TextToCAD() {
             const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
             return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
           },
-          resolveTerminalNode: resolveCadTerminalNode,
           resolveProgressNode: resolveCadProgressNode,
           parseResult: (d) => parseCadResult(d, 'generation'),
           onProgress: ({ node, retryCount }) => {
