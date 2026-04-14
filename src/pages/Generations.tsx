@@ -15,6 +15,7 @@ import {
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
+import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
 
 const PER_PAGE = 5;
 const CACHE_KEY = 'formanova_gen_cache';
@@ -387,21 +388,27 @@ export default function Generations() {
               onWorkflowClick={() => {}}
             />
 
-            <ScissorGLBGrid>
-              <WorkflowSection
-                title="Text to CAD"
-                subtitle="AI-generated 3D models from text"
-                icon={SectionIcons.cadText}
-                workflows={cadTextSection.workflows}
-                loading={cadTextSection.loading}
-                currentPage={cadTextSection.page}
-                totalPages={cadTextSection.totalPages}
-                columns={3}
-                indexOffset={(cadTextPage - 1) * PER_PAGE}
-                onPageChange={setCadTextPage}
-                onWorkflowClick={() => {}}
-              />
-            </ScissorGLBGrid>
+            <CADRuntimeErrorBoundary
+              title="CAD Previews Unavailable"
+              description="The 3D preview grid hit a rendering problem. Your generation history is still available."
+              resetKeys={[cadTextPage]}
+            >
+              <ScissorGLBGrid>
+                <WorkflowSection
+                  title="Text to CAD"
+                  subtitle="AI-generated 3D models from text"
+                  icon={SectionIcons.cadText}
+                  workflows={cadTextSection.workflows}
+                  loading={cadTextSection.loading}
+                  currentPage={cadTextSection.page}
+                  totalPages={cadTextSection.totalPages}
+                  columns={3}
+                  indexOffset={(cadTextPage - 1) * PER_PAGE}
+                  onPageChange={setCadTextPage}
+                  onWorkflowClick={() => {}}
+                />
+              </ScissorGLBGrid>
+            </CADRuntimeErrorBoundary>
 
           </>
         )}
