@@ -369,7 +369,7 @@ export default function TextToCAD() {
       const startRes = await authenticatedFetch(`/api/run/${CAD_GENERATION_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadGenerationStartBody(prompt, model)),
+        body: JSON.stringify(buildCadGenerationStartBody(prompt, model, getStoredToken(), user?.id)),
       });
 
       if (!startRes.ok) {

@@ -19,12 +19,26 @@ export const CAD_EDIT_RETURN_NODES = [
   'build_retry',
 ] as const;
 
-export function buildCadGenerationStartBody(prompt: string, model?: string | null) {
+function resolveStateBackendUrl(): string | undefined {
+  const pipelineUrl = import.meta.env.VITE_PIPELINE_API_URL || '';
+  return pipelineUrl.startsWith('http') ? pipelineUrl : undefined;
+}
+
+export function buildCadGenerationStartBody(
+  prompt: string,
+  model?: string | null,
+  token?: string | null,
+  userId?: string | null,
+) {
+  const backendUrl = resolveStateBackendUrl();
   return {
     payload: {
       tier: resolveCadGenerationTier(model),
       prompt: prompt.trim(),
       max_attempts: 3,
+      ...(backendUrl ? { state_backend_url: backendUrl } : {}),
+      ...(token ? { state_backend_bearer_token: token } : {}),
+      ...(userId ? { state_on_behalf_of: userId } : {}),
     },
     return_nodes: [...CAD_GENERATION_RETURN_NODES],
   };
@@ -37,8 +51,7 @@ export function buildCadEditStartBody(
   token?: string | null,
   userId?: string | null,
 ) {
-  const pipelineUrl = import.meta.env.VITE_PIPELINE_API_URL || '';
-  const backendUrl = pipelineUrl.startsWith('http') ? pipelineUrl : undefined;
+  const backendUrl = resolveStateBackendUrl();
   return {
     payload: {
       tier: resolveCadGenerationTier(model),

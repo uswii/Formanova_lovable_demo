@@ -38,6 +38,20 @@ describe('CAD workflow request bodies', () => {
     });
   });
 
+  it('builds the ring generation start body with auth fields when provided', () => {
+    const body = buildCadGenerationStartBody('rose ring', 'gemini', 'jwt-token-123', 'user-uuid-456');
+    expect(body.payload).toMatchObject({
+      state_backend_bearer_token: 'jwt-token-123',
+      state_on_behalf_of: 'user-uuid-456',
+    });
+  });
+
+  it('omits generation state_backend_url when VITE_PIPELINE_API_URL is a relative path', () => {
+    // import.meta.env.VITE_PIPELINE_API_URL is '' in test env
+    const body = buildCadGenerationStartBody('rose ring', 'gemini', null, null);
+    expect(body.payload).not.toHaveProperty('state_backend_url');
+  });
+
   it('builds the ring edit start body without tenant API key or OBO fields', () => {
     const body = buildCadEditStartBody(' add flowers ', 'json-source-123', 'gemini');
 
