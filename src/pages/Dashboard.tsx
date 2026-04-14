@@ -52,7 +52,7 @@ export default function Dashboard() {
           </span>
         </div>
         <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
-          Create your photoshoot
+          Choose your studio
         </p>
       </motion.div>
 
@@ -112,7 +112,7 @@ export default function Dashboard() {
                 CAD Studio
               </h2>
               <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
-                Generate 3D CAD renders from text
+                Generate text-to-CAD models and catalog visuals
               </p>
             </div>
 
