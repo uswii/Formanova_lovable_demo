@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { TOOL_COSTS } from '@/lib/credits-api';
-import { resolveCadGenerationTier } from '@/lib/cad-tier';
 
 interface UseEstimatedCostOptions {
   workflowName: string;
@@ -48,7 +47,6 @@ export function useEstimatedCost({
           body: JSON.stringify({
             workflow_name: workflowName,
             num_variations: numVariations,
-            ...(model ? { pricing_context: { tier: resolveCadGenerationTier(model) } } : {}),
           }),
           signal: controller.signal,
         });

@@ -149,6 +149,56 @@ describe('parseCadResult', () => {
 
   const artifact = { uri: 'gs://bucket/model.glb', type: 'glb', bytes: 1024, sha256: 'abc' };
 
+  it('resolves generation output from node_results build_corrected over retry and initial', () => {
+    const initialArtifact = { ...artifact, uri: 'gs://bucket/initial.glb' };
+    const retryArtifact = { ...artifact, uri: 'gs://bucket/retry.glb' };
+    const correctedArtifact = { ...artifact, uri: 'gs://bucket/corrected.glb' };
+    const result = parseCadResult({
+      end_node: 'success_final',
+      node_results: {
+        build_initial: { glb_artifact: initialArtifact },
+        build_retry: { glb_artifact: retryArtifact },
+        build_corrected: { glb_artifact: correctedArtifact },
+      },
+    });
+    expect(result.glb_url).toBe('gs://bucket/corrected.glb');
+    expect(result.artifact).toEqual(correctedArtifact);
+  });
+
+  it('falls back through node_results build_retry then build_initial for generation', () => {
+    const initialArtifact = { ...artifact, uri: 'gs://bucket/initial.glb' };
+    const retryArtifact = { ...artifact, uri: 'gs://bucket/retry.glb' };
+    const result = parseCadResult({
+      end_node: 'success_final',
+      node_results: {
+        build_initial: { glb_artifact: initialArtifact },
+        build_retry: { glb_artifact: retryArtifact },
+      },
+    });
+    expect(result.glb_url).toBe('gs://bucket/retry.glb');
+
+    const initialOnly = parseCadResult({
+      end_node: 'success_final',
+      node_results: {
+        build_initial: { glb_artifact: initialArtifact },
+      },
+    });
+    expect(initialOnly.glb_url).toBe('gs://bucket/initial.glb');
+  });
+
+  it('resolves edit output from node_results build_retry before build_initial', () => {
+    const initialArtifact = { ...artifact, uri: 'gs://bucket/initial.glb' };
+    const retryArtifact = { ...artifact, uri: 'gs://bucket/retry.glb' };
+    const result = parseCadResult({
+      end_node: 'success_final',
+      node_results: {
+        build_initial: { glb_artifact: initialArtifact },
+        build_retry: { glb_artifact: retryArtifact },
+      },
+    }, 'edit');
+    expect(result.glb_url).toBe('gs://bucket/retry.glb');
+  });
+
   it('resolves glb_url from success_final.glb_artifact', () => {
     const result = parseCadResult({
       success_final: [{ glb_artifact: artifact }],
@@ -196,28 +246,37 @@ describe('parseCadResult', () => {
 
   it('throws "No valid CAD model produced" when failed_final is present', () => {
     expect(() => parseCadResult({ failed_final: [{}] })).toThrow(
-      'No valid CAD model produced',
+      'CAD workflow failed before producing a usable GLB model',
     );
   });
 
-  it('uses only build_initial when failed_final is present', () => {
+  it('uses the best available GLB when failed_final is present', () => {
     const retryArtifact = { ...artifact, uri: 'gs://bucket/retry.glb' };
     const result = parseCadResult({
       failed_final: [{}],
       build_retry: [{ glb_artifact: retryArtifact }],
       build_initial: [{ glb_artifact: artifact }],
     }, 'edit');
-    expect(result.glb_url).toBe('gs://bucket/model.glb');
+    expect(result.glb_url).toBe('gs://bucket/retry.glb');
   });
 
-  it('prefers success output over failed_final fallback when success output is available', () => {
+  it('throws a clear error for failed node_results when no GLB is available', () => {
+    expect(() => parseCadResult({
+      end_node: 'failed_final',
+      node_results: {
+        build_initial: {},
+      },
+    })).toThrow('CAD workflow failed before producing a usable GLB model');
+  });
+
+  it('prefers latest build output over legacy success output', () => {
     const initialArtifact = { ...artifact, uri: 'gs://bucket/initial.glb' };
     const result = parseCadResult({
       failed_final: [{}],
       success_final: [{ glb_artifact: artifact }],
       build_initial: [{ glb_artifact: initialArtifact }],
     }, 'generation');
-    expect(result.glb_url).toBe('gs://bucket/model.glb');
+    expect(result.glb_url).toBe('gs://bucket/initial.glb');
   });
 
   it('throws with generation context when no artifact in success_final', () => {

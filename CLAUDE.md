@@ -1,5 +1,7 @@
 # Formanova — Claude Code Instructions
 
+Use AI_RULES.md before touching any code at all. These rules are binding; do not bypass them. If there's a conflict of opinion, you can ask the human to verify. But in most cases, it is wise to follow the standardization of AI_RULES.md.
+
 ## Commands
 
 ```bash

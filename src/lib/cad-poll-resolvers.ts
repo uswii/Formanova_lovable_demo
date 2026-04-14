@@ -21,6 +21,11 @@ export interface CadGenerationResult {
   artifact: CadGlbArtifact;
 }
 
+type CadNodeValue =
+  | { glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }
+  | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
+  | undefined;
+
 // -- Terminal node set (shared constant) --
 
 const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
@@ -75,9 +80,10 @@ export function resolveCadProgressNode(
 
 /**
  * Parses the /api/result response for CAD generation and edit workflows.
- * When failed_final is present, only build_initial is allowed as a fallback.
- * Otherwise, success sinks are preferred, with build nodes available for edit
- * workflows that do not emit success sinks.
+ * Supports both the current node_results response and the legacy top-level
+ * array response. Build node priority mirrors the Ring Workflows contract:
+ * generation prefers build_corrected, then build_retry, then build_initial;
+ * edit prefers build_retry, then build_initial.
  *
  * Error messages are neutral (not generation-specific) so they can be shown
  * in the edit outer catch's toast.error(err.message) without misleading the user.
@@ -89,43 +95,54 @@ export function parseCadResult(
   d: unknown,
   context: 'generation' | 'edit' = 'generation',
 ): CadGenerationResult {
-  const result = d as Record<string, unknown>;
+  const result = (d ?? {}) as Record<string, unknown>;
+  const nodeResults =
+    result.node_results && typeof result.node_results === 'object'
+      ? result.node_results as Record<string, unknown>
+      : undefined;
 
-  const successFinalArr = result["success_final"] as
-    | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
-    | undefined;
-  const successOriginalArr = result["success_original_glb"] as
-    | Array<{ original_glb_artifact?: CadGlbArtifact }>
-    | undefined;
-  const buildRetryArr = result["build_retry"] as
-    | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
-    | undefined;
-  const buildInitialArr = result["build_initial"] as
-    | Array<{ glb_artifact?: CadGlbArtifact; original_glb_artifact?: CadGlbArtifact }>
-    | undefined;
-  const buildInitialArtifact =
-    buildInitialArr?.[0]?.glb_artifact ||
-    buildInitialArr?.[0]?.original_glb_artifact;
-  const successArtifact =
-    successFinalArr?.[0]?.glb_artifact ||
-    successFinalArr?.[0]?.original_glb_artifact ||
-    successOriginalArr?.[0]?.original_glb_artifact;
+  const readArtifact = (nodeName: string): CadGlbArtifact | undefined => {
+    const nodeValue = (nodeResults?.[nodeName] ?? result[nodeName]) as CadNodeValue;
+    const entry = Array.isArray(nodeValue) ? nodeValue[0] : nodeValue;
+    return entry?.glb_artifact || entry?.original_glb_artifact;
+  };
 
-  if (successArtifact?.uri) return { glb_url: successArtifact.uri, artifact: successArtifact };
+  const buildNodePriority =
+    context === 'edit'
+      ? ['build_retry', 'build_initial']
+      : ['build_corrected', 'build_retry', 'build_initial'];
 
-  const hasFailed =
-    Array.isArray(result["failed_final"]) &&
-    (result["failed_final"] as unknown[]).length > 0;
-  if (hasFailed) {
-    if (buildInitialArtifact?.uri) return { glb_url: buildInitialArtifact.uri, artifact: buildInitialArtifact };
-    throw new Error("No valid CAD model produced");
+  const legacySuccessPriority = ['success_final', 'success_original_glb'];
+  const artifact = [...buildNodePriority, ...legacySuccessPriority]
+    .map(readArtifact)
+    .find((candidate): candidate is CadGlbArtifact => Boolean(candidate?.uri));
+
+  if (!artifact?.uri) {
+    const endNode = typeof result.end_node === 'string' ? result.end_node.toLowerCase() : '';
+    const state = typeof result.state === 'string' ? result.state.toLowerCase() : '';
+    const runtimeState =
+      result.runtime &&
+      typeof result.runtime === 'object' &&
+      typeof (result.runtime as { state?: unknown }).state === 'string'
+        ? ((result.runtime as { state: string }).state).toLowerCase()
+        : '';
+    const hasFailed =
+      endNode === 'failed_final' ||
+      state === 'failed' ||
+      state === 'failure' ||
+      runtimeState === 'failed' ||
+      runtimeState === 'failure' ||
+      (
+        Array.isArray(result.failed_final) &&
+        result.failed_final.length > 0
+      );
+
+    if (hasFailed) {
+      throw new Error('CAD workflow failed before producing a usable GLB model');
+    }
+
+    throw new Error(`No GLB model found in ${context} results`);
   }
 
-  const artifact =
-    buildRetryArr?.[0]?.glb_artifact ||
-    buildRetryArr?.[0]?.original_glb_artifact ||
-    buildInitialArtifact;
-
-  if (!artifact?.uri) throw new Error(`No GLB model found in ${context} results`);
   return { glb_url: artifact.uri, artifact };
 }
