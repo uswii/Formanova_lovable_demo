@@ -352,6 +352,7 @@ export function useStudioGeneration({
     rotatingMsgIdx,
     workflowId,
     resultImages,
+    setResultImages,
     generationError,
     regenerationCount,
     setRegenerationCount,

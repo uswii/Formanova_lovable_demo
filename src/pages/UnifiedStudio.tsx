@@ -64,6 +64,7 @@ import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 import { ModelCard, type UserModel } from '@/components/studio/ModelCard';
 import { useStudioModels } from '@/hooks/useStudioModels';
 import { useStudioGeneration } from '@/hooks/useStudioGeneration';
+import { useStudioUpload } from '@/hooks/useStudioUpload';
 import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { PresetModelThumb } from '@/components/studio/PresetModelThumb';
 import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
@@ -170,6 +171,7 @@ export default function UnifiedStudio() {
   const [selectedModel, setSelectedModel] = useState<PresetModel | null>(null);
   const [customModelImage, setCustomModelImage] = useState<string | null>(null);
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
+  const [modelAssetId, setModelAssetId] = useState<string | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
   // Must be declared before anything that references location or isProductShot
@@ -320,13 +322,15 @@ export default function UnifiedStudio() {
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
   const resolvedActiveModelUrl = useAuthenticatedImage(activeModelUrl);
 
-  // Validation
+  // Validation hook (isValidating + clearValidation used inline; validateImages passed to useStudioUpload)
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
+
+  // Upload state -- declared here (before session restore effects) so setters are initialized
+  // before any effect runs. Passed as setter options into useStudioUpload below.
   const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
   const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
   const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
-  const [modelAssetId, setModelAssetId] = useState<string | null>(null);
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
@@ -419,6 +423,31 @@ export default function UnifiedStudio() {
     handleRenameUserModel,
   } = useStudioModels({ isProductShot, customModelImage, setCustomModelImage, setModelAssetId });
 
+  // useStudioUpload owns the async upload flows for jewelry and model images.
+  // All state is declared inline above so setters are available before any effect runs.
+  const {
+    handleJewelryUpload,
+    handleModelUpload,
+    handleSelectLibraryModel,
+  } = useStudioUpload({
+    isProductShot,
+    effectiveJewelryType,
+    validateImages,
+    toast,
+    setJewelryImage,
+    setJewelryFile,
+    setValidationResult,
+    setJewelryUploadedUrl,
+    setJewelrySasUrl,
+    setJewelryAssetId,
+    setCustomModelImage,
+    setCustomModelFile,
+    setModelAssetId,
+    setSelectedModel,
+    setLocalPendingModels,
+    fetchMyModels,
+  });
+
   // useStudioGeneration owns: all generation state (progress, step, results, error, etc.),
   // the polling loop, and PostHog analytics for generation events.
   // It receives snapshots of upload state on every render; handleGenerate closes over the
@@ -430,6 +459,7 @@ export default function UnifiedStudio() {
     rotatingMsgIdx,
     workflowId,
     resultImages,
+    setResultImages,
     generationError,
     regenerationCount,
     setRegenerationCount,
@@ -456,136 +486,6 @@ export default function UnifiedStudio() {
     clearStudioSession,
     clearValidation,
   });
-
-  // ─── Upload Handlers ──────────────────────────────────────────────
-
-  const handleJewelryUpload = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast({ variant: 'destructive', title: 'Invalid file', description: 'Please upload an image.' });
-      return;
-    }
-    const normalized = await normalizeImageFile(file);
-    setJewelryFile(normalized);
-    setJewelryUploadedUrl(null);
-    setJewelrySasUrl(null);
-    setJewelryAssetId(null);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setJewelryImage(e.target?.result as string);
-      setValidationResult(null);
-    };
-    reader.readAsDataURL(normalized);
-
-    if (isProductShot) {
-      // PDP: no classification needed — product shots are the correct input, upload directly
-      try {
-        const { blob: compressed } = await compressImageBlob(normalized);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader2 = new FileReader();
-          reader2.onload = () => resolve(reader2.result as string);
-          reader2.onerror = reject;
-          reader2.readAsDataURL(compressed);
-        });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, intended_use: 'pdp' });
-        setJewelryUploadedUrl(azResult.sas_url || azResult.https_url);
-        setJewelrySasUrl(azResult.sas_url ?? null);
-        setJewelryAssetId(azResult.asset_id ?? null);
-        trackJewelryUploaded({ category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, upload_type: 'product_shot', was_flagged: false });
-      } catch (err) {
-        console.error('[PDP] jewelry upload failed', err);
-      }
-      return;
-    }
-
-    const result = await validateImages([normalized], effectiveJewelryType, { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType, intended_use: 'on_model' });
-    if (result && result.results.length > 0) {
-      const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
-      setValidationResult(localResult);
-      if (localResult.uploaded_url) {
-        setJewelryUploadedUrl(localResult.uploaded_url);
-        setJewelrySasUrl(localResult.sas_url ?? null);
-        setJewelryAssetId(localResult.asset_id ?? null);
-      }
-
-      if (localResult.is_acceptable) {
-        // Path A: worn image accepted — fire jewelry_uploaded immediately
-        trackJewelryUploaded({
-          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-          upload_type: localResult.category,
-          was_flagged: false,
-        });
-      } else {
-        // Path B: non-worn image flagged — fire validation_flagged now;
-        // jewelry_uploaded fires in handleContinueAnyway if user proceeds
-        trackValidationFlagged({
-          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-          detected_label: localResult.category,
-        });
-      }
-    }
-  }, [toast, effectiveJewelryType, validateImages, isProductShot]);
-
-  const handleModelUpload = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast({ variant: 'destructive', title: 'Invalid file', description: 'Please upload an image.' });
-      return;
-    }
-    const normalized = await normalizeImageFile(file);
-    setCustomModelFile(normalized);
-
-    // Show preview immediately via local blob URL while upload runs
-    const localPreviewUrl = URL.createObjectURL(normalized);
-    setCustomModelImage(localPreviewUrl);
-    setSelectedModel(null);
-
-    // Upload to Azure immediately so the model registers in My Models vault
-    try {
-      const { blob: compressed } = await compressImageBlob(normalized);
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader2 = new FileReader();
-        reader2.onload = () => resolve(reader2.result as string);
-        reader2.onerror = reject;
-        reader2.readAsDataURL(compressed);
-      });
-      const modelName = file.name.replace(/\.[^.]+$/, '');
-      const azResult = await uploadToAzure(base64, 'image/jpeg', isProductShot ? 'inspiration_photo' : 'model_photo', { name: modelName });
-      const stableUrl = azResult.sas_url || azResult.https_url;
-      setCustomModelImage(stableUrl);
-      setModelAssetId(azResult.asset_id ?? null);
-      setCustomModelFile(null);
-      trackModelSelected({
-        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-        model_type: 'custom_upload',
-      });
-
-      // Add to My Models list — use real asset_id so dedup matches backend fetch
-      const newModel: UserModel = {
-        id: azResult.asset_id ?? `user-${Date.now()}`,
-        name: file.name.replace(/\.[^.]+$/, ''),
-        url: stableUrl,
-        uploadedAt: Date.now(),
-      };
-      setLocalPendingModels(prev => [newModel, ...prev]);
-      // Refetch from backend to sync
-      fetchMyModels();
-    } catch (e) {
-      setCustomModelImage(null);
-      setCustomModelFile(null);
-      toast({ variant: 'destructive', title: 'Upload failed', description: 'Model image could not be uploaded. Please re-select the file.' });
-      console.warn('[handleModelUpload] Azure upload failed:', e);
-    }
-  }, [toast]);
-
-  const handleSelectLibraryModel = (model: PresetModel) => {
-    setSelectedModel(model);
-    setCustomModelImage(null);
-    setCustomModelFile(null);
-    setModelAssetId(null);
-    trackModelSelected({
-      category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-      model_type: 'catalog',
-    });
-  };
 
   // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
   useEffect(() => {
@@ -655,7 +555,7 @@ export default function UnifiedStudio() {
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
   const isFlagged = validationResult && !validationResult.is_acceptable;
-  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed3;
+  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || ACCEPTABLE_EXAMPLES['necklace'];
   const canProceed = jewelryImage && !isValidating;
 
   // handleDeleteUserModel and handleRenameUserModel come from useStudioModels above.
