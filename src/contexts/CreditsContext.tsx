@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchBalance, TOOL_COSTS, type CreditBalance } from '@/lib/credits-api';
+import { fetchBalance, type CreditBalance } from '@/lib/credits-api';
 import { AuthExpiredError } from '@/lib/authenticated-fetch';
 
 interface CreditDelta {
@@ -12,8 +12,6 @@ interface CreditsContextType {
   credits: number | null;
   loading: boolean;
   refreshCredits: () => Promise<void>;
-  canAfford: (toolName: string) => boolean;
-  getToolCost: (toolName: string) => number;
   /** Last balance change — use to show animated +/- badge */
   lastDelta: CreditDelta | null;
 }
@@ -78,17 +76,8 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.id, refreshCredits]);
 
-  const canAfford = useCallback((toolName: string) => {
-    const cost = TOOL_COSTS[toolName] ?? 0;
-    return credits !== null && credits >= cost;
-  }, [credits]);
-
-  const getToolCost = useCallback((toolName: string) => {
-    return TOOL_COSTS[toolName] ?? 0;
-  }, []);
-
   return (
-    <CreditsContext.Provider value={{ credits, loading, refreshCredits, canAfford, getToolCost, lastDelta }}>
+    <CreditsContext.Provider value={{ credits, loading, refreshCredits, lastDelta }}>
       {children}
     </CreditsContext.Provider>
   );
