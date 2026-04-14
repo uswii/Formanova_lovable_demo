@@ -10,6 +10,8 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { getStoredToken } from "@/lib/auth-api";
+import { parseCadResult } from "@/lib/cad-poll-resolvers";
 import {
   CAD_EDIT_WORKFLOW,
   CAD_GENERATION_WORKFLOW,
@@ -413,7 +415,7 @@ export default function TextToCAD() {
           pollErrors = 0;
 
           const state = (statusData.runtime?.state || "unknown").toLowerCase();
-          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const activeNode = statusData.runtime?.active_nodes?.[0] || statusData.runtime?.current_node || "";
           const lastExitNode = statusData.runtime?.last_exit_node_id || "";
           const retryCount = statusData.node_visit_seq?.generate_fix || 0;
 
@@ -428,7 +430,7 @@ export default function TextToCAD() {
 
           // Terminal checks: state OR node
           if (state === "completed") break;
-          if (state === "failed" || state === "budget_exhausted") {
+          if (state === "failed" || state === "budget_exhausted" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") {
             setProgressStep("failed_final");
             break;
           }
@@ -456,26 +458,10 @@ export default function TextToCAD() {
 
         if (resultRes.ok) {
           const result = await resultRes.json();
-          // Fallback per spec: success_final → glb_artifact, then original_glb_artifact
-          // success_original_glb → original_glb_artifact
-          // failed_final → error
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-
-          const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
-            || result["success_final"]?.[0]?.original_glb_artifact;
-          const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
-          const buildRetryArtifact = result["build_retry"]?.[0]?.glb_artifact
-            || result["build_retry"]?.[0]?.original_glb_artifact;
-          const buildInitialArtifact = result["build_initial"]?.[0]?.glb_artifact
-            || result["build_initial"]?.[0]?.original_glb_artifact;
-          const artifact = successFinalArtifact || successOriginalArtifact || buildRetryArtifact || buildInitialArtifact;
-          if (hasFailed && !successFinalArtifact && !successOriginalArtifact) {
-            if (buildInitialArtifact?.uri) { glb_url = buildInitialArtifact.uri; setGlbArtifact(buildInitialArtifact); break; }
-            throw new Error("Generation failed - no valid model produced");
-          }
-          console.log('[TextToCAD] Generation result keys:', Object.keys(result), '| artifact:', artifact);
-          if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
-          throw new Error("No GLB model found in results");
+          const { glb_url: url, artifact } = parseCadResult(result, 'generation');
+          glb_url = url;
+          setGlbArtifact(artifact);
+          break;
         }
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
@@ -547,7 +533,7 @@ export default function TextToCAD() {
       const startRes = await authenticatedFetch(`/api/run/${CAD_EDIT_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model)),
+        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model, getStoredToken(), user?.id)),
       });
 
       if (!startRes.ok) {
@@ -589,14 +575,14 @@ export default function TextToCAD() {
           const statusData = await statusRes.json();
           pollErrors = 0;
           const state = (statusData.runtime?.state || "unknown").toLowerCase();
-          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const activeNode = statusData.runtime?.active_nodes?.[0] || statusData.runtime?.current_node || "";
           const lastExitNode = statusData.runtime?.last_exit_node_id || "";
           const retryCount = statusData.node_visit_seq?.generate_fix || 0;
           const displayNode = activeNode || lastExitNode;
           if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
 
           if (state === "completed") break;
-          if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); break; }
+          if (state === "failed" || state === "budget_exhausted" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") { setProgressStep("failed_final"); break; }
           if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
             if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); }
             break;
@@ -617,23 +603,10 @@ export default function TextToCAD() {
         const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
         if (resultRes.ok) {
           const result = await resultRes.json();
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-
-          const successFinalArtifact = result["success_final"]?.[0]?.glb_artifact
-            || result["success_final"]?.[0]?.original_glb_artifact;
-          const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
-          const buildRetryArtifact = result["build_retry"]?.[0]?.glb_artifact
-            || result["build_retry"]?.[0]?.original_glb_artifact;
-          const buildInitialArtifact = result["build_initial"]?.[0]?.glb_artifact
-            || result["build_initial"]?.[0]?.original_glb_artifact;
-          const artifact = successFinalArtifact || successOriginalArtifact || buildRetryArtifact || buildInitialArtifact;
-          if (hasFailed && !successFinalArtifact && !successOriginalArtifact) {
-            if (buildInitialArtifact?.uri) { glb_url = buildInitialArtifact.uri; setGlbArtifact(buildInitialArtifact); break; }
-            throw new Error("Edit failed - no valid model produced");
-          }
-          console.log('[TextToCAD] Edit result keys:', Object.keys(result), '| artifact:', artifact);
-          if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
-          throw new Error("No GLB model found");
+          const { glb_url: url, artifact } = parseCadResult(result, 'edit');
+          glb_url = url;
+          setGlbArtifact(artifact);
+          break;
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           await new Promise((r) => setTimeout(r, 1000));
