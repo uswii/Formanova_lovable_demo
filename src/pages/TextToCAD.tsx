@@ -24,6 +24,7 @@ import {
   buildCadEditStartBody,
   buildCadGenerationStartBody,
 } from "@/lib/cad-workflows";
+import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
@@ -49,10 +50,6 @@ import { runMicroBenchmark } from "@/lib/gpu-detect";
 import type { GemMode } from "@/components/text-to-cad/CADCanvas";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
-
-// Status can complete before /api/result is materialized in staging.
-const CAD_RESULT_MAX_RETRIES = 180;
-const CAD_RESULT_RETRY_DELAY_MS = 2000;
 
 // Full undo entry captures both UI mesh list AND 3D canvas state
 interface UndoEntry {
@@ -340,7 +337,11 @@ export default function TextToCAD() {
     const modelKey = `${CAD_GENERATION_WORKFLOW}:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
     try {
-      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, { model });
+      const tier = resolveCadGenerationTier(model);
+      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, {
+        model,
+        pricingContext: { tier },
+      });
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
@@ -418,8 +419,7 @@ export default function TextToCAD() {
           timeoutMs: 60 * 60 * 1000,
           max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
           maxPollErrors: 10,
-          maxResultRetries: CAD_RESULT_MAX_RETRIES,
-          resultRetryDelayMs: CAD_RESULT_RETRY_DELAY_MS,
+          maxResultRetries: 1,
           signal: pollAbort.signal,
         });
       } catch (err) {
@@ -541,8 +541,7 @@ export default function TextToCAD() {
           timeoutMs: 60 * 60 * 1000,
           max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
           maxPollErrors: 10,
-          maxResultRetries: CAD_RESULT_MAX_RETRIES,
-          resultRetryDelayMs: CAD_RESULT_RETRY_DELAY_MS,
+          maxResultRetries: 1,
           signal: pollAbort.signal,
         });
       } catch (err) {

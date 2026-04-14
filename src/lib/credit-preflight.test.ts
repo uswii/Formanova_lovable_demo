@@ -26,7 +26,10 @@ describe('performCreditPreflight', () => {
       .mockResolvedValueOnce(okJson({ projected_max_hold: 85 }))
       .mockResolvedValueOnce(okJson({ available: 100 }));
 
-    const result = await performCreditPreflight('ring_generate_v1', 1, { model: 'gemini' });
+    const result = await performCreditPreflight('ring_generate_v1', 1, {
+      model: 'gemini',
+      pricingContext: { tier: 'standard' },
+    });
 
     expect(result).toEqual({ approved: true, estimatedCredits: 85, currentBalance: 100 });
     expect(mockAuthFetch).toHaveBeenNthCalledWith(1, '/api/credits/estimate', {
@@ -35,6 +38,7 @@ describe('performCreditPreflight', () => {
       body: JSON.stringify({
         workflow_name: 'ring_generate_v1',
         num_variations: 1,
+        pricing_context: { tier: 'standard' },
       }),
     });
 
@@ -42,8 +46,8 @@ describe('performCreditPreflight', () => {
     expect(estimateBody).toEqual({
       workflow_name: 'ring_generate_v1',
       num_variations: 1,
+      pricing_context: { tier: 'standard' },
     });
-    expect(estimateBody).not.toHaveProperty('pricing_context');
   });
 
   it('estimates ring edit credits with the ring_edit_v1 workflow name', async () => {
