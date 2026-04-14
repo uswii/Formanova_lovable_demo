@@ -65,6 +65,8 @@ import { ModelCard, type UserModel } from '@/components/studio/ModelCard';
 import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { PresetModelThumb } from '@/components/studio/PresetModelThumb';
 import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
+import { StudioGeneratingStep } from '@/components/studio/StudioGeneratingStep';
+import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
 import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkProductShotGuideSeen, markProductShotGuideSeen, isProductShotGuideSeen, markProductShotGuideSeenLocal } from '@/lib/onboarding-api';
 import {
   trackJewelryUploaded,
@@ -1622,219 +1624,43 @@ export default function UnifiedStudio() {
             GENERATING STEP
             ═══════════════════════════════════════════════════════════ */}
         {currentStep === 'generating' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center justify-center min-h-[70vh]"
-          >
-            {/* Dashed frame — centered on screen */}
-            <div className="border border-dashed border-border/40 px-16 py-14 flex flex-col items-center w-full max-w-md">
-              <div className="relative mb-8">
-                <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
-              </div>
-
-              <h2 className="font-display text-3xl uppercase tracking-tight mb-3">Generating</h2>
-
-              {/* Model shot: progress bar. Product shot: rotating messages */}
-              {!isProductShot ? (
-                <>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={generationStep}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.3 }}
-                      className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6 text-center"
-                    >
-                      {generationStep || 'Starting…'}
-                    </motion.p>
-                  </AnimatePresence>
-                  <div className="w-full h-1.5 bg-muted overflow-hidden mb-2">
-                    <motion.div
-                      className="h-full bg-primary"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${generationProgress}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <p className="font-mono text-[10px] text-muted-foreground mb-8">{Math.round(generationProgress)}%</p>
-                </>
-              ) : (
-                <>
-                  {(() => {
-                    const MSGS = [
-                      'Analysing your jewelry…',
-                      'Matching inspiration style…',
-                      'Composing the scene…',
-                      'Rendering your shot…',
-                      'Almost there…',
-                    ];
-                    const isFetching = generationStep === 'Fetching results...';
-                    const displayMsg = isFetching ? 'Fetching result…' : MSGS[Math.min(rotatingMsgIdx, MSGS.length - 1)];
-                    return (
-                      <AnimatePresence mode="wait">
-                        <motion.p
-                          key={displayMsg}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.4 }}
-                          className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase mb-6 text-center"
-                        >
-                          {displayMsg}
-                        </motion.p>
-                      </AnimatePresence>
-                    );
-                  })()}
-                  <p className="font-mono text-[10px] italic text-muted-foreground mb-8">This can take up to 50 seconds</p>
-                </>
-              )}
-
-              <div className="flex gap-4">
-                {jewelryImage && (
-                  <div className="w-16 h-16 border border-border/30 overflow-hidden">
-                    <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="w-full h-full object-cover opacity-50" />
-                  </div>
-                )}
-                {activeModelUrl && (
-                  <div className="w-16 h-16 border border-border/30 overflow-hidden">
-                    <img src={resolvedActiveModelUrl ?? undefined} alt="Model" className="w-full h-full object-cover opacity-50" />
-                  </div>
-                )}
-              </div>
-
-              {generationError && (
-                <AnimatePresence>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                      className="bg-card border border-border shadow-2xl max-w-md w-full mx-6 p-8 text-center"
-                    >
-                      <div className="mx-auto w-12 h-12 border border-border flex items-center justify-center mb-5">
-                        <AlertTriangle className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                      <h3 className="font-display text-lg uppercase tracking-[0.15em] text-foreground mb-3">
-                        Our AI is a little overwhelmed
-                      </h3>
-                      <p className="font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground mb-4">
-                        The AI model is currently overloaded from high demand — this is temporary and completely normal. It'll be back up shortly, but we recommend trying again in a few hours.
-                      </p>
-                      <p className="font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground mb-6">
-                        AI models can occasionally crash under heavy usage. This gets better over time as we scale. In the meantime, reach out at{' '}
-                        <a
-                          href="mailto:studio@formanova.ai"
-                          className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
-                        >
-                          studio@formanova.ai
-                        </a>
-                        {' '}we'd love to hear from you.
-                      </p>
-                      <Button
-                        onClick={handleStartOver}
-                        className="w-full font-mono text-[11px] tracking-[0.2em] uppercase"
-                      >
-                        Got It
-                      </Button>
-                    </motion.div>
-                  </motion.div>
-                </AnimatePresence>
-              )}
-            </div>
-          </motion.div>
+          <StudioGeneratingStep
+            isProductShot={isProductShot}
+            generationStep={generationStep}
+            generationProgress={generationProgress}
+            rotatingMsgIdx={rotatingMsgIdx}
+            jewelryImage={jewelryImage}
+            resolvedJewelryImage={resolvedJewelryImage}
+            activeModelUrl={activeModelUrl}
+            resolvedActiveModelUrl={resolvedActiveModelUrl}
+            generationError={generationError}
+            handleStartOver={handleStartOver}
+          />
         )}
 
         {/* ═══════════════════════════════════════════════════════════
             RESULTS STEP
             ═══════════════════════════════════════════════════════════ */}
         {currentStep === 'results' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-8"
-          >
-            <div className="text-center">
-              <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">Complete</span>
-              <h2 className="font-display text-4xl uppercase tracking-tight">Your Result{resultImages.length !== 1 ? 's' : ''}</h2>
-            </div>
-
-            {resultImages.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
-                {resultImages.map((url, i) => (
-                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} naturalAspect={isProductShot} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground">No result images found. The workflow may still be processing.</p>
-              </div>
-            )}
-
-            {/* Action buttons directly under results */}
-            <div className="flex items-center justify-center gap-4 pt-2">
-              <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider h-11 px-6">
-                <Diamond className="h-4 w-4" />
-                New Photoshoot
-              </Button>
-              <Button
-                size="lg"
-                onClick={() => {
-                  setRegenerationCount(c => c + 1);
-                  trackRegenerateClicked({
-                    context: 'unified-studio',
-                    category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-                    regeneration_number: regenerationCount + 1, // +1 because setRegenerationCount hasn't updated state yet
-                  });
-                  setResultImages([]);
-                  setCurrentStep('generating');
-                  handleGenerate();
-                }}
-                className="gap-2 font-display text-base uppercase tracking-wide h-11 px-6 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Regenerate
-                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-                  ≤ <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
-                </span>
-              </Button>
-            </div>
-
-            {isFeedbackEnabled(user?.email) && (
-              <p className="text-center text-xs text-muted-foreground">
-                Not happy with the result?{' '}
-                <button
-                  type="button"
-                  className="underline underline-offset-2 hover:text-foreground transition-colors"
-                  onClick={() => setFeedbackOpen(true)}
-                >
-                  Tell us what went wrong
-                </button>
-              </p>
-            )}
-
-            {isFeedbackEnabled(user?.email) && (
-              <FeedbackModal
-                open={feedbackOpen}
-                onClose={() => setFeedbackOpen(false)}
-                workflowId={workflowId}
-                jewelryImageUrl={jewelryUploadedUrl}
-                jewelryDisplayUrl={jewelrySasUrl || jewelryImage}
-                modelImageUrl={activeModelUrl}
-                resultImageUrl={resultImages[0] ?? null}
-                category={(TO_SINGULAR[effectiveJewelryType] ?? 'other') as FeedbackCategory}
-              />
-            )}
-
-          </motion.div>
+          <StudioResultsStep
+            resultImages={resultImages}
+            workflowId={workflowId}
+            effectiveJewelryType={effectiveJewelryType}
+            isProductShot={isProductShot}
+            regenerationCount={regenerationCount}
+            setRegenerationCount={setRegenerationCount}
+            setResultImages={setResultImages}
+            setCurrentStep={setCurrentStep}
+            handleGenerate={handleGenerate}
+            handleStartOver={handleStartOver}
+            user={user}
+            feedbackOpen={feedbackOpen}
+            setFeedbackOpen={setFeedbackOpen}
+            jewelryUploadedUrl={jewelryUploadedUrl}
+            jewelrySasUrl={jewelrySasUrl}
+            jewelryImage={jewelryImage}
+            activeModelUrl={activeModelUrl}
+          />
         )}
       </div>
 
