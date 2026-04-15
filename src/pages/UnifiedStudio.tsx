@@ -117,7 +117,7 @@ export default function UnifiedStudio() {
   // Must be declared before anything that references location or isProductShot
   const location = useLocation();
   const [isProductShot, setIsProductShot] = useState<boolean>(() => {
-    // Prefer location.state (fresh navigation), fall back to sessionStorage (survives refresh)
+    // Priority: location.state (fresh nav) > URL ?mode= (refresh) > sessionStorage (fallback)
     const stateMode = (location.state as any)?.mode;
     if (stateMode === 'product-shot') {
       sessionStorage.setItem('formanova_studio_mode', 'product-shot');
@@ -127,6 +127,9 @@ export default function UnifiedStudio() {
       sessionStorage.removeItem('formanova_studio_mode');
       return false;
     }
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
+    if (urlMode === 'product-shot') return true;
+    if (urlMode === 'model-shot') return false;
     return sessionStorage.getItem('formanova_studio_mode') === 'product-shot';
   });
 
@@ -194,21 +197,22 @@ export default function UnifiedStudio() {
   const activePresetError = isProductShot ? presetInspirationsError : presetModelsError;
   const activePresetEmpty = !activePresetLoading && !activePresetError && activePresetCategories.length === 0;
 
-  // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
+  // Keep the current step and mode in the URL so browser refresh restores full state.
   useEffect(() => {
     const currentStepParam = searchParams.get('step');
+    const currentModeParam = searchParams.get('mode');
     const desiredStepParam = currentStep === 'model' ? 'model' : null;
+    const desiredModeParam = isProductShot ? 'product-shot' : null;
 
-    if (currentStepParam === desiredStepParam) return;
+    if (currentStepParam === desiredStepParam && currentModeParam === desiredModeParam) return;
 
     const nextParams = new URLSearchParams(searchParams);
-    if (desiredStepParam) {
-      nextParams.set('step', desiredStepParam);
-    } else {
-      nextParams.delete('step');
-    }
+    if (desiredStepParam) nextParams.set('step', desiredStepParam);
+    else nextParams.delete('step');
+    if (desiredModeParam) nextParams.set('mode', desiredModeParam);
+    else nextParams.delete('mode');
     setSearchParams(nextParams, { replace: true });
-  }, [currentStep, searchParams, setSearchParams]);
+  }, [currentStep, isProductShot, searchParams, setSearchParams]);
 
   // ── Onboarding popups ────────────────────────────────────────────────────
   const {
