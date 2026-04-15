@@ -549,7 +549,35 @@ const LoadedModel = forwardRef<
         }
       });
     }
-    } // end if (magicTexturing)
+    } else {
+      // ── Flat mesh classification (default when magic texturing is off) ──
+      // gem → blue (#4a90d9), metal → green (#77dd77), flat shading, no maps
+      const gemRe = /diamond|gem|stone|crystal|jewel|brill|ruby|emerald|sapphire|topaz|opal|garnet|amethyst|pearl|cz|cubic|solitaire|pave|prong_stone|accent_stone|center_stone|main_stone/i;
+      const metalRe = /band|ring|shank|prong|setting|mount|bezel|basket|gallery|shoulder|bridge|head|collet|metal|gold|silver|platinum|frame|base/i;
+
+      list.forEach((md) => {
+        const lower = md.name.toLowerCase();
+        const phys = md.originalMaterial as THREE.MeshPhysicalMaterial;
+        let isGem = gemRe.test(lower);
+        if (metalRe.test(lower)) isGem = false;
+        if (!gemRe.test(lower) && !metalRe.test(lower)) {
+          if (phys.transmission > 0.5 || phys.ior > 2.0) isGem = true;
+        }
+        const color = isGem ? 0x4a90d9 : 0x77dd77;
+        autoMaterials[md.name] = {
+          id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
+          name: isGem ? 'Gem (flat)' : 'Metal (flat)',
+          category: isGem ? 'gemstone-flat' : 'metal-flat',
+          create: () => new THREE.MeshStandardMaterial({
+            color,
+            metalness: 0,
+            roughness: isGem ? 0.6 : 0.8,
+            flatShading: true,
+            side: THREE.DoubleSide,
+          }),
+        };
+      });
+    } // end if (magicTexturing) / else
 
     // ── Scene complexity guardrail ──
     const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
@@ -1946,7 +1974,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#000000' }}>
+      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#ffffff' }}>
         {/* Debug HUD */}
         {debugActive && <DebugHUD stats={debugStats} />}
         {/* Loading overlay */}
