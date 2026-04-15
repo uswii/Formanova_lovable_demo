@@ -23,14 +23,12 @@ describe('feature flag allowlists', () => {
     vi.stubEnv('VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS', 'vault@example.com');
     vi.stubEnv('VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS', 'studio@example.com');
     vi.stubEnv('VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS', 'guide@example.com');
-    vi.stubEnv('VITE_TEST_MENU_ALLOWLIST_EMAILS', 'test@example.com');
 
     expect(isWeightStlEnabled('maker@example.com')).toBe(true);
     expect(isCadUploadEnabled('cad@example.com')).toBe(true);
     expect(isShowAllVaultEnabled('vault@example.com')).toBe(true);
     expect(isStudioTypeSelectionEnabled('studio@example.com')).toBe(true);
     expect(isProductShotGuideEnabled('guide@example.com')).toBe(true);
-    expect(isTestMenuEnabled('test@example.com')).toBe(true);
   });
 
   it('normalizes comma-separated env allowlists and user email casing', () => {
@@ -55,5 +53,7 @@ describe('feature flag allowlists', () => {
     expect(isOnboardingEnabled(null)).toBe(true);
     expect(isFeedbackEnabled(null)).toBe(true);
     expect(isStudioOnboardingEnabled(null)).toBe(true);
+    expect(isTestMenuEnabled(null)).toBe(true);
+    expect(isTestMenuEnabled('anyone@example.com')).toBe(true);
   });
 });

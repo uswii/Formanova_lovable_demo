@@ -127,6 +127,6 @@ export function isProductShotGuideEnabled(email: string | undefined | null): boo
 /**
  * Bottom-left test menu (upload guide, product shot guide, role picker).
  */
-export function isTestMenuEnabled(email: string | undefined | null): boolean {
-  return isAllowlistedEmail(email, 'VITE_TEST_MENU_ALLOWLIST_EMAILS');
+export function isTestMenuEnabled(_email: string | undefined | null): boolean {
+  return true;
 }

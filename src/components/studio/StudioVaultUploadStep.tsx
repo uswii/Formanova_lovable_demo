@@ -201,12 +201,12 @@ export function StudioVaultUploadStep({
   // Client-side intended_use filter:
   // - show all: no filter (cross-boundary access)
   // - product shot: only 'pdp' tagged
-  // - model shot: 'on_model' tagged OR untagged (old uploads pre-dating the tag)
+  // - model shot: only 'on_model' tagged
   const assets = showAll
     ? rawAssets
     : isProductShot
       ? rawAssets.filter(a => a.metadata?.['intended_use'] === 'pdp')
-      : rawAssets.filter(a => !a.metadata?.['intended_use'] || a.metadata['intended_use'] === 'on_model');
+      : rawAssets.filter(a => a.metadata?.['intended_use'] === 'on_model');
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
