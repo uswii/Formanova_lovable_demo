@@ -160,7 +160,7 @@ export function StudioModelStep({
                   alt="Selected model"
                   className="max-w-full max-h-[520px] object-contain"
                 />
-                {(
+                {!isProductShot && (
                   <button
                     type="button"
                     onClick={() => setModelGuideOpen(true)}
@@ -189,7 +189,7 @@ export function StudioModelStep({
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                 onDragOver={(e) => e.preventDefault()}
               >
-                {(
+                {!isProductShot && (
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setModelGuideOpen(true); }}
