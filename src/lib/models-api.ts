@@ -88,6 +88,19 @@ export async function uploadInspiration(payload: UploadInspirationPayload): Prom
   return res.json();
 }
 
+/** DELETE /api/inspirations/{id} — permanently remove a preset inspiration. */
+export async function deleteInspiration(id: string): Promise<void> {
+  const res = await authenticatedFetch(`/api/inspirations/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail ?? body?.message ?? `HTTP ${res.status}`;
+    throw Object.assign(new Error(detail), { status: res.status });
+  }
+}
+
 /** PATCH /api/inspirations/{id} — rename label or update metadata. */
 export async function updateInspiration(id: string, payload: UpdateInspirationPayload): Promise<PresetInspiration> {
   const res = await authenticatedFetch(`/api/inspirations/${id}`, {

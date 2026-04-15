@@ -6,7 +6,6 @@ import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, ScanEye } from 'lucide
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useCredits } from '@/contexts/CreditsContext';
-import { isCADEnabled } from '@/lib/feature-flags';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,18 +64,14 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [lastDelta]);
 
-  const cadEnabled = isCADEnabled(user?.email);
-
   const navLinks: NavLink[] = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'Photo Studio' },
-    ...(cadEnabled
-      ? [{
-          path: '/studio-cad',
-          label: 'CAD Studio',
-          activePaths: ['/studio-cad', '/text-to-cad', '/cad-to-catalog'],
-        }]
-      : []),
+    {
+      path: '/studio-cad',
+      label: 'CAD Studio',
+      activePaths: ['/studio-cad', '/text-to-cad', '/cad-to-catalog'],
+    },
     // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
 

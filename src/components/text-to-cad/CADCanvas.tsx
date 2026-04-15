@@ -22,7 +22,6 @@ export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
@@ -353,7 +352,7 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const needsAuth = AUTHENTICATED_IMAGES_ENABLED && url.includes('/artifacts/');
+        const needsAuth = url.includes('/artifacts/');
         const response = needsAuth ? await authenticatedFetch(url) : await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch GLB: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
@@ -550,7 +549,35 @@ const LoadedModel = forwardRef<
         }
       });
     }
-    } // end if (magicTexturing)
+    } else {
+      // ── Flat mesh classification (default when magic texturing is off) ──
+      // gem → blue (#4a90d9), metal → green (#77dd77), flat shading, no maps
+      const gemRe = /diamond|gem|stone|crystal|jewel|brill|ruby|emerald|sapphire|topaz|opal|garnet|amethyst|pearl|cz|cubic|solitaire|pave|prong_stone|accent_stone|center_stone|main_stone/i;
+      const metalRe = /band|ring|shank|prong|setting|mount|bezel|basket|gallery|shoulder|bridge|head|collet|metal|gold|silver|platinum|frame|base/i;
+
+      list.forEach((md) => {
+        const lower = md.name.toLowerCase();
+        const phys = md.originalMaterial as THREE.MeshPhysicalMaterial;
+        let isGem = gemRe.test(lower);
+        if (metalRe.test(lower)) isGem = false;
+        if (!gemRe.test(lower) && !metalRe.test(lower)) {
+          if (phys.transmission > 0.5 || phys.ior > 2.0) isGem = true;
+        }
+        const color = isGem ? 0x1a3a6b : 0x77dd77;
+        autoMaterials[md.name] = {
+          id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
+          name: isGem ? 'Gem (flat)' : 'Metal (flat)',
+          category: isGem ? 'gemstone-flat' : 'metal-flat',
+          create: () => new THREE.MeshStandardMaterial({
+            color,
+            metalness: 0,
+            roughness: isGem ? 0.6 : 0.8,
+            flatShading: true,
+            side: THREE.DoubleSide,
+          }),
+        };
+      });
+    } // end if (magicTexturing) / else
 
     // ── Scene complexity guardrail ──
     const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
@@ -651,7 +678,7 @@ const LoadedModel = forwardRef<
       mergedUrlsRef.current.add(partUrl);
       (async () => {
         try {
-          const needsAuth = AUTHENTICATED_IMAGES_ENABLED && partUrl.includes('/artifacts/');
+          const needsAuth = partUrl.includes('/artifacts/');
           const resp = needsAuth ? await authenticatedFetch(partUrl) : await fetch(partUrl);
           if (!resp.ok) throw new Error(`Failed to fetch GLB: ${resp.status}`);
           const arrayBuffer = await resp.arrayBuffer();
@@ -1947,7 +1974,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#000000' }}>
+      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#f5f5f3' }}>
         {/* Debug HUD */}
         {debugActive && <DebugHUD stats={debugStats} />}
         {/* Loading overlay */}

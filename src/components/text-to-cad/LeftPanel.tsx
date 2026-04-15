@@ -5,6 +5,7 @@ import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_WORKFLOW, CAD_GENERATION_WORKFLOW } from "@/lib/cad-workflows";
+import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
 
 interface LeftPanelProps {
   model: string;
@@ -62,7 +63,7 @@ export default function LeftPanel({
       <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-6 scrollbar-thin min-w-0"
         style={{ scrollbarWidth: "thin" }}
       >
-        {/* AI Model — hidden, keep for future re-enable (set CAD_MODEL_SELECTOR_ENABLED = true)
+        {/* AI Model - hidden until model selection is ready to ship.
         <section>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
           <div className="flex gap-0 border border-border min-w-0">
@@ -190,7 +191,7 @@ export default function LeftPanel({
               </button>
 
               {/* ═══ PRIMARY PART TOOLS ═══ */}
-              <div className="hidden mt-6 space-y-3">
+              <div className={`${CAD_EDIT_TOOLS_ENABLED ? '' : 'hidden'} mt-6 space-y-3`}>
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}

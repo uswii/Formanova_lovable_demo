@@ -1,5 +1,5 @@
 /**
- * Frontend feature flags for gating features to specific users.
+ * Frontend rollout gates for CAD tools that are still allowlisted.
  * This is a UI-only gate - not a security boundary.
  */
 
@@ -18,22 +18,17 @@ function isAllowlistedEmail(email: string | undefined | null, envKey: string): b
   return getAllowlist(envKey).includes(email.trim().toLowerCase());
 }
 
-export function isCADEnabled(_userEmail: string | undefined | null): boolean {
-  return true;
-}
+/**
+ * CAD Edit/Rebuild tools — controlled by VITE_CAD_EDIT_TOOLS_ENABLED env var.
+ * Set to "true" to show; anything else (or absent) keeps them hidden.
+ */
+export const CAD_EDIT_TOOLS_ENABLED = import.meta.env.VITE_CAD_EDIT_TOOLS_ENABLED === 'true';
 
 /**
- * Main keeps CAD edit hidden while the API wiring is staged.
- * Remove this gate after production QA approves ring_edit_v1.
+ * GLB rename UI in the Text-to-CAD history card — controlled by VITE_CAD_RENAME_ENABLED.
+ * Set to "true" to show the pencil/rename; anything else (or absent) keeps it hidden.
  */
-export const CAD_EDIT_TOOLS_ENABLED = false;
-
-/**
- * Toggle to show/hide the AI model quality selector
- * in the Text-to-CAD studio. When false, defaults to 'gemini' (Lite).
- * Set to true to re-enable model selection.
- */
-export const CAD_MODEL_SELECTOR_ENABLED = false;
+export const CAD_RENAME_ENABLED = import.meta.env.VITE_CAD_RENAME_ENABLED === 'true';
 
 /**
  * Users allowed to see the weight estimation + STL export tools.
@@ -45,10 +40,6 @@ export function isWeightStlEnabled(email: string | undefined | null): boolean {
 /**
  * Alternate two-column upload layout — enabled for all users.
  */
-export function isAltUploadLayoutEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * Users allowed to see the "Upload CAD File" button on the initial prompt screen.
  */
@@ -59,74 +50,33 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 /**
  * "What best describes you?" onboarding screen — enabled for all users.
  */
-export function isOnboardingEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * Asset metadata (category label, inline model rename) — enabled for all users.
  */
-export function isAssetMetadataEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * "View Guide" button on the My Products panel in the upload step.
  */
-export function isViewGuideEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * "Show all" toggle in the jewelry vault picker — bypasses intended_use filter.
  */
-export function isShowAllVaultEnabled(email: string | undefined | null): boolean {
-  return isAllowlistedEmail(email, 'VITE_SHOW_ALL_VAULT_ALLOWLIST_EMAILS');
-}
-
 /**
  * Onboarding welcome screen — input quality guidelines + Terms of Service gate.
  */
-export function isOnboardingWelcomeEnabled(_email: string | undefined | null): boolean {
-  return false;
-}
-
 /**
  * Authenticated image fetching via blob URLs for /artifacts/ paths.
  */
-export const AUTHENTICATED_IMAGES_ENABLED = true;
-
 /**
  * "Not satisfied?" feedback widget on the result screen.
  */
-export function isFeedbackEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * In-studio onboarding popup (multi-step) + model guide button on the model canvas.
  */
-export function isStudioOnboardingEnabled(_email: string | undefined | null): boolean {
-  return true;
-}
-
 /**
  * Pre-selection screen at /studio — choose Model Shot or Product Shot.
  */
-export function isStudioTypeSelectionEnabled(email: string | undefined | null): boolean {
-  return isAllowlistedEmail(email, 'VITE_STUDIO_TYPE_SELECTION_ALLOWLIST_EMAILS');
-}
-
 /**
  * Product shot upload guide modal — shown once before the user's first product shot.
  */
-export function isProductShotGuideEnabled(email: string | undefined | null): boolean {
-  return isAllowlistedEmail(email, 'VITE_PRODUCT_SHOT_GUIDE_ALLOWLIST_EMAILS');
-}
-
 /**
  * Bottom-left test menu (upload guide, product shot guide, role picker).
  */
-export function isTestMenuEnabled(email: string | undefined | null): boolean {
-  return isAllowlistedEmail(email, 'VITE_TEST_MENU_ALLOWLIST_EMAILS');
-}

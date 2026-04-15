@@ -10,7 +10,6 @@ import {
   markOnboardingComplete,
   saveUserType,
 } from '@/lib/onboarding-api';
-import { isOnboardingEnabled, isOnboardingWelcomeEnabled } from '@/lib/feature-flags';
 import { trackUserTypeSelected } from '@/lib/posthog-events';
 
 // ---------------------------------------------------------------------------
@@ -167,8 +166,7 @@ export default function RolePicker() {
       await saveUserType(selected);
       trackUserTypeSelected({ user_type: selected });
       markOnboardingComplete(user.id);
-      const dest = isOnboardingWelcomeEnabled(user.email) ? '/onboarding-welcome' : '/studio';
-      navigate(dest, { replace: true });
+      navigate('/studio', { replace: true });
     } catch {
       setSubmitting(false);
       setError('Something went wrong. Please try again.');

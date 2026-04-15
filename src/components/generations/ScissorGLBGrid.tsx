@@ -26,7 +26,6 @@ import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Box } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 const __DEV__ = import.meta.env.DEV;
 
@@ -295,7 +294,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
       promise = (async () => {
-        const needsAuth = AUTHENTICATED_IMAGES_ENABLED && card.glbUrl.includes('/artifacts/');
+        const needsAuth = card.glbUrl.includes('/artifacts/');
         const resp = needsAuth
           ? await authenticatedFetch(card.glbUrl)
           : await fetch(card.glbUrl);
@@ -340,17 +339,27 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
     model.scale.setScalar(scale);
 
+    const gemRe = /diamond|gem|stone|crystal|jewel|brill|ruby|emerald|sapphire|topaz|opal|garnet|amethyst|pearl|cz|cubic|solitaire|pave|prong_stone|accent_stone|center_stone|main_stone/i;
+    const metalRe = /band|ring|shank|prong|setting|mount|bezel|basket|gallery|shoulder|bridge|head|collet|metal|gold|silver|platinum|frame|base/i;
+
     model.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        if (mesh.material) {
-          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          mats.forEach((m) => {
-            if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-              (m as THREE.MeshStandardMaterial).envMapIntensity = 1.2;
-            }
-          });
+        const lower = mesh.name.toLowerCase();
+        const origMat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        const phys = origMat as THREE.MeshPhysicalMaterial;
+        let isGem = gemRe.test(lower);
+        if (metalRe.test(lower)) isGem = false;
+        if (!gemRe.test(lower) && !metalRe.test(lower)) {
+          if (phys?.transmission > 0.5 || phys?.ior > 2.0) isGem = true;
         }
+        mesh.material = new THREE.MeshStandardMaterial({
+          color: isGem ? 0x1a3a6b : 0x77dd77,
+          metalness: 0,
+          roughness: isGem ? 0.6 : 0.8,
+          flatShading: true,
+          side: THREE.DoubleSide,
+        });
       }
     });
 

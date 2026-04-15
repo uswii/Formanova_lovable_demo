@@ -1,6 +1,6 @@
 // pipeline-api.ts — Client for the temporal-agentic-pipeline backend
 
-import { getStoredToken } from './auth-api';
+import { authenticatedFetch } from './authenticated-fetch';
 
 const BASE_URL = import.meta.env.VITE_PIPELINE_API_URL ?? "";
 const ADMIN_SECRET = import.meta.env.VITE_PIPELINE_ADMIN_SECRET ?? "";
@@ -106,12 +106,9 @@ async function apiFetch<T>(
   };
   if (useAdminSecret) {
     headers["X-Admin-Secret"] = ADMIN_SECRET;
-  } else {
-    const token = getStoredToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await authenticatedFetch(`${BASE_URL}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

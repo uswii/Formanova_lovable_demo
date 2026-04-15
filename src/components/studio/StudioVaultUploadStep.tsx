@@ -1,5 +1,5 @@
 /**
- * AlternateUploadStep — internal experiment (gated via feature flag).
+ * StudioVaultUploadStep — internal experiment (gated via feature flag).
  *
  * Left  (2/3) — upload canvas.
  * Right (1/3) — Upload Guide when canvas is empty; My Products library when image loaded.
@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { isViewGuideEnabled, isShowAllVaultEnabled } from '@/lib/feature-flags';
 import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
@@ -72,6 +71,12 @@ import watchNotAllowed1    from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2    from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3    from '@/assets/examples/watch-notallowed-3.png';
 
+// ── Product-shot guide images ─────────────────────────────────────────────────
+import psLightingBright from '@/assets/examples/ps-lighting-bright-input.webp';
+import psBlurClear      from '@/assets/examples/ps-blur-clear-input.webp';
+import psLightingDim    from '@/assets/examples/ps-lighting-dim-input.webp';
+import psBlur           from '@/assets/examples/ps-blur-input.webp';
+
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
   necklace:  { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3, necklaceAllowed4],   notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
   earrings:  { allowed: [earringAllowed1,  earringAllowed2,  earringAllowed3,  earringAllowed4],    notAllowed: [earringNotAllowed1,  earringNotAllowed2,  earringNotAllowed3]  },
@@ -87,10 +92,52 @@ const CANVAS_H = 'h-[500px] md:h-[640px]';
 function UploadGuidePanel({
   examples,
   categoryType,
+  isProductShot,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
   categoryType: string;
+  isProductShot?: boolean;
 }) {
+  if (isProductShot) {
+    return (
+      <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
+        <p className="px-12 pt-3 pb-2 text-lg font-bold text-foreground flex-shrink-0">
+          Better photo. Better result.
+        </p>
+        <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Do column */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-bold text-green-500">Do</span>
+              <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
+                <img src={psLightingBright} alt="Good lighting" draggable={false} className="w-full h-full object-cover" />
+              </div>
+              <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
+                <img src={psBlurClear} alt="Clear focus" draggable={false} className="w-full h-full object-cover" />
+              </div>
+            </div>
+            {/* Don't column */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-bold text-destructive">Don't</span>
+              <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
+                <img src={psLightingDim} alt="Dim lighting" draggable={false} className="w-full h-full object-cover" style={{ filter: 'brightness(0.35)' }} />
+              </div>
+              <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
+                <img src={psBlur} alt="Blurry photo" draggable={false} className="w-full h-full object-cover" style={{ filter: 'blur(4px) scale(1.05)' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
+          <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <span className="font-bold text-foreground">Pro Tip:</span> Bright, even lighting with a sharp focus gives the best results.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const topLabel = categoryType === 'rings'
     ? 'Recommended input poses for best results'
     : 'Recommended input photos for best results';
@@ -139,7 +186,7 @@ function buildPageList(current: number, total: number): (number | '…')[] {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
-export interface AlternateUploadStepProps {
+export interface StudioVaultUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
   activeProductAssetId: string | null;
@@ -156,12 +203,11 @@ export interface AlternateUploadStepProps {
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
   onCategoryChange?: (category: string) => void;
   isProductShot?: boolean;
-  userEmail?: string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function AlternateUploadStep({
+export function StudioVaultUploadStep({
   exampleCategoryType,
   jewelryImage,
   activeProductAssetId,
@@ -177,9 +223,20 @@ export function AlternateUploadStep({
   onProductSelect,
   onCategoryChange,
   isProductShot,
-  userEmail,
-}: AlternateUploadStepProps) {
+}: StudioVaultUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
+  const categoryCopy = {
+    necklace: { singular: 'necklace', plural: 'necklaces' },
+    necklaces: { singular: 'necklace', plural: 'necklaces' },
+    earring: { singular: 'earring', plural: 'earrings' },
+    earrings: { singular: 'earring', plural: 'earrings' },
+    bracelet: { singular: 'bracelet', plural: 'bracelets' },
+    bracelets: { singular: 'bracelet', plural: 'bracelets' },
+    ring: { singular: 'ring', plural: 'rings' },
+    rings: { singular: 'ring', plural: 'rings' },
+    watch: { singular: 'watch', plural: 'watches' },
+    watches: { singular: 'watch', plural: 'watches' },
+  }[exampleCategoryType] ?? { singular: 'jewelry', plural: 'jewelry' };
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
 
@@ -201,12 +258,12 @@ export function AlternateUploadStep({
   // Client-side intended_use filter:
   // - show all: no filter (cross-boundary access)
   // - product shot: only 'pdp' tagged
-  // - model shot: 'on_model' tagged OR untagged (old uploads pre-dating the tag)
+  // - model shot: only 'on_model' tagged
   const assets = showAll
     ? rawAssets
     : isProductShot
       ? rawAssets.filter(a => a.metadata?.['intended_use'] === 'pdp')
-      : rawAssets.filter(a => !a.metadata?.['intended_use'] || a.metadata['intended_use'] === 'on_model');
+      : rawAssets.filter(a => a.metadata?.['intended_use'] === 'on_model');
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -239,10 +296,12 @@ export function AlternateUploadStep({
         <div>
           <span className="marta-label block mb-1">Step 1</span>
           <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-            Upload Your Jewelry
+            Upload Your {categoryCopy.singular}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            Upload a photo of your jewelry <strong>worn on a person or mannequin</strong>
+            {isProductShot
+              ? `Upload a high quality photo of your ${categoryCopy.singular}.`
+              : <>Upload a photo of your {categoryCopy.singular} <strong>worn on a person or mannequin</strong></>}
           </p>
         </div>
 
@@ -263,18 +322,18 @@ export function AlternateUploadStep({
                 <Diamond className="h-9 w-9 text-primary" />
               </div>
             </div>
-            <p className="text-lg font-display font-medium mb-1.5">Drop your jewelry image here</p>
+            <p className="text-lg font-display font-medium mb-1.5">Drop your {categoryCopy.singular} image here</p>
             <p className="text-sm text-muted-foreground mb-6">
               Drag &amp; drop · click to browse · paste (Ctrl+V)
             </p>
             <Button variant="outline" size="lg" className="gap-2 pointer-events-none">
               <ImageIcon className="h-4 w-4" />
-              Browse Files
+              Browse {categoryCopy.singular} files
             </Button>
             <input ref={jewelryInputRef} type="file" accept="image/*" className="hidden"
                    onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); }} />
 
-            {!showGuide && isViewGuideEnabled(userEmail) && (
+            {!showGuide && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setGuideDialogOpen(true); }}
@@ -297,7 +356,7 @@ export function AlternateUploadStep({
             <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 border-border/30 ${CANVAS_H}`}>
               <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-full object-contain" />
 
-              {!showGuide && isViewGuideEnabled(userEmail) && (
+              {!showGuide && (
                 <button
                   type="button"
                   onClick={() => setGuideDialogOpen(true)}
@@ -358,13 +417,13 @@ export function AlternateUploadStep({
             {/* Invisible spacer mirrors "Step 1" label so headings align */}
             <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
             <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-              {showGuide ? 'Upload Guide' : 'My Products'}
+              {showGuide ? 'Upload Guide' : `My ${categoryCopy.plural}`}
             </h3>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              {showGuide ? 'For best results, follow the guidelines below.' : 'Previously uploaded jewelry'}
+              {showGuide ? 'For best results, follow the guidelines below.' : `Previously uploaded ${categoryCopy.plural}`}
             </p>
           </div>
-          {!showGuide && isShowAllVaultEnabled(userEmail) && (
+          {!showGuide && (
             <div className="mt-8 flex items-center gap-2 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Show all
@@ -375,7 +434,7 @@ export function AlternateUploadStep({
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />}
+        {showGuide && <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} isProductShot={isProductShot} />}
 
         {/* ── Product library ── */}
         {!showGuide && (
@@ -513,7 +572,7 @@ export function AlternateUploadStep({
           </div>
           {/* Guide content */}
           <div className="px-6 pb-6">
-            <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />
+            <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} isProductShot={isProductShot} />
           </div>
         </div>
       </div>

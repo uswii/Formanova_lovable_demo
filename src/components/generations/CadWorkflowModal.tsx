@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { fetchCadResult } from '@/lib/generation-history-api';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 const GLBPreviewSlot = React.lazy(() =>
   import('./ScissorGLBGrid').then((m) => ({ default: m.GLBPreviewSlot }))
@@ -61,7 +60,7 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
     );
 
     try {
-      const needsAuth = AUTHENTICATED_IMAGES_ENABLED && glbUrl.includes('/artifacts/');
+      const needsAuth = glbUrl.includes('/artifacts/');
       const resp = needsAuth ? await authenticatedFetch(glbUrl) : await fetch(glbUrl);
       if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
       const blob = await resp.blob();

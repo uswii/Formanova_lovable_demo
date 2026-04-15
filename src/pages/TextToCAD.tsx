@@ -287,7 +287,6 @@ export default function TextToCAD() {
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
-    setProgressStep("success_final");
     if (wasManualUploadRef.current) {
       toast.success("File uploaded");
       wasManualUploadRef.current = false;
@@ -318,7 +317,6 @@ export default function TextToCAD() {
         { label: "generate_fix",     ms: 4000 },
         { label: "build_retry",      ms: 6000 },
         { label: "build_corrected",  ms: 4000 },
-        { label: "success_final",    ms: 1000 },
       ];
       for (const step of steps) {
         await new Promise((r) => setTimeout(r, step.ms));
