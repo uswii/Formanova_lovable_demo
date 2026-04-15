@@ -16,7 +16,7 @@ export interface AzureUploadResponse {
 export async function uploadToAzure(
   base64: string,
   contentType: string = 'image/jpeg',
-  assetType?: 'jewelry_photo' | 'model_photo',
+  assetType?: 'jewelry_photo' | 'model_photo' | 'inspiration_photo',
   metadata?: Record<string, string>,
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
