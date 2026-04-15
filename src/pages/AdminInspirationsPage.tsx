@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  fetchPresetInspirations, uploadInspiration, updateInspiration,
+  fetchPresetInspirations, uploadInspiration, updateInspiration, deleteInspiration,
   type PresetInspirationCategory, type PresetInspiration,
 } from '@/lib/models-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ImageIcon, Loader2, Pencil, Plus, Upload, Sparkles, FolderOpen } from 'lucide-react';
+import { ImageIcon, Loader2, Pencil, Plus, Upload, Sparkles, FolderOpen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ export default function AdminInspirationsPage() {
   const [filename, setFilename] = useState('');
   const [label, setLabel] = useState('');
   const [editLabel, setEditLabel] = useState('');
+  const [editSortOrder, setEditSortOrder] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +188,7 @@ export default function AdminInspirationsPage() {
   function openEdit(item: PresetInspiration) {
     setEditingItem(item);
     setEditLabel(item.label);
+    setEditSortOrder(item.metadata?.sort_order ?? '');
     setInlineError('');
     setSheetMode('edit');
   }
@@ -195,10 +197,17 @@ export default function AdminInspirationsPage() {
     if (!editingItem) return;
     setInlineError('');
     if (!editLabel.trim()) { setInlineError('Label cannot be empty.'); return; }
-    if (editLabel.trim() === editingItem.label) { setSheetMode(null); return; }
+    const sortOrderVal = editSortOrder.trim();
+    if (sortOrderVal && isNaN(Number(sortOrderVal))) { setInlineError('Sort order must be a number.'); return; }
+    const labelChanged = editLabel.trim() !== editingItem.label;
+    const sortChanged = sortOrderVal !== (editingItem.metadata?.sort_order ?? '');
+    if (!labelChanged && !sortChanged) { setSheetMode(null); return; }
     setSaving(true);
     try {
-      await updateInspiration(editingItem.id, { label: editLabel.trim() });
+      const payload: { label?: string; metadata?: Record<string, string | null> } = {};
+      if (labelChanged) payload.label = editLabel.trim();
+      if (sortChanged) payload.metadata = { sort_order: sortOrderVal || null };
+      await updateInspiration(editingItem.id, payload);
       toast.success('Inspiration updated');
       setSheetMode(null);
       load();
@@ -206,6 +215,17 @@ export default function AdminInspirationsPage() {
       setInlineError(e?.message ?? 'Update failed.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete(item: PresetInspiration & { categoryLabel: string }) {
+    if (!confirm(`Delete "${item.label}"? This cannot be undone.`)) return;
+    try {
+      await deleteInspiration(item.id);
+      toast.success('Inspiration deleted');
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Delete failed.');
     }
   }
 
@@ -258,6 +278,7 @@ export default function AdminInspirationsPage() {
                     <th className="text-left px-4 py-3 text-muted-foreground font-medium w-16">Image</th>
                     <th className="text-left px-4 py-3 text-muted-foreground font-medium">Label</th>
                     <th className="text-left px-4 py-3 text-muted-foreground font-medium">Category</th>
+                    <th className="text-left px-4 py-3 text-muted-foreground font-medium w-16">Order</th>
                     <th className="text-left px-4 py-3 text-muted-foreground font-medium">ID</th>
                     <th className="text-right px-4 py-3 text-muted-foreground font-medium">Actions</th>
                   </tr>
@@ -268,10 +289,14 @@ export default function AdminInspirationsPage() {
                       <td className="px-4 py-3"><InspirationThumb url={item.url} /></td>
                       <td className="px-4 py-3 font-medium text-foreground">{item.label}</td>
                       <td className="px-4 py-3 text-muted-foreground">{item.categoryLabel}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.metadata?.sort_order ?? '—'}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground truncate max-w-[160px]">{item.id}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} title="Rename">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} title="Edit">
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item)} title="Delete" className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
@@ -289,8 +314,11 @@ export default function AdminInspirationsPage() {
                     <p className="text-sm text-muted-foreground">{item.categoryLabel}</p>
                     <p className="font-mono text-xs text-muted-foreground/60 truncate mt-0.5">{item.id}</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(item)} title="Rename">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(item)} title="Edit">
                     <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(item)} title="Delete" className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
@@ -484,6 +512,18 @@ export default function AdminInspirationsPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
                 autoFocus
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-sort-order">Sort Order</Label>
+              <Input
+                id="edit-sort-order"
+                type="number"
+                placeholder="e.g. 1, 2, 3…"
+                value={editSortOrder}
+                onChange={(e) => setEditSortOrder(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
+              />
+              <p className="text-xs text-muted-foreground">Lower number appears first. Leave blank to sort last.</p>
             </div>
             {inlineError && <p className="text-sm text-destructive">{inlineError}</p>}
           </div>

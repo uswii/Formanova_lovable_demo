@@ -172,7 +172,12 @@ export default function UnifiedStudio() {
   const presetModelsForCategory = useMemo<PresetModel[]>(() => {
     if (isProductShot) {
       const cat = presetInspirationsData?.categories.find(c => c.id === formanovaCategory);
-      return (cat?.inspirations ?? []) as PresetModel[];
+      const items = (cat?.inspirations ?? []) as PresetModel[];
+      return [...items].sort((a, b) => {
+        const aOrder = a.metadata?.sort_order != null ? Number(a.metadata.sort_order) : Infinity;
+        const bOrder = b.metadata?.sort_order != null ? Number(b.metadata.sort_order) : Infinity;
+        return aOrder - bOrder;
+      });
     }
     const cat = presetModelsData?.categories.find(c => c.id === formanovaCategory);
     return cat?.models ?? [];

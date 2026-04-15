@@ -21,6 +21,7 @@ export function PresetModelThumb({ model, isSelected, onSelect }: {
             src={resolvedSrc}
             alt={model.label}
             className="w-full block group-hover:scale-105 transition-transform duration-300"
+            style={{ boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.18)' }}
             loading="lazy"
           />
         ) : (
