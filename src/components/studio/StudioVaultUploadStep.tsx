@@ -102,7 +102,7 @@ function UploadGuidePanel({
     return (
       <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
         <p className="px-12 pt-3 pb-2 text-lg font-bold text-foreground flex-shrink-0">
-          Good shot. Bad shot.
+          Better photo. Better result.
         </p>
         <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
           <div className="grid grid-cols-2 gap-4">
