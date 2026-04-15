@@ -1,5 +1,5 @@
 /**
- * AlternateUploadStep — internal experiment (gated via feature flag).
+ * StudioVaultUploadStep — internal experiment (gated via feature flag).
  *
  * Left  (2/3) — upload canvas.
  * Right (1/3) — Upload Guide when canvas is empty; My Products library when image loaded.
@@ -139,7 +139,7 @@ function buildPageList(current: number, total: number): (number | '…')[] {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
-export interface AlternateUploadStepProps {
+export interface StudioVaultUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
   activeProductAssetId: string | null;
@@ -161,7 +161,7 @@ export interface AlternateUploadStepProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function AlternateUploadStep({
+export function StudioVaultUploadStep({
   exampleCategoryType,
   jewelryImage,
   activeProductAssetId,
@@ -178,7 +178,7 @@ export function AlternateUploadStep({
   onCategoryChange,
   isProductShot,
   userEmail,
-}: AlternateUploadStepProps) {
+}: StudioVaultUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;

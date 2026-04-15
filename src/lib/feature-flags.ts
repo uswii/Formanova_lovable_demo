@@ -45,7 +45,7 @@ export function isWeightStlEnabled(email: string | undefined | null): boolean {
 /**
  * Alternate two-column upload layout — enabled for all users.
  */
-export function isAltUploadLayoutEnabled(_email: string | undefined | null): boolean {
+export function isVaultUploadLayoutEnabled(_email: string | undefined | null): boolean {
   return true;
 }
 
