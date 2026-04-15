@@ -22,7 +22,6 @@ export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
@@ -353,7 +352,7 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const needsAuth = AUTHENTICATED_IMAGES_ENABLED && url.includes('/artifacts/');
+        const needsAuth = url.includes('/artifacts/');
         const response = needsAuth ? await authenticatedFetch(url) : await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch GLB: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
@@ -651,7 +650,7 @@ const LoadedModel = forwardRef<
       mergedUrlsRef.current.add(partUrl);
       (async () => {
         try {
-          const needsAuth = AUTHENTICATED_IMAGES_ENABLED && partUrl.includes('/artifacts/');
+          const needsAuth = partUrl.includes('/artifacts/');
           const resp = needsAuth ? await authenticatedFetch(partUrl) : await fetch(partUrl);
           if (!resp.ok) throw new Error(`Failed to fetch GLB: ${resp.status}`);
           const arrayBuffer = await resp.arrayBuffer();

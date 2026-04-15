@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
@@ -14,7 +13,6 @@ interface StudioHeaderProps {
   currentStep: StudioStep;
   isProductShot: boolean;
   jewelryImage: string | null;
-  user: { email?: string } | null;
   setIsProductShot: (v: boolean) => void;
   setCurrentStep: (s: StudioStep) => void;
 }
@@ -23,7 +21,6 @@ export function StudioHeader({
   currentStep,
   isProductShot,
   jewelryImage,
-  user,
   setIsProductShot,
   setCurrentStep,
 }: StudioHeaderProps) {
@@ -42,7 +39,7 @@ export function StudioHeader({
     <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-3 relative z-10 flex flex-col items-center gap-3">
 
       {/* Mode Switcher — only for gated users */}
-      {isStudioTypeSelectionEnabled(user?.email) && (
+      {(
         <div className="flex items-center border border-formanova-hero-accent/40 shadow-[0_0_20px_-4px_hsl(var(--formanova-hero-accent)/0.3)]">
           <button
             onClick={() => setIsProductShot(false)}

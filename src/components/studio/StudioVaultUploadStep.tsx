@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { isViewGuideEnabled, isShowAllVaultEnabled } from '@/lib/feature-flags';
 import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
@@ -156,7 +155,6 @@ export interface StudioVaultUploadStepProps {
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
   onCategoryChange?: (category: string) => void;
   isProductShot?: boolean;
-  userEmail?: string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -177,9 +175,20 @@ export function StudioVaultUploadStep({
   onProductSelect,
   onCategoryChange,
   isProductShot,
-  userEmail,
 }: StudioVaultUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
+  const categoryCopy = {
+    necklace: { singular: 'necklace', plural: 'necklaces' },
+    necklaces: { singular: 'necklace', plural: 'necklaces' },
+    earring: { singular: 'earring', plural: 'earrings' },
+    earrings: { singular: 'earring', plural: 'earrings' },
+    bracelet: { singular: 'bracelet', plural: 'bracelets' },
+    bracelets: { singular: 'bracelet', plural: 'bracelets' },
+    ring: { singular: 'ring', plural: 'rings' },
+    rings: { singular: 'ring', plural: 'rings' },
+    watch: { singular: 'watch', plural: 'watches' },
+    watches: { singular: 'watch', plural: 'watches' },
+  }[exampleCategoryType] ?? { singular: 'jewelry', plural: 'jewelry' };
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
 
@@ -239,10 +248,10 @@ export function StudioVaultUploadStep({
         <div>
           <span className="marta-label block mb-1">Step 1</span>
           <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-            Upload Your Jewelry
+            Upload Your {categoryCopy.singular}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            Upload a photo of your jewelry <strong>worn on a person or mannequin</strong>
+            Upload a photo of your {categoryCopy.singular} <strong>worn on a person or mannequin</strong>
           </p>
         </div>
 
@@ -263,18 +272,18 @@ export function StudioVaultUploadStep({
                 <Diamond className="h-9 w-9 text-primary" />
               </div>
             </div>
-            <p className="text-lg font-display font-medium mb-1.5">Drop your jewelry image here</p>
+            <p className="text-lg font-display font-medium mb-1.5">Drop your {categoryCopy.singular} image here</p>
             <p className="text-sm text-muted-foreground mb-6">
               Drag &amp; drop · click to browse · paste (Ctrl+V)
             </p>
             <Button variant="outline" size="lg" className="gap-2 pointer-events-none">
               <ImageIcon className="h-4 w-4" />
-              Browse Files
+              Browse {categoryCopy.singular} files
             </Button>
             <input ref={jewelryInputRef} type="file" accept="image/*" className="hidden"
                    onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); }} />
 
-            {!showGuide && isViewGuideEnabled(userEmail) && (
+            {!showGuide && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setGuideDialogOpen(true); }}
@@ -297,7 +306,7 @@ export function StudioVaultUploadStep({
             <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 border-border/30 ${CANVAS_H}`}>
               <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-full object-contain" />
 
-              {!showGuide && isViewGuideEnabled(userEmail) && (
+              {!showGuide && (
                 <button
                   type="button"
                   onClick={() => setGuideDialogOpen(true)}
@@ -358,13 +367,13 @@ export function StudioVaultUploadStep({
             {/* Invisible spacer mirrors "Step 1" label so headings align */}
             <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
             <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-              {showGuide ? 'Upload Guide' : 'My Products'}
+              {showGuide ? 'Upload Guide' : `My ${categoryCopy.plural}`}
             </h3>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              {showGuide ? 'For best results, follow the guidelines below.' : 'Previously uploaded jewelry'}
+              {showGuide ? 'For best results, follow the guidelines below.' : `Previously uploaded ${categoryCopy.plural}`}
             </p>
           </div>
-          {!showGuide && isShowAllVaultEnabled(userEmail) && (
+          {!showGuide && (
             <div className="mt-8 flex items-center gap-2 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Show all

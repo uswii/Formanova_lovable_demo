@@ -11,7 +11,7 @@
  * WHAT IT RENDERS
  * ---------------
  * - The Step 1 upload zone (drop zone or image preview) when currentStep === 'upload'
- * - The StudioVaultUploadStep gated variant (isVaultUploadLayoutEnabled)
+ * - The StudioVaultUploadStep layout
  * - The Upload Guide sidebar (Accepted / Not Accepted examples)
  * - The Flagged Image Dialog (always rendered, controlled by showFlaggedDialog prop)
  *
@@ -47,7 +47,6 @@ import {
 } from '@/components/ui/dialog';
 import { StudioVaultUploadStep } from '@/components/studio/StudioVaultUploadStep';
 import { CATEGORY_EXAMPLES, LABEL_NAMES } from '@/lib/studio-examples';
-import { isVaultUploadLayoutEnabled } from '@/lib/feature-flags';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import type { AuthUser } from '@/lib/auth-api';
@@ -129,7 +128,7 @@ export function StudioUploadStep({
           transition={{ duration: 0.3 }}
         >
           {/* ── Alternate layout (internal experiment) ── */}
-          {isVaultUploadLayoutEnabled(user?.email) ? (
+          {true ? (
             <StudioVaultUploadStep
               exampleCategoryType={exampleCategoryType}
               jewelryImage={jewelryImage}
@@ -150,7 +149,6 @@ export function StudioUploadStep({
                 clearValidation();
                 if ((currentStep as string) === 'model') setCurrentStep('upload');
               }}
-              userEmail={user?.email}
               onNextStep={handleNextStep}
               onForceNextStep={handleContinueAnyway}
               onCategoryChange={(cat) => setOverrideJewelryType(cat)}
