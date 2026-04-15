@@ -101,14 +101,14 @@ function UploadGuidePanel({
   if (isProductShot) {
     return (
       <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
-        <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
-          Photo quality tips
+        <p className="px-12 pt-3 pb-2 text-lg font-bold text-foreground flex-shrink-0">
+          Good shot. Bad shot.
         </p>
         <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
           <div className="grid grid-cols-2 gap-4">
             {/* Do column */}
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-green-500">Do</span>
+              <span className="text-sm font-bold text-green-500">Do</span>
               <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
                 <img src={psLightingBright} alt="Good lighting" draggable={false} className="w-full h-full object-cover" />
               </div>
@@ -118,12 +118,12 @@ function UploadGuidePanel({
             </div>
             {/* Don't column */}
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-destructive">Don't</span>
+              <span className="text-sm font-bold text-destructive">Don't</span>
               <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                <img src={psLightingDim} alt="Dim lighting" draggable={false} className="w-full h-full object-cover" />
+                <img src={psLightingDim} alt="Dim lighting" draggable={false} className="w-full h-full object-cover" style={{ filter: 'brightness(0.35)' }} />
               </div>
               <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                <img src={psBlur} alt="Blurry photo" draggable={false} className="w-full h-full object-cover" />
+                <img src={psBlur} alt="Blurry photo" draggable={false} className="w-full h-full object-cover" style={{ filter: 'blur(4px) scale(1.05)' }} />
               </div>
             </div>
           </div>
