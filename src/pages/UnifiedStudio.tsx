@@ -1,21 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
 import { useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Diamond,
   Image as ImageIcon,
   X,
-  Upload,
   Check,
-  Gem,
-  Download,
   Loader2,
   RefreshCw,
   ArrowRight,
   AlertTriangle,
-  ExternalLink,
-  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,19 +20,10 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeImageFile } from '@/lib/image-normalize';
-import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
-import { uploadToAzure } from '@/lib/microservices-api';
 import { fetchPresetModels, fetchPresetInspirations, type PresetModel, type PresetModelsResponse, type PresetInspirationsResponse } from '@/lib/models-api';
 import { useQuery } from '@tanstack/react-query';
-import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
+import { updateAssetMetadata } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
-import {
-  startPhotoshoot,
-  startPdpShot,
-  type PhotoshootResultResponse,
-  type PhotoshootStatusResponse,
-} from '@/lib/photoshoot-api';
 import { pollWorkflow } from '@/lib/poll-workflow';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
@@ -47,18 +32,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isFeedbackEnabled, isOnboardingEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
-import { FeedbackModal } from '@/components/studio/FeedbackModal';
+import { isAltUploadLayoutEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { ProductShotGuideModal } from '@/components/studio/ProductShotGuideModal';
-import { type FeedbackCategory } from '@/lib/feedback-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
 import { useStudioModels } from '@/hooks/useStudioModels';
 import { useStudioGeneration } from '@/hooks/useStudioGeneration';
 import { useStudioUpload } from '@/hooks/useStudioUpload';
-import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
 import { StudioGeneratingStep } from '@/components/studio/StudioGeneratingStep';
 import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
@@ -66,13 +48,6 @@ import { StudioModelStep } from '@/components/studio/StudioModelStep';
 import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkProductShotGuideSeen, markProductShotGuideSeen, isProductShotGuideSeen, markProductShotGuideSeenLocal } from '@/lib/onboarding-api';
 import {
   trackJewelryUploaded,
-  trackValidationFlagged,
-  trackModelSelected,
-  trackPaywallHit,
-  trackGenerationComplete,
-  trackDownloadClicked,
-  trackRegenerateClicked,
-  consumeFirstGeneration,
   trackUploadGuideViewed,
   trackUploadGuideAcknowledged,
 } from '@/lib/posthog-events';
