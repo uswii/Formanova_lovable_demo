@@ -162,10 +162,10 @@ export default function Generations() {
         : (w: WorkflowSummary) => w.status === 'completed';
       const filtered = allWorkflows.filter((w) => {
         if (w.source_type !== source || !statusOk(w)) return false;
-        // Skip photo/cad_render cards that enriched but have no thumbnail
+        // Skip photo/product_shot/cad_render cards that enriched but have no thumbnail
         if (requireImage && w.thumbnail_url === '') return false;
-        // For cad_text, only hide if enrichment explicitly found nothing useful
-        // (no GLB, no screenshots, no thumbnail) — keep showing during/before enrichment
+        // Skip cad_text cards that finished enriching but have no GLB
+        if (source === 'cad_text' && w.screenshots !== undefined && !w.glb_url) return false;
         return true;
       });
       const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
