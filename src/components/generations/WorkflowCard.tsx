@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle, Layers } from 'lucide-react';
+import { Maximize2, Box, Download, Pencil, Check, X, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
@@ -169,7 +169,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         </div>
 
         {/* ── Interactive 3D GLB Preview ── */}
-        {workflow.glb_url && !isFailed && (
+        {workflow.glb_url && (
           <div className="mx-3 mb-2 relative">
             <GLBPreviewSlot
               id={workflow.workflow_id}
@@ -184,37 +184,15 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             )}
           </div>
         )}
-        {!workflow.glb_url && !isFailed && isEnriching && (
+        {!workflow.glb_url && isEnriching && (
           <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-[4/3] bg-muted/30 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
           </div>
         )}
 
-        {/* ── Failed overlay ── */}
-        {isFailed && (
-          <div className="mx-3 mb-2 aspect-[4/3] border border-border/30 bg-card flex items-center justify-center">
-            <div className="text-center px-6">
-              <div className="mx-auto w-10 h-10 border border-border flex items-center justify-center mb-4">
-                <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-2">
-                Could Not Complete Generation
-              </p>
-              <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground">
-                Our AI service was unable to complete this generation. Please try again in a few minutes. If the issue persists, contact{' '}
-                <a
-                  href="mailto:studio@formanova.ai"
-                  className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
-                >
-                  studio@formanova.ai
-                </a>
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* ── File box — only shown when GLB is available or still loading ── */}
-        {!isFailed && (workflow.glb_url || isEnriching) && (
+        {(workflow.glb_url || isEnriching) && (
           <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />

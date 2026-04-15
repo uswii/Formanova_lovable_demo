@@ -1974,7 +1974,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#ffffff' }}>
+      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#f5f5f3' }}>
         {/* Debug HUD */}
         {debugActive && <DebugHUD stats={debugStats} />}
         {/* Loading overlay */}
