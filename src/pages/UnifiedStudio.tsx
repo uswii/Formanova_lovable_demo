@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -31,12 +31,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isStudioOnboardingEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { ProductShotGuideModal } from '@/components/studio/ProductShotGuideModal';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
+import { useStudioOnboarding } from '@/hooks/useStudioOnboarding';
 import { useStudioModels } from '@/hooks/useStudioModels';
 import { useStudioGeneration } from '@/hooks/useStudioGeneration';
 import { useStudioUpload } from '@/hooks/useStudioUpload';
@@ -45,12 +46,7 @@ import { StudioGeneratingStep } from '@/components/studio/StudioGeneratingStep';
 import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
 import { StudioModelStep } from '@/components/studio/StudioModelStep';
 import { StudioHeader } from '@/components/studio/StudioHeader';
-import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkProductShotGuideSeen, markProductShotGuideSeen, isProductShotGuideSeen, markProductShotGuideSeenLocal } from '@/lib/onboarding-api';
-import {
-  trackJewelryUploaded,
-  trackUploadGuideViewed,
-  trackUploadGuideAcknowledged,
-} from '@/lib/posthog-events';
+import { trackJewelryUploaded } from '@/lib/posthog-events';
 // ExampleGuidePanel removed — guide is inline
 
 import { CATEGORY_EXAMPLES, ACCEPTABLE_EXAMPLES, LABEL_NAMES } from '@/lib/studio-examples';
@@ -122,13 +118,9 @@ export default function UnifiedStudio() {
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
-  const hasCheckedUploadGuide = useRef(false);
-  const hasCheckedProductShotGuide = useRef(false);
 
   // ── Studio onboarding popup + model guide (gated) ────────────────────────
-  const [uploadGuideOpen, setUploadGuideOpen] = useState(false);
   const [modelGuideOpen, setModelGuideOpen] = useState(false);
-  const [productShotGuideOpen, setProductShotGuideOpen] = useState(false);
 
   // Jewelry image
   const jewelryInputRef = useRef<HTMLInputElement>(null);
@@ -226,69 +218,17 @@ export default function UnifiedStudio() {
     setSearchParams(nextParams, { replace: true });
   }, [currentStep, searchParams, setSearchParams]);
 
-  useEffect(() => {
-    if (initializing || !user || hasCheckedUploadGuide.current) return;
-    if (!isStudioOnboardingEnabled(user.email)) return;
-    if (currentStep !== 'upload') return;
-
-    hasCheckedUploadGuide.current = true;
-
-    if (isTosAgreed(user.id)) return;
-
-    checkUploadInstructionsSeen()
-      .then((seenOnBackend) => {
-        if (seenOnBackend) {
-          markTosAgreed(user.id);
-          return;
-        }
-        setUploadGuideOpen(true);
-        trackUploadGuideViewed();
-      })
-      .catch(() => {
-        setUploadGuideOpen(true);
-        trackUploadGuideViewed();
-      });
-  }, [currentStep, initializing, user?.email, user?.id]);
-
-  const handleUploadGuideClose = useCallback(() => {
-    setUploadGuideOpen(false);
-    if (!user) return;
-    markTosAgreed(user.id);
-    trackUploadGuideAcknowledged();
-    markUploadInstructionsSeen().catch(() => {});
-  }, [user]);
-
-  // ── Product shot guide (gated) ───────────────────────────────────────────
-  useEffect(() => {
-    if (initializing || !user || hasCheckedProductShotGuide.current) return;
-    if (!isProductShot) return;
-    if (!isProductShotGuideEnabled(user.email)) return;
-    if (currentStep !== 'upload') return;
-
-    hasCheckedProductShotGuide.current = true;
-
-    if (isProductShotGuideSeen(user.id)) return;
-
-    checkProductShotGuideSeen()
-      .then((seenOnBackend) => {
-        if (seenOnBackend) {
-          markProductShotGuideSeenLocal(user.id);
-          return;
-        }
-        setProductShotGuideOpen(true);
-      })
-      .catch(() => {
-        setProductShotGuideOpen(true);
-      });
-  }, [currentStep, initializing, isProductShot, user?.email, user?.id]);
-
-  const handleProductShotGuideClose = useCallback(() => {
-    setProductShotGuideOpen(false);
-    if (!user) return;
-    markProductShotGuideSeenLocal(user.id);
-    markProductShotGuideSeen().catch(() => {});
-  }, [user]);
-
+  // ── Onboarding popups ────────────────────────────────────────────────────
+  const {
+    uploadGuideOpen,
+    setUploadGuideOpen,
+    productShotGuideOpen,
+    setProductShotGuideOpen,
+    handleUploadGuideClose,
+    handleProductShotGuideClose,
+    hasCheckedUploadGuide,
+    hasCheckedProductShotGuide,
+  } = useStudioOnboarding({ currentStep, isProductShot, user, initializing });
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);

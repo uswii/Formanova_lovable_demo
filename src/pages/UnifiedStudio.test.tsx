@@ -113,6 +113,19 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('@/hooks/useStudioOnboarding', () => ({
+  useStudioOnboarding: () => ({
+    uploadGuideOpen: false,
+    setUploadGuideOpen: vi.fn(),
+    productShotGuideOpen: false,
+    setProductShotGuideOpen: vi.fn(),
+    handleUploadGuideClose: vi.fn(),
+    handleProductShotGuideClose: vi.fn(),
+    hasCheckedUploadGuide: { current: false },
+    hasCheckedProductShotGuide: { current: false },
+  }),
+}));
+
 // ── feature flags ──────────────────────────────────────────────────────────
 vi.mock('@/lib/feature-flags', () => ({
   isAltUploadLayoutEnabled: () => false,
@@ -125,16 +138,6 @@ vi.mock('@/lib/feature-flags', () => ({
 }));
 
 // ── onboarding / API ───────────────────────────────────────────────────────
-vi.mock('@/lib/onboarding-api', () => ({
-  checkUploadInstructionsSeen: vi.fn().mockResolvedValue(true),
-  isTosAgreed: () => true,
-  markTosAgreed: vi.fn(),
-  markUploadInstructionsSeen: vi.fn().mockResolvedValue(undefined),
-  checkProductShotGuideSeen: vi.fn().mockResolvedValue(true),
-  markProductShotGuideSeen: vi.fn().mockResolvedValue(undefined),
-  isProductShotGuideSeen: () => true,
-  markProductShotGuideSeenLocal: vi.fn(),
-}));
 
 vi.mock('@/lib/assets-api', () => ({
   fetchUserAssets: vi.fn(),
@@ -143,15 +146,6 @@ vi.mock('@/lib/assets-api', () => ({
 
 vi.mock('@/lib/posthog-events', () => ({
   trackJewelryUploaded: vi.fn(),
-  trackValidationFlagged: vi.fn(),
-  trackModelSelected: vi.fn(),
-  trackPaywallHit: vi.fn(),
-  trackGenerationComplete: vi.fn(),
-  trackDownloadClicked: vi.fn(),
-  trackRegenerateClicked: vi.fn(),
-  consumeFirstGeneration: vi.fn(),
-  trackUploadGuideViewed: vi.fn(),
-  trackUploadGuideAcknowledged: vi.fn(),
 }));
 
 vi.mock('@/lib/studio-examples', () => ({
