@@ -563,7 +563,7 @@ const LoadedModel = forwardRef<
         if (!gemRe.test(lower) && !metalRe.test(lower)) {
           if (phys.transmission > 0.5 || phys.ior > 2.0) isGem = true;
         }
-        const color = isGem ? 0x4a90d9 : 0x77dd77;
+        const color = isGem ? 0x1a3a6b : 0x77dd77;
         autoMaterials[md.name] = {
           id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
           name: isGem ? 'Gem (flat)' : 'Metal (flat)',
