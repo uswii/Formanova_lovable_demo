@@ -415,14 +415,19 @@ export function StudioModelStep({
                       </div>
                     </div>
                   ) : (
-                    presetModelsForCategory.map((model) => (
-                      <PresetModelThumb
-                        key={model.id}
-                        model={model}
-                        isSelected={selectedModel?.id === model.id && !customModelImage}
-                        onSelect={() => handleSelectLibraryModel(model)}
-                      />
-                    ))
+                    presetModelsForCategory.map((model) => {
+                      const catLabel = activePresetCategories.find(c => c.id === formanovaCategory)?.label ?? '';
+                      const isPlain = catLabel.toLowerCase() === 'plain';
+                      return (
+                        <PresetModelThumb
+                          key={model.id}
+                          model={model}
+                          isSelected={selectedModel?.id === model.id && !customModelImage}
+                          onSelect={() => handleSelectLibraryModel(model)}
+                          fixedAspect={isPlain}
+                        />
+                      );
+                    })
                   )}
                 </div>
               </div>

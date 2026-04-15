@@ -148,9 +148,16 @@ export default function UnifiedStudio() {
   });
 
   // Active preset data — inspirations when PDP, models otherwise
+  // "plain" category is always sorted first
   const activePresetCategories = useMemo(() => {
-    if (isProductShot) return presetInspirationsData?.categories ?? [];
-    return presetModelsData?.categories ?? [];
+    const cats = isProductShot
+      ? (presetInspirationsData?.categories ?? [])
+      : (presetModelsData?.categories ?? []);
+    return [...cats].sort((a, b) => {
+      const aPlain = a.label.toLowerCase() === 'plain' ? -1 : 0;
+      const bPlain = b.label.toLowerCase() === 'plain' ? -1 : 0;
+      return aPlain - bPlain;
+    });
   }, [isProductShot, presetInspirationsData, presetModelsData]);
 
   // Derive category ids for auto-select logic
