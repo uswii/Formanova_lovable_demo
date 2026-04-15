@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb, ArrowDown } from 'lucide-react';
 
+import psClearProductExample    from '@/assets/examples/ps-clear-product-example.webp';
 import psDimInput               from '@/assets/examples/ps-lighting-dim-input.webp';
 import psDimResult              from '@/assets/examples/ps-lighting-dim-result.webp';
 import psBrightInput            from '@/assets/examples/ps-lighting-bright-input.webp';
@@ -18,6 +19,7 @@ import multipleAndPacked        from '@/assets/examples/multile-and-packed.webp'
 
 const STEPS = [
   { title: 'Your photo in. Product shot out.' },
+  { title: 'Upload clear product only images' },
   { title: 'Lighting affects your jewelry' },
   { title: 'Blur in, blur out' },
   { title: 'Avoid these inputs' },
@@ -107,9 +109,28 @@ function Step0() {
   );
 }
 
-// ─── Step 1: Lighting ─────────────────────────────────────────────────────────
+// ─── Step 1: Clear product only ───────────────────────────────────────────────
 
-function Step1() {
+function Step1ClearProduct() {
+  return (
+    <div className="flex flex-col gap-2 sm:gap-3 h-full">
+      <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
+        WORKS BEST WITH CLEAR PRODUCT IMAGES
+      </p>
+      <div className="flex-1 min-h-0 overflow-hidden bg-muted/10">
+        <img
+          src={psClearProductExample}
+          alt="Clear product example"
+          className="w-full h-full object-contain"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 2: Lighting ─────────────────────────────────────────────────────────
+
+function Step2Lighting() {
   return (
     <div className="flex flex-col gap-2 sm:gap-3 h-full">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
@@ -136,9 +157,9 @@ function Step1() {
   );
 }
 
-// ─── Step 2: Blur ─────────────────────────────────────────────────────────────
+// ─── Step 3: Blur ─────────────────────────────────────────────────────────────
 
-function Step2() {
+function Step3Blur() {
   return (
     <div className="flex flex-col gap-2 sm:gap-3 h-full">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
@@ -165,9 +186,9 @@ function Step2() {
   );
 }
 
-// ─── Step 3: Avoid these inputs ───────────────────────────────────────────────
+// ─── Step 4: Avoid these inputs ───────────────────────────────────────────────
 
-function Step3() {
+function Step4Avoid() {
   return (
     <div className="flex flex-col gap-2 sm:gap-3 h-full">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
@@ -191,9 +212,9 @@ function Step3() {
   );
 }
 
-// ─── Step 4: Ready ────────────────────────────────────────────────────────────
+// ─── Step 5: Ready ────────────────────────────────────────────────────────────
 
-function Step4({ checked, onCheck, shake }: { checked: boolean; onCheck: () => void; shake: boolean }) {
+function Step5Ready({ checked, onCheck, shake }: { checked: boolean; onCheck: () => void; shake: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-2">
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight">You are ready</p>
@@ -276,10 +297,11 @@ export function ProductShotGuideModal({ open, onClose }: Props) {
         {/* Content */}
         <div className="px-3 sm:px-6 py-3 sm:py-5 h-[480px] max-h-[calc(100dvh-14rem)] min-h-[280px] overflow-hidden">
           {step === 0 && <Step0 />}
-          {step === 1 && <Step1 />}
-          {step === 2 && <Step2 />}
-          {step === 3 && <Step3 />}
-          {step === 4 && <Step4 checked={checked} onCheck={() => setChecked(c => !c)} shake={shake} />}
+          {step === 1 && <Step1ClearProduct />}
+          {step === 2 && <Step2Lighting />}
+          {step === 3 && <Step3Blur />}
+          {step === 4 && <Step4Avoid />}
+          {step === 5 && <Step5Ready checked={checked} onCheck={() => setChecked(c => !c)} shake={shake} />}
         </div>
 
         {/* Tip — reserved space, always invisible */}
