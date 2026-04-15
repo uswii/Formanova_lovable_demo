@@ -119,11 +119,11 @@ function Step1ClearProduct() {
         WORKS BEST WITH CLEAR PRODUCT IMAGES
       </p>
       <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
-        <div className="overflow-hidden bg-muted/10">
-          <img src={psClearProductExample} alt="Clear product example" className="w-full h-full object-contain" />
+        <div className="overflow-hidden bg-muted/10 aspect-square">
+          <img src={psClearProductExample} alt="Clear product example" className="w-full h-full object-cover" />
         </div>
-        <div className="overflow-hidden bg-muted/10">
-          <img src={psClearProductExample2} alt="Clear product example 2" className="w-full h-full object-contain" />
+        <div className="overflow-hidden bg-muted/10 aspect-square">
+          <img src={psClearProductExample2} alt="Clear product example 2" className="w-full h-full object-cover" />
         </div>
       </div>
     </div>
