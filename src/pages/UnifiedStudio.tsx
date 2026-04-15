@@ -211,7 +211,11 @@ export default function UnifiedStudio() {
     return activePresetCategories.map(c => c.id);
   }, [activePresetCategories]);
 
-  // Auto-select first available category when API data first loads
+  // Auto-select first available category when API data first loads.
+  // formanovaCategory is excluded from deps intentionally: including it would re-run the effect
+  // on every category selection, resetting the user's pick back to the first category.
+  // Regression to watch: if presetCategoryIds changes but the current selection is still valid,
+  // this must NOT reset it -- the `!presetCategoryIds.includes(formanovaCategory)` guard ensures that.
   useEffect(() => {
     if (presetCategoryIds.length > 0 && !presetCategoryIds.includes(formanovaCategory)) {
       setFormanovaCategory(presetCategoryIds[0]);
@@ -329,7 +333,6 @@ export default function UnifiedStudio() {
 
   // Intentionally empty deps: pre-load runs once on mount from route state.
   // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const state = location.state as {
       preloadedJewelryUrl?: string;
@@ -372,6 +375,11 @@ export default function UnifiedStudio() {
     if (session.customModelImage) setCustomModelImage(session.customModelImage);
     if (session.modelAssetId) setModelAssetId(session.modelAssetId);
     // Preset model selection is restored after backend preset data loads.
+  // location and jewelryType are excluded from deps intentionally: this must run once on mount only.
+  // Including location would re-run on every in-studio navigation (location changes on step transitions),
+  // re-applying stale session state over user's current selections. Including jewelryType would re-run
+  // when the user overrides the jewelry type inline, also incorrectly resetting state.
+  // Regression to watch: if route state or session state is needed mid-session, handle it elsewhere.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Session save — persist whenever key upload/selection state changes ─────
