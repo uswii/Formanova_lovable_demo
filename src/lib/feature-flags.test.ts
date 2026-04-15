@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  isAltUploadLayoutEnabled,
+  isVaultUploadLayoutEnabled,
   isCadUploadEnabled,
   isFeedbackEnabled,
   isOnboardingEnabled,
@@ -51,7 +51,7 @@ describe('feature flag allowlists', () => {
   });
 
   it('keeps permanent non-allowlist feature flags unchanged', () => {
-    expect(isAltUploadLayoutEnabled(null)).toBe(true);
+    expect(isVaultUploadLayoutEnabled(null)).toBe(true);
     expect(isOnboardingEnabled(null)).toBe(true);
     expect(isFeedbackEnabled(null)).toBe(true);
     expect(isStudioOnboardingEnabled(null)).toBe(true);

@@ -128,7 +128,7 @@ vi.mock('@/hooks/useStudioOnboarding', () => ({
 
 // ── feature flags ──────────────────────────────────────────────────────────
 vi.mock('@/lib/feature-flags', () => ({
-  isAltUploadLayoutEnabled: () => false,
+  isVaultUploadLayoutEnabled: () => false,
   isFeedbackEnabled: () => false,
   isOnboardingEnabled: () => false,
   isStudioOnboardingEnabled: () => false,
