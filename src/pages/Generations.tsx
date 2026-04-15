@@ -316,7 +316,7 @@ export default function Generations() {
   }, [allWorkflows.length, globalLoading]);
 
   const photoSection = getSection('photo', photoPage, true);
-  const productShotSection = getSection('product_shot', productShotPage, false);
+  const productShotSection = getSection('product_shot', productShotPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
 
