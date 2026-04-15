@@ -171,6 +171,11 @@ vi.mock('@/components/studio/AlternateUploadStep', () => ({
   AlternateUploadStep: () => <div data-testid="alt-upload-step" />,
 }));
 
+vi.mock('@/components/studio/StudioUploadStep', () => ({
+  StudioUploadStep: ({ currentStep }: { currentStep: string }) =>
+    currentStep === 'upload' ? <div data-testid="upload-step">Upload Your Jewelry<span>Step 1</span></div> : null,
+}));
+
 vi.mock('@/components/studio/FeedbackModal', () => ({
   FeedbackModal: () => null,
 }));
