@@ -12,6 +12,7 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { CAD_RENAME_ENABLED } from '@/lib/feature-flags';
 
 const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -221,7 +222,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
                     {isEnriching ? '—' : shownFilename}
                   </span>
-                  {!isEnriching && workflow.glb_url && (
+                  {CAD_RENAME_ENABLED && !isEnriching && workflow.glb_url && (
                     <button
                       onClick={handleStartRename}
                       className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"

@@ -5,6 +5,7 @@ import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_WORKFLOW, CAD_GENERATION_WORKFLOW } from "@/lib/cad-workflows";
+import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
 
 interface LeftPanelProps {
   model: string;
@@ -190,7 +191,7 @@ export default function LeftPanel({
               </button>
 
               {/* ═══ PRIMARY PART TOOLS ═══ */}
-              <div className="hidden mt-6 space-y-3">
+              <div className={`${CAD_EDIT_TOOLS_ENABLED ? '' : 'hidden'} mt-6 space-y-3`}>
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}
