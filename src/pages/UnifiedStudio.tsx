@@ -31,7 +31,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isAltUploadLayoutEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
+import { isAltUploadLayoutEnabled, isStudioOnboardingEnabled, isProductShotGuideEnabled, isTestMenuEnabled } from '@/lib/feature-flags';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { ProductShotGuideModal } from '@/components/studio/ProductShotGuideModal';
@@ -44,6 +44,7 @@ import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
 import { StudioGeneratingStep } from '@/components/studio/StudioGeneratingStep';
 import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
 import { StudioModelStep } from '@/components/studio/StudioModelStep';
+import { StudioHeader } from '@/components/studio/StudioHeader';
 import { checkUploadInstructionsSeen, isTosAgreed, markTosAgreed, markUploadInstructionsSeen, checkProductShotGuideSeen, markProductShotGuideSeen, isProductShotGuideSeen, markProductShotGuideSeenLocal } from '@/lib/onboarding-api';
 import {
   trackJewelryUploaded,
@@ -549,84 +550,14 @@ export default function UnifiedStudio() {
       )}
 
       {/* ── Mode Switcher + Step Progress Bar ── */}
-      {currentStep !== 'generating' && (
-        <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-3 relative z-10 flex flex-col items-center gap-3">
-
-          {/* Mode Switcher — only for gated users */}
-          {isStudioTypeSelectionEnabled(user?.email) && (
-            <div className="flex items-center border border-formanova-hero-accent/40 shadow-[0_0_20px_-4px_hsl(var(--formanova-hero-accent)/0.3)]">
-              <button
-                onClick={() => setIsProductShot(false)}
-                className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
-                  !isProductShot
-                    ? 'bg-formanova-hero-accent text-primary-foreground'
-                    : 'bg-muted text-foreground/50 hover:text-foreground hover:bg-muted/80'
-                }`}
-              >
-                Model Shot
-              </button>
-              <button
-                onClick={() => setIsProductShot(true)}
-                className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
-                  isProductShot
-                    ? 'bg-formanova-hero-accent text-primary-foreground'
-                    : 'bg-muted text-foreground/50 hover:text-foreground hover:bg-muted/80'
-                }`}
-              >
-                Product Shot
-              </button>
-            </div>
-          )}
-
-          {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-1">
-            {[
-              { step: 1, label: 'Upload', id: 'upload' as const },
-              { step: 2, label: isProductShot ? 'Choose inspiration' : 'Choose model', id: 'model' as const },
-              { step: 3, label: 'Results', id: 'results' as const },
-            ].map((s, index, arr) => {
-              const stepOrder = { upload: 0, model: 1, generating: 2, results: 2 };
-              const current = stepOrder[currentStep];
-              const isDone = s.step - 1 < current;
-              const isActive = (s.id === 'results' && ((currentStep as string) === 'generating' || currentStep === 'results')) || currentStep === s.id;
-              return (
-                <div key={s.id} className="flex items-center">
-                  <button
-                    onClick={() => {
-                      if (s.id === 'upload' && (currentStep as string) !== 'generating') setCurrentStep('upload');
-                      else if (s.id === 'model' && !!jewelryImage && (currentStep as string) !== 'generating') setCurrentStep('model');
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-all ${
-                      isActive
-                        ? 'text-foreground'
-                        : isDone
-                        ? 'text-muted-foreground hover:text-foreground cursor-pointer'
-                        : 'text-muted-foreground/40 cursor-default'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold border transition-all ${
-                      isActive
-                        ? 'bg-foreground text-background border-foreground'
-                        : isDone
-                        ? 'border-foreground/40 text-foreground/60'
-                        : 'border-border/30 text-muted-foreground/40'
-                    }`}>
-                      {s.step}
-                    </div>
-                    <span className="font-mono text-[10px] tracking-[0.15em] uppercase hidden sm:inline">
-                      {s.label}
-                    </span>
-                  </button>
-                  {index < arr.length - 1 && (
-                    <div className={`w-10 h-px mx-1 transition-colors ${isDone || isActive ? 'bg-foreground/30' : 'bg-border/30'}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      )}
+      <StudioHeader
+        currentStep={currentStep}
+        isProductShot={isProductShot}
+        jewelryImage={jewelryImage}
+        user={user}
+        setIsProductShot={setIsProductShot}
+        setCurrentStep={setCurrentStep}
+      />
 
       <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-8 relative z-10">
 
