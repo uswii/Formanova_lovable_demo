@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Lightbulb, ArrowDown } from 'lucide-react';
 
 import psClearProductExample    from '@/assets/examples/ps-clear-product-example.webp';
+import psClearProductExample2   from '@/assets/examples/ps-clear-product-example-2.webp';
 import psDimInput               from '@/assets/examples/ps-lighting-dim-input.webp';
 import psDimResult              from '@/assets/examples/ps-lighting-dim-result.webp';
 import psBrightInput            from '@/assets/examples/ps-lighting-bright-input.webp';
@@ -117,12 +118,13 @@ function Step1ClearProduct() {
       <p className="font-display text-xl sm:text-3xl tracking-wide leading-tight text-center shrink-0">
         WORKS BEST WITH CLEAR PRODUCT IMAGES
       </p>
-      <div className="flex-1 min-h-0 overflow-hidden bg-muted/10">
-        <img
-          src={psClearProductExample}
-          alt="Clear product example"
-          className="w-full h-full object-contain"
-        />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
+        <div className="overflow-hidden bg-muted/10">
+          <img src={psClearProductExample} alt="Clear product example" className="w-full h-full object-contain" />
+        </div>
+        <div className="overflow-hidden bg-muted/10">
+          <img src={psClearProductExample2} alt="Clear product example 2" className="w-full h-full object-contain" />
+        </div>
       </div>
     </div>
   );
