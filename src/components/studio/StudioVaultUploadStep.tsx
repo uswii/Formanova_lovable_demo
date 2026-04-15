@@ -71,6 +71,12 @@ import watchNotAllowed1    from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2    from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3    from '@/assets/examples/watch-notallowed-3.png';
 
+// ── Product-shot guide images ─────────────────────────────────────────────────
+import psLightingBright from '@/assets/examples/ps-lighting-bright-input.webp';
+import psBlurClear      from '@/assets/examples/ps-blur-clear-input.webp';
+import psLightingDim    from '@/assets/examples/ps-lighting-dim-input.webp';
+import psBlur           from '@/assets/examples/ps-blur-input.webp';
+
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
   necklace:  { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3, necklaceAllowed4],   notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
   earrings:  { allowed: [earringAllowed1,  earringAllowed2,  earringAllowed3,  earringAllowed4],    notAllowed: [earringNotAllowed1,  earringNotAllowed2,  earringNotAllowed3]  },
@@ -86,10 +92,52 @@ const CANVAS_H = 'h-[500px] md:h-[640px]';
 function UploadGuidePanel({
   examples,
   categoryType,
+  isProductShot,
 }: {
   examples: { allowed: string[]; notAllowed: string[] };
   categoryType: string;
+  isProductShot?: boolean;
 }) {
+  if (isProductShot) {
+    return (
+      <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
+        <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
+          Photo quality tips
+        </p>
+        <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Do column */}
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-green-500">Do</span>
+              <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
+                <img src={psLightingBright} alt="Good lighting" draggable={false} className="w-full h-full object-cover" />
+              </div>
+              <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
+                <img src={psBlurClear} alt="Clear focus" draggable={false} className="w-full h-full object-cover" />
+              </div>
+            </div>
+            {/* Don't column */}
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-destructive">Don't</span>
+              <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
+                <img src={psLightingDim} alt="Dim lighting" draggable={false} className="w-full h-full object-cover" />
+              </div>
+              <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
+                <img src={psBlur} alt="Blurry photo" draggable={false} className="w-full h-full object-cover" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
+          <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <span className="font-bold text-foreground">Pro Tip:</span> Bright, even lighting with a sharp focus gives the best results.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const topLabel = categoryType === 'rings'
     ? 'Recommended input poses for best results'
     : 'Recommended input photos for best results';
@@ -251,7 +299,9 @@ export function StudioVaultUploadStep({
             Upload Your {categoryCopy.singular}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            Upload a photo of your {categoryCopy.singular} <strong>worn on a person or mannequin</strong>
+            {isProductShot
+              ? `Upload a high quality photo of your ${categoryCopy.singular}.`
+              : <>Upload a photo of your {categoryCopy.singular} <strong>worn on a person or mannequin</strong></>}
           </p>
         </div>
 
@@ -384,7 +434,7 @@ export function StudioVaultUploadStep({
         </div>
 
         {/* ── Upload Guide ── */}
-        {showGuide && <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />}
+        {showGuide && <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} isProductShot={isProductShot} />}
 
         {/* ── Product library ── */}
         {!showGuide && (
@@ -522,7 +572,7 @@ export function StudioVaultUploadStep({
           </div>
           {/* Guide content */}
           <div className="px-6 pb-6">
-            <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} />
+            <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} isProductShot={isProductShot} />
           </div>
         </div>
       </div>
