@@ -24,7 +24,6 @@ import { fetchPresetModels, fetchPresetInspirations, type PresetModel, type Pres
 import { useQuery } from '@tanstack/react-query';
 import { updateAssetMetadata } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
-import { pollWorkflow } from '@/lib/poll-workflow';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
