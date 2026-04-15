@@ -2,7 +2,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { reloadPreservingSession } from "./lib/reload-utils";
+import PostHogErrorBoundary from "./components/PostHogErrorBoundary";
 import { getStoredUser } from "./lib/auth-api";
+import { getHostRedirectDecision } from "./lib/host-redirect-policy";
 import posthog from 'posthog-js';
 
 // requestIdleCallback polyfill for Safari
@@ -62,17 +64,19 @@ window.addEventListener('error', (event) => {
 });
 
 // ── Domain redirect ───────────────────────────────────────────────
-const PRODUCTION_DOMAIN = 'formanova.ai';
-if (
-  typeof window !== 'undefined' &&
-  window.location.hostname !== PRODUCTION_DOMAIN &&
-  window.location.hostname !== 'www.formanova.ai' &&
-  window.location.hostname !== 'localhost' &&
-  !window.location.hostname.startsWith('192.168.') &&
-  !window.location.hostname.startsWith('10.') &&
-  !window.location.hostname.startsWith('127.')
-) {
-  window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
+const hostRedirect = typeof window !== 'undefined'
+  ? getHostRedirectDecision({
+      hostname: window.location.hostname,
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+      publicSiteUrl: import.meta.env.VITE_PUBLIC_SITE_URL,
+      allowedHosts: import.meta.env.VITE_ALLOWED_HOSTS,
+    })
+  : { shouldRedirect: false, redirectUrl: null };
+
+if (hostRedirect.shouldRedirect && hostRedirect.redirectUrl) {
+  window.location.replace(hostRedirect.redirectUrl);
 } else {
   const rootEl = document.getElementById("root")!;
   const root = createRoot(rootEl);
@@ -90,8 +94,9 @@ if (
   // NOTE: getStoredUser is already imported at line 5 — do not add a duplicate.
   // NOTE: distinctId lowercase — PostHog SDK is case-sensitive; distinctID silently no-ops.
   const storedUser = getStoredUser();
+  const posthogApiHost = import.meta.env.VITE_POSTHOG_API_HOST || 'https://relay.formanova.ai';
   posthog.init('phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC', {
-    api_host: 'https://relay.formanova.ai',
+    api_host: posthogApiHost,
     ui_host: 'https://us.posthog.com',
     autocapture: true,
     capture_pageview: true,
@@ -103,5 +108,9 @@ if (
       : undefined,
   });
 
-  root.render(<App />);
+  root.render(
+    <PostHogErrorBoundary>
+      <App />
+    </PostHogErrorBoundary>
+  );
 }

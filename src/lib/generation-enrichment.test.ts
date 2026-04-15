@@ -1,10 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
-import { extractPhotoThumbnail, extractCadTextData } from './generation-enrichment';
+import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from './generation-enrichment';
 
 // Mock azure-utils so tests don't need real Azure URIs
 vi.mock('./azure-utils', () => ({
   azureUriToUrl: (uri: string) => uri.replace('azure://', 'https://cdn.example.com/'),
 }));
+
+// Mock authenticated-fetch - intercepted for both static and dynamic imports
+const mockAuthFetch = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/authenticated-fetch', () => ({ authenticatedFetch: mockAuthFetch }));
 
 // ── extractPhotoThumbnail ────────────────────────────────────────────
 
@@ -118,5 +122,35 @@ describe('extractCadTextData', () => {
   it('thumbnail_url is empty string when no screenshots found', () => {
     const result = extractCadTextData([{ tool: 'other', input: {}, output: {} }]);
     expect(result.thumbnail_url).toBe('');
+  });
+});
+
+// -- extractProductShotThumbnail - URL shape --
+
+describe('extractProductShotThumbnail', () => {
+  it('calls authenticatedFetch with a relative /api/result path', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: [{ output_url: 'https://cdn.example.com/img.jpg' }] }),
+    });
+
+    await extractProductShotThumbnail('wf-thumb');
+
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/result/wf-thumb');
+  });
+
+  it('does not use a hardcoded production domain', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+
+    await extractProductShotThumbnail('wf-any');
+
+    const [calledUrl] = mockAuthFetch.mock.calls[0];
+    expect(calledUrl).not.toContain('formanova.ai');
+  });
+
+  it('returns null when the fetch fails', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+    const result = await extractProductShotThumbnail('wf-fail');
+    expect(result).toBeNull();
   });
 });

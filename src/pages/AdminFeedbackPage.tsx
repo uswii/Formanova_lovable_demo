@@ -21,7 +21,7 @@ import {
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { useToast } from '@/hooks/use-toast';
 import {
   type FeedbackItem,
@@ -71,10 +71,8 @@ function deriveEmailStatus(item: FeedbackItem): EmailStatus {
 }
 
 async function downloadAuthImage(url: string, filename: string) {
-  const token = getStoredToken();
-  if (!token) return;
   try {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await authenticatedFetch(url);
     if (!res.ok) return;
     const blob = await res.blob();
     const a = document.createElement('a');

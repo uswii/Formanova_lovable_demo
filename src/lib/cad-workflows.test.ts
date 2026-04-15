@@ -33,9 +33,18 @@ describe('CAD workflow request bodies', () => {
         tier: 'standard',
         prompt: 'rose ring',
         max_attempts: 3,
+        skip_validation: false,
       },
       return_nodes: [...CAD_GENERATION_RETURN_NODES],
     });
+  });
+
+  it('does not put auth or state callback fields in the ring generation payload', () => {
+    const body = buildCadGenerationStartBody('rose ring', 'gemini');
+    expect(body.payload).not.toHaveProperty('backend_api_key');
+    expect(body.payload).not.toHaveProperty('state_backend_url');
+    expect(body.payload).not.toHaveProperty('state_backend_bearer_token');
+    expect(body.payload).not.toHaveProperty('state_on_behalf_of');
   });
 
   it('builds the ring edit start body without tenant API key or OBO fields', () => {

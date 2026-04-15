@@ -2,10 +2,15 @@
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
+// Client-side fallback costs used by performCreditPreflight when the backend
+// /api/credits/estimate call fails or returns a non-positive value.
+// The backend estimate is always preferred; these are last-resort guards only.
+// Keys must match the workflow_name sent to the backend.
 export const TOOL_COSTS: Record<string, number> = {
-  from_photo: 3,
+  // Photoshoot workflows — confirmed fallback: 10 credits each
+  jewelry_photoshoots_generator: 10, // model-shot (UnifiedStudio default mode)
+  Product_shot_pipeline: 10,         // product-shot (UnifiedStudio product-shot mode)
   cad_generation: 85,
-  qa_with_gpu: 3,
   ring_full_pipeline: 85,
   ring_generate_v1: 85,
   ring_edit_v1: 85,
@@ -14,15 +19,6 @@ export const TOOL_COSTS: Record<string, number> = {
   'ring_generate_v1:claude-sonnet': 120,
   'ring_generate_v1:claude-opus': 150,
 };
-
-/** Get cost for a workflow, optionally model-specific */
-export function getWorkflowCost(workflow: string, model?: string): number {
-  if (model) {
-    const key = `${workflow}:${model}`;
-    if (TOOL_COSTS[key] !== undefined) return TOOL_COSTS[key];
-  }
-  return TOOL_COSTS[workflow] ?? 0;
-}
 
 export interface CreditBalance {
   balance: number;
@@ -45,21 +41,3 @@ export async function fetchBalance(): Promise<CreditBalance> {
   return await response.json();
 }
 
-// Keep backward-compat alias
-export const getUserCredits = fetchBalance;
-
-export async function startCheckout(tierName: string): Promise<string> {
-  const response = await authenticatedFetch('/billing/create-checkout-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tier: tierName }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Checkout session creation failed');
-  }
-
-  const { url } = await response.json();
-  if (!url) throw new Error('No checkout URL received');
-  return url;
-}

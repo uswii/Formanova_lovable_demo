@@ -5,7 +5,6 @@ import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_WORKFLOW, CAD_GENERATION_WORKFLOW } from "@/lib/cad-workflows";
-import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
 
 interface LeftPanelProps {
   model: string;
@@ -158,7 +157,6 @@ export default function LeftPanel({
         </section>
 
         {/* Edit section */}
-        {CAD_EDIT_TOOLS_ENABLED && (
         <AnimatePresence>
           {hasModel && (
             <motion.section
@@ -314,7 +312,6 @@ export default function LeftPanel({
             </motion.section>
           )}
         </AnimatePresence>
-        )}
       </div>
 
 

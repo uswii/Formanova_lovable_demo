@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
+import { pollWorkflow } from '@/lib/poll-workflow';
 
-const BASE_URL = 'https://formanova.ai';
-const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
-const STATUS_URL = `${BASE_URL}/api/status`;
-const RESULT_URL = `${BASE_URL}/api/result`;
+const CLASSIFICATION_URL = '/api/run/image_classification';
+const STATUS_URL = '/api/status';
+const RESULT_URL = '/api/result';
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 const VALIDATION_UNAVAILABLE_REASONS = new Set([
   'classification_unavailable',
@@ -23,11 +23,11 @@ export interface ClassificationResult {
   confidence: number;
   reason: string;
   flagged: boolean;
-  /** URL of the uploaded image — reuse to avoid double uploads */
+  /** URL of the uploaded image - reuse to avoid double uploads */
   uploaded_url?: string;
   /** SAS URL for browser display (short-lived signed URL) */
   sas_url?: string;
-  /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
+  /** Asset ID from Azure registration - pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
 
@@ -40,11 +40,11 @@ export interface ImageValidationResult {
   confidence: number;
   message: string;
   category: string;
-  /** URL of the uploaded image — reuse for photoshoot generation */
+  /** URL of the uploaded image - reuse for photoshoot generation */
   uploaded_url?: string;
   /** SAS URL for browser display (short-lived signed URL) */
   sas_url?: string;
-  /** Asset ID from Azure registration — pass as input_jewelry_asset_id */
+  /** Asset ID from Azure registration - pass as input_jewelry_asset_id */
   asset_id?: string | null;
 }
 
@@ -60,17 +60,6 @@ export interface ValidationState {
   results: ImageValidationResult[] | null;
   flaggedCount: number;
   error: string | null;
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getStoredToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
 }
 
 /**
@@ -100,10 +89,10 @@ function buildFlags(result: ClassificationResult): string[] {
  * Hook for validating uploaded jewelry images.
  *
  * Flow:
- * 1. Upload image via azure-upload edge function → get URL
+ * 1. Upload image via azure-upload edge function -> get URL
  * 2. POST /api/run/image_classification with { payload: { jewelry_image_url } }
  * 3. Poll GET /api/status/{workflow_id} until completed
- * 4. GET /api/result/{workflow_id} → { image_captioning: [{ label, confidence, reason, flagged }] }
+ * 4. GET /api/result/{workflow_id} -> { image_captioning: [{ label, confidence, reason, flagged }] }
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -142,12 +131,12 @@ export function useImageValidation() {
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
-      // 2. Check if already classified — skip workflow if metadata.display_type is set
+      // 2. Check if already classified - skip workflow if metadata.display_type is set
       if (uploadedAssetId) {
         try {
           const assetsPage = await fetchUserAssets('jewelry_photo', 0, 200);
           const cached = assetsPage.items.find(a => a.id === uploadedAssetId);
-          console.log('[ImageValidation] Cache check — asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
+          console.log('[ImageValidation] Cache check - asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
           if (cached?.metadata?.display_type) {
             clearTimeout(timeoutId);
             const userOverride = cached.metadata.user_override === 'true';
@@ -170,17 +159,16 @@ export function useImageValidation() {
       }
 
       // 3. POST /api/run/image_classification
-      const authHeaders = getAuthHeaders();
       const classificationPayload = {
         payload: {
           jewelry_image_url: { uri: uploadedUrl },
         },
       };
       console.log('[ImageValidation] Sending classification request:', JSON.stringify(classificationPayload));
-      
-      const runRes = await fetch(CLASSIFICATION_URL, {
+
+      const runRes = await authenticatedFetch(CLASSIFICATION_URL, {
         method: 'POST',
-        headers: authHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(classificationPayload),
         signal: controller.signal,
       });
@@ -203,60 +191,52 @@ export function useImageValidation() {
       const workflowId = runData.workflow_id;
       console.log('[ImageValidation] Workflow started:', workflowId);
 
-      // 3. Poll /api/status/{workflow_id} until completed
-      let statusState = 'running';
-      const maxPolls = 60; // 60s max
-      for (let i = 0; i < maxPolls; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        
-        const statusRes = await fetch(`${STATUS_URL}/${workflowId}`, {
-          method: 'GET',
-          headers: authHeaders,
+      // 3. Poll status then fetch result via pollWorkflow
+      let classificationFailed = false;
+
+      let pollResult: Awaited<ReturnType<typeof pollWorkflow>>;
+      try {
+        pollResult = await pollWorkflow({
+          mode: 'status-then-result',
+          fetchStatus: () => authenticatedFetch(`${STATUS_URL}/${workflowId}`, { signal: controller.signal }),
+          fetchResult: () => authenticatedFetch(`${RESULT_URL}/${workflowId}`, { signal: controller.signal }),
+          resolveState: (statusData: unknown) => {
+            const d = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const s = d.runtime?.state || d.progress?.state || d.state || 'running';
+            console.log('[ImageValidation] Poll status:', s);
+            if (s === 'succeeded') return 'completed';
+            if (s === 'failed' || s === 'error') { classificationFailed = true; return 'failed'; }
+            return s;
+          },
+          parseResult: (d) => d,
+          intervalMs: 1000,
+          timeoutMs: 120_000,           // outer wall-clock safety net
+          maxStatusPolls: 60,           // original loop: 60 iterations at 1s
+          onStatusExhausted: 'fetch-result', // original: always attempts result fetch
+          statusNonOkBehavior: 'continue',   // original: non-ok silently continues
+          max404s: 999,                 // original: no 404 budget, just continue
+          maxResultRetries: 5,
+          resultRetryDelayMs: 1000,
           signal: controller.signal,
         });
-
-        if (statusRes.status === 404) {
-          // Not ready yet, keep polling
-          continue;
+      } catch (err) {
+        if (err instanceof AuthExpiredError) throw err;
+        clearTimeout(timeoutId);
+        if (classificationFailed) {
+          console.warn('[ImageValidation] Workflow failed');
+          return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
         }
-
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          console.log('[ImageValidation] Full status response:', JSON.stringify(statusData));
-          statusState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'running';
-          console.log('[ImageValidation] Poll status:', statusState);
-          if (statusState === 'completed' || statusState === 'succeeded') break;
-          if (statusState === 'failed' || statusState === 'error') {
-            console.warn('[ImageValidation] Workflow failed. Error:', statusData.error || statusData.message || JSON.stringify(statusData));
-            clearTimeout(timeoutId);
-            // On failure, return uploaded_url but flag as not-worn so user reviews
-            return { category: 'unknown', is_worn: false, confidence: 0, reason: 'classification_failed', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
-          }
-        }
+        console.warn('[ImageValidation] Polling failed or timed out');
+        return null;
       }
 
-      // 4. GET /api/result/{workflow_id}
-      let resultData: any = null;
-      const maxResultRetries = 5;
-      for (let i = 0; i < maxResultRetries; i++) {
-        const resultRes = await fetch(`${RESULT_URL}/${workflowId}`, {
-          method: 'GET',
-          headers: authHeaders,
-          signal: controller.signal,
-        });
-
-        if (resultRes.status === 404) {
-          console.log(`[ImageValidation] Result not ready, retry ${i + 1}/${maxResultRetries}`);
-          await new Promise(r => setTimeout(r, 1000));
-          continue;
-        }
-
-        if (resultRes.ok) {
-          resultData = await resultRes.json();
-          break;
-        }
+      if (pollResult.status === 'cancelled') {
+        console.warn('[ImageValidation] Polling cancelled');
+        clearTimeout(timeoutId);
+        return null;
       }
 
+      const resultData = pollResult.result;
       if (!resultData) {
         console.warn('[ImageValidation] Could not fetch result');
         clearTimeout(timeoutId);
@@ -264,7 +244,7 @@ export function useImageValidation() {
       }
 
       console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
-      const captioning = resultData.image_captioning;
+      const captioning = (resultData as { image_captioning?: Array<{ label?: string; reason?: string; confidence?: number; flagged?: boolean }> })?.image_captioning;
 
       if (captioning && captioning.length > 0) {
         const raw = captioning[0];
@@ -303,6 +283,9 @@ export function useImageValidation() {
       return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl, sas_url: uploadedSasUrl, asset_id: uploadedAssetId };
     } catch (error) {
       clearTimeout(timeoutId);
+      // Auth expiry must propagate - authenticatedFetch already redirected to login.
+      // Do not convert it to a validation fallback.
+      if (error instanceof AuthExpiredError) throw error;
       if (error instanceof Error && error.name === 'AbortError') {
         console.warn('[ImageValidation] Request timed out');
       } else {
@@ -380,6 +363,9 @@ export function useImageValidation() {
           : 'All images passed validation',
       };
     } catch (error) {
+      // Auth expiry must propagate - do not swallow into validation fallback.
+      if (error instanceof AuthExpiredError) throw error;
+
       console.error('Image validation error:', error);
 
       const fallbackResults: ImageValidationResult[] = files.map((_, idx) => ({

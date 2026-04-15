@@ -1,4 +1,4 @@
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const ADMIN_GENERATIONS_BASE = '/api/admin/generations';
 
@@ -207,14 +207,7 @@ function normalizeFeedback(feedback: any): AdminGenerationFeedback | null {
 }
 
 async function adminGenerationsFetch(path: string): Promise<Response> {
-  const token = getStoredToken();
-  if (!token) throw new AdminGenerationsApiError(401, 'Missing authentication token.');
-
-  const response = await fetch(path, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authenticatedFetch(path);
 
   if (!response.ok) {
     let message = `Request failed: ${response.status}`;

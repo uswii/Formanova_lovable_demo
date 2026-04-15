@@ -11,13 +11,20 @@ import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { getStoredToken } from "@/lib/auth-api";
-import { parseCadResult } from "@/lib/cad-poll-resolvers";
+import { pollWorkflow, type PollWorkflowResult } from "@/lib/poll-workflow";
+import {
+  resolveCadTerminalNode,
+  resolveCadProgressNode,
+  parseCadResult,
+  type CadGenerationResult,
+} from "@/lib/cad-poll-resolvers";
 import {
   CAD_EDIT_WORKFLOW,
   CAD_GENERATION_WORKFLOW,
   buildCadEditStartBody,
   buildCadGenerationStartBody,
 } from "@/lib/cad-workflows";
+import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
@@ -29,6 +36,7 @@ import { isWeightStlEnabled, isCadUploadEnabled } from "@/lib/feature-flags";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
+import CADRuntimeErrorBoundary from "@/components/cad/CADRuntimeErrorBoundary";
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
 import KeyboardShortcutsPanel from "@/components/text-to-cad/KeyboardShortcutsPanel";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
@@ -330,7 +338,11 @@ export default function TextToCAD() {
     const modelKey = `${CAD_GENERATION_WORKFLOW}:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
     try {
-      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, { model });
+      const tier = resolveCadGenerationTier(model);
+      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, {
+        model,
+        pricingContext: { tier },
+      });
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
@@ -372,108 +384,56 @@ export default function TextToCAD() {
 
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
-      // Step 2: Poll status every 3s — use active_nodes[0] for real progress
-      const TERMINAL_STATES = new Set(["failed", "budget_exhausted"]);
+      // Step 2 + 3: Poll status then fetch result
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
-      let pollErrors = 0;
-      let consecutive404s = 0;
-      const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
-      const pollStart = Date.now();
 
-      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
-
-      while (true) {
-        if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-          throw new Error("Generation timed out");
-        }
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const statusRes = await authenticatedFetch(
+      let genPollResult: PollWorkflowResult<CadGenerationResult>;
+      try {
+        genPollResult = await pollWorkflow<CadGenerationResult>({
+          mode: 'status-then-result',
+          fetchStatus: () => authenticatedFetch(
             `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
-          );
-
-          if (statusRes.status === 404) {
-            consecutive404s++;
-            if (consecutive404s >= MAX_404_RETRIES) {
-              throw new Error("Workflow not found — generation was terminated");
-            }
-            continue;
-          }
-          consecutive404s = 0;
-
-          if (!statusRes.ok) {
-            pollErrors++;
-            if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
-            continue;
-          }
-
-          const statusData = await statusRes.json();
-          pollErrors = 0;
-
-          const state = (statusData.runtime?.state || "unknown").toLowerCase();
-          const activeNode = statusData.runtime?.active_nodes?.[0] || statusData.runtime?.current_node || "";
-          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
-          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
-
-          // Update progress from active node or last exited node
-          const displayNode = activeNode || lastExitNode;
-          if (displayNode) {
-            setProgressStep(displayNode);
-            if (retryCount > 0) {
-              setRetryAttempt(retryCount);
-            }
-          }
-
-          // Terminal checks: state OR node
-          if (state === "completed") break;
-          if (state === "failed" || state === "budget_exhausted" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") {
-            setProgressStep("failed_final");
-            break;
-          }
-          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
-            if (activeNode === "failed_final" || lastExitNode === "failed_final") {
+          ),
+          fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+          resolveState: (statusData) => {
+            const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
+            return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
+          },
+          resolveProgressNode: resolveCadProgressNode,
+          parseResult: (d) => parseCadResult(d, 'generation'),
+          onProgress: ({ node, retryCount }) => {
+            setProgressStep(node);
+            if (retryCount > 0) setRetryAttempt(retryCount);
+          },
+          onStatusData: (statusData) => {
+            const s = statusData as { runtime?: { state?: string } };
+            const state = (s.runtime?.state || "").toLowerCase();
+            if (state === "failed" || state === "budget_exhausted") {
               setProgressStep("failed_final");
             }
-            break; // success node reached
-          }
-        } catch (err) {
-          if (err instanceof AuthExpiredError) return;
-          if (err instanceof Error && err.name === "AbortError") return;
-          pollErrors++;
-          if (pollErrors >= 10) throw err;
-        }
+          },
+          intervalMs: 2000,
+          timeoutMs: 60 * 60 * 1000,
+          max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
+          maxPollErrors: 10,
+          maxResultRetries: 1,
+          signal: pollAbort.signal,
+        });
+      } catch (err) {
+        if (err instanceof AuthExpiredError) return; // redirect already in progress
+        throw err;
       }
 
-      // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
+      if (genPollResult.status === 'cancelled') return;
+
       setProgressStep("_loading");
-      setProgressStep("_loading");
-      let glb_url: string | null = null;
-      const MAX_RESULT_RETRIES = 5;
-      for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-
-        if (resultRes.ok) {
-          const result = await resultRes.json();
-          const { glb_url: url, artifact } = parseCadResult(result, 'generation');
-          glb_url = url;
-          setGlbArtifact(artifact);
-          break;
-        }
-
-        if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
-          console.warn(`[TextToCAD] result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch result");
-      }
-      if (!glb_url) throw new Error("No GLB model found in results");
+      const { glb_url, artifact: genArtifact } = genPollResult.result;
+      setGlbArtifact(genArtifact);
+      console.log('[TextToCAD] Generation result artifact:', genArtifact);
 
       setGlbUrl(glb_url);
       trackCadGenerationCompleted({
@@ -545,77 +505,57 @@ export default function TextToCAD() {
       if (!workflow_id) throw new Error("No workflow_id returned");
       console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflow_id);
 
-      // Step 2: Poll status
-      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
+      // Step 2 + 3: Poll status then fetch result
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
-      let pollErrors = 0;
-      let consecutive404s = 0;
-      const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
-      const pollStart = Date.now();
 
-      while (true) {
-        if (Date.now() - pollStart > POLL_TIMEOUT_MS) throw new Error("Edit timed out");
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const statusRes = await authenticatedFetch(
+      let editPollResult: PollWorkflowResult<CadGenerationResult>;
+      try {
+        editPollResult = await pollWorkflow<CadGenerationResult>({
+          mode: 'status-then-result',
+          fetchStatus: () => authenticatedFetch(
             `/api/status/${encodeURIComponent(workflow_id)}`,
             { signal: pollAbort.signal }
-          );
-          if (statusRes.status === 404) {
-            consecutive404s++;
-            if (consecutive404s >= MAX_404_RETRIES) throw new Error("Workflow not found");
-            continue;
-          }
-          consecutive404s = 0;
-          if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
-
-          const statusData = await statusRes.json();
-          pollErrors = 0;
-          const state = (statusData.runtime?.state || "unknown").toLowerCase();
-          const activeNode = statusData.runtime?.active_nodes?.[0] || statusData.runtime?.current_node || "";
-          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
-          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
-          const displayNode = activeNode || lastExitNode;
-          if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
-
-          if (state === "completed") break;
-          if (state === "failed" || state === "budget_exhausted" || state === "terminated" || state === "cancelled" || state === "timed_out" || state === "timeout") { setProgressStep("failed_final"); break; }
-          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
-            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); }
-            break;
-          }
-        } catch (err) {
-          if (err instanceof AuthExpiredError) return;
-          if (err instanceof Error && err.name === "AbortError") return;
-          pollErrors++;
-          if (pollErrors >= 10) throw err;
-        }
+          ),
+          fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+          resolveState: (statusData) => {
+            const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+            const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
+            return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
+          },
+          resolveTerminalNode: resolveCadTerminalNode,
+          resolveProgressNode: resolveCadProgressNode,
+          parseResult: (d) => parseCadResult(d, 'edit'),
+          onProgress: ({ node, retryCount }) => {
+            setProgressStep(node);
+            if (retryCount > 0) setRetryAttempt(retryCount);
+          },
+          onStatusData: (statusData) => {
+            const s = statusData as { runtime?: { state?: string } };
+            const state = (s.runtime?.state || "").toLowerCase();
+            if (state === "failed" || state === "budget_exhausted") {
+              setProgressStep("failed_final");
+            }
+          },
+          intervalMs: 2000,
+          timeoutMs: 60 * 60 * 1000,
+          max404s: 13,         // preserves effective tolerance (~3 trigger + 10 inner-catch absorptions)
+          maxPollErrors: 10,
+          maxResultRetries: 1,
+          signal: pollAbort.signal,
+        });
+      } catch (err) {
+        if (err instanceof AuthExpiredError) return; // redirect already in progress
+        throw err;
       }
 
-      // Step 3: Fetch result GLB
+      if (editPollResult.status === 'cancelled') return;
+
       setProgressStep("_loading");
-      let glb_url: string | null = null;
-      const MAX_RESULT_RETRIES = 5;
-      for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-        if (resultRes.ok) {
-          const result = await resultRes.json();
-          const { glb_url: url, artifact } = parseCadResult(result, 'edit');
-          glb_url = url;
-          setGlbArtifact(artifact);
-          break;
-        }
-        if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-        const err = await resultRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch edit result");
-      }
-      if (!glb_url) throw new Error("No GLB model found in edit results");
+      const { glb_url, artifact: editArtifact } = editPollResult.result;
+      setGlbArtifact(editArtifact);
+      console.log('[TextToCAD] Edit result artifact:', editArtifact);
 
       setGlbUrl(glb_url);
       setProgressStep("_loading");
@@ -800,6 +740,7 @@ export default function TextToCAD() {
         payload: { glb_artifact: glbArtifact, timeout_seconds: 60 },
       };
       console.log('[Weight] Request payload:', weightPayload);
+      // estimate_weight is intentionally free after a generated/imported GLB exists; no credit preflight.
       const startRes = await authenticatedFetch('/api/run/state/estimate_weight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -814,27 +755,18 @@ export default function TextToCAD() {
       const { workflow_id } = weightStartBody;
 
       // Poll until done (2s interval, ~2 min timeout)
-      const POLL_INTERVAL = 2000;
-      const POLL_TIMEOUT = 120_000;
-      const deadline = Date.now() + POLL_TIMEOUT;
-      let result: any = null;
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-        if (!pollRes.ok) {
-          const err = await pollRes.json().catch(() => ({}));
-          throw new Error(err?.error || "Polling failed");
-        }
-        const data = await pollRes.json();
-        console.log('[Weight] Poll response:', data);
-        if (data?.status === 'running') continue;
-        result = data;
-        break;
-      }
-      if (!result) {
-        toast.error("Weight estimation timed out — try again");
-        return;
-      }
+      const pollResult = await pollWorkflow({
+        mode: 'result-direct',
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+        parseResult: (d) => d as { success: boolean; error?: string; scale_warning?: boolean; weight_14k_gold_g?: number; weight_platinum_g?: number },
+        intervalMs: 2000,
+        timeoutMs: 120_000,
+      });
+
+      if (pollResult.status === 'cancelled') return; // unreachable: no signal passed
+
+      const result = pollResult.result;
+      console.log('[Weight] Poll result:', result);
       if (!result.success) {
         toast.error(result.error || "Weight estimation failed");
         return;
@@ -848,7 +780,8 @@ export default function TextToCAD() {
         scale_warning: result.scale_warning,
       });
     } catch (err) {
-      toast.error("Weight estimation failed");
+      const isTimeout = err instanceof Error && err.message.includes('timed out');
+      toast.error(isTimeout ? "Weight estimation timed out — try again" : "Weight estimation failed");
       console.error('[Weight]', err);
     } finally {
       setWeightLoading(false);
@@ -878,6 +811,7 @@ export default function TextToCAD() {
         },
       };
       console.log('[STL] Request payload:', stlPayload);
+      // prepare_stl is intentionally free after a generated/imported GLB exists; no credit preflight.
       const startRes = await authenticatedFetch('/api/run/state/prepare_stl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -892,27 +826,18 @@ export default function TextToCAD() {
       const { workflow_id } = stlStartBody;
 
       // Poll until done (2s interval, ~5 min timeout for high quality)
-      const POLL_INTERVAL = 2000;
-      const POLL_TIMEOUT = 300_000;
-      const deadline = Date.now() + POLL_TIMEOUT;
-      let result: any = null;
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-        const pollRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
-        if (!pollRes.ok) {
-          const err = await pollRes.json().catch(() => ({}));
-          throw new Error(err?.error || "Polling failed");
-        }
-        const data = await pollRes.json();
-        console.log('[STL] Poll response:', data);
-        if (data?.status === 'running') continue;
-        result = data;
-        break;
-      }
-      if (!result) {
-        toast.error("STL preparation timed out — try Standard quality or a simpler model");
-        return;
-      }
+      const pollResult = await pollWorkflow({
+        mode: 'result-direct',
+        fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+        parseResult: (d) => d as { success: boolean; error_text?: string; stl_artifact?: { uri: string } },
+        intervalMs: 2000,
+        timeoutMs: 300_000,
+      });
+
+      if (pollResult.status === 'cancelled') return; // unreachable: no signal passed
+
+      const result = pollResult.result;
+      console.log('[STL] Poll result:', result);
       if (!result.success || !result.stl_artifact) {
         toast.error(result.error_text || "STL export failed");
         return;
@@ -940,7 +865,8 @@ export default function TextToCAD() {
         }
       }
     } catch (err) {
-      toast.error("STL export failed");
+      const isTimeout = err instanceof Error && err.message.includes('timed out');
+      toast.error(isTimeout ? "STL preparation timed out — try Standard quality or a simpler model" : "STL export failed");
       console.error('[STL Export]', err);
     } finally {
       setStlExporting(false);
@@ -1224,25 +1150,27 @@ export default function TextToCAD() {
               </>
             )}
 
-            <CADCanvas
-              ref={canvasRef}
-              hasModel={hasModel}
-              glbUrl={glbUrl}
-              additionalGlbUrls={additionalParts}
-              selectedMeshNames={selectedMeshNames}
-              hiddenMeshNames={hiddenMeshNames}
-              onMeshClick={handleSelectMesh}
-              transformMode={transformMode}
-              onMeshesDetected={handleMeshesDetected}
-              onTransformStart={handleTransformStart}
-              onTransformEnd={handleTransformEnd}
-              lightIntensity={1}
-              onModelReady={handleModelReady}
-              magicTexturing={magicTexturing}
-              qualityMode="balanced"
-              gemMode={gemMode}
-              onGemModeForced={(mode) => setGemMode(mode)}
-            />
+            <CADRuntimeErrorBoundary resetKeys={[glbUrl, hasModel]}>
+              <CADCanvas
+                ref={canvasRef}
+                hasModel={hasModel}
+                glbUrl={glbUrl}
+                additionalGlbUrls={additionalParts}
+                selectedMeshNames={selectedMeshNames}
+                hiddenMeshNames={hiddenMeshNames}
+                onMeshClick={handleSelectMesh}
+                transformMode={transformMode}
+                onMeshesDetected={handleMeshesDetected}
+                onTransformStart={handleTransformStart}
+                onTransformEnd={handleTransformEnd}
+                lightIntensity={1}
+                onModelReady={handleModelReady}
+                magicTexturing={magicTexturing}
+                qualityMode="balanced"
+                gemMode={gemMode}
+                onGemModeForced={(mode) => setGemMode(mode)}
+              />
+            </CADRuntimeErrorBoundary>
 
             {/* Generation failed state */}
             <AnimatePresence>

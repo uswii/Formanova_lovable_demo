@@ -19,7 +19,7 @@ export interface PreflightResult {
 export async function performCreditPreflight(
   workflowName: string,
   numVariations: number = 1,
-  metadata?: { model?: string }
+  metadata?: { model?: string; pricingContext?: Record<string, unknown> }
 ): Promise<PreflightResult> {
   // 1️⃣ Estimate required credits — use model-specific fallback if available
   const fallbackKey = metadata?.model
@@ -34,6 +34,7 @@ export async function performCreditPreflight(
       body: JSON.stringify({
         workflow_name: workflowName,
         num_variations: numVariations,
+        ...(metadata?.pricingContext ? { pricing_context: metadata.pricingContext } : {}),
       }),
     });
 

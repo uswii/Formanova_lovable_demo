@@ -1,0 +1,174 @@
+/**
+ * StudioGeneratingStep
+ *
+ * Pure render component for the 'generating' step of UnifiedStudio.
+ * Displays a spinner, progress bar (model-shot) or rotating messages (product-shot),
+ * thumbnail previews of the input images, and an error overlay when generation fails.
+ *
+ * Has NO state of its own — all values flow in as props from UnifiedStudio.
+ */
+import { motion, AnimatePresence } from 'framer-motion';
+import { Gem, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+type StudioStep = 'upload' | 'model' | 'generating' | 'results';
+
+interface StudioGeneratingStepProps {
+  isProductShot: boolean;
+  generationStep: string;
+  generationProgress: number;
+  rotatingMsgIdx: number;
+  jewelryImage: string | null;
+  resolvedJewelryImage: string | null;
+  activeModelUrl: string | null;
+  resolvedActiveModelUrl: string | null;
+  generationError: string | null;
+  handleStartOver: () => void;
+}
+
+const PRODUCT_SHOT_MSGS = [
+  'Analysing your jewelry...',
+  'Matching inspiration style...',
+  'Composing the scene...',
+  'Rendering your shot...',
+  'Almost there...',
+];
+
+export function StudioGeneratingStep({
+  isProductShot,
+  generationStep,
+  generationProgress,
+  rotatingMsgIdx,
+  jewelryImage,
+  resolvedJewelryImage,
+  activeModelUrl,
+  resolvedActiveModelUrl,
+  generationError,
+  handleStartOver,
+}: StudioGeneratingStepProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex items-center justify-center min-h-[70vh]"
+    >
+      {/* Dashed frame — centered on screen */}
+      <div className="border border-dashed border-border/40 px-16 py-14 flex flex-col items-center w-full max-w-md">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+        </div>
+
+        <h2 className="font-display text-3xl uppercase tracking-tight mb-3">Generating</h2>
+
+        {/* Model shot: progress bar. Product shot: rotating messages */}
+        {!isProductShot ? (
+          <>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={generationStep}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6 text-center"
+              >
+                {generationStep || 'Starting...'}
+              </motion.p>
+            </AnimatePresence>
+            <div className="w-full h-1.5 bg-muted overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${generationProgress}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+            </div>
+            <p className="font-mono text-[10px] text-muted-foreground mb-8">{Math.round(generationProgress)}%</p>
+          </>
+        ) : (
+          <>
+            {(() => {
+              const isFetching = generationStep === 'Fetching results...';
+              const displayMsg = isFetching
+                ? 'Fetching result...'
+                : PRODUCT_SHOT_MSGS[Math.min(rotatingMsgIdx, PRODUCT_SHOT_MSGS.length - 1)];
+              return (
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={displayMsg}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.4 }}
+                    className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase mb-6 text-center"
+                  >
+                    {displayMsg}
+                  </motion.p>
+                </AnimatePresence>
+              );
+            })()}
+            <p className="font-mono text-[10px] italic text-muted-foreground mb-8">This can take up to 50 seconds</p>
+          </>
+        )}
+
+        <div className="flex gap-4">
+          {jewelryImage && (
+            <div className="w-16 h-16 border border-border/30 overflow-hidden">
+              <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="w-full h-full object-cover opacity-50" />
+            </div>
+          )}
+          {activeModelUrl && (
+            <div className="w-16 h-16 border border-border/30 overflow-hidden">
+              <img src={resolvedActiveModelUrl ?? undefined} alt="Model" className="w-full h-full object-cover opacity-50" />
+            </div>
+          )}
+        </div>
+
+        {generationError && (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="bg-card border border-border shadow-2xl max-w-md w-full mx-6 p-8 text-center"
+              >
+                <div className="mx-auto w-12 h-12 border border-border flex items-center justify-center mb-5">
+                  <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-display text-lg uppercase tracking-[0.15em] text-foreground mb-3">
+                  Our AI is a little overwhelmed
+                </h3>
+                <p className="font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground mb-4">
+                  The AI model is currently overloaded from high demand -- this is temporary and completely normal. It'll be back up shortly, but we recommend trying again in a few hours.
+                </p>
+                <p className="font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground mb-6">
+                  AI models can occasionally crash under heavy usage. This gets better over time as we scale. In the meantime, reach out at{' '}
+                  <a
+                    href="mailto:studio@formanova.ai"
+                    className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                  >
+                    studio@formanova.ai
+                  </a>
+                  {' '}we'd love to hear from you.
+                </p>
+                <Button
+                  onClick={handleStartOver}
+                  className="w-full font-mono text-[11px] tracking-[0.2em] uppercase"
+                >
+                  Got It
+                </Button>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </motion.div>
+  );
+}

@@ -13,6 +13,7 @@ import {
   setStoredUser, 
   dispatchAuthChange 
 } from '@/lib/auth-api';
+import { getPublicSiteUrl } from '@/lib/public-url';
 
 const AUTH_SUCCESS_REDIRECT = '/studio';
 
@@ -217,10 +218,11 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
           </p>
 
           {isInstagram && (() => {
-            const siteUrl = 'https://formanova.ai/login';
+            const loginUrl = new URL('/login', getPublicSiteUrl());
+            const siteUrl = loginUrl.toString();
             const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
             // Android: intent without package → triggers system browser chooser dialog
-            const intentUrl = `intent://formanova.ai/login#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+            const intentUrl = `intent://${loginUrl.host}${loginUrl.pathname}${loginUrl.search}#Intent;scheme=${loginUrl.protocol.replace(':', '')};action=android.intent.action.VIEW;end`;
 
             return (
               <div className="flex flex-col items-center gap-3 mb-4">
