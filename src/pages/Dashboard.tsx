@@ -7,7 +7,7 @@ import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
 
 // Reuse the same hero imagery
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
-import textToCadThumb from '@/assets/text-to-cad-thumb.jpg';
+import textToCadThumb from '@/assets/cad-studio-thumb.webp';
 
 const containerVariants = {
   hidden: { opacity: 0 },
