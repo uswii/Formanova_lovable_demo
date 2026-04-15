@@ -190,7 +190,7 @@ export function useStudioGeneration({
           reader.readAsDataURL(compressedJewelry);
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
-        jewelryUrl = isProductShot ? (azResult.sas_url || azResult.https_url) : (azResult.https_url || azResult.sas_url);
+        jewelryUrl = azResult.sas_url || azResult.https_url;
         setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
       }
@@ -201,7 +201,7 @@ export function useStudioGeneration({
 
       if (selectedModel) {
         modelUrl = selectedModel.url;
-      } else if (customModelImage && customModelImage.startsWith('http')) {
+      } else if (customModelImage) {
         modelUrl = customModelImage;
       } else {
         throw new Error('No model selected');
