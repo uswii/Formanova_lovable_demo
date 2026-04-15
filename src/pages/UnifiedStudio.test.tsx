@@ -167,8 +167,8 @@ vi.mock('@/components/studio/StudioModelStep', () => ({
   StudioModelStep: () => <div data-testid="model-step" />,
 }));
 
-vi.mock('@/components/studio/AlternateUploadStep', () => ({
-  AlternateUploadStep: () => <div data-testid="alt-upload-step" />,
+vi.mock('@/components/studio/StudioVaultUploadStep', () => ({
+  StudioVaultUploadStep: () => <div data-testid="alt-upload-step" />,
 }));
 
 vi.mock('@/components/studio/StudioUploadStep', () => ({

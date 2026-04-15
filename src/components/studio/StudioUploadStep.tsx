@@ -11,7 +11,7 @@
  * WHAT IT RENDERS
  * ---------------
  * - The Step 1 upload zone (drop zone or image preview) when currentStep === 'upload'
- * - The AlternateUploadStep gated variant (isAltUploadLayoutEnabled)
+ * - The StudioVaultUploadStep gated variant (isAltUploadLayoutEnabled)
  * - The Upload Guide sidebar (Accepted / Not Accepted examples)
  * - The Flagged Image Dialog (always rendered, controlled by showFlaggedDialog prop)
  *
@@ -45,7 +45,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
+import { StudioVaultUploadStep } from '@/components/studio/StudioVaultUploadStep';
 import { CATEGORY_EXAMPLES, LABEL_NAMES } from '@/lib/studio-examples';
 import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
@@ -130,7 +130,7 @@ export function StudioUploadStep({
         >
           {/* ── Alternate layout (internal experiment) ── */}
           {isAltUploadLayoutEnabled(user?.email) ? (
-            <AlternateUploadStep
+            <StudioVaultUploadStep
               exampleCategoryType={exampleCategoryType}
               jewelryImage={jewelryImage}
               activeProductAssetId={jewelryAssetId}
