@@ -23,10 +23,6 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { email: 'cad-user@example.com' } }),
 }));
 
-vi.mock('@/lib/feature-flags', () => ({
-  isCADEnabled: () => true,
-}));
-
 vi.mock('@/hooks/use-prefetch-generations', () => ({
   usePrefetchGenerations: vi.fn(),
 }));

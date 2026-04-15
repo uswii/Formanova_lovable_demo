@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
-import { AUTHENTICATED_IMAGES_ENABLED } from "@/lib/feature-flags";
 
 /**
  * Returns a renderable URL for an image src.
@@ -21,8 +20,8 @@ export function useAuthenticatedImage(url: string | null | undefined): string | 
       return;
     }
 
-    // Pass through when feature is disabled or URL is not an artifacts path
-    if (!AUTHENTICATED_IMAGES_ENABLED || !url.includes("/artifacts/")) {
+    // Pass through when URL is not an artifacts path
+    if (!url.includes("/artifacts/")) {
       setBlobUrl(url);
       return;
     }

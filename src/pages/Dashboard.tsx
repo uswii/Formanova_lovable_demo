@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
@@ -32,7 +31,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
-  const cadEnabled = isCADEnabled(user?.email);
 
   // Prefetch generation history in background so it's instant when user opens Generations
   usePrefetchGenerations();
@@ -94,35 +92,33 @@ export default function Dashboard() {
           </div>
         </motion.button>
 
-        {cadEnabled && (
-          <motion.button
-            variants={itemVariants}
-            onClick={() => navigate('/studio-cad')}
-            className="group relative aspect-[4/3] marta-frame overflow-hidden text-left cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
-          >
-            <OptimizedImage
-              src={textToCadThumb}
-              alt="From CAD designs"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+        <motion.button
+          variants={itemVariants}
+          onClick={() => navigate('/studio-cad')}
+          className="group relative aspect-[4/3] marta-frame overflow-hidden text-left cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+        >
+          <OptimizedImage
+            src={textToCadThumb}
+            alt="From CAD designs"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
 
-            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
-              <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
-                CAD Studio
-              </h2>
-              <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
-                Generate text-to-CAD models and catalog visuals
-              </p>
-            </div>
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
+              CAD Studio
+            </h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
+              Generate text-to-CAD models and catalog visuals
+            </p>
+          </div>
 
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-              <div className="w-8 h-8 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
-                <ArrowRight className="w-4 h-4 text-primary-foreground" />
-              </div>
+          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+            <div className="w-8 h-8 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
+              <ArrowRight className="w-4 h-4 text-primary-foreground" />
             </div>
-          </motion.button>
-        )}
+          </div>
+        </motion.button>
       </motion.div>
 
     </div>

@@ -12,7 +12,6 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { isTestMenuEnabled } from '@/lib/feature-flags';
 import { ModelGuideModal } from '@/components/studio/ModelGuideModal';
 import { UploadGuideModal } from '@/components/studio/UploadGuideModal';
 import { ProductShotGuideModal } from '@/components/studio/ProductShotGuideModal';
@@ -475,7 +474,6 @@ export default function UnifiedStudio() {
         currentStep={currentStep}
         isProductShot={isProductShot}
         jewelryImage={jewelryImage}
-        user={user}
         setIsProductShot={setIsProductShot}
         setCurrentStep={setCurrentStep}
       />
@@ -619,7 +617,7 @@ export default function UnifiedStudio() {
         onClose={() => setModelGuideOpen(false)}
       />
 
-      {isTestMenuEnabled(user?.email) && (
+      {(
         <StudioTestMenu
           user={user}
           navigate={navigate}

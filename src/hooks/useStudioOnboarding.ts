@@ -21,7 +21,6 @@ import {
   isProductShotGuideSeen,
   markProductShotGuideSeenLocal,
 } from '@/lib/onboarding-api';
-import { isStudioOnboardingEnabled, isProductShotGuideEnabled } from '@/lib/feature-flags';
 import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -48,7 +47,6 @@ export function useStudioOnboarding({
   // Upload guide — shown once on first visit to Step 1 for gated users who haven't agreed to TOS
   useEffect(() => {
     if (initializing || !user || hasCheckedUploadGuide.current) return;
-    if (!isStudioOnboardingEnabled(user.email)) return;
     if (currentStep !== 'upload') return;
 
     hasCheckedUploadGuide.current = true;
@@ -82,7 +80,6 @@ export function useStudioOnboarding({
   useEffect(() => {
     if (initializing || !user || hasCheckedProductShotGuide.current) return;
     if (!isProductShot) return;
-    if (!isProductShotGuideEnabled(user.email)) return;
     if (currentStep !== 'upload') return;
 
     hasCheckedProductShotGuide.current = true;

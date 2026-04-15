@@ -127,16 +127,6 @@ vi.mock('@/hooks/useStudioOnboarding', () => ({
 }));
 
 // ── feature flags ──────────────────────────────────────────────────────────
-vi.mock('@/lib/feature-flags', () => ({
-  isVaultUploadLayoutEnabled: () => false,
-  isFeedbackEnabled: () => false,
-  isOnboardingEnabled: () => false,
-  isStudioOnboardingEnabled: () => false,
-  isStudioTypeSelectionEnabled: () => false,
-  isProductShotGuideEnabled: () => false,
-  isTestMenuEnabled: () => false,
-}));
-
 // ── onboarding / API ───────────────────────────────────────────────────────
 
 vi.mock('@/lib/assets-api', () => ({

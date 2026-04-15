@@ -43,7 +43,6 @@ import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { ModelCard, type UserModel } from '@/components/studio/ModelCard';
 import { PresetModelThumb } from '@/components/studio/PresetModelThumb';
 import { type PresetModel } from '@/lib/models-api';
-import { isStudioOnboardingEnabled } from '@/lib/feature-flags';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 interface PresetCategory {
@@ -161,7 +160,7 @@ export function StudioModelStep({
                   alt="Selected model"
                   className="max-w-full max-h-[520px] object-contain"
                 />
-                {isStudioOnboardingEnabled(user?.email) && (
+                {!isProductShot && (
                   <button
                     type="button"
                     onClick={() => setModelGuideOpen(true)}
@@ -190,7 +189,7 @@ export function StudioModelStep({
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                 onDragOver={(e) => e.preventDefault()}
               >
-                {isStudioOnboardingEnabled(user?.email) && (
+                {!isProductShot && (
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setModelGuideOpen(true); }}
@@ -205,7 +204,7 @@ export function StudioModelStep({
                   </button>
                 )}
                 {/* Model silhouette sketch -- theme-aware subtle fill */}
-                {!isProductShot && isStudioOnboardingEnabled(user?.email) ? (
+                {!isProductShot ? (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 100 100"

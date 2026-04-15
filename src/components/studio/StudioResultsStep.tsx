@@ -12,7 +12,6 @@ import { Diamond, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
-import { isFeedbackEnabled } from '@/lib/feature-flags';
 import { trackRegenerateClicked } from '@/lib/posthog-events';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { type FeedbackCategory } from '@/lib/feedback-api';
@@ -74,7 +73,7 @@ export function StudioResultsStep({
       {resultImages.length > 0 ? (
         <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
           {resultImages.map((url, i) => (
-            <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} naturalAspect={isProductShot} />
+            <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={effectiveJewelryType} naturalAspect />
           ))}
         </div>
       ) : (
@@ -112,31 +111,27 @@ export function StudioResultsStep({
         </Button>
       </div>
 
-      {isFeedbackEnabled(user?.email) && (
-        <p className="text-center text-xs text-muted-foreground">
-          Not happy with the result?{' '}
-          <button
-            type="button"
-            className="underline underline-offset-2 hover:text-foreground transition-colors"
-            onClick={() => setFeedbackOpen(true)}
-          >
-            Tell us what went wrong
-          </button>
-        </p>
-      )}
+      <p className="text-center text-xs text-muted-foreground">
+        Not happy with the result?{' '}
+        <button
+          type="button"
+          className="underline underline-offset-2 hover:text-foreground transition-colors"
+          onClick={() => setFeedbackOpen(true)}
+        >
+          Tell us what went wrong
+        </button>
+      </p>
 
-      {isFeedbackEnabled(user?.email) && (
-        <FeedbackModal
-          open={feedbackOpen}
-          onClose={() => setFeedbackOpen(false)}
-          workflowId={workflowId}
-          jewelryImageUrl={jewelryUploadedUrl}
-          jewelryDisplayUrl={jewelrySasUrl || jewelryImage}
-          modelImageUrl={activeModelUrl}
-          resultImageUrl={resultImages[0] ?? null}
-          category={(TO_SINGULAR[effectiveJewelryType] ?? 'other') as FeedbackCategory}
-        />
-      )}
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        workflowId={workflowId}
+        jewelryImageUrl={jewelryUploadedUrl}
+        jewelryDisplayUrl={jewelrySasUrl || jewelryImage}
+        modelImageUrl={activeModelUrl}
+        resultImageUrl={resultImages[0] ?? null}
+        category={(TO_SINGULAR[effectiveJewelryType] ?? 'other') as FeedbackCategory}
+      />
     </motion.div>
   );
 }

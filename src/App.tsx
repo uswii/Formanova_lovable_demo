@@ -11,7 +11,6 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
-import { isOnboardingEnabled, isOnboardingWelcomeEnabled, isStudioOnboardingEnabled, isStudioTypeSelectionEnabled } from '@/lib/feature-flags';
 import { isOnboardingComplete } from '@/lib/onboarding-api';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
@@ -132,7 +131,6 @@ function OnboardingRedirectHandler() {
     if (initializing) return;
     if (!user) return;
     if (location.pathname === '/onboarding' || location.pathname === '/onboarding-welcome') return;
-    if (!isOnboardingEnabled(user.email)) return;
     if (isOnboardingComplete(user.id)) return;
     const isPublic = ONBOARDING_PUBLIC_PATHS.includes(location.pathname)
       || location.pathname.startsWith('/blog/');
@@ -146,13 +144,9 @@ function OnboardingRedirectHandler() {
 /* GlobalOnboardingGate removed — guide is now handled inside UnifiedStudio */
 
 
-/** Routes /studio to the pre-selection screen for gated users; others see categories as before. */
+/** Routes /studio to the pre-selection screen. */
 function StudioGate() {
-  const { user } = useAuth();
-  if (isStudioTypeSelectionEnabled(user?.email)) {
-    return <StudioTypeSelection />;
-  }
-  return <PhotographyStudioCategories />;
+  return <StudioTypeSelection />;
 }
 
 /** Version-aware update banner — rendered via portal so Radix Dialog inert does not block it */
