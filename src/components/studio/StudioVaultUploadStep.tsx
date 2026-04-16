@@ -253,16 +253,30 @@ export function StudioVaultUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  // Product shot: server-side pdp filter — accurate pagination.
-  // Model shot: no server filter — exclude pdp client-side so untagged items
-  //             (treated as on_model by default) still appear during transition.
+  const isModelShotMode = !showAll && !isProductShot;
+
+  React.useEffect(() => { setClientPage(0); }, [isModelShotMode, activeCategory]);
+  // Product shot: server-side pdp filter, accurate pagination.
+  // Model shot: fetch large batch (50), exclude pdp client-side (untagged = on_model fallback),
+  //             then paginate filtered results client-side so page 1 always has up to 10 items.
+  // Show all: normal server pagination.
   const intendedUse = (!showAll && isProductShot) ? 'pdp' : undefined;
-  const { assets: rawAssets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
-  const assets = (!showAll && !isProductShot)
+  const serverPageSize = isModelShotMode ? 50 : PAGE_SIZE;
+  const [clientPage, setClientPage] = useState(0);
+  const { assets: rawAssets, total, page: serverPage, isLoading, error, goToPage: goToServerPage } = useUserAssets('jewelry_photo', serverPageSize, activeCategory, intendedUse);
+
+  const filteredAssets = isModelShotMode
     ? rawAssets.filter(a => a.metadata?.['intended_use'] !== 'pdp')
     : rawAssets;
+  const assets = isModelShotMode
+    ? filteredAssets.slice(clientPage * PAGE_SIZE, (clientPage + 1) * PAGE_SIZE)
+    : filteredAssets;
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = isModelShotMode ? clientPage : serverPage;
+  const goToPage = isModelShotMode ? setClientPage : goToServerPage;
+  const totalPages = isModelShotMode
+    ? Math.max(1, Math.ceil(filteredAssets.length / PAGE_SIZE))
+    : Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Show upload guide if user has no uploads matching the current context
   const showGuide = !isLoading && assets.length === 0;
