@@ -498,7 +498,7 @@ export function StudioVaultUploadStep({
               </div>
             )}
 
-            {!isLoading && !error && totalPages > 1 && (
+            {!isLoading && !error && showAll && totalPages > 1 && (
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(page - 1)}
