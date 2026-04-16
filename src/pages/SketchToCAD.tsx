@@ -14,6 +14,10 @@ import { toast } from "sonner";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { SKETCH_TO_CAD_WORKFLOW } from "@/lib/sketch-to-cad-workflows";
+import { sketchSessionStore } from "@/lib/sketch-session-store";
+import ringEx1 from "@/assets/examples/ring-allowed-1.webp";
+import ringEx2 from "@/assets/examples/ring-allowed-2.webp";
+import ringEx3 from "@/assets/examples/ring-allowed-3.webp";
 
 const MAX_SKETCHES = 10;
 
@@ -210,11 +214,21 @@ export default function SketchToCAD() {
 
           {/* Right column (1/3) -- guide + credits + generate */}
           <div className="flex flex-col gap-6">
-            {/* Guide panel -- matches studio guide height on desktop */}
+            {/* Guide panel */}
             <div className="border border-border/30 flex flex-col overflow-hidden">
               <p className="px-5 pt-4 pb-2 text-base font-bold text-foreground flex-shrink-0">
                 What makes a good sketch?
               </p>
+
+              {/* Example images */}
+              <div className="px-5 pb-3 grid grid-cols-3 gap-2 flex-shrink-0">
+                {[ringEx1, ringEx2, ringEx3].map((src, i) => (
+                  <div key={i} className="aspect-square bg-muted/10 border border-border/30 overflow-hidden">
+                    <img src={src} alt={`Example ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+
               <div className="px-5 flex-1 flex flex-col justify-center py-3">
                 <ul className="space-y-3">
                   {[
@@ -420,5 +434,4 @@ function SketchCard({ sketch, onRemove, onHintChange, onToggleHint }: SketchCard
   );
 }
 
-export { sketchSessionStore } from "@/lib/sketch-session-store";
 export type { SketchSession } from "@/lib/sketch-session-store";
