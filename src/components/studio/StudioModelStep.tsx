@@ -300,7 +300,7 @@ export function StudioModelStep({
                   </div>
                   <div className="flex flex-col items-center gap-1.5">
                     <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/70 group-hover/empty:text-foreground transition-colors">
-                      Upload Your Model
+                      {isProductShot ? 'Upload Your Inspiration' : 'Upload Your Model'}
                     </span>
                     <span className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
                       Saved here for future shoots
