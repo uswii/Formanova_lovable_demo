@@ -66,7 +66,11 @@ export default function StudioTypeSelection() {
               key={mode.title}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="group relative marta-frame overflow-hidden flex flex-col transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              onClick={() => {
+                trackStudioTypeSelected(mode.title === 'Product Shot' ? 'product-shot' : 'model-shot');
+                navigate(mode.route);
+              }}
+              className="group relative marta-frame overflow-hidden flex flex-col transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)] cursor-pointer"
             >
               {/* Image */}
               <div className="relative aspect-[3/2] overflow-hidden">
@@ -91,10 +95,6 @@ export default function StudioTypeSelection() {
                   {mode.description}
                 </p>
                 <button
-                  onClick={() => {
-                    trackStudioTypeSelected(mode.title === 'Product Shot' ? 'product-shot' : 'model-shot');
-                    navigate(mode.route);
-                  }}
                   className="mt-4 md:mt-5 px-6 py-2.5 bg-formanova-hero-accent text-primary-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-300 hover:opacity-90"
                 >
                   Continue
