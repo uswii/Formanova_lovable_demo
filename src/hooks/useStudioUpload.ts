@@ -44,7 +44,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { trackJewelryUploaded, trackValidationFlagged, trackModelSelected } from '@/lib/posthog-events';
+import { trackJewelryUploaded, trackValidationFlagged, trackModelSelected, trackInspirationSelected } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import type { PresetModel } from '@/lib/models-api';
 import type { UserModel } from '@/components/studio/ModelCard';
@@ -212,11 +212,21 @@ export function useStudioUpload({
     setCustomModelImage(null);
     setCustomModelFile(null);
     setModelAssetId(null);
-    trackModelSelected({
-      category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-      model_type: 'catalog',
-    });
-  }, [effectiveJewelryType, setSelectedModel, setCustomModelImage, setCustomModelFile, setModelAssetId]);
+    const singularCategory = TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType;
+    if (isProductShot) {
+      trackInspirationSelected({
+        category: singularCategory,
+        inspiration_id: model.id,
+        inspiration_label: model.label,
+        inspiration_category: model.category ?? null,
+      });
+    } else {
+      trackModelSelected({
+        category: singularCategory,
+        model_type: 'catalog',
+      });
+    }
+  }, [isProductShot, effectiveJewelryType, setSelectedModel, setCustomModelImage, setCustomModelFile, setModelAssetId]);
 
   return {
     handleJewelryUpload,

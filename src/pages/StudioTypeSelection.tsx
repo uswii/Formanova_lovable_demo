@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { trackStudioTypeSelected } from '@/lib/posthog-events';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
@@ -90,7 +91,10 @@ export default function StudioTypeSelection() {
                   {mode.description}
                 </p>
                 <button
-                  onClick={() => navigate(mode.route)}
+                  onClick={() => {
+                    trackStudioTypeSelected(mode.title === 'Product Shot' ? 'product-shot' : 'model-shot');
+                    navigate(mode.route);
+                  }}
                   className="mt-4 md:mt-5 px-6 py-2.5 bg-formanova-hero-accent text-primary-foreground font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-300 hover:opacity-90"
                 >
                   Continue
