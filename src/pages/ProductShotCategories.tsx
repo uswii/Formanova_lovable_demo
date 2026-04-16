@@ -46,6 +46,7 @@ const ProductShotCategories = () => {
     trackCategorySelected({
       category: TO_SINGULAR[category.id] ?? category.id,
       is_first_selection: isFirst,
+      mode: 'product-shot',
     });
     navigate(`/studio/${category.id}`, { state: { mode: 'product-shot' } });
   };

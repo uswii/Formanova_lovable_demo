@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { trackStudioModeSwitched } from '@/lib/posthog-events';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
@@ -42,7 +43,7 @@ export function StudioHeader({
       {(
         <div className="flex items-center border border-formanova-hero-accent/40 shadow-[0_0_20px_-4px_hsl(var(--formanova-hero-accent)/0.3)]">
           <button
-            onClick={() => setIsProductShot(false)}
+            onClick={() => { trackStudioModeSwitched('model-shot'); setIsProductShot(false); }}
             className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
               !isProductShot
                 ? 'bg-formanova-hero-accent text-primary-foreground'
@@ -52,7 +53,7 @@ export function StudioHeader({
             Model Shot
           </button>
           <button
-            onClick={() => setIsProductShot(true)}
+            onClick={() => { trackStudioModeSwitched('product-shot'); setIsProductShot(true); }}
             className={`w-40 py-2.5 font-mono text-xs tracking-[0.18em] uppercase font-bold text-center transition-all duration-200 ${
               isProductShot
                 ? 'bg-formanova-hero-accent text-primary-foreground'

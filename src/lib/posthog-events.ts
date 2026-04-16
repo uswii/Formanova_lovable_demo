@@ -30,6 +30,7 @@ export type UserProfession = 'jewelry_brand' | 'freelancer' | 'researcher_studen
 export interface CategorySelectedProps {
   category: string;
   is_first_selection: boolean;
+  mode?: 'product-shot' | 'model-shot';
 }
 
 export interface JewelryUploadedProps {
@@ -100,6 +101,14 @@ export function trackUploadGuideAcknowledged() {
   capture('upload_guide_acknowledged');
 }
 
+export function trackProductShotGuideViewed() {
+  capture('product_shot_guide_viewed');
+}
+
+export function trackProductShotGuideAcknowledged() {
+  capture('product_shot_guide_acknowledged');
+}
+
 export function trackUserTypeSelected(props: UserTypeSelectedProps) {
   capture('user_type_selected', { ...props });
   if (posthog.__loaded) posthog.setPersonProperties({ user_type: props.user_type });
@@ -124,6 +133,14 @@ export function trackLogout() {
 
 export function trackStudioOpen(category: string) {
   capture('studio_opened', { category });
+}
+
+export function trackStudioTypeSelected(mode: 'product-shot' | 'model-shot') {
+  capture('studio_type_selected', { mode });
+}
+
+export function trackStudioModeSwitched(mode: 'product-shot' | 'model-shot') {
+  capture('studio_mode_switched', { mode });
 }
 
 export function trackBatchSubmit(imageCount: number, category: string) {
@@ -163,6 +180,10 @@ export function trackValidationFlagged(props: ValidationFlaggedProps) {
 
 export function trackModelSelected(props: ModelSelectedProps) {
   capture('model_selected', { ...props });
+}
+
+export function trackInspirationSelected(props: { category: string; inspiration_id: string; inspiration_label: string; inspiration_category: string | null }) {
+  capture('inspiration_selected', { ...props });
 }
 
 export function trackPaywallHit(props: PaywallHitProps) {

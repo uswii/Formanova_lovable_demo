@@ -21,7 +21,7 @@ import {
   isProductShotGuideSeen,
   markProductShotGuideSeenLocal,
 } from '@/lib/onboarding-api';
-import { trackUploadGuideViewed, trackUploadGuideAcknowledged } from '@/lib/posthog-events';
+import { trackUploadGuideViewed, trackUploadGuideAcknowledged, trackProductShotGuideViewed, trackProductShotGuideAcknowledged } from '@/lib/posthog-events';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
@@ -93,9 +93,11 @@ export function useStudioOnboarding({
           return;
         }
         setProductShotGuideOpen(true);
+        trackProductShotGuideViewed();
       })
       .catch(() => {
         setProductShotGuideOpen(true);
+        trackProductShotGuideViewed();
       });
   }, [currentStep, initializing, isProductShot, user?.email, user?.id]);
 
@@ -104,6 +106,7 @@ export function useStudioOnboarding({
     if (!user) return;
     markProductShotGuideSeenLocal(user.id);
     markProductShotGuideSeen().catch(() => {});
+    trackProductShotGuideAcknowledged();
   }, [user]);
 
   return {
