@@ -64,6 +64,7 @@ const UnifiedStudio = lazyWithRetry(() => import("./pages/UnifiedStudio"));
 const CADStudio = lazyWithRetry(() => import("./pages/CADStudio"));
 const CADToCatalog = lazyWithRetry(() => import("./pages/CADToCatalog"));
 const TextToCAD = lazyWithRetry(() => import("./pages/TextToCAD"));
+const SketchToCAD = lazyWithRetry(() => import("./pages/SketchToCAD"));
 const Generations = lazyWithRetry(() => import("./pages/Generations"));
 const Credits = lazyWithRetry(() => import("./pages/Credits"));
 const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
@@ -230,6 +231,7 @@ const App = () => (
                   <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
+                  <Route path="/sketch-to-cad" element={<ProtectedRoute><CADGate><SketchToCAD /></CADGate></ProtectedRoute>} />
                   
                   {/* Admin routes */}
                   <Route path="/admin" element={<AdminRouteGuard><AdminLayout /></AdminRouteGuard>}>

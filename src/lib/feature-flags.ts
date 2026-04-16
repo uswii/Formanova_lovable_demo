@@ -48,6 +48,16 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 }
 
 /**
+ * Sketch-to-CAD feature gate.
+ * Owner: uswa@raresense.so
+ * Reason: new feature — rolling out to allowlist before GA
+ * Removal condition: delete once fully launched to all users
+ */
+export function isSketchToCadEnabled(email: string | undefined | null): boolean {
+  return isAllowlistedEmail(email, 'VITE_SKETCH_TO_CAD_ALLOWLIST_EMAILS');
+}
+
+/**
  * "What best describes you?" onboarding screen — enabled for all users.
  */
 /**

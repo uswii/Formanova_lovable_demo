@@ -194,6 +194,15 @@ export function trackCadGenerationCompleted(props: CadGenerationCompletedProps) 
   capture('cad_generation_completed', { ...props });
 }
 
+export interface SketchToCadCompletedProps {
+  sketch_count: number;
+  duration_ms: number;
+}
+
+export function trackSketchToCadCompleted(props: SketchToCadCompletedProps) {
+  capture('sketch_to_cad_completed', { ...props });
+}
+
 // ═══════ Conversion / Checkout ══════════════════════════════════════
 
 export function trackCheckoutStart(plan?: string) {
