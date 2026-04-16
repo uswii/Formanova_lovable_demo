@@ -253,14 +253,8 @@ export function StudioVaultUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  // Product shot: server-side pdp filter (accurate pagination).
-  // Model shot: fetch all, then exclude pdp client-side (untagged items are treated as on_model).
-  // Show all: no filter.
-  const intendedUse = (!showAll && isProductShot) ? 'pdp' : undefined;
-  const { assets: rawAssets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
-  const assets = (!showAll && !isProductShot)
-    ? rawAssets.filter(a => a.metadata?.['intended_use'] !== 'pdp')
-    : rawAssets;
+  const intendedUse = showAll ? undefined : isProductShot ? 'pdp' : 'on_model';
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
