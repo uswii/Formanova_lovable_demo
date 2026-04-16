@@ -253,17 +253,8 @@ export function StudioVaultUploadStep({
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
-  const { assets: rawAssets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, undefined);
-
-  // Client-side intended_use filter:
-  // - show all: no filter (cross-boundary access)
-  // - product shot: only 'pdp' tagged
-  // - model shot: only 'on_model' tagged
-  const assets = showAll
-    ? rawAssets
-    : isProductShot
-      ? rawAssets.filter(a => a.metadata?.['intended_use'] === 'pdp')
-      : rawAssets.filter(a => a.metadata?.['intended_use'] === 'on_model');
+  const intendedUse = showAll ? undefined : isProductShot ? 'pdp' : 'on_model';
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, activeCategory, intendedUse);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -498,7 +489,7 @@ export function StudioVaultUploadStep({
               </div>
             )}
 
-            {!isLoading && !error && showAll && totalPages > 1 && (
+            {!isLoading && !error && totalPages > 1 && (
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(page - 1)}
