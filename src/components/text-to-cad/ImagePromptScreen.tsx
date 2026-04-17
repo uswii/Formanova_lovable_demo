@@ -24,7 +24,7 @@ const EXAMPLE_DESIGNS = [
   },
   {
     image: cadExample4,
-    prompt: "Wide dome cluster ring with central oval stone surrounded by six oval accent stones in circular arrangement, filigree openwork shoulders, thin plain band",
+    prompt: "Wide dome cluster ring, oval center stone surrounded by six oval accents, filigree openwork shoulders",
   },
 ];
 

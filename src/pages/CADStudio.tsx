@@ -7,8 +7,8 @@ import imageToCadImg from "@/assets/examples/cad-example-1.webp";
 
 const cadFeatures = [
   {
-    title: "Generate CAD Design",
-    description: "Generate jewelry CAD designs from a text prompt.",
+    title: "Text to CAD",
+    description: "Generate jewelry CAD concepts from text prompts.",
     route: "/text-to-cad",
     comingSoon: false,
     icon: Layers,
