@@ -94,7 +94,7 @@ export default function SketchToCAD() {
                   Image to CAD
                 </h1>
                 <p className="text-muted-foreground mt-1.5 text-sm">
-                  Upload a clear image of your ring — sketch, drawing, or reference photo
+                  Upload a clear image of your ring sketch, drawing, or reference photo
                 </p>
               </div>
 
@@ -184,7 +184,7 @@ export default function SketchToCAD() {
 
               <div className={`border border-border/30 flex flex-col overflow-hidden ${CANVAS_H}`}>
                 <p className="px-12 pt-3 pb-2 text-lg font-bold text-foreground flex-shrink-0">
-                  What makes a good sketch?
+                  Recommended input photos for best results
                 </p>
                 <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
                   <div className="grid grid-cols-2 gap-4">
