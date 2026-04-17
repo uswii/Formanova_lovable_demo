@@ -37,14 +37,17 @@ interface ImagePromptScreenProps {
   creditBlock?: React.ReactNode;
   referenceImagePreviewUrl: string | null;
   onReferenceImageChange: (file: File | null, previewUrl: string | null) => void;
+  onGlbUpload?: (file: File) => void;
 }
 
 export default function ImagePromptScreen({
   model, prompt, setPrompt,
   isGenerating, onGenerate, creditBlock,
   referenceImagePreviewUrl, onReferenceImageChange,
+  onGlbUpload,
 }: ImagePromptScreenProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const glbInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -298,6 +301,25 @@ export default function ImagePromptScreen({
             ))}
           </div>
         </div>
+
+        {/* Upload GLB — gated */}
+        {onGlbUpload && (
+          <div className="mt-4 text-center">
+            <input
+              ref={glbInputRef}
+              type="file"
+              accept=".glb,.gltf"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onGlbUpload(f); e.target.value = ""; }}
+            />
+            <button
+              onClick={() => glbInputRef.current?.click()}
+              className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer underline underline-offset-4 decoration-border hover:decoration-foreground"
+            >
+              Or upload a CAD file (.glb)
+            </button>
+          </div>
+        )}
       </motion.div>
     </div>
   );

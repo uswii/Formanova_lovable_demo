@@ -33,6 +33,7 @@ import { getStoredToken } from "@/lib/auth-api";
 import ImagePromptScreen from "@/components/text-to-cad/ImagePromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { isCadUploadEnabled } from "@/lib/feature-flags";
 
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
@@ -71,6 +72,7 @@ export default function ImageToCAD() {
   const [searchParams] = useSearchParams();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
+  const showCadUpload = isCadUploadEnabled(user?.email);
 
   const [model] = useState("gemini");
   const [prompt, setPrompt] = useState("");
@@ -722,6 +724,7 @@ export default function ImageToCAD() {
           onGenerate={simulateGeneration}
           referenceImagePreviewUrl={referenceImagePreviewUrl}
           onReferenceImageChange={handleReferenceImageChange}
+          onGlbUpload={showCadUpload ? (file) => { setWorkspaceActive(true); setHasModel(true); setIsModelLoading(true); setProgressStep("_loading"); const url = URL.createObjectURL(file); setGlbUrl(url); } : undefined}
           creditBlock={creditBlock ? (
             <InsufficientCreditsInline
               currentBalance={creditBlock.currentBalance}
@@ -768,6 +771,9 @@ export default function ImageToCAD() {
               }}
               onGlbUpload={() => {}}
               onReset={hasModel ? handleReset : undefined}
+              pageTitle="Image to CAD"
+              referenceImagePreviewUrl={referenceImagePreviewUrl}
+              onClearReferenceImage={() => handleReferenceImageChange(null, null)}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
