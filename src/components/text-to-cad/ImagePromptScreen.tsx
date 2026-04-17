@@ -228,7 +228,7 @@ export default function ImagePromptScreen({
               </div>
               <div>
                 <p className="font-display text-lg tracking-[0.15em] text-foreground uppercase">
-                  Drop your ring image here
+                  Drop your ring image or sketch
                 </p>
                 <p className="font-mono text-[10px] text-muted-foreground mt-1.5 tracking-wide">
                   Drag &amp; drop · click to browse
