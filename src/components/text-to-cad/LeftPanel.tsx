@@ -57,7 +57,7 @@ export default function LeftPanel({
       {/* Header */}
       <div className="px-4 lg:px-6 pt-6 pb-5 border-b border-border min-w-0">
         <h1 className="font-display text-xl lg:text-2xl tracking-[0.15em] text-foreground uppercase truncate">
-          Text‑to‑3D Jewelry
+          Generate CAD Design
         </h1>
       </div>
 
