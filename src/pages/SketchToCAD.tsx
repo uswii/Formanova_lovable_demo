@@ -60,7 +60,7 @@ export default function SketchToCAD() {
       navigate(`/text-to-cad?glb=${encodeURIComponent(result.glbUrl)}&workflow=${encodeURIComponent(result.workflowId)}`);
     },
     onFailed: () => {
-      setProgressStep("failed");
+      setProgressStep("failed_final");
     },
   });
 
@@ -296,7 +296,7 @@ export default function SketchToCAD() {
               {/* Prompt — auto-populated from upload screen */}
               <div>
                 <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-                  Design notes
+                  Design Prompt (Optional)
                 </h3>
                 <textarea
                   value={prompt}
@@ -373,7 +373,7 @@ export default function SketchToCAD() {
             </div>
 
             {/* Empty viewport state */}
-            {!isGenerating && (
+            {!isGenerating && progressStep !== "failed_final" && (
               <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
@@ -388,9 +388,10 @@ export default function SketchToCAD() {
 
             {/* Generation progress */}
             <GenerationProgress
-              visible={isGenerating}
+              visible={isGenerating || progressStep === "failed_final"}
               currentStep={progressStep}
               retryAttempt={retryAttempt}
+              onRetry={() => { setProgressStep("generate_from_sketch"); handleGenerate(); }}
             />
           </div>
         </ResizablePanel>
