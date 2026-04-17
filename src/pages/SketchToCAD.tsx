@@ -112,13 +112,13 @@ export default function SketchToCAD() {
                       <Diamond className="h-9 w-9 text-primary" />
                     </div>
                   </div>
-                  <p className="text-lg font-display font-medium mb-1.5">Drop your sketch here</p>
+                  <p className="text-lg font-display font-medium mb-1.5">Drop your ring image here</p>
                   <p className="text-sm text-muted-foreground mb-6">
                     Drag &amp; drop · click to browse · paste (Ctrl+V)
                   </p>
                   <Button variant="outline" size="lg" className="gap-2 pointer-events-none">
                     <ImageIcon className="h-4 w-4" />
-                    Browse sketch files
+                    Browse ring files
                   </Button>
                   <input
                     ref={fileInputRef}
