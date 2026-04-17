@@ -177,12 +177,12 @@ export default function ImagePromptScreen({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
-          className={`relative w-full border flex items-center justify-center transition-all duration-200 mb-3 ${
+          className={`relative w-full border-2 flex items-center justify-center transition-all duration-200 mb-3 ${
             referenceImagePreviewUrl
               ? "border-primary/40 bg-muted/10"
               : isDragging
                 ? "border-primary bg-primary/5"
-                : "border-border hover:border-foreground/20 hover:bg-accent/20 bg-muted/10"
+                : "border-foreground/30 hover:border-foreground/50 hover:bg-accent/20 bg-muted/10"
           } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
           style={{ minHeight: 240 }}
         >
@@ -233,15 +233,15 @@ export default function ImagePromptScreen({
         </div>
 
         {/* Text prompt — secondary */}
-        <div className="relative mb-3">
+        <div className="relative mb-3 opacity-40 focus-within:opacity-100 transition-opacity duration-200">
           <textarea
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Optional — describe additional details or changes"
+            placeholder="Optionally describe your design"
             rows={2}
-            className="w-full min-h-[70px] max-h-[200px] px-5 py-3 pb-8 text-[14px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            className="w-full min-h-[70px] max-h-[200px] px-5 py-3 pb-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
           />
           {prompt.length > 0 && (
             <button
