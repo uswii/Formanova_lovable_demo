@@ -1,7 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Diamond, X, Check, Loader2, Lightbulb, ImageIcon, ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  Diamond, X, Check, Loader2, Lightbulb, ImageIcon,
+  ArrowRight, PanelLeftClose, PanelLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 import { useSketchToCadGeneration } from "@/hooks/use-sketch-to-cad-generation";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
@@ -18,7 +23,9 @@ const CANVAS_H = "h-[500px] md:h-[640px]";
 export default function SketchToCAD() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const [step, setStep] = useState<"upload" | "review">("upload");
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [sketchFile, setSketchFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -129,7 +136,6 @@ export default function SketchToCAD() {
                     </div>
                   </div>
 
-                  {/* Optional prompt — collected here, carried into review screen */}
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -205,100 +211,159 @@ export default function SketchToCAD() {
     );
   }
 
-  /* ─── REVIEW SCREEN ──────────────────────────────────────────────────────── */
+  /* ─── REVIEW SCREEN — same viewport layout as TextToCAD ─────────────────── */
   return (
-    <div className="min-h-[calc(100dvh-5rem)] bg-background flex items-center justify-center">
-      <div className="w-full max-w-[680px] px-6 py-8">
+    <div
+      className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background"
+      tabIndex={-1}
+    >
+      <ResizablePanelGroup direction="horizontal" className="h-full">
 
-        {/* Back */}
-        <button
-          onClick={() => setStep("upload")}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        {/* Left panel — sketch details + generate */}
+        <ResizablePanel
+          ref={leftPanelRef}
+          id="sketch-left-panel"
+          order={1}
+          defaultSize={25}
+          minSize={18}
+          maxSize={40}
+          collapsible
+          onCollapse={() => setLeftCollapsed(true)}
+          onExpand={() => setLeftCollapsed(false)}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
+          <div className="flex flex-col bg-card border-r border-border h-full min-w-0 overflow-hidden">
+            {/* Header */}
+            <div className="px-4 lg:px-6 pt-6 pb-5 border-b border-border min-w-0">
+              <h1 className="font-display text-xl lg:text-2xl tracking-[0.15em] text-foreground uppercase truncate">
+                Sketch to CAD
+              </h1>
+            </div>
 
-        {/* Title */}
-        <div className="text-center mb-6">
-          <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-2">
-            Sketch to CAD
-          </h1>
-          <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Review your sketch and generate a 3D model
-          </p>
-        </div>
+            {/* Body */}
+            <div
+              className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-4 min-w-0"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {/* Sketch thumbnail — object-contain, no crop */}
+              <div className="border border-border/40 bg-muted/10 flex items-center justify-center relative" style={{ height: 200 }}>
+                <img
+                  src={previewUrl ?? undefined}
+                  alt="Your sketch"
+                  className="max-w-full max-h-full object-contain"
+                  style={{ maxHeight: 200 }}
+                />
+                <button
+                  onClick={handleClear}
+                  className="absolute top-2 right-2 w-6 h-6 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  title="Remove sketch"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
 
-        {/* Sketch thumbnail — object-contain, no crop */}
-        <div className="mb-3 border border-border/40 bg-muted/20 flex items-center justify-center" style={{ height: 260 }}>
-          <img
-            src={previewUrl ?? undefined}
-            alt="Your sketch"
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 260 }}
-          />
-        </div>
+              {/* Prompt — auto-populated from upload screen */}
+              <div>
+                <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                  Design notes
+                </h3>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Optional: describe your design (e.g. rose gold, add diamond accents, pave setting)"
+                  rows={3}
+                  disabled={isGenerating}
+                  className="w-full px-3 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border disabled:opacity-50"
+                />
+              </div>
 
-        {/* Prompt — auto-populated from step 1 */}
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Optional: describe your design (e.g. rose gold, add diamond accents, pave setting)"
-          rows={2}
-          disabled={isGenerating}
-          className="w-full mb-3 px-4 py-3 text-[13px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border/40 disabled:opacity-50"
-        />
+              {/* Credit block */}
+              {creditBlock && (
+                <InsufficientCreditsInline
+                  currentBalance={creditBlock.currentBalance}
+                  requiredCredits={creditBlock.estimatedCredits}
+                  onDismiss={() => setCreditBlock(null)}
+                />
+              )}
 
-        {/* Credit block */}
-        {creditBlock && (
-          <div className="mb-3">
-            <InsufficientCreditsInline
-              currentBalance={creditBlock.currentBalance}
-              requiredCredits={creditBlock.estimatedCredits}
-              onDismiss={() => setCreditBlock(null)}
+              {/* Generate button */}
+              {!creditBlock && (
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !sketchFile}
+                  className="w-full py-3.5 text-[13px] font-bold uppercase tracking-[0.2em] transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Diamond className="w-4 h-4" />
+                      Generate 3D Ring
+                      <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                        <span className="font-mono text-[13px] font-semibold">&le;</span>
+                        <img src={creditCoinIcon} alt="" className="w-5 h-5" />
+                        <span className="font-mono text-[13px] font-semibold">
+                          {costLoading ? "..." : (estimatedCost !== null ? estimatedCost : "--")}
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Viewport */}
+        <ResizablePanel id="sketch-viewport-panel" order={2} defaultSize={75} minSize={30}>
+          <div
+            className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
+            style={{ background: "#000000" }}
+          >
+            {/* Panel collapse toggle */}
+            <div className="absolute top-3 left-3 z-20 flex gap-1">
+              <button
+                onClick={() => {
+                  const panel = leftPanelRef.current;
+                  if (!panel) return;
+                  leftCollapsed ? panel.expand() : panel.collapse();
+                }}
+                className="w-7 h-7 flex items-center justify-center bg-background/20 hover:bg-background/40 backdrop-blur-sm transition-colors border border-white/10"
+              >
+                {leftCollapsed
+                  ? <PanelLeft className="w-4 h-4 text-foreground/70" />
+                  : <PanelLeftClose className="w-4 h-4 text-foreground/70" />}
+              </button>
+            </div>
+
+            {/* Empty viewport state */}
+            {!isGenerating && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
+                    Ready for Generation
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground/25 tracking-[0.15em] uppercase">
+                    3D model will appear here
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Generation progress */}
+            <GenerationProgress
+              visible={isGenerating}
+              currentStep={progressStep}
+              retryAttempt={retryAttempt}
             />
           </div>
-        )}
+        </ResizablePanel>
 
-        {/* Generate button */}
-        {!creditBlock && (
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || !sketchFile}
-            className="w-full py-4 text-[13px] font-bold uppercase tracking-[0.2em] transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Diamond className="w-4 h-4" />
-                Generate 3D Ring
-                <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                  <span className="font-mono text-[13px] font-semibold">&le;</span>
-                  <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="font-mono text-[13px] font-semibold">
-                    {costLoading ? "..." : (estimatedCost !== null ? estimatedCost : "--")}
-                  </span>
-                </span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Generation overlay */}
-      {isGenerating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <GenerationProgress
-            visible={isGenerating}
-            currentStep={progressStep}
-            retryAttempt={retryAttempt}
-          />
-        </div>
-      )}
+      </ResizablePanelGroup>
     </div>
   );
 }
