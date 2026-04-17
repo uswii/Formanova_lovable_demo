@@ -91,21 +91,6 @@ export default function LeftPanel({
         </section>
         */}
 
-        {/* Reference image preview */}
-        {referenceImagePreviewUrl && (
-          <section>
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Reference Image</h3>
-            <div className="border border-border bg-muted/10 flex items-center justify-center overflow-hidden" style={{ maxHeight: 140 }}>
-              <img
-                src={referenceImagePreviewUrl}
-                alt="Reference ring"
-                className="w-full h-full object-contain"
-                style={{ maxHeight: 140 }}
-              />
-            </div>
-          </section>
-        )}
-
         {/* Prompt */}
         <section>
         <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Describe Your Ring</h3>

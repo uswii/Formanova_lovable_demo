@@ -1,26 +1,26 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, Camera } from "lucide-react";
+import { ArrowRight, Layers, ImageIcon } from "lucide-react";
 
 import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
-import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
+import imageToCadImg from "@/assets/examples/cad-example-1.webp";
 
 const cadFeatures = [
   {
     title: "Generate CAD Design",
-    description: "Generate jewelry CAD designs from a photo or text prompt.",
+    description: "Generate jewelry CAD designs from a text prompt.",
     route: "/text-to-cad",
     comingSoon: false,
     icon: Layers,
     image: textToCadImg,
   },
   {
-    title: "CAD to Catalog",
-    description: "Turn CAD files into catalog-ready product visuals.",
-    route: "/cad-to-catalog",
-    comingSoon: true,
-    icon: Camera,
-    image: cadToCatalogImg,
+    title: "Generate 3D Ring",
+    description: "Upload a photo or sketch and generate a 3D ring from your design.",
+    route: "/image-to-cad",
+    comingSoon: false,
+    icon: ImageIcon,
+    image: imageToCadImg,
   },
 ];
 
