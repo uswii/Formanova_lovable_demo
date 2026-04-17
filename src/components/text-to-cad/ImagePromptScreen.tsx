@@ -180,12 +180,12 @@ export default function ImagePromptScreen({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
-          className={`relative w-full border-2 flex items-center justify-center transition-all duration-200 mb-3 ${
+          className={`relative w-full border border-dashed flex items-center justify-center transition-all duration-200 mb-3 ${
             referenceImagePreviewUrl
-              ? "border-primary/40 bg-muted/10"
+              ? "border-border/40 bg-muted/10"
               : isDragging
-                ? "border-primary bg-primary/5"
-                : "border-foreground/30 hover:border-foreground/50 hover:bg-accent/20 bg-muted/10"
+                ? "border-foreground/40 bg-foreground/5"
+                : "border-border/40 hover:border-foreground/40 hover:bg-foreground/5"
           } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
           style={{ minHeight: 240 }}
         >
@@ -219,21 +219,21 @@ export default function ImagePromptScreen({
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-4 text-center px-6 py-12">
-              <span className="w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_24px_hsl(var(--primary)/0.5),0_0_48px_hsl(var(--primary)/0.2)] text-primary">
-                <Diamond className="h-8 w-8" />
-              </span>
+            <div className="flex flex-col items-center gap-4 text-center px-6 py-10">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
+                  <Diamond className="h-8 w-8 text-primary" />
+                </div>
+              </div>
               <div>
-                <p className="font-display text-xl tracking-[0.2em] text-foreground uppercase">
-                  Upload Your Design
+                <p className="font-display text-lg tracking-[0.15em] text-foreground uppercase">
+                  Drop your ring image here
                 </p>
-                <p className="font-mono text-[10px] text-muted-foreground/60 mt-1.5 tracking-[0.12em] uppercase">
-                  Sketch, photo, or reference image
+                <p className="font-mono text-[10px] text-muted-foreground mt-1.5 tracking-wide">
+                  Drag &amp; drop · click to browse
                 </p>
               </div>
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/70 border border-primary/30 px-3 py-1 bg-primary/5">
-                Click or drag to upload
-              </span>
             </div>
           )}
         </div>
@@ -247,7 +247,7 @@ export default function ImagePromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Add optional description"
             rows={2}
-            className={`w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 overflow-y-auto ${referenceImagePreviewUrl ? "border-2 border-foreground/30" : "border border-border"}`}
+            className="w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-dashed border-border/40 overflow-y-auto"
           />
           {prompt.length > 0 && (
             <button
