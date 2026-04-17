@@ -49,7 +49,6 @@ export default function SketchToCAD() {
   const handleClear = useCallback(() => {
     setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setSketchFile(null);
-    setStep("upload");
   }, []);
 
   const { generate, isGenerating, creditBlock, setCreditBlock } = useSketchToCadGeneration({
@@ -159,11 +158,12 @@ export default function SketchToCAD() {
                   <div className="flex items-center justify-end">
                     <Button
                       size="lg"
-                      onClick={() => setStep("review")}
-                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+                      onClick={() => { setStep("review"); handleGenerate(); }}
+                      disabled={isGenerating}
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60"
                     >
-                      Next
-                      <ArrowRight className="h-4 w-4" />
+                      <Diamond className="h-4 w-4" />
+                      Generate 3D Ring
                     </Button>
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export default function SketchToCAD() {
                 <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
                   <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    <span className="font-bold text-foreground">Hint tip:</span> Use the prompt field to add material preferences like "rose gold" or "add diamonds."
+                    <span className="font-bold text-foreground">Hint tip:</span> Upload clear, high quality images for best results.
                   </p>
                 </div>
               </div>
@@ -254,22 +254,44 @@ export default function SketchToCAD() {
               className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-4 min-w-0"
               style={{ scrollbarWidth: "thin" }}
             >
-              {/* Sketch thumbnail — object-contain, no crop */}
-              <div className="border border-border/40 bg-muted/10 flex items-center justify-center relative" style={{ height: 200 }}>
-                <img
-                  src={previewUrl ?? undefined}
-                  alt="Your sketch"
-                  className="max-w-full max-h-full object-contain"
-                  style={{ maxHeight: 200 }}
-                />
-                <button
-                  onClick={handleClear}
-                  className="absolute top-2 right-2 w-6 h-6 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  title="Remove sketch"
+              {/* Sketch thumbnail or drop zone */}
+              {sketchFile ? (
+                <div className="border border-border/40 bg-muted/10 flex items-center justify-center relative" style={{ height: 200 }}>
+                  <img
+                    src={previewUrl ?? undefined}
+                    alt="Your sketch"
+                    className="max-w-full max-h-full object-contain"
+                    style={{ maxHeight: 200 }}
+                  />
+                  <button
+                    onClick={handleClear}
+                    className="absolute top-2 right-2 w-6 h-6 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    title="Remove sketch"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border border-dashed border-border/40 cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center gap-3"
+                  style={{ height: 200 }}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
+                    <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                      <Diamond className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 text-center">
+                    Upload ring image
+                  </p>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ""; }} />
+                </div>
+              )}
 
               {/* Prompt — auto-populated from upload screen */}
               <div>
@@ -279,7 +301,7 @@ export default function SketchToCAD() {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Optional: describe your design (e.g. rose gold, add diamond accents, pave setting)"
+                  placeholder="Optionally describe your design..."
                   rows={3}
                   disabled={isGenerating}
                   className="w-full px-3 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border disabled:opacity-50"
@@ -332,7 +354,7 @@ export default function SketchToCAD() {
         <ResizablePanel id="sketch-viewport-panel" order={2} defaultSize={75} minSize={30}>
           <div
             className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
-            style={{ background: "#000000" }}
+            style={{ background: "#f5f5f3" }}
           >
             {/* Panel collapse toggle */}
             <div className="absolute top-3 left-3 z-20 flex gap-1">
