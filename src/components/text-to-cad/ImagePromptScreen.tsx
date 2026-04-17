@@ -219,18 +219,21 @@ export default function ImagePromptScreen({
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-3 text-center px-6 py-8">
-              <span className="w-12 h-12 rounded-full border border-primary/60 flex items-center justify-center shadow-[0_0_12px_hsl(var(--primary)/0.35)] text-primary">
-                <Diamond className="h-6 w-6" />
+            <div className="flex flex-col items-center gap-4 text-center px-6 py-12">
+              <span className="w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_24px_hsl(var(--primary)/0.5),0_0_48px_hsl(var(--primary)/0.2)] text-primary">
+                <Diamond className="h-8 w-8" />
               </span>
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-                  Upload or drop a photo
+                <p className="font-display text-xl tracking-[0.2em] text-foreground uppercase">
+                  Upload Your Design
                 </p>
-                <p className="font-mono text-[9px] text-muted-foreground/50 mt-1 tracking-wide">
+                <p className="font-mono text-[10px] text-muted-foreground/60 mt-1.5 tracking-[0.12em] uppercase">
                   Sketch, photo, or reference image
                 </p>
               </div>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/70 border border-primary/30 px-3 py-1 bg-primary/5">
+                Click or drag to upload
+              </span>
             </div>
           )}
         </div>
