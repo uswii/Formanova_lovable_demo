@@ -194,10 +194,10 @@ export default function ImagePromptScreen({
           onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
           className={`relative w-full border border-dashed flex items-center justify-center transition-all duration-200 mb-3 ${
             referenceImagePreviewUrl
-              ? "border-border/40 bg-muted/10"
+              ? "border-border bg-muted/10"
               : isDragging
-                ? "border-foreground/40 bg-foreground/5"
-                : "border-border/40 hover:border-foreground/40 hover:bg-foreground/5"
+                ? "border-border bg-foreground/5"
+                : "border-border hover:border-foreground/60 hover:bg-foreground/5"
           } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
           style={{ minHeight: 240 }}
         >
@@ -262,7 +262,7 @@ export default function ImagePromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Add optional description"
             rows={2}
-            className="w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-dashed border-border/40 overflow-y-auto"
+            className="w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-border bg-muted/20 border border-dashed border-border overflow-y-auto"
           />
           {prompt.length > 0 && (
             <button
