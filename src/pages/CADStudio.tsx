@@ -15,7 +15,7 @@ const cadFeatures = [
     image: textToCadImg,
   },
   {
-    title: "Generate 3D Ring",
+    title: "Image to CAD",
     description: "Upload a photo or sketch and generate a 3D ring from your design.",
     route: "/image-to-cad",
     comingSoon: false,
