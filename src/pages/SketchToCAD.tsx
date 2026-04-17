@@ -13,10 +13,12 @@ import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { SKETCH_TO_CAD_WORKFLOW } from "@/lib/sketch-to-cad-workflows";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import ringAllowed1 from "@/assets/examples/ring-allowed-1.webp";
-import ringAllowed2 from "@/assets/examples/ring-allowed-2.webp";
-import ringNotAllowed1 from "@/assets/examples/ring-notallowed-1.webp";
-import ringNotAllowed2 from "@/assets/examples/ring-notallowed-2.webp";
+import sketchExample1 from "@/assets/examples/sketch-allowed-1.webp";
+import sketchExample2 from "@/assets/examples/sketch-allowed-2.webp";
+import sketchExample3 from "@/assets/examples/sketch-notallowed-1.webp";
+import sketchExample4 from "@/assets/examples/sketch-notallowed-2.webp";
+
+const SKETCH_EXAMPLES = [sketchExample1, sketchExample2, sketchExample3, sketchExample4];
 
 const CANVAS_H = "h-[500px] md:h-[640px]";
 
@@ -68,6 +70,16 @@ export default function SketchToCAD() {
     generate(sketchFile, prompt || undefined);
   }, [sketchFile, isGenerating, prompt, generate]);
 
+  const handleGuideImageLoad = useCallback(async (src: string) => {
+    try {
+      const resp = await fetch(src);
+      const blob = await resp.blob();
+      const filename = src.split('/').pop() || 'sketch.webp';
+      const file = new File([blob], filename, { type: blob.type || 'image/webp' });
+      handleFileSelect(file);
+    } catch { /* silently ignore */ }
+  }, [handleFileSelect]);
+
   /* ─── UPLOAD SCREEN ──────────────────────────────────────────────────────── */
   if (step === "upload") {
     return (
@@ -80,17 +92,17 @@ export default function SketchToCAD() {
               <div>
                 <span className="marta-label block mb-1">Step 1</span>
                 <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                  Upload Your Sketch
+                  Image to CAD
                 </h1>
                 <p className="text-muted-foreground mt-1.5 text-sm">
-                  Upload a clear sketch or drawing of your jewelry design
+                  Upload a clear image of your ring — sketch, drawing, or reference photo
                 </p>
               </div>
 
               {/* Empty drop zone */}
               {!sketchFile && (
                 <div
-                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
+                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { handleFileSelect(f); return; } const url = e.dataTransfer.getData('text/plain'); if (url) handleGuideImageLoad(url); }}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => fileInputRef.current?.click()}
                   className={`relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center ${CANVAS_H}`}
@@ -176,24 +188,22 @@ export default function SketchToCAD() {
                 </p>
                 <div className="px-12 flex-1 overflow-hidden flex flex-col justify-center">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-bold text-green-500">Do</span>
-                      <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
-                        <img src={ringAllowed1} alt="Good example" draggable={false} className="w-full h-full object-cover" />
+                    {SKETCH_EXAMPLES.map((src, i) => (
+                      <div
+                        key={i}
+                        draggable
+                        onClick={() => handleGuideImageLoad(src)}
+                        onDragStart={(e) => { e.dataTransfer.setData('text/plain', src); e.dataTransfer.effectAllowed = 'copy'; }}
+                        className="relative aspect-square overflow-hidden border border-border/30 bg-muted/20 cursor-grab active:cursor-grabbing group hover:border-foreground/40 transition-colors"
+                      >
+                        <img src={src} alt={`Sketch example ${i + 1}`} draggable={false} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors flex items-end justify-center pb-2">
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[9px] tracking-[0.15em] uppercase text-background bg-foreground/70 px-2 py-1">
+                            Use this
+                          </span>
+                        </div>
                       </div>
-                      <div className="relative aspect-square overflow-hidden border border-green-500/30 bg-muted/20">
-                        <img src={ringAllowed2} alt="Good example" draggable={false} className="w-full h-full object-cover" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-bold text-destructive">Don't</span>
-                      <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                        <img src={ringNotAllowed1} alt="Bad example" draggable={false} className="w-full h-full object-cover opacity-70" />
-                      </div>
-                      <div className="relative aspect-square overflow-hidden border border-destructive/30 bg-muted/20">
-                        <img src={ringNotAllowed2} alt="Bad example" draggable={false} className="w-full h-full object-cover opacity-70" />
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
                 <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
@@ -235,7 +245,7 @@ export default function SketchToCAD() {
             {/* Header */}
             <div className="px-4 lg:px-6 pt-6 pb-5 border-b border-border min-w-0">
               <h1 className="font-display text-xl lg:text-2xl tracking-[0.15em] text-foreground uppercase truncate">
-                Sketch to CAD
+                Image to CAD
               </h1>
             </div>
 
