@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, Maximize2 } from "lucide-react";
+import { Diamond, X, Maximize2, ImageIcon } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 
@@ -219,20 +219,23 @@ export default function ImagePromptScreen({
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-4 text-center px-6 py-10">
-              <div className="relative w-16 h-16">
+            <div className="flex flex-col items-center text-center px-6 py-10">
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-6">Sketch or photo</p>
+              <div className="relative mx-auto w-20 h-20 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
                 <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                  <Diamond className="h-8 w-8 text-primary" />
+                  <Diamond className="h-9 w-9 text-primary" />
                 </div>
               </div>
-              <div>
-                <p className="font-display text-lg tracking-[0.15em] text-foreground uppercase">
-                  Drop your ring image or sketch
-                </p>
-                <p className="font-mono text-[10px] text-muted-foreground mt-1.5 tracking-wide">
-                  Drag &amp; drop · click to browse
-                </p>
+              <p className="font-display text-lg tracking-[0.1em] text-foreground uppercase mb-1.5">
+                Drop your ring image or sketch here
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Drag &amp; drop · click to browse
+              </p>
+              <div className="flex items-center gap-2 px-5 py-2.5 border border-border text-[13px] text-muted-foreground pointer-events-none">
+                <ImageIcon className="h-4 w-4" />
+                Browse ring files
               </div>
             </div>
           )}
