@@ -241,7 +241,7 @@ export default function ImagePromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Optionally describe your design"
             rows={2}
-            className="w-full min-h-[70px] max-h-[200px] px-5 py-3 pb-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            className="w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
           />
           {prompt.length > 0 && (
             <button
