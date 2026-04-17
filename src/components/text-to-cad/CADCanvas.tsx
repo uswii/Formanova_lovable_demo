@@ -35,13 +35,13 @@ let _dragStartRotDeg: [number, number, number] | null = null;
 
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
-  color: new THREE.Color(0x00e5ff),
+  color: new THREE.Color(0xff6600),
   transparent: true,
   opacity: 0.35,
   depthWrite: false,
   roughness: 0.4,
   metalness: 0.1,
-  emissive: new THREE.Color(0x00bbcc),
+  emissive: new THREE.Color(0xcc4400),
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
