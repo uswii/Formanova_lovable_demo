@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { Diamond, X, Maximize2, ImageIcon } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
@@ -122,6 +123,17 @@ export default function ImagePromptScreen({
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [prompt]);
 
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith("image/"));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (file) handleImageFile(file);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [handleImageFile]);
+
   const canGenerate = !!referenceImagePreviewUrl;
 
   return (
@@ -231,12 +243,12 @@ export default function ImagePromptScreen({
                 Drop your ring image or sketch here
               </p>
               <p className="text-sm text-muted-foreground mb-6">
-                Drag &amp; drop · click to browse
+                Drag &amp; drop · click to browse · paste (Ctrl+V)
               </p>
-              <div className="flex items-center gap-2 px-5 py-2.5 border border-border text-[13px] text-muted-foreground pointer-events-none">
+              <Button variant="outline" size="lg" className="gap-2 pointer-events-none">
                 <ImageIcon className="h-4 w-4" />
                 Browse ring files
-              </div>
+              </Button>
             </div>
           )}
         </div>
