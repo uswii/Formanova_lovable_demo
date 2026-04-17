@@ -327,7 +327,7 @@ export default function SketchToCAD() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating...
+                      Generating 3D Ring...
                     </>
                   ) : (
                     <>
