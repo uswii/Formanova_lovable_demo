@@ -193,11 +193,9 @@ export default function ImagePromptScreen({
           onDrop={handleDrop}
           onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
           className={`relative w-full border flex items-center justify-center transition-all duration-200 mb-3 ${
-            referenceImagePreviewUrl
-              ? "border-border bg-muted/10"
-              : isDragging
-                ? "border-border bg-foreground/5"
-                : "border-border hover:border-foreground/60 hover:bg-foreground/5"
+            isDragging
+              ? "border-foreground/60 bg-foreground/5"
+              : "border-foreground/40 hover:border-foreground/60 hover:bg-foreground/5 bg-muted/10"
           } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
           style={{ minHeight: 240 }}
         >
