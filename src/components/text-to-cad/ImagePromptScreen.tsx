@@ -192,7 +192,7 @@ export default function ImagePromptScreen({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
-          className={`relative w-full border border-dashed flex items-center justify-center transition-all duration-200 mb-3 ${
+          className={`relative w-full border flex items-center justify-center transition-all duration-200 mb-3 ${
             referenceImagePreviewUrl
               ? "border-border bg-muted/10"
               : isDragging
@@ -261,7 +261,7 @@ export default function ImagePromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Add optional description"
             rows={2}
-            className={`w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none bg-muted/20 border border-dashed overflow-y-auto ${referenceImagePreviewUrl ? "border-border focus:ring-1 focus:ring-border" : "border-border/30 pointer-events-none"}`}
+            className={`w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none bg-muted/20 border overflow-y-auto ${referenceImagePreviewUrl ? "border-border focus:ring-1 focus:ring-border" : "border-border/30 pointer-events-none"}`}
           />
           {prompt.length > 0 && (
             <button
