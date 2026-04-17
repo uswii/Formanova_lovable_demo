@@ -163,20 +163,13 @@ export default function LeftPanel({
         {/* In image mode before model loads: show prompt as static text (if any), no textarea */}
         {!(isImageMode && !hasModel) && (
         <section>
-        {!isImageMode && (
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Describe Your Ring</h3>
-        )}
-          {/* In image mode after model loads: show original prompt as read-only, then the edit box below handles re-gen */}
-          {isImageMode && hasModel && prompt.trim() ? (
-            <p className="font-body text-[13px] text-foreground/70 leading-relaxed mb-3">{prompt}</p>
-          ) : !isImageMode && (
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Prompt</h3>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Example: Create a rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
-            className="w-full min-h-[100px] px-4 py-4 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-y font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/30 border border-border"
+            placeholder={isImageMode ? "Add optional description" : "Example: Create a rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"}
+            className="w-full min-h-[80px] px-4 py-3 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-y font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/30 border border-border"
           />
-          )}
 
           {/* Insufficient credits inline block */}
           {creditBlock && <div className="mt-4">{creditBlock}</div>}
