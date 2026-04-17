@@ -232,8 +232,7 @@ export default function ImagePromptScreen({
             </>
           ) : (
             <div className="flex flex-col items-center text-center px-6 py-10">
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-6">Sketch or photo</p>
-              <div className="relative mx-auto w-20 h-20 mb-6">
+<div className="relative mx-auto w-20 h-20 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
                 <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
                   <Diamond className="h-9 w-9 text-primary" />
