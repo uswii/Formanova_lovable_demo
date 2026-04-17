@@ -21,8 +21,10 @@ import {
 import {
   CAD_EDIT_WORKFLOW,
   CAD_GENERATION_WORKFLOW,
+  CAD_IMAGE_GENERATION_WORKFLOW,
   buildCadEditStartBody,
   buildCadGenerationStartBody,
+  buildImageCadStartBody,
 } from "@/lib/cad-workflows";
 import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
@@ -69,6 +71,8 @@ export default function TextToCAD() {
   
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referenceImagePreviewUrl, setReferenceImagePreviewUrl] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
@@ -121,7 +125,9 @@ export default function TextToCAD() {
   useEffect(() => {
     return () => {
       pollAbortRef.current?.abort();
+      if (referenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(referenceImagePreviewUrl);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Track browser fullscreen state
@@ -295,9 +301,14 @@ export default function TextToCAD() {
     }
   }, []);
 
+  const handleReferenceImageChange = useCallback((file: File | null, previewUrl: string | null) => {
+    setReferenceImage(file);
+    setReferenceImagePreviewUrl(previewUrl);
+  }, []);
+
   const simulateGeneration = useCallback(async () => {
     if (isGenerating) return;
-    if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
+    if (!prompt.trim() && !referenceImage) { toast.error("Please upload an image or describe your ring"); return; }
 
     const trimmed = prompt.trim().toLowerCase();
     const isDemo = trimmed === 'demo' || trimmed === 'test';
@@ -333,11 +344,12 @@ export default function TextToCAD() {
     }
 
     // ── Real generation ──
-    const modelKey = `${CAD_GENERATION_WORKFLOW}:${model}`;
+    const activeWorkflow = referenceImage ? CAD_IMAGE_GENERATION_WORKFLOW : CAD_GENERATION_WORKFLOW;
+    const modelKey = `${activeWorkflow}:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
     try {
       const tier = resolveCadGenerationTier(model);
-      const result = await performCreditPreflight(CAD_GENERATION_WORKFLOW, 1, {
+      const result = await performCreditPreflight(activeWorkflow, 1, {
         model,
         pricingContext: { tier },
       });
@@ -365,12 +377,27 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start generation
-      const startRes = await authenticatedFetch(`/api/run/${CAD_GENERATION_WORKFLOW}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadGenerationStartBody(prompt, model)),
-      });
+      // Step 1: Start generation (image or text route)
+      let startRes: Response;
+      if (referenceImage) {
+        const dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(referenceImage);
+        });
+        startRes = await authenticatedFetch(`/api/run/${CAD_IMAGE_GENERATION_WORKFLOW}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildImageCadStartBody(dataUri, prompt, model)),
+        });
+      } else {
+        startRes = await authenticatedFetch(`/api/run/${CAD_GENERATION_WORKFLOW}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildCadGenerationStartBody(prompt, model)),
+        });
+      }
 
       if (!startRes.ok) {
         const err = await startRes.json().catch(() => ({}));
@@ -452,7 +479,7 @@ export default function TextToCAD() {
       setProgressStep("");
       setGenerationFailed(true);
     }
-  }, [prompt, model, isGenerating]);
+  }, [prompt, model, isGenerating, referenceImage]);
 
   const runEditWithPrompt = useCallback(async (promptText: string, label: string) => {
     if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
@@ -1057,6 +1084,8 @@ export default function TextToCAD() {
               onDismiss={() => setCreditBlock(null)}
             />
           ) : undefined}
+          referenceImagePreviewUrl={referenceImagePreviewUrl}
+          onReferenceImageChange={handleReferenceImageChange}
         />
       </div>
     );
@@ -1112,6 +1141,7 @@ export default function TextToCAD() {
                   onDismiss={() => setCreditBlock(null)}
                 />
               ) : undefined}
+              referenceImagePreviewUrl={referenceImagePreviewUrl}
             />
           )}
         </ResizablePanel>

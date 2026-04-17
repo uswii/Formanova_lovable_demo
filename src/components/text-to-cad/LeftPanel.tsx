@@ -26,6 +26,7 @@ interface LeftPanelProps {
   onAddPart?: (description: string) => void;
   onReset?: () => void;
   creditBlock?: React.ReactNode;
+  referenceImagePreviewUrl?: string | null;
 }
 
 export default function LeftPanel({
@@ -35,6 +36,7 @@ export default function LeftPanel({
   onRebuildPart, onAddPart,
   onReset,
   creditBlock,
+  referenceImagePreviewUrl,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
   const { cost: generationCost, loading: generationCostLoading } = useEstimatedCost({ workflowName: CAD_GENERATION_WORKFLOW, model });
@@ -89,6 +91,21 @@ export default function LeftPanel({
         </section>
         */}
 
+        {/* Reference image preview */}
+        {referenceImagePreviewUrl && (
+          <section>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Reference Image</h3>
+            <div className="border border-border bg-muted/10 flex items-center justify-center overflow-hidden" style={{ maxHeight: 140 }}>
+              <img
+                src={referenceImagePreviewUrl}
+                alt="Reference ring"
+                className="w-full h-full object-contain"
+                style={{ maxHeight: 140 }}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Prompt */}
         <section>
         <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Describe Your Ring</h3>
@@ -106,7 +123,7 @@ export default function LeftPanel({
           {!creditBlock && (
             <button
               onClick={onGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isGenerating || (!prompt.trim() && !referenceImagePreviewUrl)}
               className="w-full py-3 lg:py-4 px-3 lg:px-4 mt-4 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
             >
               {isGenerating ? "Generating…" : (

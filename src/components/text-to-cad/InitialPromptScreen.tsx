@@ -1,16 +1,32 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Diamond, X } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS } from "./types";
 
-const EXAMPLE_PROMPTS = [
-  "Serpentine ring with a coiled snake design",
-  "Sculptural flowing gold band",
-  "Botanical ring with leaves wrapping around the band",
-  "Gothic ring with sharp arches and dark gemstones",
-  "Twisted vine ring with small diamonds",
-  "Minimalist ring with a single oval diamond",
+import cadExample1 from "@/assets/examples/cad-example-1.webp";
+import cadExample2 from "@/assets/examples/cad-example-2.webp";
+import cadExample3 from "@/assets/examples/cad-example-3.webp";
+import cadExample4 from "@/assets/examples/cad-example-4.webp";
+
+const EXAMPLE_DESIGNS = [
+  {
+    image: cadExample1,
+    prompt: "Oval center stone with ball-tip prong setting, flanked by marquise side stones and small round accent clusters, tapered rounded band",
+  },
+  {
+    image: cadExample2,
+    prompt: "Asymmetric botanical ring with two large leaf forms rising from a split flowing band, small round center stone nestled between the leaves, accent stones along leaf edges",
+  },
+  {
+    image: cadExample3,
+    prompt: "Large oval center stone in four-prong setting surrounded by round halo, split shank band with accent stones running along each shank",
+  },
+  {
+    image: cadExample4,
+    prompt: "Wide dome cluster ring with central oval stone surrounded by six oval accent stones in circular arrangement, filigree openwork shoulders, thin plain band",
+  },
 ];
 
 interface InitialPromptScreenProps {
@@ -22,14 +38,21 @@ interface InitialPromptScreenProps {
   onGenerate: () => void;
   onGlbUpload?: (file: File) => void;
   creditBlock?: React.ReactNode;
+  referenceImagePreviewUrl: string | null;
+  onReferenceImageChange: (file: File | null, previewUrl: string | null) => void;
 }
 
 export default function InitialPromptScreen({
   model, setModel, prompt, setPrompt,
   isGenerating, onGenerate, onGlbUpload, creditBlock,
+  referenceImagePreviewUrl, onReferenceImageChange,
 }: InitialPromptScreenProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [hoveredExample, setHoveredExample] = useState<number | null>(null);
   const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
 
   const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,10 +60,62 @@ export default function InitialPromptScreen({
     if (file && onGlbUpload) onGlbUpload(file);
   }, [onGlbUpload]);
 
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const prevUrl = referenceImagePreviewUrl;
+    const url = URL.createObjectURL(file);
+    if (prevUrl?.startsWith("blob:")) URL.revokeObjectURL(prevUrl);
+    onReferenceImageChange(file, url);
+  }, [referenceImagePreviewUrl, onReferenceImageChange]);
+
+  const handleImageInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageFile(file);
+    e.target.value = "";
+  }, [handleImageFile]);
+
+  const handleClearImage = useCallback(() => {
+    if (referenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(referenceImagePreviewUrl);
+    onReferenceImageChange(null, null);
+  }, [referenceImagePreviewUrl, onReferenceImageChange]);
+
+  const handleExampleClick = useCallback(async (example: typeof EXAMPLE_DESIGNS[0]) => {
+    setPrompt(example.prompt);
+    try {
+      const res = await fetch(example.image);
+      const blob = await res.blob();
+      const file = new File([blob], "example-ring.webp", { type: "image/webp" });
+      const url = URL.createObjectURL(file);
+      if (referenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(referenceImagePreviewUrl);
+      onReferenceImageChange(file, url);
+    } catch {
+      // image load failed -- just set prompt
+    }
+  }, [setPrompt, referenceImagePreviewUrl, onReferenceImageChange]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleImageFile(file);
+  }, [handleImageFile]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (prompt.trim() && !isGenerating) onGenerate();
+      const canGenerate = prompt.trim() || referenceImagePreviewUrl;
+      if (canGenerate && !isGenerating) onGenerate();
     }
   };
 
@@ -55,6 +130,8 @@ export default function InitialPromptScreen({
     autoResize();
   }, [prompt, autoResize]);
 
+  const canGenerate = !!(prompt.trim() || referenceImagePreviewUrl);
+
   return (
     <div className="flex-1 flex items-center justify-center bg-background">
       <motion.div
@@ -66,75 +143,108 @@ export default function InitialPromptScreen({
         {/* Title */}
         <div className="text-center mb-6">
           <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-2">
-            Text‑to‑3D
+            Generate Ring Design
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Describe your ring design
+            Upload a photo, describe your design, or both
           </p>
         </div>
 
-        {/* Generation Quality - hidden until model selection is ready to ship.
-        <div className="mb-4 max-w-[680px] mx-auto">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Generation Quality
-          </h3>
-          <div className="flex gap-0 border border-border">
-            {AI_MODELS.filter((m) => !m.hidden).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => !m.comingSoon && setModel(m.id)}
-                disabled={m.comingSoon}
-                className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
-                  m.comingSoon
-                    ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
-                    : model === m.id
-                      ? "text-primary-foreground bg-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
-                }`}
-              >
-                {m.label}
-                {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
-                {!m.comingSoon && <span className={`block font-mono text-[8px] mt-0.5 normal-case tracking-wide ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-        */}
+        {/* Two-column input area */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 max-w-[900px] mx-auto">
+          {/* Left: Image upload zone */}
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
+            className={`relative min-h-[160px] border flex items-center justify-center transition-all duration-200 ${
+              referenceImagePreviewUrl
+                ? "border-primary/40 bg-muted/10"
+                : isDragging
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-foreground/20 hover:bg-accent/20 bg-muted/10"
+            } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
+          >
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageInputChange}
+            />
 
-        {/* Prompt */}
-        <div className="mb-3 relative max-w-[680px] mx-auto">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe your ring — e.g. A rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
-            rows={4}
-            className="w-full min-h-[130px] max-h-[60vh] px-5 py-4 pb-9 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-y font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
-          />
-          {prompt.length > 0 && (
-            <button
-              onClick={() => {
-                setPrompt("");
-                textareaRef.current?.focus();
-              }}
-              className="absolute bottom-2.5 right-5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors duration-150 cursor-pointer z-10"
-              aria-label="Clear prompt"
-            >
-              Clear
-            </button>
-          )}
+            {referenceImagePreviewUrl ? (
+              <>
+                <img
+                  src={referenceImagePreviewUrl}
+                  alt="Reference ring"
+                  className="w-full h-full object-contain max-h-[220px] p-2"
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleClearImage(); }}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                  aria-label="Remove image"
+                >
+                  <X className="w-3 h-3 text-foreground/70" />
+                </button>
+                <div className="absolute bottom-2 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 bg-card/70 px-1.5 py-0.5">
+                  Reference image
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 text-center px-6">
+                <span className="w-10 h-10 rounded-full border border-primary/60 flex items-center justify-center shadow-[0_0_12px_hsl(var(--primary)/0.35)] text-primary">
+                  <Diamond className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    Upload or drop a photo
+                  </p>
+                  <p className="font-mono text-[9px] text-muted-foreground/50 mt-1 tracking-wide">
+                    Sketch, photo, or reference image
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Text prompt */}
+          <div className="relative min-h-[160px] flex flex-col">
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your ring design — e.g. Oval solitaire with a tapered split shank and halo setting"
+              rows={4}
+              className="flex-1 w-full min-h-[160px] max-h-[60vh] px-5 py-4 pb-9 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            />
+            {prompt.length > 0 && (
+              <button
+                onClick={() => {
+                  setPrompt("");
+                  textareaRef.current?.focus();
+                }}
+                className="absolute bottom-2.5 right-5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors duration-150 cursor-pointer z-10"
+                aria-label="Clear prompt"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Credit block */}
-        {creditBlock && <div className="mb-3 max-w-[680px] mx-auto">{creditBlock}</div>}
+        {creditBlock && <div className="mb-3 max-w-[900px] mx-auto">{creditBlock}</div>}
 
-        {/* Generate */}
+        {/* Generate button */}
         {!creditBlock && (
-          <div className="max-w-[680px] mx-auto">
+          <div className="max-w-[900px] mx-auto">
             <button
               onClick={onGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isGenerating || !canGenerate}
               className="w-full py-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
             >
               {isGenerating ? "Generating…" : (
@@ -151,28 +261,38 @@ export default function InitialPromptScreen({
           </div>
         )}
 
-
-        {/* Example Prompts */}
+        {/* Example designs */}
         <div className="mt-6">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
             Try an example
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {EXAMPLE_PROMPTS.map((ex) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {EXAMPLE_DESIGNS.map((ex, i) => (
               <button
-                key={ex}
-                onClick={() => setPrompt(ex)}
-                className="px-3 py-2.5 text-[12px] font-body text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20 hover:bg-accent/30 transition-all duration-150 cursor-pointer text-left"
+                key={i}
+                onClick={() => handleExampleClick(ex)}
+                onMouseEnter={() => setHoveredExample(i)}
+                onMouseLeave={() => setHoveredExample(null)}
+                className="relative aspect-square border border-border hover:border-foreground/20 overflow-hidden transition-all duration-150 bg-muted/10"
               >
-                {ex}
+                <img
+                  src={ex.image}
+                  alt={`Ring example ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className={`absolute inset-0 bg-background/85 flex items-center justify-center p-3 transition-opacity duration-200 ${hoveredExample === i ? 'opacity-100' : 'opacity-0'}`}>
+                  <p className="font-mono text-[10px] text-foreground/80 leading-[1.6] text-center">
+                    {ex.prompt}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Upload CAD File — gated */}
+        {/* Upload CAD File -- gated */}
         {onGlbUpload && (
-          <div className="mt-4 max-w-[680px] mx-auto text-center">
+          <div className="mt-4 max-w-[900px] mx-auto text-center">
             <input
               ref={glbInputRef}
               type="file"
