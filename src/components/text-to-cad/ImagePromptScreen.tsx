@@ -122,7 +122,7 @@ export default function ImagePromptScreen({
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [prompt]);
 
-  const canGenerate = !!(prompt.trim() || referenceImagePreviewUrl);
+  const canGenerate = !!referenceImagePreviewUrl;
 
   return (
     <div className="flex-1 flex items-center justify-center bg-background overflow-y-auto">
@@ -239,15 +239,15 @@ export default function ImagePromptScreen({
         </div>
 
         {/* Text prompt — secondary */}
-        <div className="relative mb-3 opacity-40 focus-within:opacity-100 transition-opacity duration-200">
+        <div className={`relative mb-3 transition-opacity duration-200 ${referenceImagePreviewUrl ? "opacity-100" : "opacity-40"}`}>
           <textarea
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Optionally describe your design"
+            placeholder="Add optional description"
             rows={2}
-            className="w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            className={`w-full min-h-[52px] max-h-[200px] px-5 py-2.5 pb-7 text-[14px] text-foreground placeholder:text-muted-foreground/50 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 overflow-y-auto ${referenceImagePreviewUrl ? "border-2 border-foreground/30" : "border border-border"}`}
           />
           {prompt.length > 0 && (
             <button

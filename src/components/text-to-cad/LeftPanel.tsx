@@ -163,9 +163,9 @@ export default function LeftPanel({
         {/* In image mode before model loads: show prompt as static text (if any), no textarea */}
         {!(isImageMode && !hasModel) && (
         <section>
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
-          {isImageMode ? "Your Prompt" : "Describe Your Ring"}
-        </h3>
+        {!isImageMode && (
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Describe Your Ring</h3>
+        )}
           {/* In image mode after model loads: show original prompt as read-only, then the edit box below handles re-gen */}
           {isImageMode && hasModel && prompt.trim() ? (
             <p className="font-body text-[13px] text-foreground/70 leading-relaxed mb-3">{prompt}</p>
@@ -237,10 +237,9 @@ export default function LeftPanel({
         </section>
         )}
 
-        {/* Image mode — show prompt text before model loads (read-only) */}
+        {/* Image mode — show prompt text before model loads (read-only, no header) */}
         {isImageMode && !hasModel && prompt.trim() && (
           <section>
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Your Prompt</h3>
             <p className="font-body text-[13px] text-foreground/70 leading-relaxed">{prompt}</p>
           </section>
         )}
