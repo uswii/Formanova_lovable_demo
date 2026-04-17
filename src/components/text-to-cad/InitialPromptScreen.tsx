@@ -401,51 +401,31 @@ export default function InitialPromptScreen({
                 </div>
               )}
 
-              {/* Textarea -- resizable from corner */}
-              <textarea
-                ref={chatTextareaRef}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe your ring design or attach a photo…"
-                rows={3}
-                className="w-full min-h-[80px] px-3 py-2 text-[14px] text-foreground placeholder:text-muted-foreground/40 font-body leading-relaxed transition-all duration-200 focus:outline-none bg-transparent border-0 outline-none"
-                style={{ resize: "both", minWidth: "100%" }}
-              />
-
-              {/* Bottom bar: attach + generate */}
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+              {/* Textarea -- resizable from corner, attach button bottom-left inside */}
+              <div className="relative">
+                <textarea
+                  ref={chatTextareaRef}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Describe your ring design or attach a photo…"
+                  rows={3}
+                  className="w-full min-h-[80px] px-3 py-2 pb-8 text-[14px] text-foreground placeholder:text-muted-foreground/40 font-body leading-relaxed transition-all duration-200 focus:outline-none bg-transparent border-0 outline-none"
+                  style={{ resize: "both", minWidth: "100%" }}
+                />
                 <button
                   onClick={() => chatImageInputRef.current?.click()}
-                  className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute bottom-2 left-3 flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground transition-colors"
                   title="Attach image"
                 >
                   <Paperclip className="w-3.5 h-3.5" />
                   <span>Attach</span>
                 </button>
-
-                {creditBlock ? (
-                  <div>{creditBlock}</div>
-                ) : (
-                  <button
-                    onClick={onGenerate}
-                    disabled={isGenerating || !canGenerate}
-                    className="px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] transition-all duration-200 flex items-center gap-1.5"
-                  >
-                    {isGenerating ? "Generating…" : (
-                      <>
-                        Generate
-                        <span className="inline-flex items-center gap-1 opacity-80">
-                          <span className="font-mono font-semibold">≤</span>
-                          <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                          <span className="font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
-                        </span>
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
+
             </div>
+            {creditBlock && <div className="mt-3">{creditBlock}</div>}
+            {!creditBlock && <div className="mt-3">{GenerateButton}</div>}
           </div>
         )}
 
