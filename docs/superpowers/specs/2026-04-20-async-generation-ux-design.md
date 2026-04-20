@@ -40,7 +40,7 @@ The context is deliberately designed as an array from day one so Phase 3 require
 Credit check → upload fallback → `startPhotoshoot` / `startPdpShot` → receive `workflow_id` → call `context.trackGeneration(workflowId, ...)` → `setCurrentStep('generating')` → return.
 
 **Phase B — moves to `GenerationsContext`**
-Poll `workflow_id` → extract results → update generation record → fire toast → refresh credits.
+Poll `workflow_id` → extract results (via `extractResultImages`, moved here from the hook) → update generation record → fire toast → refresh credits.
 
 The hook watches the Context for its generation's completion via a `useEffect`. When status flips to `completed`, the hook sets `resultImages` and transitions the Studio to the results step. The Context never imports from or knows about the Studio.
 
@@ -80,7 +80,7 @@ interface GenerationsContextValue {
 ### Polling internals
 
 - A `useRef<Map<string, AbortController>>` holds one controller per running workflow.
-- A `useEffect` watches `generations`. For each entry in `running` status, it starts `pollWorkflow` with the same parameters previously in `useStudioGeneration` (3 s interval, 720 s timeout, unlimited 404s, 1 max poll error, 6 result retries, 1 s retry delay).
+- A `useEffect` watches `generations`. For each entry in `running` status, it starts `pollWorkflow`. This is NOT a new workflow — all polling parameters are inherited unchanged from the existing `useStudioGeneration` implementation: start endpoint (`/api/run/state/jewelry_photoshoots_generator` or `/api/run/Product_shot_pipeline`), status endpoint (`/api/status/:workflowId`), result endpoint (`/api/result/:workflowId`), interval 3 s, timeout 720 s, terminal states `completed`/`failed`/`budget_exhausted`, unlimited transient 404s, 1 max poll error, 6 result retries at 1 s delay, product-specific result parser (`extractResultImages`), cancellation via `AbortController` per workflow.
 - On completion: sets `status: 'completed'`, populates `resultImages`, calls `useCredits().refreshCredits()`, calls `markGenerationCompleted()`, fires success toast.
 - On failure: sets `status: 'failed'`, calls `markGenerationFailed()`, fires error toast.
 - On `clearGeneration`: removes entry from array, aborts its controller.
@@ -129,6 +129,13 @@ useEffect(() => {
     setGenerationError('unavailable');
     clearGeneration(workflowId);
   }
+// eslint-disable-next-line react-hooks/exhaustive-deps
+// Deps excluded: workflowId, setResultImages, setCurrentStep, clearGeneration, clearStudioSession.
+// All are stable refs or setters — safe to omit. Regression to watch: if workflowId changes
+// while a generation is in flight (e.g. user starts a second generation), the effect must
+// not apply the old generation's result to the new one. This is prevented by the
+// `generations.find(g => g.workflowId === workflowId)` guard — if workflowId changes,
+// myGeneration becomes undefined and the effect is a no-op.
 }, [myGeneration?.status]);
 ```
 
