@@ -12,7 +12,20 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { CAD_RENAME_ENABLED } from '@/lib/feature-flags';
+import { renameAsset } from '@/lib/assets-api';
+
+const CAD_RENAMES_KEY = 'formanova_cad_renames';
+
+function loadStoredRenames(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(CAD_RENAMES_KEY) ?? '{}'); } catch { return {}; }
+}
+function saveStoredRename(workflowId: string, name: string) {
+  try {
+    const map = loadStoredRenames();
+    map[workflowId] = name;
+    localStorage.setItem(CAD_RENAMES_KEY, JSON.stringify(map));
+  } catch { /* quota — ignore */ }
+}
 
 const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -73,7 +86,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(
+    () => loadStoredRenames()[workflow.workflow_id] ?? null
+  );
   const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
@@ -101,13 +116,21 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     setIsRenaming(true);
   };
 
-  const handleConfirmRename = useCallback(() => {
+  const handleConfirmRename = useCallback(async () => {
     const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
     if (sanitized && sanitized !== baseName) {
       setDisplayName(sanitized);
+      saveStoredRename(workflow.workflow_id, sanitized);
+      if (workflow.output_asset_id) {
+        try {
+          await renameAsset(workflow.output_asset_id, sanitized);
+        } catch (err) {
+          console.error('[WorkflowCard] rename asset error:', err);
+        }
+      }
     }
     setIsRenaming(false);
-  }, [renameValue, baseName]);
+  }, [renameValue, baseName, workflow.workflow_id, workflow.output_asset_id]);
 
   const handleCancelRename = () => {
     setIsRenaming(false);
@@ -222,7 +245,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
                     {isEnriching ? '—' : shownFilename}
                   </span>
-                  {CAD_RENAME_ENABLED && !isEnriching && workflow.glb_url && (
+                  {!isEnriching && workflow.glb_url && (
                     <button
                       onClick={handleStartRename}
                       className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
@@ -283,11 +306,52 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 // ─── Photo / CAD-render card ────────────────────────────────────────────────
 // Matches the "From Text to CAD" card style: image-first, minimal metadata.
 
+const PHOTO_RENAMES_KEY = 'formanova_photo_renames';
+function loadPhotoRenames(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(PHOTO_RENAMES_KEY) ?? '{}'); } catch { return {}; }
+}
+function savePhotoRename(id: string, name: string) {
+  try {
+    const map = loadPhotoRenames();
+    map[id] = name;
+    localStorage.setItem(PHOTO_RENAMES_KEY, JSON.stringify(map));
+  } catch { /* quota */ }
+}
+
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(
+    () => loadPhotoRenames()[workflow.workflow_id] ?? null,
+  );
+  const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(displayName ?? '');
+    setIsRenaming(true);
+  };
+
+  const handleConfirmPhotoRename = async () => {
+    const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
+    if (sanitized) {
+      setDisplayName(sanitized);
+      savePhotoRename(workflow.workflow_id, sanitized);
+      if (workflow.output_asset_id) {
+        try {
+          await renameAsset(workflow.output_asset_id, sanitized);
+        } catch (err) {
+          console.error('[WorkflowCard] photo rename error:', err);
+        }
+      }
+    }
+    setIsRenaming(false);
+  };
+
+  const handleCancelPhotoRename = () => setIsRenaming(false);
 
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
@@ -330,6 +394,46 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
           </div>
         ) : null}
+
+        {/* Rename row — only when asset is linked */}
+        {workflow.output_asset_id && (
+          <div className="mx-2 sm:mx-3 mt-2 flex items-center gap-1 sm:gap-1.5 min-w-0" onClick={e => e.stopPropagation()}>
+            {isRenaming ? (
+              <>
+                <Input
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleConfirmPhotoRename();
+                    if (e.key === 'Escape') handleCancelPhotoRename();
+                  }}
+                  autoFocus
+                  placeholder="Name this generation"
+                  className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 flex-1 min-w-0"
+                />
+                <button onClick={handleConfirmPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors flex-shrink-0">
+                  <Check className="h-3 w-3" />
+                </button>
+                <button onClick={handleCancelPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors flex-shrink-0">
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-[10px] tracking-wider text-muted-foreground truncate flex-1 min-w-0">
+                  {displayName ?? <span className="text-muted-foreground/40 italic">Untitled</span>}
+                </span>
+                <button
+                  onClick={handleStartRename}
+                  className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
+                  aria-label="Rename generation"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Card footer: index · credits · date */}
         <div className="flex items-center justify-end sm:justify-between px-3 pt-3 pb-3 gap-2">
