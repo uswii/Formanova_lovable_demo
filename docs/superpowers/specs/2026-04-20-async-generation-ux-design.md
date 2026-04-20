@@ -237,6 +237,7 @@ The hook's `useEffect` transitions to results first. `clearGeneration` is called
 - `handleGenerate` calls `trackGeneration` after `startPhotoshoot` resolves
 - Hook transitions to `results` when Context generation status becomes `completed`
 - Hook sets `generationError` when Context generation status becomes `failed`
+- `clearStudioSession` is called on generation completion (session restore behavior — required by AI_RULES rule 10)
 
 `pollWorkflow` is tested independently — no changes to existing tests.
 
@@ -252,7 +253,7 @@ The hook's `useEffect` transitions to results first. `clearGeneration` is called
 | `src/hooks/useStudioGeneration.test.ts` | New |
 | `src/components/layout/Header.tsx` | Add generation indicator |
 | `src/components/studio/StudioGeneratingStep.tsx` | Add escape link, read progress from Context |
-| `src/pages/UnifiedStudio.tsx` | Pass `GenerationsContext` to hook, handle `location.state.asyncResult` on mount |
+| `src/pages/UnifiedStudio.tsx` | Pass `GenerationsContext` to hook, handle `location.state.asyncResult` on mount. **Note:** file is already 648 lines (pre-existing Rule 8 violation). Our additions are a single `useEffect` (~10 lines) — no further extraction required for this change. |
 | `src/App.tsx` | Add `GenerationsContextProvider` to provider stack |
 
 **Not changed:** `poll-workflow.ts`, `photoshoot-api.ts`, `generation-lifecycle.ts`, `Generations.tsx`, `StudioResultsStep.tsx`, all CAD files.
