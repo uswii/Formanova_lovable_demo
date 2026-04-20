@@ -24,6 +24,7 @@ interface StudioGeneratingStepProps {
   resolvedActiveModelUrl: string | null;
   generationError: string | null;
   handleStartOver: () => void;
+  onKeepBrowsing: () => void;
 }
 
 const PRODUCT_SHOT_MSGS = [
@@ -45,6 +46,7 @@ export function StudioGeneratingStep({
   resolvedActiveModelUrl,
   generationError,
   handleStartOver,
+  onKeepBrowsing,
 }: StudioGeneratingStepProps) {
   return (
     <motion.div
@@ -111,6 +113,13 @@ export function StudioGeneratingStep({
             <p className="font-mono text-[10px] italic text-muted-foreground mb-8">This can take up to 50 seconds</p>
           </>
         )}
+
+        <button
+          onClick={onKeepBrowsing}
+          className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors mb-6"
+        >
+          Keep browsing →
+        </button>
 
         <div className="flex gap-4">
           {jewelryImage && (
