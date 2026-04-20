@@ -453,11 +453,18 @@ export function GenerationsContextProvider({ children }: { children: React.React
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // runningKey is a derived string from the running workflowId set.
-  // It changes only when a generation is added or removed — not on progress ticks.
-  // This prevents the effect from re-running every 300 ms while the progress ticker fires.
-  // Regression to watch: if runningKey doesn't update when a new workflowId is added,
-  // the new generation won't start polling. Always verify trackGeneration causes a re-run.
+  // Deps excluded: runningKey only. The effect body also captures refreshCredits, toast, and navigate.
+  // These are intentionally excluded because:
+  //   - refreshCredits and toast are stable refs (guaranteed by CreditsContext and useToast contracts).
+  //   - navigate is stable across renders per react-router-dom v6.
+  //   - Re-running the effect when these change would restart polling for already-running generations.
+  // runningKey is the correct dep: it changes only when the set of running workflowIds changes,
+  // not on 300 ms progress ticks — this prevents the effect from restarting active polls.
+  // Regression to watch: if refreshCredits, toast, or navigate ever lose stability (e.g. wrapped in
+  // an unstable closure), completions will silently use stale refs. Verify their memoization if credits
+  // stop refreshing or toasts stop firing after completion.
+  // Also watch: if runningKey doesn't update when a new workflowId is added, the new generation
+  // won't start polling. Always verify trackGeneration triggers a re-run.
   }, [runningKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Abort all controllers on provider unmount
