@@ -263,6 +263,20 @@ export default function UnifiedStudio() {
     }
   }, []); // run once on mount — location.state is set before component renders
 
+  // Handle result navigation from toast/header indicator click
+  useEffect(() => {
+    const state = location.state as { asyncResult?: { workflowId: string; resultImages: string[] } } | null;
+    if (!state?.asyncResult) return;
+    setResultImages(state.asyncResult.resultImages);
+    setCurrentStep('results');
+    // Clear route state so a refresh doesn't re-apply
+    navigate(location.pathname, { replace: true, state: null });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Dep excluded: location, navigate, setResultImages, setCurrentStep — all stable.
+  // This must run only on mount (not on re-renders) to avoid re-applying stale route state.
+  // Regression to watch: if navigate or setResultImages changes identity on re-render,
+  // the empty dep array prevents stale closures from running again — this is intentional.
+
   // ─── Session restore — bring back jewelry/model state after reload ─────────
   useEffect(() => {
     // Don't restore if this is a Re-shoot (preloaded from route state)
@@ -378,6 +392,7 @@ export default function UnifiedStudio() {
     feedbackOpen,
     setFeedbackOpen,
     handleGenerate,
+    handleKeepBrowsing,
     resetGeneration,
   } = useStudioGeneration({
     isProductShot,
@@ -588,6 +603,7 @@ export default function UnifiedStudio() {
             resolvedActiveModelUrl={resolvedActiveModelUrl}
             generationError={generationError}
             handleStartOver={handleStartOver}
+            onKeepBrowsing={handleKeepBrowsing}
           />
         )}
 
