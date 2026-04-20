@@ -271,11 +271,14 @@ export default function UnifiedStudio() {
     setCurrentStep('results');
     // Clear route state so a refresh doesn't re-apply
     navigate(location.pathname, { replace: true, state: null });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Dep excluded: location, navigate, setResultImages, setCurrentStep — all stable.
-  // This must run only on mount (not on re-renders) to avoid re-applying stale route state.
-  // Regression to watch: if navigate or setResultImages changes identity on re-render,
-  // the empty dep array prevents stale closures from running again — this is intentional.
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Dep: location.state — re-runs when the router delivers new asyncResult state (covers the
+  // case where the user is already on this page when "View Results" is clicked from the toast
+  // or header indicator, so the component is never remounted).
+  // Other deps excluded: navigate, setResultImages, setCurrentStep — all stable refs.
+  // No loop risk: navigate(replace+clear) sets state to null → effect re-runs → guard exits.
+  // Regression to watch: any navigation to this route must NOT set an `asyncResult` key in
+  // location.state for a different purpose, or it will be misread here.
 
   // ─── Session restore — bring back jewelry/model state after reload ─────────
   useEffect(() => {
