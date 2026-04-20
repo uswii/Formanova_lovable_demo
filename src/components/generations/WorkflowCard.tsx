@@ -411,12 +411,12 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
                   placeholder="Name..."
                   className="h-6 w-full font-mono text-[10px] tracking-wider px-1.5 py-0"
                 />
-                <div className="flex items-center justify-center gap-2">
-                  <button onClick={handleConfirmPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
-                    <Check className="h-3 w-3" />
-                  </button>
+                <div className="flex items-center justify-end gap-2">
                   <button onClick={handleCancelPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
                     <X className="h-3 w-3" />
+                  </button>
+                  <button onClick={handleConfirmPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <Check className="h-3 w-3" />
                   </button>
                 </div>
               </div>
