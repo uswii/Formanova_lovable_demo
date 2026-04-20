@@ -5,7 +5,7 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const API_BASE = import.meta.env.VITE_PIPELINE_API_URL ?? '';
 
-export type AssetType = 'jewelry_photo' | 'model_photo' | 'inspiration_photo';
+export type AssetType = 'jewelry_photo' | 'model_photo' | 'inspiration_photo' | 'generated_photo' | 'generated_cad';
 
 export interface UserAsset {
   id: string;
@@ -53,4 +53,31 @@ export async function updateAssetMetadata(
     throw new Error(`Failed to update asset: ${response.status}`);
   }
   return response.json();
+}
+
+export async function renameAsset(assetId: string, name: string): Promise<UserAsset> {
+  const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to rename asset: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function downloadAsset(assetId: string): Promise<void> {
+  const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}/download`);
+  if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? assetId;
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
 }
