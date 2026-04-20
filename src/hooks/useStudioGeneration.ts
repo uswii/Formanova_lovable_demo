@@ -15,9 +15,10 @@
  *   error string, workflow ID, regeneration count, feedback modal open state
  * - Rotating loading message timer (cycles every 4s while generating)
  * - handleGenerate: the full generation pipeline — credit check, file upload
- *   fallback, API call (startPhotoshoot OR startPdpShot), polling loop,
- *   result extraction, PostHog analytics
+ *   fallback, API call (startPhotoshoot OR startPdpShot), context tracking,
+ *   PostHog analytics
  * - resetGeneration: clears all of the above state at once (called by handleStartOver)
+ * - handleKeepBrowsing: marks user as navigated away, returns to model step
  *
  * SNAPSHOT PARAMS PATTERN (important to understand)
  * --------------------------------------------------
@@ -33,7 +34,7 @@
  * ----------------------
  * isProductShot=false  -> calls startPhotoshoot  (model_image_url, input_preset_model_id)
  * isProductShot=true   -> calls startPdpShot     (inspiration_image_url, input_preset_inspiration_id)
- * All other logic (upload fallback, polling, result parsing) is shared.
+ * All other logic (upload fallback, context tracking, result handling) is shared.
  *
  * HOW TO USE
  * ----------
@@ -44,25 +45,22 @@
  *   const { isGenerating, resultImages, handleGenerate, resetGeneration, ... } =
  *     useStudioGeneration({ isProductShot, effectiveJewelryType, jewelryImage, ... });
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   startPhotoshoot,
   startPdpShot,
-  type PhotoshootResultResponse,
-  type PhotoshootStatusResponse,
 } from '@/lib/photoshoot-api';
-import { pollWorkflow } from '@/lib/poll-workflow';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
-import { azureUriToUrl } from '@/lib/azure-utils';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
-import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
+import { markGenerationStarted } from '@/lib/generation-lifecycle';
 import {
   trackPaywallHit,
   trackGenerationComplete,
   consumeFirstGeneration,
 } from '@/lib/posthog-events';
+import { useGenerations } from '@/contexts/GenerationsContext';
 import type { PresetModel } from '@/lib/models-api';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import type { useToast } from '@/hooks/use-toast';
@@ -89,29 +87,6 @@ interface UseStudioGenerationOptions {
   clearValidation: () => void;
 }
 
-function extractResultImages(result: PhotoshootResultResponse): string[] {
-  const images: string[] = [];
-  for (const key of Object.keys(result)) {
-    const items = result[key];
-    if (!Array.isArray(items)) continue;
-    for (const item of items) {
-      if (!item || typeof item !== 'object') continue;
-      const obj = item as Record<string, unknown>;
-      for (const k of ['output_url', 'image_url', 'result_url', 'url', 'image_b64', 'output_image']) {
-        const val = obj[k];
-        if (typeof val === 'string' && val.length > 0) {
-          if (val.startsWith('azure://')) {
-            images.push(azureUriToUrl(val));
-          } else if (val.startsWith('http') || val.startsWith('data:')) {
-            images.push(val);
-          }
-        }
-      }
-    }
-  }
-  return images;
-}
-
 export function useStudioGeneration({
   isProductShot,
   effectiveJewelryType,
@@ -131,15 +106,21 @@ export function useStudioGeneration({
   clearStudioSession,
   clearValidation,
 }: UseStudioGenerationOptions) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStep, setGenerationStep] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  const { generations, trackGeneration, clearGeneration } = useGenerations();
+
+  const myGeneration = generations.find(g => g.workflowId === workflowId);
+  const isGenerating = isSubmitting;
+  const generationProgress = myGeneration?.progress ?? 0;
+  const generationStep = myGeneration?.generationStep ?? '';
+  const hasNavigatedAway = useRef(false);
 
   // Cycle rotating messages every 4s while generating
   useEffect(() => {
@@ -148,8 +129,39 @@ export function useStudioGeneration({
     return () => clearInterval(id);
   }, [isGenerating]);
 
+  // React to generation completion or failure from GenerationsContext
+  useEffect(() => {
+    if (!myGeneration) return;
+    if (myGeneration.status === 'completed') {
+      setResultImages(myGeneration.resultImages);
+      clearGeneration(workflowId!);
+      trackGenerationComplete({
+        source: 'unified-studio',
+        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
+        upload_type: validationResult?.category ?? null,
+        duration_ms: Date.now() - (myGeneration.startedAt ?? Date.now()),
+        is_first_ever: consumeFirstGeneration(),
+      });
+      clearStudioSession();
+      if (!hasNavigatedAway.current) {
+        setCurrentStep('results');
+      }
+    }
+    if (myGeneration.status === 'failed') {
+      setGenerationError('unavailable');
+      clearGeneration(workflowId!);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Deps excluded: workflowId, clearGeneration, setResultImages, setCurrentStep, clearStudioSession,
+  // effectiveJewelryType, validationResult. All are stable refs, setters, or hook-level constants
+  // that don't change identity between renders.
+  // Regression to watch: if workflowId changes while in flight (user submits a second generation),
+  // myGeneration becomes undefined and the effect is a no-op — safe because the new generation
+  // will trigger its own completion effect when it resolves.
+  }, [myGeneration?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleGenerate = useCallback(async () => {
-    if (isGenerating) return;
+    if (isSubmitting) return;
     if (!jewelryImage || !activeModelUrl) {
       toast({ variant: 'destructive', title: 'Missing inputs', description: 'Upload a jewelry image and select a model.' });
       return;
@@ -164,23 +176,15 @@ export function useStudioGeneration({
       return;
     }
 
-    clearStudioSession();
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    setGenerationStep('Preparing...');
+    setIsSubmitting(true);
     setGenerationError(null);
-    setCurrentStep('generating');
+    hasNavigatedAway.current = false;
 
-    let _genWorkflowId = 'unknown';
-    const _genStartTime = Date.now();
     try {
-      setGenerationProgress(5);
       let jewelryUrl: string;
       if (jewelryUploadedUrl) {
         jewelryUrl = jewelryUploadedUrl;
-        setGenerationProgress(20);
       } else {
-        setGenerationStep('Uploading jewelry image...');
         const jewelryBlob = await imageSourceToBlob(jewelryImage);
         const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
         const base64 = await new Promise<string>((resolve, reject) => {
@@ -189,16 +193,14 @@ export function useStudioGeneration({
           reader.onerror = reject;
           reader.readAsDataURL(compressedJewelry);
         });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', {
+          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
+        });
         jewelryUrl = azResult.sas_url || azResult.https_url;
         setJewelryAssetId(azResult.asset_id ?? null);
-        setGenerationProgress(20);
       }
 
-      setGenerationProgress(20);
-      setGenerationStep('Preparing model image...');
       let modelUrl: string;
-
       if (selectedModel) {
         modelUrl = selectedModel.url;
       } else if (customModelImage) {
@@ -207,12 +209,9 @@ export function useStudioGeneration({
         throw new Error('No model selected');
       }
 
-      setGenerationProgress(35);
-      setGenerationStep('Starting AI photoshoot...');
-
       if (!jewelryUrl || !modelUrl) {
         toast({ variant: 'destructive', title: 'Missing images', description: 'Please select both a jewelry image and a model before generating.' });
-        setIsGenerating(false);
+        setIsSubmitting(false);
         setCurrentStep('model');
         return;
       }
@@ -227,11 +226,8 @@ export function useStudioGeneration({
             category,
             idempotency_key: idempotencyKey,
             ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
-            ...(selectedModel?.id
-              ? { input_preset_inspiration_id: selectedModel.id }
-              : modelAssetId
-              ? { input_inspiration_asset_id: modelAssetId }
-              : {}),
+            ...(selectedModel?.id ? { input_preset_inspiration_id: selectedModel.id }
+                : modelAssetId ? { input_inspiration_asset_id: modelAssetId } : {}),
           })
         : await startPhotoshoot({
             jewelry_image_url: jewelryUrl,
@@ -242,105 +238,37 @@ export function useStudioGeneration({
             ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
             ...(selectedModel?.id && !modelAssetId ? { input_preset_model_id: selectedModel.id } : {}),
           });
-      _genWorkflowId = startResponse.workflow_id;
 
-      setWorkflowId(startResponse.workflow_id);
-      markGenerationStarted(startResponse.workflow_id);
-
-      setGenerationStep('Generating photoshoot...');
-
-      const ticker = setInterval(() => {
-        setGenerationProgress(prev => {
-          if (prev >= 90) return prev;
-          return Math.min(prev + Math.max((90 - prev) * 0.04, 0.1), 90);
-        });
-      }, 300);
-
-      try {
-        const pollResult = await pollWorkflow<PhotoshootResultResponse>({
-          mode: 'status-then-result',
-          fetchStatus: () => authenticatedFetch(`/api/status/${startResponse.workflow_id}`),
-          fetchResult: () => authenticatedFetch(`/api/result/${startResponse.workflow_id}`),
-          onStatusData: (statusData: unknown) => {
-            const s = statusData as PhotoshootStatusResponse;
-            if (s.progress) {
-              const total = s.progress.total_nodes || 1;
-              const done = s.progress.completed_nodes || 0;
-              const realPct = Math.min(35 + Math.round((done / total) * 60), 95);
-              setGenerationProgress(prev => Math.max(prev, realPct));
-              const visited = s.progress.visited || [];
-              if (visited.length > 0) {
-                setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
-              }
-            }
-          },
-          parseResult: (d) => d as PhotoshootResultResponse,
-          intervalMs: 3000,
-          timeoutMs: 720_000,
-          max404s: Number.MAX_SAFE_INTEGER,
-          maxPollErrors: 1,
-          maxResultRetries: 6,
-          resultRetryDelayMs: 1000,
-        });
-
-        clearInterval(ticker);
-
-        if (pollResult.status === 'cancelled') return;
-
-        setGenerationProgress(95);
-        setGenerationStep('Fetching results...');
-
-        const result = pollResult.result;
-
-        const hasActivityError = Object.values(result).some(
-          (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
-        );
-        if (hasActivityError) {
-          setGenerationError('workflow-failed');
-          setIsGenerating(false);
-          return;
-        }
-
-        const images = extractResultImages(result);
-        setResultImages(images);
-        setGenerationProgress(100);
-        setCurrentStep('results');
-        setIsGenerating(false);
-        markGenerationCompleted(_genWorkflowId, _genStartTime);
-        trackGenerationComplete({
-          source: 'unified-studio',
-          category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-          upload_type: validationResult?.category ?? null,
-          duration_ms: Date.now() - _genStartTime,
-          is_first_ever: consumeFirstGeneration(),
-        });
-        refreshCredits();
-        return;
-      } finally {
-        clearInterval(ticker);
-      }
+      const _workflowId = startResponse.workflow_id;
+      setWorkflowId(_workflowId);
+      trackGeneration({
+        workflowId: _workflowId,
+        isProductShot,
+        jewelryType: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
+      });
+      markGenerationStarted(_workflowId);
+      setCurrentStep('generating');
     } catch (error) {
-      markGenerationFailed(
-        _genWorkflowId,
-        error instanceof Error ? error.message : String(error),
-        _genStartTime,
-      );
       setGenerationError('unavailable');
-      setIsGenerating(false);
+    } finally {
+      setIsSubmitting(false);
     }
   }, [
-    isGenerating, jewelryImage, activeModelUrl, isProductShot, effectiveJewelryType,
+    isSubmitting, jewelryImage, activeModelUrl, isProductShot, effectiveJewelryType,
     jewelryUploadedUrl, jewelryAssetId, selectedModel, customModelImage, modelAssetId,
-    validationResult, checkCredits, refreshCredits, toast, setCurrentStep, setJewelryAssetId,
-    clearStudioSession,
+    checkCredits, toast, setCurrentStep, setJewelryAssetId, trackGeneration,
   ]);
 
+  const handleKeepBrowsing = useCallback(() => {
+    hasNavigatedAway.current = true;
+    setCurrentStep('model');
+  }, [setCurrentStep]);
+
   const resetGeneration = useCallback(() => {
+    hasNavigatedAway.current = false;
     setResultImages([]);
     setWorkflowId(null);
     setGenerationError(null);
-    setGenerationProgress(0);
-    setGenerationStep('');
     setRegenerationCount(0);
     setFeedbackOpen(false);
   }, []);
@@ -359,6 +287,7 @@ export function useStudioGeneration({
     feedbackOpen,
     setFeedbackOpen,
     handleGenerate,
+    handleKeepBrowsing,
     resetGeneration,
   };
 }
