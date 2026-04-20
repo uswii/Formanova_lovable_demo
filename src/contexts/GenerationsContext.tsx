@@ -28,7 +28,7 @@ export interface TrackGenerationParams {
   jewelryType: string;
 }
 
-interface GenerationsContextValue {
+export interface GenerationsContextValue {
   generations: TrackedGeneration[];
   trackGeneration: (params: TrackGenerationParams) => void;
   clearGeneration: (workflowId: string) => void;
@@ -218,7 +218,7 @@ export function GenerationsContextProvider({ children }: { children: React.React
   // stop refreshing or toasts stop firing after completion.
   // Also watch: if runningKey doesn't update when a new workflowId is added, the new generation
   // won't start polling. Always verify trackGeneration triggers a re-run.
-  }, [runningKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runningKey]);
 
   // Abort all controllers on provider unmount
   useEffect(() => {
