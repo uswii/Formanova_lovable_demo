@@ -527,7 +527,7 @@ export default function UnifiedStudio() {
           setJewelryUploadedUrl={setJewelryUploadedUrl}
           setJewelrySasUrl={setJewelrySasUrl}
           setJewelryAssetId={setJewelryAssetId}
-          setCurrentStep={setCurrentStep}
+          setCurrentStep={setCurrentStep as (step: string) => void}
           setOverrideJewelryType={setOverrideJewelryType}
           validateImages={validateImages}
         />

@@ -567,8 +567,8 @@ const LoadedModel = forwardRef<
         autoMaterials[md.name] = {
           id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
           name: isGem ? 'Gem (flat)' : 'Metal (flat)',
-          category: isGem ? 'gemstone-flat' : 'metal-flat',
-          create: () => new THREE.MeshStandardMaterial({
+          category: isGem ? 'gemstone' : 'metal',
+          create: () => new THREE.MeshPhysicalMaterial({
             color,
             metalness: 0,
             roughness: isGem ? 0.6 : 0.8,
