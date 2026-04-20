@@ -23,11 +23,11 @@ This spec covers Phase 1 only. Later phases are defined here for orientation.
 
 | Phase | What changes | UI impact |
 |---|---|---|
-| **1 (this spec)** | Unblock 1×1. `GenerationsContext` (array), polling moves to Context, escapable spinner, toast + header indicator | None — same Studio UX, just non-blocking |
-| **2** | Multi-generation infrastructure. Context tracks N concurrent workflows (no shape change — already an array). Backend batch endpoints (if needed). `handleGenerate` fires multiple `startPhotoshoot` calls and tracks each. | **Zero** — Studio still submits 1×1 only. Users see nothing different. Validates infrastructure in production safely. |
+| **1 (this spec)** | Unblock 1×1. `GenerationsContext` (unbounded array), polling moves to Context, escapable spinner, toast + header indicator. Concurrent generations already supported at the infrastructure level. | None — same Studio UX, just non-blocking |
+| **2** | Backend batch endpoints (if needed). Wire `handleGenerate` to submit m×n jobs in one action. | **Zero** — Studio UI still 1×1. Validates batch backend safely. |
 | **3** | m×n UI. Studio exposes batch selection. Queue/results surface. Full UX redesign. | Full redesign |
 
-Phase 1's design already fully supports Phase 2 at the Context level — no shape changes required. Phase 2 is purely infrastructure wiring. Phase 3 is purely UI once infrastructure is proven.
+Phase 1 already handles concurrent generations at the Context/polling level. Phase 2 is backend + submission wiring only. Phase 3 is purely UI.
 
 ---
 
@@ -85,9 +85,13 @@ interface GenerationsContextValue {
 - On `clearGeneration`: removes entry from array, aborts its controller.
 - On provider unmount: aborts all controllers.
 
-### Replacing an active generation
+### Concurrent generations (unbounded queue)
 
-For v1 (1×1 only): calling `trackGeneration` while one is already running cancels the previous controller and replaces the entry. No UI warning needed — this matches current behaviour where only one generation runs at a time.
+Calling `trackGeneration` while one is already running simply appends to the array — no replacement, no cancellation. Each workflow gets its own `AbortController` and polls independently.
+
+The Studio hook (`useStudioGeneration`) tracks only the most recently submitted `workflowId`. That generation auto-transitions the Studio to results when it completes. Earlier concurrent generations surface their results via the toast notification only — clicking "View Results" navigates to the Studio with result images via route state.
+
+Credit throttling is a backend concern and is not handled here.
 
 ---
 
@@ -165,7 +169,7 @@ A small new component added to `Header.tsx`, reading from `GenerationsContext`. 
 | State | Visual | Interaction |
 |---|---|---|
 | Idle | Nothing rendered | — |
-| Running | `animate-spin` gem icon + `"Generating…"` (`font-mono text-[10px]`) | Click → navigate to `/studio/:jewelryType` |
+| Running | `animate-spin` gem icon + `"Generating…"` (or `"2 Generating…"` if N > 1) (`font-mono text-[10px]`) | Click → navigate to `/studio/:jewelryType` of the most recent generation |
 | Just completed | Static checkmark + `"Ready"` — auto-hides after 3 s | Click → trigger result navigation |
 
 No `cursor-pointer` per CLAUDE.md cursor affordance rule.
