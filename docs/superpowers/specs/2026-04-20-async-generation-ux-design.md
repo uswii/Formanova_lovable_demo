@@ -21,14 +21,13 @@ Not included in this spec: batch (m×n), order abstractions, email notifications
 
 This spec covers Phase 1 only. Later phases are defined here for orientation.
 
-| Phase | What changes | When |
+| Phase | What changes | UI impact |
 |---|---|---|
-| **1 (this spec)** | Unblock spinner + `GenerationsContext` + header indicator + toast | Now |
-| **2** | Nothing new — Phase 1 already builds the right infrastructure | — |
-| **3** | `GenerationsContext` holds array of concurrent generations (trivial — already an array) | When needed |
-| **4** | m×n batch submission UI + backend endpoints | Full redesign |
+| **1 (this spec)** | Unblock 1×1. `GenerationsContext` (array), polling moves to Context, escapable spinner, toast + header indicator | None — same Studio UX, just non-blocking |
+| **2** | Multi-generation infrastructure. Context tracks N concurrent workflows (no shape change — already an array). Backend batch endpoints (if needed). `handleGenerate` fires multiple `startPhotoshoot` calls and tracks each. | **Zero** — Studio still submits 1×1 only. Users see nothing different. Validates infrastructure in production safely. |
+| **3** | m×n UI. Studio exposes batch selection. Queue/results surface. Full UX redesign. | Full redesign |
 
-The context is deliberately designed as an array from day one so Phase 3 requires no shape change.
+Phase 1's design already fully supports Phase 2 at the Context level — no shape changes required. Phase 2 is purely infrastructure wiring. Phase 3 is purely UI once infrastructure is proven.
 
 ---
 
