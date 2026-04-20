@@ -565,10 +565,11 @@ const LoadedModel = forwardRef<
         }
         const color = isGem ? 0x1a3a6b : 0x77dd77;
         autoMaterials[md.name] = {
+          preview: `#${color.toString(16).padStart(6, '0')}`,
           id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
           name: isGem ? 'Gem (flat)' : 'Metal (flat)',
-          category: isGem ? 'gemstone-flat' : 'metal-flat',
-          create: () => new THREE.MeshStandardMaterial({
+          category: isGem ? 'gemstone' : 'metal',
+          create: () => new THREE.MeshPhysicalMaterial({
             color,
             metalness: 0,
             roughness: isGem ? 0.6 : 0.8,

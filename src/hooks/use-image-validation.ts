@@ -267,7 +267,7 @@ export function useImageValidation() {
 
         clearTimeout(timeoutId);
         return {
-          category: label,
+          category: label as any,
           is_worn,
           confidence: raw.confidence || 0,
           reason,

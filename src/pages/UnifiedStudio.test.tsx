@@ -11,7 +11,7 @@ vi.mock('framer-motion', () => ({
     get: (_, tag: keyof JSX.IntrinsicElements) => {
       const MotionTag = React.forwardRef<HTMLElement, Record<string, unknown>>(
         ({ children, initial, animate, transition, ...props }, ref) =>
-          React.createElement(tag as string, { ...props, ref }, children),
+          React.createElement(tag as string, { ...props, ref }, children as React.ReactNode),
       );
       MotionTag.displayName = `motion.${String(tag)}`;
       return MotionTag;
