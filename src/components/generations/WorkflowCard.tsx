@@ -397,7 +397,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 
         {/* Rename row — only when asset is linked */}
         {workflow.output_asset_id && (
-          <div className="mx-2 sm:mx-3 mt-2 flex items-center gap-1 sm:gap-1.5 min-w-0" onClick={e => e.stopPropagation()}>
+          <div
+            className={`mx-2 sm:mx-3 mt-2 flex items-center gap-1 sm:gap-1.5 min-w-0 ${isRenaming ? '' : 'justify-center'}`}
+            onClick={e => e.stopPropagation()}
+          >
             {isRenaming ? (
               <>
                 <Input
@@ -408,7 +411,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
                     if (e.key === 'Escape') handleCancelPhotoRename();
                   }}
                   autoFocus
-                  placeholder="Name this generation"
+                  placeholder="Name..."
                   className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 flex-1 min-w-0"
                 />
                 <button onClick={handleConfirmPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors flex-shrink-0">
@@ -420,7 +423,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               </>
             ) : (
               <>
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground truncate flex-1 min-w-0">
+                <span className="font-mono text-[10px] tracking-wider text-muted-foreground truncate max-w-[calc(100%-1.25rem)]">
                   {displayName ?? <span className="text-muted-foreground/40 italic">Untitled</span>}
                 </span>
                 <button
