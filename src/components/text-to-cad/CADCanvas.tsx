@@ -565,6 +565,7 @@ const LoadedModel = forwardRef<
         }
         const color = isGem ? 0x1a3a6b : 0x77dd77;
         autoMaterials[md.name] = {
+          preview: `#${color.toString(16).padStart(6, '0')}`,
           id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,
           name: isGem ? 'Gem (flat)' : 'Metal (flat)',
           category: isGem ? 'gemstone' : 'metal',
