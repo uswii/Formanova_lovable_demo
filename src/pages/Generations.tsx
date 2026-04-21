@@ -66,6 +66,16 @@ function preloadImage(url: string) {
   img.src = url;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => resolve(null), ms);
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(null))
+      .finally(() => window.clearTimeout(timeout));
+  });
+}
+
 async function batchSettled<T>(
   tasks: Array<() => Promise<T>>,
   concurrency = 5,
@@ -284,57 +294,53 @@ export default function Generations() {
 
     let cancelled = false;
 
+    const applyEnrichment = (id: string, data: Partial<WorkflowSummary>) => {
+      enrichedRef.current[id] = data;
+      setAllWorkflows(prev =>
+        prev.map(w => {
+          if (w.workflow_id !== id) return w;
+          const hydrated = { ...w, ...data };
+          const output_asset_name = resolveGeneratedAssetName(hydrated);
+          return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
+        })
+      );
+    };
+
     // Throttled sequential-batch enrichment (3 at a time with delay)
     (async () => {
       for (let i = 0; i < allUnenriched.length; i += 3) {
         if (cancelled) return;
         const batch = allUnenriched.slice(i, i + 3);
-        const results = await Promise.allSettled(
+        await Promise.allSettled(
           batch.map(async (wf) => {
             if (wf.source_type === 'cad_text') {
-              const [details, cadResult] = await Promise.all([
-                getWorkflowDetails(wf.workflow_id),
-                fetchCadResult(wf.workflow_id),
-              ]);
+              const details = await getWorkflowDetails(wf.workflow_id);
               const stepData = extractCadTextData(details.steps ?? []);
-              if (cadResult.glb_url) stepData.glb_url = cadResult.glb_url;
-              return { id: wf.workflow_id, data: stepData };
+              if (!cancelled) applyEnrichment(wf.workflow_id, stepData);
+
+              if (!stepData.glb_url) {
+                const cadResult = await withTimeout(fetchCadResult(wf.workflow_id), 5000);
+                if (!cancelled && cadResult?.glb_url) {
+                  applyEnrichment(wf.workflow_id, { ...stepData, glb_url: cadResult.glb_url });
+                }
+              }
+              return;
             }
             if (wf.source_type === 'product_shot') {
               const thumbnail_url = await extractProductShotThumbnail(wf.workflow_id);
               if (thumbnail_url) preloadImage(thumbnail_url);
-              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+              if (!cancelled) applyEnrichment(wf.workflow_id, { thumbnail_url: thumbnail_url ?? '' });
+              return;
             }
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+            if (!cancelled) applyEnrichment(wf.workflow_id, { thumbnail_url: thumbnail_url ?? '' });
           })
         );
 
         if (cancelled) return;
-
-        // Apply results
-        const updates: Record<string, Partial<WorkflowSummary>> = {};
-        for (const r of results) {
-          if (r.status === 'fulfilled' && r.value) {
-            enrichedRef.current[r.value.id] = r.value.data;
-            updates[r.value.id] = r.value.data;
-          } else if (r.status === 'rejected') {
-            // Mark as failed so we don't retry
-          }
-        }
-        if (Object.keys(updates).length > 0) {
-          setAllWorkflows(prev =>
-            prev.map(w => {
-              if (!updates[w.workflow_id]) return w;
-              const hydrated = { ...w, ...updates[w.workflow_id] };
-              const output_asset_name = resolveGeneratedAssetName(hydrated);
-              return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
-            })
-          );
-          saveCache(allWorkflows, enrichedRef.current);
-        }
+        saveCache(allWorkflows, enrichedRef.current);
 
         // Small delay between batches to avoid hammering the backend
         if (i + 3 < allUnenriched.length) {
