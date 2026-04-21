@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, FolderOpen } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, FolderOpen, Download } from "lucide-react";
 import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
@@ -123,6 +123,13 @@ export default function CADToPDP() {
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
     setLightboxShot((p) => (p?.id === id ? null : p));
+  }, []);
+
+  const downloadShot = useCallback((shot: Screenshot) => {
+    const a = document.createElement("a");
+    a.href = shot.dataUrl;
+    a.download = `pdp-shot-${shot.id}.png`;
+    a.click();
   }, []);
 
   // ── Upload screen ──
@@ -324,12 +331,21 @@ export default function CADToPDP() {
                       >
                         <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
                       </button>
+                      {/* Remove */}
                       <button
                         onClick={() => removeScreenshot(shot.id)}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-card border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:border-destructive"
                         title="Remove"
                       >
                         <X className="w-2.5 h-2.5 text-foreground" />
+                      </button>
+                      {/* Download */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); downloadShot(shot); }}
+                        className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-card border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                        title="Download"
+                      >
+                        <Download className="w-2.5 h-2.5 text-foreground" />
                       </button>
                     </div>
                   ))}
@@ -403,13 +419,14 @@ export default function CADToPDP() {
                     <div className="aspect-square border border-border overflow-hidden">
                       <img src={shot.dataUrl} alt={`Shot ${i + 1}`} className="w-full h-full object-cover" />
                     </div>
-                    <button
-                      onClick={() => { removeScreenshot(shot.id); setLimitModalOpen(false); }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove this screenshot"
-                    >
-                      <X className="w-4 h-4 text-white" />
-                    </button>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { removeScreenshot(shot.id); setLimitModalOpen(false); }} title="Remove" className="w-6 h-6 flex items-center justify-center bg-destructive/80 hover:bg-destructive rounded-sm">
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                      <button onClick={() => downloadShot(shot)} title="Download" className="w-6 h-6 flex items-center justify-center bg-card/80 hover:bg-accent rounded-sm">
+                        <Download className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
