@@ -95,3 +95,46 @@ export function detectLayerMaterial(meshName: string): LayerMaterial {
   }
   return FALLBACK;
 }
+
+const LABEL_TO_MAT_ID: Record<string, string> = {
+  '10K Yellow Gold': 'gold-yellow-polished', '14K Yellow Gold': 'gold-yellow-polished',
+  '18K Yellow Gold': 'gold-yellow-polished', '22K Yellow Gold': 'gold-yellow-polished',
+  '24K Yellow Gold': 'gold-yellow-polished', 'Yellow Gold': 'gold-yellow-polished',
+  'Gold': 'gold-yellow-polished', 'Generic Metal': 'gold-yellow-polished',
+  '10K Rose Gold': 'gold-rose-polished', '14K Rose Gold': 'gold-rose-polished',
+  '18K Rose Gold': 'gold-rose-polished', 'Rose Gold': 'gold-rose-polished',
+  '10K White Gold': 'gold-white-polished', '14K White Gold': 'gold-white-polished',
+  '18K White Gold': 'gold-white-polished', 'White Gold': 'gold-white-polished',
+  'Sterling Silver': 'silver-natural-polished', 'Silver': 'silver-natural-polished',
+  'Stainless Steel': 'silver-natural-polished',
+  'Platinum': 'platinum-natural-polished', 'Palladium': 'platinum-natural-polished',
+  'Titanium': 'titanium-natural-polished',
+  'Tungsten': 'titanium-black-polished', 'Black Metal': 'rhodium-black-polished',
+  'Brass': 'brass-natural-polished', 'Bronze': 'brass-natural-polished',
+  'Copper': 'copper-natural-polished',
+  'Band / Shank': 'gold-yellow-polished', 'Prong': 'gold-yellow-polished',
+  'Bezel Setting': 'gold-yellow-polished', 'Basket': 'gold-yellow-polished',
+  'Gallery': 'gold-yellow-polished', 'Shoulder': 'gold-yellow-polished',
+  'Bridge': 'gold-yellow-polished', 'Head': 'gold-yellow-polished',
+  'Halo Setting': 'gold-yellow-polished', 'Channel Setting': 'gold-yellow-polished',
+  'Claw': 'gold-yellow-polished',
+  'Diamond': 'diamond', 'Center Stone': 'diamond', 'Side Stone': 'diamond',
+  'Accent Stone': 'diamond', 'Halo Stones': 'diamond', 'Pave Stones': 'diamond',
+  'Melee': 'diamond', 'Cubic Zirconia': 'diamond', 'Moissanite': 'diamond',
+  'Gemstone': 'diamond', 'Pearl': 'diamond', 'Opal': 'diamond',
+  'Ruby': 'ruby', 'Garnet': 'ruby', 'Morganite': 'ruby',
+  'Emerald': 'emerald', 'Tourmaline': 'emerald',
+  'Sapphire': 'sapphire', 'Tanzanite': 'sapphire',
+  'Aquamarine': 'aquamarine', 'Turquoise': 'aquamarine',
+  'Topaz': 'topaz', 'Amethyst': 'amethyst',
+  'Onyx': 'black-diamond',
+};
+
+export function detectLayerMaterialId(meshName: string): string {
+  const { label } = detectLayerMaterial(meshName);
+  return LABEL_TO_MAT_ID[label] ?? 'gold-yellow-polished';
+}
+
+export function cleanLayerName(meshName: string): string {
+  return stripName(meshName) || meshName;
+}

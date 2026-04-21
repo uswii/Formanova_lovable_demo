@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard, Printer, Scale, Loader2 } from "lucide-react";
+import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard, Printer, Scale, Loader2, Camera } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -124,7 +124,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts, onEstimateWeight, weightLoading, stlExporting }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts, onEstimateWeight, weightLoading, stlExporting, onScreenshot, screenshotCount }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -141,6 +141,8 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   onEstimateWeight?: () => void;
   weightLoading?: boolean;
   stlExporting?: boolean;
+  onScreenshot?: () => void;
+  screenshotCount?: number;
 }) {
   if (!visible) return null;
 
@@ -230,6 +232,20 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
             : <Printer className="w-3.5 h-3.5" />}
         </button>
+      )}
+
+      {onScreenshot && (
+        <>
+          <SideDivider />
+          <button
+            onClick={onScreenshot}
+            className={SIDE_BTN}
+            title="Capture screenshot"
+          >
+            <SideTooltip label={screenshotCount !== undefined ? `Screenshot (${screenshotCount}/4)` : "Screenshot"} />
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+        </>
       )}
     </div>
   );
