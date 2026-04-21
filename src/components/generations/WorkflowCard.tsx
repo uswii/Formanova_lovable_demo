@@ -470,8 +470,9 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
       {previewOpen && hasThumbnail && (
         <PhotoPreviewModal
           imageUrl={workflow.thumbnail_url!}
-          alt={workflow.name || 'Generation preview'}
+          alt={displayName || workflow.name || 'Generation preview'}
           onClose={() => setPreviewOpen(false)}
+          assetId={workflow.output_asset_id}
         />
       )}
     </>
