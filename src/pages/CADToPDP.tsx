@@ -245,10 +245,17 @@ export default function CADToPDP() {
                 ) : (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors"
+                    className="w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-accent/30 transition-colors px-2"
                   >
-                    <Diamond className="w-7 h-7 text-primary/60" />
-                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">Load model</span>
+                    <div className="relative w-10 h-10">
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
+                      <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
+                        <Diamond className="h-4 w-4 text-primary" />
+                      </div>
+                    </div>
+                    <span className="font-display text-[10px] tracking-[0.1em] text-foreground/60 uppercase text-center leading-tight">
+                      Drop your CAD file here
+                    </span>
                   </button>
                 )}
               </div>
@@ -341,10 +348,15 @@ export default function CADToPDP() {
               )}
 
               {isModelLoading && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 backdrop-blur-sm">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-foreground/60" />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Loading model</span>
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background backdrop-blur-sm">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                      <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+                    </div>
+                    <span className="font-display text-lg tracking-[0.12em] uppercase text-foreground/80">
+                      Loading model into viewport
+                    </span>
                   </div>
                 </div>
               )}
