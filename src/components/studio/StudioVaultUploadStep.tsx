@@ -53,7 +53,7 @@ function ProductCard({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const displayName = getAssetDisplayName(asset);
+  const displayName = getAssetDisplayName(asset) || 'Product';
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(displayName ?? '');
   const [localName, setLocalName] = useState(displayName ?? '');

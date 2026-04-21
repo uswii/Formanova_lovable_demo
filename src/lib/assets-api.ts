@@ -103,6 +103,19 @@ export async function renameAsset(assetId: string, name: string): Promise<UserAs
   return response.json();
 }
 
+export function isShaLikeName(value?: string | null): boolean {
+  return /^[a-f0-9]{32,}$/i.test((value ?? '').replace(/\.[^.]+$/, ''));
+}
+
+function cleanDisplayName(value?: string | null): string {
+  const name = (value ?? '').trim();
+  return name && !isShaLikeName(name) ? name : '';
+}
+
+function cleanFilenameDisplayName(value?: string | null): string {
+  return cleanDisplayName(value?.replace(/\.[^.]+$/, ''));
+}
+
 export function getAssetDisplayName(asset: UserAsset): string {
   const anyAsset = asset as UserAsset & {
     label?: string | null;
@@ -114,23 +127,23 @@ export function getAssetDisplayName(asset: UserAsset): string {
   };
 
   return (
-    asset.name ||
-    asset.display_name ||
-    anyAsset.displayName ||
-    anyAsset.assetName ||
-    anyAsset.label ||
-    anyAsset.title ||
-    anyAsset.filename?.replace(/\.[^.]+$/, '') ||
-    anyAsset.original_filename?.replace(/\.[^.]+$/, '') ||
-    asset.metadata?.name ||
-    asset.metadata?.display_name ||
-    asset.metadata?.asset_name ||
-    asset.metadata?.displayName ||
-    asset.metadata?.assetName ||
-    asset.metadata?.label ||
-    asset.metadata?.title ||
-    asset.metadata?.filename?.replace(/\.[^.]+$/, '') ||
-    asset.metadata?.original_filename?.replace(/\.[^.]+$/, '') ||
+    cleanDisplayName(asset.name) ||
+    cleanDisplayName(asset.display_name) ||
+    cleanDisplayName(anyAsset.displayName) ||
+    cleanDisplayName(anyAsset.assetName) ||
+    cleanDisplayName(anyAsset.label) ||
+    cleanDisplayName(anyAsset.title) ||
+    cleanFilenameDisplayName(anyAsset.filename) ||
+    cleanFilenameDisplayName(anyAsset.original_filename) ||
+    cleanDisplayName(asset.metadata?.name) ||
+    cleanDisplayName(asset.metadata?.display_name) ||
+    cleanDisplayName(asset.metadata?.asset_name) ||
+    cleanDisplayName(asset.metadata?.displayName) ||
+    cleanDisplayName(asset.metadata?.assetName) ||
+    cleanDisplayName(asset.metadata?.label) ||
+    cleanDisplayName(asset.metadata?.title) ||
+    cleanFilenameDisplayName(asset.metadata?.filename) ||
+    cleanFilenameDisplayName(asset.metadata?.original_filename) ||
     ''
   );
 }

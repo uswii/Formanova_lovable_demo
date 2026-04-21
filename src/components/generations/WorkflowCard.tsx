@@ -12,7 +12,7 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { downloadAsset, renameAsset } from '@/lib/assets-api';
+import { downloadAsset, isShaLikeName, renameAsset } from '@/lib/assets-api';
 
 const CAD_RENAMES_KEY = 'formanova_cad_renames';
 const DISPLAY_NAME_MAX_CHARS = 50;
@@ -21,6 +21,11 @@ function truncateDisplayName(name: string): string {
   return name.length > DISPLAY_NAME_MAX_CHARS
     ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
     : name;
+}
+
+function getStoredRename(map: Record<string, string>, workflowId: string): string | null {
+  const value = map[workflowId];
+  return value && !isShaLikeName(value) ? value : null;
 }
 
 function loadStoredRenames(): Record<string, string> {
@@ -94,12 +99,12 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(
-    () => loadStoredRenames()[workflow.workflow_id] ?? workflow.output_asset_name ?? null
+    () => getStoredRename(loadStoredRenames(), workflow.workflow_id) ?? workflow.output_asset_name ?? null
   );
   const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
-    if (workflow.output_asset_name && !loadStoredRenames()[workflow.workflow_id]) {
+    if (workflow.output_asset_name && !getStoredRename(loadStoredRenames(), workflow.workflow_id)) {
       setDisplayName(workflow.output_asset_name);
     }
   }, [workflow.output_asset_name]);

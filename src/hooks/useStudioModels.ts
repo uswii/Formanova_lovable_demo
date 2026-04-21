@@ -88,7 +88,7 @@ export function useStudioModels({
       const data = await fetchUserAssets(isProductShot ? 'inspiration_photo' : 'model_photo', 0, 100);
       const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
         id: a.id,
-        name: getAssetDisplayName(a),
+        name: getAssetDisplayName(a) || (isProductShot ? 'Inspiration' : 'Model'),
         url: a.thumbnail_url,
         uploadedAt: new Date(a.created_at).getTime(),
       }));

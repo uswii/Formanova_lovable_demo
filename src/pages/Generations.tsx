@@ -13,13 +13,13 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
-import { fetchUserAssets, getAssetDisplayName, type UserAsset } from '@/lib/assets-api';
+import { fetchUserAssets, getAssetDisplayName, type AssetType, type UserAsset } from '@/lib/assets-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
 
 const PER_PAGE = 5;
-const CACHE_KEY = 'formanova_gen_cache_v2';
+const CACHE_KEY = 'formanova_gen_cache_v3';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text';
@@ -90,6 +90,17 @@ function getAssetWorkflowId(asset: UserAsset): string | null {
     asset.metadata?.generation_workflow_id ||
     null
   );
+}
+
+async function fetchAllUserAssets(type: AssetType): Promise<UserAsset[]> {
+  const pageSize = 100;
+  const items: UserAsset[] = [];
+  for (let page = 0; page < 10; page += 1) {
+    const data = await fetchUserAssets(type, page, pageSize);
+    items.push(...data.items);
+    if (items.length >= data.total || data.items.length < pageSize) break;
+  }
+  return items;
 }
 
 function getArtifactKey(value?: string | null): string | null {
@@ -196,10 +207,10 @@ export default function Generations() {
         const artifactAssetNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
-            fetchUserAssets('generated_photo', 0, 200),
-            fetchUserAssets('generated_cad', 0, 200),
+            fetchAllUserAssets('generated_photo'),
+            fetchAllUserAssets('generated_cad'),
           ]);
-          [...photos.items, ...cads.items].forEach(a => {
+          [...photos, ...cads].forEach(a => {
             const name = getAssetDisplayName(a);
             if (!name) return;
             assetNameMap[a.id] = name;
