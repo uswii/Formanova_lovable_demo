@@ -230,6 +230,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                       if (e.key === 'Escape') handleCancelRename();
                     }}
                     autoFocus
+                    maxLength={50}
                     className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 min-w-[80px] max-w-[140px]"
                   />
                   <span className="text-[10px] text-muted-foreground font-mono">.{extension}</span>
@@ -409,6 +410,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
                   }}
                   autoFocus
                   placeholder="Name..."
+                  maxLength={50}
                   className="h-6 w-full font-mono text-[10px] tracking-wider px-1.5 py-0"
                 />
                 <div className="flex items-center justify-end gap-2">
@@ -422,7 +424,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               </div>
             ) : (
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0">
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground truncate max-w-[calc(100%-1.25rem)]">
+                <span className="font-mono text-[10px] tracking-wider text-foreground truncate max-w-[calc(100%-1.25rem)]">
                   {displayName ?? <span className="text-muted-foreground/40 italic">Untitled</span>}
                 </span>
                 <button
