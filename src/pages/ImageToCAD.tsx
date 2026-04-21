@@ -138,7 +138,7 @@ export default function ImageToCAD() {
     setSourceWorkflowId(workflowIdParam?.trim() || null);
     setGlbArtifact({ uri: glbParam, type: 'model/gltf-binary', bytes: 0, sha256: '' });
     navigate('/image-to-cad', { replace: true });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; searchParams/navigate/setters excluded so re-navigation doesn't re-seed state
   }, []);
 
   meshesRef.current = meshes;

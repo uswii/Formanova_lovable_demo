@@ -10,13 +10,9 @@ import type { CADCanvasHandle } from "@/components/text-to-cad/CADCanvas";
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import PDPMeshPanel from "@/components/cad-to-pdp/PDPMeshPanel";
 import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
+import { WorkspacePopupModal, LimitModal, LightboxModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
 
 const MAX_SHOTS = 4;
-
-interface Screenshot {
-  id: number;
-  dataUrl: string;
-}
 
 interface WorkspacePopup {
   title: string;
@@ -159,48 +155,6 @@ export default function CADToPDP() {
     setLightboxShot((p) => (p?.id === id ? null : p));
   }, []);
 
-  const workspacePopupNode = (
-    <AnimatePresence>
-      {workspacePopup && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setWorkspacePopup(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="bg-card border border-border shadow-2xl w-[380px] px-8 py-7 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setWorkspacePopup(null)}
-              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="font-display text-base uppercase tracking-[0.15em] text-foreground mb-1.5">
-              {workspacePopup.title}
-            </div>
-            <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-6">
-              {workspacePopup.message}
-            </p>
-            <button
-              onClick={() => setWorkspacePopup(null)}
-              className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
-            >
-              OK
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-
   // ── Full-page upload screen (first visit only) ──
   if (!inWorkspace) {
     return (
@@ -251,7 +205,7 @@ export default function CADToPDP() {
 
           <input ref={fileInputRef} type="file" accept=".glb,.gltf" className="hidden" onChange={onInputChange} />
         </motion.div>
-        {workspacePopupNode}
+        <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       </div>
     );
   }
@@ -337,7 +291,7 @@ export default function CADToPDP() {
               <button
                 onClick={() => {
                   const p = rightPanelRef.current;
-                  if (p) { rightCollapsed ? p.expand(22) : p.collapse(); }
+                  if (p) { if (rightCollapsed) { p.expand(22); } else { p.collapse(); } }
                 }}
                 className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
                 title={rightCollapsed ? "Show layers" : "Hide layers"}
@@ -527,91 +481,14 @@ export default function CADToPDP() {
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* Max screenshots modal */}
-      <AnimatePresence>
-        {limitModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setLimitModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              className="bg-card border border-border shadow-2xl w-[380px] px-8 py-7 relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button onClick={() => setLimitModalOpen(false)} className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-              <div className="font-display text-base uppercase tracking-[0.15em] text-foreground mb-1.5">
-                Screenshot limit reached
-              </div>
-              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5">
-                You have 4 screenshots saved. Remove one below to take a new shot.
-              </p>
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {screenshots.map((shot, i) => (
-                  <div key={shot.id} className="relative group">
-                    <div className="aspect-square border border-border overflow-hidden">
-                      <img src={shot.dataUrl} alt={`Shot ${i + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { removeScreenshot(shot.id); setLimitModalOpen(false); }} title="Remove" className="w-7 h-7 flex items-center justify-center bg-destructive/80 hover:bg-destructive rounded-sm">
-                        <X className="w-3.5 h-3.5 text-white" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => setLimitModalOpen(false)}
-                className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxShot && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
-            onClick={() => setLightboxShot(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.93, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.93, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              className="relative max-w-[90vw] max-h-[90vh]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img src={lightboxShot.dataUrl} alt="Screenshot" className="max-w-full max-h-[90vh] object-contain border border-border" />
-              <button onClick={() => setLightboxShot(null)} className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors">
-                <X className="w-4 h-4 text-foreground" />
-              </button>
-              <button
-                onClick={() => { const a = document.createElement("a"); a.href = lightboxShot.dataUrl; a.download = `pdp-shot-${lightboxShot.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }}
-                className="absolute bottom-2 right-2 px-3 py-1.5 bg-card/90 border border-border font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-              >
-                Download
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {workspacePopupNode}
+      <LimitModal
+        open={limitModalOpen}
+        screenshots={screenshots}
+        onClose={() => setLimitModalOpen(false)}
+        onRemove={removeScreenshot}
+      />
+      <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} />
+      <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
     </div>
   );
 }

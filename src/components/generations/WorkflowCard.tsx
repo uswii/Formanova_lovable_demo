@@ -13,52 +13,14 @@ import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { downloadAsset, isShaLikeName, renameAsset } from '@/lib/assets-api';
-
-const CAD_RENAMES_KEY = 'formanova_cad_renames';
-const DISPLAY_NAME_MAX_CHARS = 50;
-
-function truncateDisplayName(name: string): string {
-  return name.length > DISPLAY_NAME_MAX_CHARS
-    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
-    : name;
-}
+import {
+  truncateDisplayName, loadStoredRenames, saveStoredRename,
+  loadPhotoRenames, savePhotoRename, formatLocal, formatLocalDateOnly,
+} from './workflow-card-utils';
 
 function getStoredRename(map: Record<string, string>, workflowId: string): string | null {
   const value = map[workflowId];
   return value && !isShaLikeName(value) ? value : null;
-}
-
-function loadStoredRenames(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(CAD_RENAMES_KEY) ?? '{}'); } catch { return {}; }
-}
-function saveStoredRename(workflowId: string, name: string) {
-  try {
-    const map = loadStoredRenames();
-    map[workflowId] = name;
-    localStorage.setItem(CAD_RENAMES_KEY, JSON.stringify(map));
-  } catch { /* quota — ignore */ }
-}
-
-const localDateFmt = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-const localDateOnlyFmt = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-});
-function formatLocal(ts: string): string {
-  let normalized = ts.trim();
-  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
-    normalized += 'Z';
-  }
-  return localDateFmt.format(new Date(normalized));
-}
-function formatLocalDateOnly(ts: string): string {
-  let normalized = ts.trim();
-  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
-    normalized += 'Z';
-  }
-  return localDateOnlyFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
@@ -332,19 +294,6 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 }
 
 // ─── Photo / CAD-render card ────────────────────────────────────────────────
-// Matches the "From Text to CAD" card style: image-first, minimal metadata.
-
-const PHOTO_RENAMES_KEY = 'formanova_photo_renames';
-function loadPhotoRenames(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(PHOTO_RENAMES_KEY) ?? '{}'); } catch { return {}; }
-}
-function savePhotoRename(id: string, name: string) {
-  try {
-    const map = loadPhotoRenames();
-    map[id] = name;
-    localStorage.setItem(PHOTO_RENAMES_KEY, JSON.stringify(map));
-  } catch { /* quota */ }
-}
 
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
