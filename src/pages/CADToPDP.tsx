@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, FolderOpen, Download } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
@@ -74,6 +74,17 @@ export default function CADToPDP() {
     e.target.value = "";
   }, [loadFile]);
 
+  const clearModel = useCallback(() => {
+    if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
+    setHasModel(false);
+    setGlbUrl(undefined);
+    setFileName("");
+    setMeshes([]);
+    setScreenshots([]);
+    setGlbThumbnail(null);
+    setIsModelLoading(false);
+  }, [glbUrl]);
+
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
   }, []);
@@ -109,15 +120,23 @@ export default function CADToPDP() {
     if (screenshots.length >= MAX_SHOTS) { setLimitModalOpen(true); return; }
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
     if (!canvas) { toast.error("Viewport not ready"); return; }
-    try {
-      const dataUrl = canvas.toDataURL("image/png");
-      if (!dataUrl || dataUrl === "data:,") {
-        toast.error("No frame rendered yet. Orbit the model first, then try again.");
-        return;
-      }
-      setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
-      toast.success("Screenshot saved");
-    } catch { toast.error("Screenshot failed"); }
+    // Trigger a fresh render (zoomIn+zoomOut cancel out; net change = 0),
+    // then capture in the rAF that follows — after R3F has drawn the frame with
+    // any applied materials (preserveDrawingBuffer:false means we must capture
+    // in the same rAF tick as the render).
+    canvasRef.current?.zoomIn();
+    canvasRef.current?.zoomOut();
+    requestAnimationFrame(() => {
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        if (!dataUrl || dataUrl === "data:,") {
+          toast.error("Interact with the model first, then try again.");
+          return;
+        }
+        setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
+        toast.success("Screenshot saved");
+      } catch { toast.error("Screenshot failed"); }
+    });
   }, [screenshots.length]);
 
   const removeScreenshot = useCallback((id: number) => {
@@ -201,19 +220,27 @@ export default function CADToPDP() {
             {/* Thumbnail */}
             <div className="px-3 pt-3 flex-shrink-0">
               <div className="relative w-full aspect-square border border-border overflow-hidden bg-muted/20">
-                {glbThumbnail ? (
-                  <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
+                {isModelLoading ? (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
+                  </div>
+                ) : glbThumbnail ? (
+                  <>
+                    <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
+                    <button
+                      onClick={clearModel}
+                      className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                      title="Remove model"
+                    >
+                      <X className="w-3 h-3 text-foreground" />
+                    </button>
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Diamond className="w-8 h-8 text-muted-foreground/30" />
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* File name */}
-            <div className="px-3 pt-2 pb-1 flex-shrink-0">
-              <p className="font-mono text-[10px] text-muted-foreground truncate" title={fileName}>{fileName}</p>
             </div>
 
             {/* Replace button */}
@@ -223,7 +250,7 @@ export default function CADToPDP() {
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
               >
-                <FolderOpen className="w-3 h-3" />
+                <Upload className="w-3 h-3" />
                 Replace model
               </button>
             </div>
@@ -270,8 +297,11 @@ export default function CADToPDP() {
               </CADRuntimeErrorBoundary>
 
               {isModelLoading && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                  <div className="font-display text-lg uppercase tracking-[0.2em] text-foreground">Loading…</div>
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 backdrop-blur-sm">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-foreground/60" />
+                    <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Loading model</span>
+                  </div>
                 </div>
               )}
 
@@ -298,12 +328,24 @@ export default function CADToPDP() {
                 undoCount={0}
                 redoCount={0}
                 onDownload={async () => {
-                  if (!canvasRef.current) return;
+                  if (!canvasRef.current && !glbUrl) { toast.error("No model to download"); return; }
                   try {
-                    const blob = await canvasRef.current.exportSceneBlob();
+                    let blob: Blob;
+                    if (canvasRef.current) {
+                      blob = await canvasRef.current.exportSceneBlob();
+                    } else {
+                      const response = await fetch(glbUrl!);
+                      if (!response.ok) throw new Error("Fetch failed");
+                      blob = await response.blob();
+                    }
+                    if (!blob || blob.size === 0) { toast.error("Export produced an empty file"); return; }
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = url; a.download = `model-${Date.now()}.glb`; a.click();
+                    a.href = url;
+                    a.download = fileName || `model-${Date.now()}.glb`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
                     setTimeout(() => URL.revokeObjectURL(url), 5000);
                   } catch { toast.error("Export failed"); }
                 }}

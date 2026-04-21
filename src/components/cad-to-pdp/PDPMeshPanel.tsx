@@ -187,6 +187,9 @@ function MeshList({ search, setSearch, filtered, meshes, onClick }: {
         )}
         {filtered.map((mesh) => {
           const detected = detectLayerMaterial(mesh.name);
+          const cleaned = cleanLayerName(mesh.name) || mesh.name;
+          const displayLabel = detected.label === "Generic Metal" ? cleaned : detected.label;
+          const showSecondary = displayLabel !== cleaned;
           return (
             <button key={mesh.name} onClick={(e) => onClick(mesh, e)}
               className={`w-full text-left px-3 py-2.5 mb-1 transition-all border ${mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"} ${!mesh.visible ? "opacity-35" : ""}`}
@@ -198,11 +201,13 @@ function MeshList({ search, setSearch, filtered, meshes, onClick }: {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] truncate font-medium">
-                    {!mesh.visible && "[H] "}{detected.label}
+                    {!mesh.visible && "[H] "}{displayLabel}
                   </div>
-                  <div className="font-mono text-[9px] text-muted-foreground truncate">
-                    {cleanLayerName(mesh.name)}
-                  </div>
+                  {showSecondary && (
+                    <div className="font-mono text-[9px] text-muted-foreground truncate">
+                      {cleaned}
+                    </div>
+                  )}
                 </div>
               </div>
             </button>
