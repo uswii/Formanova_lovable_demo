@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
-import { useDownloadRename } from '@/components/DownloadRenameDialog';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
@@ -19,19 +18,13 @@ interface PhotoPreviewModalProps {
 }
 
 export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
-  const { promptRename, DownloadDialog } = useDownloadRename();
   const resolvedSrc = useAuthenticatedImage(imageUrl);
 
   const handleDownload = async () => {
     const urlParts = imageUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
-    const nameWithExt = lastPart || 'generation.jpg';
-    const dotIdx = nameWithExt.lastIndexOf('.');
-    const baseName = dotIdx > 0 ? nameWithExt.slice(0, dotIdx) : nameWithExt;
-    const ext = dotIdx > 0 ? nameWithExt.slice(dotIdx + 1) : 'jpg';
-
-    const filename = await promptRename(baseName, ext);
-    if (!filename) return;
+    const filename = lastPart || 'generation.jpg';
+    const ext = filename.lastIndexOf('.') > 0 ? filename.slice(filename.lastIndexOf('.') + 1) : 'jpg';
 
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
     const res = await authenticatedFetch(imageUrl);
@@ -76,7 +69,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
           </div>
         </div>
       </DialogContent>
-      {DownloadDialog}
     </Dialog>
   );
 }
