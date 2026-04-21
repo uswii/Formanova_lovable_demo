@@ -15,6 +15,13 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { renameAsset } from '@/lib/assets-api';
 
 const CAD_RENAMES_KEY = 'formanova_cad_renames';
+const DISPLAY_NAME_MAX_CHARS = 50;
+
+function truncateDisplayName(name: string): string {
+  return name.length > DISPLAY_NAME_MAX_CHARS
+    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
+    : name;
+}
 
 function loadStoredRenames(): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(CAD_RENAMES_KEY) ?? '{}'); } catch { return {}; }
@@ -114,7 +121,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const rawFilename = workflow.glb_filename || 'model.glb';
   const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
   const baseName = rawFilename.replace(/\.[^.]+$/, '');
-  const shownFilename = displayName ? `${displayName}.${extension}` : rawFilename;
+  const shownBaseName = displayName ?? baseName;
+  const shownFilename = `${shownBaseName}.${extension}`;
+  const visibleFilename = `${truncateDisplayName(shownBaseName)}.${extension}`;
 
   const handleStartRename = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -249,8 +258,11 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
-                    {isEnriching ? '—' : shownFilename}
+                  <span
+                    className="font-mono text-[10px] tracking-wider text-foreground truncate"
+                    title={shownFilename}
+                  >
+                    {isEnriching ? '—' : visibleFilename}
                   </span>
                   {!isEnriching && workflow.glb_url && (
                     <button
@@ -436,8 +448,11 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               </div>
             ) : (
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0">
-                <span className="font-mono text-[10px] tracking-wider text-foreground truncate max-w-[calc(100%-1.25rem)]">
-                  {displayName ?? <span className="text-muted-foreground/40 italic">Untitled</span>}
+                <span
+                  className="font-mono text-[10px] tracking-wider text-foreground truncate max-w-[calc(100%-1.25rem)]"
+                  title={displayName ?? undefined}
+                >
+                  {displayName ? truncateDisplayName(displayName) : <span className="text-muted-foreground/40 italic">Untitled</span>}
                 </span>
                 <button
                   onClick={handleStartRename}

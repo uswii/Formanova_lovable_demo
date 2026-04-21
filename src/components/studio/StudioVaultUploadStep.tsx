@@ -24,6 +24,14 @@ import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { renameAsset } from '@/lib/assets-api';
 import type { UserAsset } from '@/lib/assets-api';
 
+const DISPLAY_NAME_MAX_CHARS = 50;
+
+function truncateDisplayName(name: string): string {
+  return name.length > DISPLAY_NAME_MAX_CHARS
+    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
+    : name;
+}
+
 function ProductThumb({ src, alt }: { src: string; alt: string }) {
   const resolved = useAuthenticatedImage(src);
   return (
@@ -50,6 +58,15 @@ function ProductCard({
   const [nameInput, setNameInput] = useState(displayName ?? '');
   const [localName, setLocalName] = useState(displayName ?? '');
   const [saved, setSaved] = useState(false);
+  const syncedDisplayNameRef = React.useRef(displayName);
+
+  React.useEffect(() => {
+    if (displayName && displayName !== syncedDisplayNameRef.current) {
+      syncedDisplayNameRef.current = displayName;
+      setLocalName(displayName);
+      setNameInput(displayName);
+    }
+  }, [displayName]);
 
   const handleRenameCommit = async () => {
     setEditing(false);
@@ -136,8 +153,8 @@ function ProductCard({
               </>
             ) : (
               <>
-                <span className="font-mono text-[11px] truncate text-foreground transition-colors">
-                  {localName || <span className="italic text-muted-foreground/60">Click to name</span>}
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors" title={localName || undefined}>
+                  {localName ? truncateDisplayName(localName) : <span className="italic text-muted-foreground/60">Click to name</span>}
                 </span>
                 <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
               </>

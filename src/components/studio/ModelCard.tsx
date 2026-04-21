@@ -2,6 +2,14 @@ import React from 'react';
 import { Check, X, Pencil } from 'lucide-react';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
+const DISPLAY_NAME_MAX_CHARS = 50;
+
+function truncateDisplayName(name: string): string {
+  return name.length > DISPLAY_NAME_MAX_CHARS
+    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
+    : name;
+}
+
 export interface UserModel {
   id: string;
   name: string;
@@ -20,6 +28,10 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   const [editing, setEditing] = React.useState(false);
   const [nameInput, setNameInput] = React.useState(model.name);
   const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!editing) setNameInput(model.name);
+  }, [editing, model.name]);
 
   const commit = () => {
     setEditing(false);
@@ -105,8 +117,8 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
               </>
             ) : (
               <>
-                <span className="font-mono text-[11px] truncate text-foreground transition-colors">
-                  {model.name || <span className="italic opacity-60">Click to name</span>}
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors" title={model.name || undefined}>
+                  {model.name ? truncateDisplayName(model.name) : <span className="italic opacity-60">Click to name</span>}
                 </span>
                 <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
               </>

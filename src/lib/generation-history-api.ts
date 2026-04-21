@@ -65,6 +65,17 @@ export interface WorkflowDetail {
   steps: WorkflowStep[];
 }
 
+function extractOutputAssetId(workflow: any): string | null {
+  return (
+    workflow.output_asset_id ??
+    workflow.output_asset?.id ??
+    workflow.output_asset?.asset_id ??
+    workflow.result?.output_asset_id ??
+    workflow.result?.output_asset?.id ??
+    null
+  );
+}
+
 // ─── API Functions ──────────────────────────────────────────────────
 
 /**
@@ -111,7 +122,7 @@ export async function listMyWorkflows(
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
       mode: w.input?.mode ?? null,
-      output_asset_id: w.output_asset_id ?? null,
+      output_asset_id: extractOutputAssetId(w),
     };
   });
   if (__DEV__) {

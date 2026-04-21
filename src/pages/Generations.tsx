@@ -133,26 +133,33 @@ export default function Generations() {
         const workflows = rawWorkflows.filter(w => w.source_type !== 'unknown');
         if (import.meta.env.DEV) console.log('[Generations] fetched:', rawWorkflows.length, '→ valid:', workflows.length);
 
-        // Build asset id → name map from generated asset lists
+        // Build generated asset name maps. Some older workflow rows do not expose
+        // output_asset_id, so also match by metadata.workflow_id when available.
         const assetNameMap: Record<string, string> = {};
+        const workflowAssetNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
             fetchUserAssets('generated_photo', 0, 200),
             fetchUserAssets('generated_cad', 0, 200),
           ]);
           [...photos.items, ...cads.items].forEach(a => {
-            if (a.name) assetNameMap[a.id] = a.name;
+            if (!a.name) return;
+            assetNameMap[a.id] = a.name;
+            const workflowId = a.metadata?.workflow_id;
+            if (workflowId) workflowAssetNameMap[workflowId] = a.name;
           });
         } catch { /* non-fatal — names just won't show */ }
 
         // Re-apply enriched data + asset names
         const merged = workflows.map(w => {
           const e = enrichedRef.current[w.workflow_id];
-          const output_asset_name = w.output_asset_id ? (assetNameMap[w.output_asset_id] ?? null) : null;
+          const output_asset_name = w.output_asset_id
+            ? (assetNameMap[w.output_asset_id] ?? workflowAssetNameMap[w.workflow_id] ?? null)
+            : (workflowAssetNameMap[w.workflow_id] ?? null);
           return { ...w, ...(e ?? {}), ...(output_asset_name ? { output_asset_name } : {}) };
         });
         setAllWorkflows(merged);
-        saveCache(workflows, enrichedRef.current);
+        saveCache(merged, enrichedRef.current);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
         if (err.name !== 'AuthExpiredError' && !cached) {
