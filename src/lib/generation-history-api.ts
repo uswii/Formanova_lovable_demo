@@ -76,6 +76,21 @@ function extractOutputAssetId(workflow: any): string | null {
   );
 }
 
+function extractOutputAssetName(workflow: any): string | null {
+  return (
+    workflow.output_asset_name ??
+    workflow.asset_name ??
+    workflow.display_name ??
+    workflow.output_asset?.name ??
+    workflow.output_asset?.display_name ??
+    workflow.result?.output_asset_name ??
+    workflow.result?.asset_name ??
+    workflow.result?.output_asset?.name ??
+    workflow.result?.output_asset?.display_name ??
+    null
+  );
+}
+
 // ─── API Functions ──────────────────────────────────────────────────
 
 /**
@@ -123,6 +138,7 @@ export async function listMyWorkflows(
       source_type: sourceType,
       mode: w.input?.mode ?? null,
       output_asset_id: extractOutputAssetId(w),
+      output_asset_name: extractOutputAssetName(w),
     };
   });
   if (__DEV__) {

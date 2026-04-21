@@ -13,13 +13,13 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
-import { fetchUserAssets } from '@/lib/assets-api';
+import { fetchUserAssets, getAssetDisplayName, type UserAsset } from '@/lib/assets-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
 
 const PER_PAGE = 5;
-const CACHE_KEY = 'formanova_gen_cache';
+const CACHE_KEY = 'formanova_gen_cache_v2';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text';
@@ -76,6 +76,16 @@ async function batchSettled<T>(
     results.push(...(await Promise.allSettled(batch)));
   }
   return results;
+}
+
+function getAssetWorkflowId(asset: UserAsset): string | null {
+  return (
+    asset.metadata?.workflow_id ||
+    asset.metadata?.workflow_run_id ||
+    asset.metadata?.source_workflow_id ||
+    asset.metadata?.generation_workflow_id ||
+    null
+  );
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -143,19 +153,20 @@ export default function Generations() {
             fetchUserAssets('generated_cad', 0, 200),
           ]);
           [...photos.items, ...cads.items].forEach(a => {
-            if (!a.name) return;
-            assetNameMap[a.id] = a.name;
-            const workflowId = a.metadata?.workflow_id;
-            if (workflowId) workflowAssetNameMap[workflowId] = a.name;
+            const name = getAssetDisplayName(a);
+            if (!name) return;
+            assetNameMap[a.id] = name;
+            const workflowId = getAssetWorkflowId(a);
+            if (workflowId) workflowAssetNameMap[workflowId] = name;
           });
         } catch { /* non-fatal — names just won't show */ }
 
         // Re-apply enriched data + asset names
         const merged = workflows.map(w => {
           const e = enrichedRef.current[w.workflow_id];
-          const output_asset_name = w.output_asset_id
+          const output_asset_name = w.output_asset_name || (w.output_asset_id
             ? (assetNameMap[w.output_asset_id] ?? workflowAssetNameMap[w.workflow_id] ?? null)
-            : (workflowAssetNameMap[w.workflow_id] ?? null);
+            : (workflowAssetNameMap[w.workflow_id] ?? null));
           return { ...w, ...(e ?? {}), ...(output_asset_name ? { output_asset_name } : {}) };
         });
         setAllWorkflows(merged);

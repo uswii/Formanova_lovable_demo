@@ -21,7 +21,7 @@ import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
-import { renameAsset } from '@/lib/assets-api';
+import { getAssetDisplayName, renameAsset } from '@/lib/assets-api';
 import type { UserAsset } from '@/lib/assets-api';
 
 const DISPLAY_NAME_MAX_CHARS = 50;
@@ -53,7 +53,7 @@ function ProductCard({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const displayName = asset.metadata?.name || asset.name;
+  const displayName = getAssetDisplayName(asset);
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(displayName ?? '');
   const [localName, setLocalName] = useState(displayName ?? '');
@@ -415,7 +415,7 @@ export function StudioVaultUploadStep({
   const searchQuery = productSearch.toLowerCase();
   const displayAssets = searchActive
     ? filteredAssets.filter(a => {
-        const name = a.metadata?.name || a.name || '';
+        const name = getAssetDisplayName(a);
         return name.toLowerCase().includes(searchQuery);
       })
     : assets;

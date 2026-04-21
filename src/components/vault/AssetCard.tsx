@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Pencil, Check, X, Download } from 'lucide-react';
-import type { UserAsset } from '@/lib/assets-api';
+import { getAssetDisplayName, type UserAsset } from '@/lib/assets-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
 export interface AssetCardProps {
@@ -19,7 +19,7 @@ export interface AssetCardProps {
 
 export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadata, onRename, onDownload }: AssetCardProps) {
   const label = reshootLabel ?? (asset.asset_type === 'model_photo' ? 'New Shoot' : 'New Style');
-  const displayName = asset.metadata?.name || asset.name;
+  const displayName = getAssetDisplayName(asset);
   const isGenerated = asset.asset_type === 'generated_photo' || asset.asset_type === 'generated_cad';
   const [editing, setEditing] = useState(false);
   const resolvedThumbnail = useAuthenticatedImage(asset.thumbnail_url);

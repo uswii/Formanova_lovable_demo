@@ -13,7 +13,20 @@ export interface UserAsset {
   created_at: string;      // ISO string
   thumbnail_url: string;   // Artifact proxy URL — always load via useAuthenticatedImage, never use directly in <img src>
   name: string | null;
-  metadata?: { category?: string; name?: string; display_type?: string; is_worn?: string; flagged?: string; user_override?: string; [key: string]: string | undefined };
+  display_name?: string | null;
+  metadata?: {
+    category?: string;
+    name?: string;
+    display_name?: string;
+    asset_name?: string;
+    filename?: string;
+    original_filename?: string;
+    display_type?: string;
+    is_worn?: string;
+    flagged?: string;
+    user_override?: string;
+    [key: string]: string | undefined;
+  };
 }
 
 export interface AssetsPage {
@@ -66,6 +79,19 @@ export async function renameAsset(assetId: string, name: string): Promise<UserAs
     throw new Error(`Failed to rename asset: ${response.status}`);
   }
   return response.json();
+}
+
+export function getAssetDisplayName(asset: UserAsset): string {
+  return (
+    asset.name ||
+    asset.display_name ||
+    asset.metadata?.name ||
+    asset.metadata?.display_name ||
+    asset.metadata?.asset_name ||
+    asset.metadata?.filename?.replace(/\.[^.]+$/, '') ||
+    asset.metadata?.original_filename?.replace(/\.[^.]+$/, '') ||
+    ''
+  );
 }
 
 export async function downloadAsset(assetId: string): Promise<void> {
