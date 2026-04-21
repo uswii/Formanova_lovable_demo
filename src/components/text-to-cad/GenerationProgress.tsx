@@ -13,6 +13,8 @@ const NODE_LABELS: Record<string, string> = {
   success_original_glb: "Your 3D design is ready",
   failed_final: "Could not complete generation",
   _loading: "Loading model into viewport",
+  generate_from_sketch: "Generating from sketch",
+  validate_against_sketch: "Validating against sketch",
 };
 
 const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);

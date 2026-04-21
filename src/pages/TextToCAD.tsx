@@ -24,6 +24,8 @@ import {
   buildCadEditStartBody,
   buildCadGenerationStartBody,
 } from "@/lib/cad-workflows";
+import { buildSketchToCadStartBody, SKETCH_TO_CAD_WORKFLOW } from "@/lib/sketch-to-cad-workflows";
+import { sketchSessionStore } from "@/lib/sketch-session-store";
 import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
@@ -157,6 +159,138 @@ export default function TextToCAD() {
     setGlbArtifact({ uri: glbParam, type: 'model/gltf-binary', bytes: 0, sha256: '' });
     // Clean the param from the URL without triggering a re-render loop
     navigate('/text-to-cad', { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sketch-to-CAD handoff: mode=sketch skips InitialPromptScreen and auto-generates
+  useEffect(() => {
+    if (searchParams.get('mode') !== 'sketch') return;
+    const sketches = sketchSessionStore.get();
+    if (!sketches.length) return;
+    sketchSessionStore.clear();
+    navigate('/text-to-cad', { replace: true });
+    setWorkspaceActive(true);
+
+    const sketch = sketches[0];
+    (async () => {
+      let dataUri: string;
+      try {
+        dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(sketch.file);
+        });
+      } catch {
+        toast.error("Failed to read sketch file");
+        return;
+      }
+
+      const requiredCredits = TOOL_COSTS[SKETCH_TO_CAD_WORKFLOW] ?? 85;
+      try {
+        const result = await performCreditPreflight(SKETCH_TO_CAD_WORKFLOW, 1, {});
+        const balance = result.currentBalance;
+        const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
+        if (balance < cost) {
+          setCreditBlock({ approved: false, estimatedCredits: cost, currentBalance: balance });
+          trackPaywallHit({ category: 'ring', steps_completed: 1 });
+          return;
+        }
+        setCreditBlock(null);
+      } catch (err) {
+        if (err instanceof AuthExpiredError) return;
+        setCreditBlock(null);
+      }
+
+      const cadGenStartTime = Date.now();
+      setIsGenerating(true);
+      setGenerationFailed(false);
+      setRetryAttempt(0);
+      setHasModel(false);
+      setSourceWorkflowId(null);
+      setProgressStep("generate_from_sketch");
+
+      try {
+        const startRes = await authenticatedFetch(`/api/run/${SKETCH_TO_CAD_WORKFLOW}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildSketchToCadStartBody(dataUri, sketch.hint || undefined, "gemini")),
+        });
+
+        if (!startRes.ok) {
+          const err = await startRes.json().catch(() => ({}));
+          throw new Error(err.error || err.detail || `Failed to start sketch generation (${startRes.status})`);
+        }
+
+        const { workflow_id } = await startRes.json();
+        if (!workflow_id) throw new Error("No workflow_id returned");
+
+        pollAbortRef.current?.abort();
+        const pollAbort = new AbortController();
+        pollAbortRef.current = pollAbort;
+
+        let genPollResult: PollWorkflowResult<CadGenerationResult>;
+        try {
+          genPollResult = await pollWorkflow<CadGenerationResult>({
+            mode: 'status-then-result',
+            fetchStatus: () => authenticatedFetch(
+              `/api/status/${encodeURIComponent(workflow_id)}`,
+              { signal: pollAbort.signal }
+            ),
+            fetchResult: () => authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`),
+            resolveState: (statusData) => {
+              const s = statusData as { runtime?: { state?: string }; progress?: { state?: string }; state?: string };
+              const state = (s.runtime?.state || s.progress?.state || s.state || 'unknown').toLowerCase();
+              return (state === 'failed' || state === 'budget_exhausted' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') ? 'completed' : state;
+            },
+            resolveProgressNode: resolveCadProgressNode,
+            parseResult: (d) => parseCadResult(d, 'generation'),
+            onProgress: ({ node, retryCount }) => {
+              setProgressStep(node);
+              if (retryCount > 0) setRetryAttempt(retryCount);
+            },
+            onStatusData: (statusData) => {
+              const s = statusData as { runtime?: { state?: string } };
+              const state = (s.runtime?.state || "").toLowerCase();
+              if (state === "failed" || state === "budget_exhausted") {
+                setProgressStep("failed_final");
+              }
+            },
+            intervalMs: 2000,
+            timeoutMs: 60 * 60 * 1000,
+            max404s: 13,
+            maxPollErrors: 10,
+            maxResultRetries: 1,
+            signal: pollAbort.signal,
+          });
+        } catch (err) {
+          if (err instanceof AuthExpiredError) return;
+          throw err;
+        }
+
+        if (genPollResult.status === 'cancelled') return;
+
+        setProgressStep("_loading");
+        const { glb_url, artifact: genArtifact } = genPollResult.result;
+        setGlbArtifact(genArtifact);
+        setGlbUrl(glb_url);
+        trackCadGenerationCompleted({
+          category: 'ring',
+          prompt_length: (sketch.hint || '').length,
+          duration_ms: Date.now() - cadGenStartTime,
+        });
+        setIsModelLoading(true);
+        setIsGenerating(false);
+        refreshCredits().catch(() => {});
+        setHasModel(true);
+        setSourceWorkflowId(workflow_id);
+      } catch (err) {
+        console.error("Sketch generation failed:", err);
+        setIsGenerating(false);
+        setProgressStep("");
+        setGenerationFailed(true);
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
