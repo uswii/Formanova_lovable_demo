@@ -12,7 +12,6 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { downloadAsset } from '@/lib/assets-api';
 import { CAD_RENAME_ENABLED } from '@/lib/feature-flags';
 
 const localDateFmt = new Intl.DateTimeFormat(undefined, {
@@ -119,19 +118,15 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     if (!workflow.glb_url) return;
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: shownFilename, file_type: 'glb', context: 'generations' }));
     try {
-      if (workflow.output_asset_id) {
-        await downloadAsset(workflow.output_asset_id, shownFilename);
-      } else {
-        const resp = await authenticatedFetch(workflow.glb_url);
-        if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-        const blob = await resp.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = shownFilename;
-        a.click();
-        URL.revokeObjectURL(blobUrl);
-      }
+      const resp = await authenticatedFetch(workflow.glb_url);
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = shownFilename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('[WorkflowCard] GLB download error:', err);
     }
@@ -336,10 +331,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </div>
         ) : null}
 
-        {/* Card footer: name · credits · date */}
-        <div className="flex items-center justify-between px-3 pt-2 pb-3 gap-2">
-          <span className="font-mono text-[10px] tracking-wider text-foreground truncate min-w-0">
-            {workflow.name || <span className="text-muted-foreground/50 italic">#{index}</span>}
+        {/* Card footer: index · credits · date */}
+        <div className="flex items-center justify-end sm:justify-between px-3 pt-3 pb-3 gap-2">
+          <span className="hidden sm:inline font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none min-w-0">
+            #{index}
           </span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="hidden sm:inline-flex"><CreditsBadge credits={workflow.credits_spent} /></span>
@@ -357,7 +352,6 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           imageUrl={workflow.thumbnail_url!}
           alt={workflow.name || 'Generation preview'}
           onClose={() => setPreviewOpen(false)}
-          assetId={workflow.output_asset_id}
         />
       )}
     </>
