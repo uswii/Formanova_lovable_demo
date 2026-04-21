@@ -104,7 +104,7 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
               </>
             ) : (
               <>
-                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors">
                   {model.name || <span className="italic opacity-60">Click to name</span>}
                 </span>
                 <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
