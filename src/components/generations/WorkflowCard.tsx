@@ -91,6 +91,12 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   );
   const [renameValue, setRenameValue] = useState('');
 
+  useEffect(() => {
+    if (workflow.output_asset_name && !loadStoredRenames()[workflow.workflow_id]) {
+      setDisplayName(workflow.output_asset_name);
+    }
+  }, [workflow.output_asset_name]);
+
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
@@ -326,6 +332,12 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
     () => loadPhotoRenames()[workflow.workflow_id] ?? workflow.output_asset_name ?? null,
   );
   const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    if (workflow.output_asset_name && !loadPhotoRenames()[workflow.workflow_id]) {
+      setDisplayName(workflow.output_asset_name);
+    }
+  }, [workflow.output_asset_name]);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
