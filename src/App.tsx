@@ -63,6 +63,7 @@ const UnifiedStudio = lazyWithRetry(() => import("./pages/UnifiedStudio"));
 // const CategoryUploadStudio = lazyWithRetry(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
 const CADStudio = lazyWithRetry(() => import("./pages/CADStudio"));
 const CADToCatalog = lazyWithRetry(() => import("./pages/CADToCatalog"));
+const CADToPDP = lazyWithRetry(() => import("./pages/CADToPDP"));
 const TextToCAD = lazyWithRetry(() => import("./pages/TextToCAD"));
 const ImageToCAD = lazyWithRetry(() => import("./pages/ImageToCAD"));
 const Generations = lazyWithRetry(() => import("./pages/Generations"));
@@ -230,6 +231,7 @@ const App = () => (
                   {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
                   <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
+                  <Route path="/cad-to-pdp" element={<ProtectedRoute><CADGate><CADToPDP /></CADGate></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
                   <Route path="/image-to-cad" element={<ProtectedRoute><CADGate><ImageToCAD /></CADGate></ProtectedRoute>} />
                   

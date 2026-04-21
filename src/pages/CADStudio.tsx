@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, ImageIcon } from "lucide-react";
+import { ArrowRight, Layers, ImageIcon, ShoppingBag, BookOpen } from "lucide-react";
 
-import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
+import textToCadImg from "@/assets/cad-studio/text-to-cad-card.webp";
 import imageToCadImg from "@/assets/examples/cad-example-1.webp";
+import cadToPdpImg from "@/assets/cad-studio/product-shot-card.webp";
+import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
 
 const cadFeatures = [
   {
@@ -21,6 +23,22 @@ const cadFeatures = [
     comingSoon: false,
     icon: ImageIcon,
     image: imageToCadImg,
+  },
+  {
+    title: "CAD to PDP",
+    description: "Turn your CAD model into a polished product detail page image.",
+    route: "/cad-to-pdp",
+    comingSoon: false,
+    icon: ShoppingBag,
+    image: cadToPdpImg,
+  },
+  {
+    title: "CAD to Catalog",
+    description: "Render your CAD model across multiple catalog-ready angles.",
+    route: "/cad-to-catalog",
+    comingSoon: false,
+    icon: BookOpen,
+    image: cadToCatalogImg,
   },
 ];
 
