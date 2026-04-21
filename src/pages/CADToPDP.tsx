@@ -195,7 +195,7 @@ export default function CADToPDP() {
         <ResizablePanel id="pdp-left" order={1} defaultSize={18} minSize={14} maxSize={28}>
           <div className="flex flex-col bg-card border-r border-border h-full">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
-              <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">Model</span>
+              <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
             </div>
 
             {/* Thumbnail */}
