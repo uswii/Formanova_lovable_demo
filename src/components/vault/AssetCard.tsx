@@ -66,6 +66,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
+              maxLength={50}
               placeholder="Enter a name..."
             />
             <button
