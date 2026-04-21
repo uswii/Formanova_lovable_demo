@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Download, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2 } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -19,6 +18,11 @@ interface Screenshot {
   dataUrl: string;
 }
 
+interface WorkspacePopup {
+  title: string;
+  message: string;
+}
+
 export default function CADToPDP() {
   const [inWorkspace, setInWorkspace] = useState(false);
   const [glbUrl, setGlbUrl] = useState<string | undefined>();
@@ -33,6 +37,7 @@ export default function CADToPDP() {
   const [lightboxShot, setLightboxShot] = useState<Screenshot | null>(null);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [glbThumbnail, setGlbThumbnail] = useState<string | null>(null);
+  const [workspacePopup, setWorkspacePopup] = useState<WorkspacePopup | null>(null);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
@@ -47,10 +52,14 @@ export default function CADToPDP() {
   );
   const selectedNames = useMemo(() => meshes.filter((m) => m.selected).map((m) => m.name), [meshes]);
 
+  const showWorkspacePopup = useCallback((title: string, message: string) => {
+    setWorkspacePopup({ title, message });
+  }, []);
+
   const loadFile = useCallback((file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (ext !== "glb" && ext !== "gltf") {
-      toast.error("Please upload a GLB or GLTF file");
+      showWorkspacePopup("Unsupported file", "Please upload a GLB or GLTF file.");
       return;
     }
     const url = URL.createObjectURL(file);
@@ -63,7 +72,7 @@ export default function CADToPDP() {
     setAppliedMaterials({});
     setScreenshots([]);
     setGlbThumbnail(null);
-  }, [glbUrl]);
+  }, [glbUrl, showWorkspacePopup]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -96,7 +105,6 @@ export default function CADToPDP() {
 
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
-    toast.success("Model loaded");
     requestAnimationFrame(() => {
       const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
       if (canvas) {
@@ -116,47 +124,82 @@ export default function CADToPDP() {
   }, []);
 
   const handleApplyMaterial = useCallback((matId: string) => {
-    if (!selectedNames.length) { toast.error("Select a layer first"); return; }
+    if (!selectedNames.length) {
+      showWorkspacePopup("Select a layer first", "Choose a model layer before applying a material.");
+      return;
+    }
     canvasRef.current?.applyMaterial(matId, selectedNames);
     setAppliedMaterials((prev) => {
       const next = { ...prev };
       selectedNames.forEach((name) => { next[name] = matId; });
       return next;
     });
-  }, [selectedNames]);
+  }, [selectedNames, showWorkspacePopup]);
 
   const captureScreenshot = useCallback(() => {
     if (screenshots.length >= MAX_SHOTS) { setLimitModalOpen(true); return; }
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!canvas) { toast.error("Viewport not ready"); return; }
+    if (!canvas) {
+      showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
+      return;
+    }
     canvasRef.current?.zoomIn();
     canvasRef.current?.zoomOut();
     requestAnimationFrame(() => {
       try {
         const dataUrl = canvas.toDataURL("image/png");
-        if (!dataUrl || dataUrl === "data:,") {
-          toast.error("Interact with the model first, then try again.");
-          return;
-        }
+        if (!dataUrl || dataUrl === "data:,") return;
         setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
-        toast.success("Screenshot saved");
-      } catch { toast.error("Screenshot failed"); }
+      } catch { /* silent */ }
     });
-  }, [screenshots.length]);
+  }, [screenshots.length, showWorkspacePopup]);
 
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
     setLightboxShot((p) => (p?.id === id ? null : p));
   }, []);
 
-  const downloadShot = useCallback((shot: Screenshot) => {
-    const a = document.createElement("a");
-    a.href = shot.dataUrl;
-    a.download = `pdp-shot-${shot.id}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, []);
+  const workspacePopupNode = (
+    <AnimatePresence>
+      {workspacePopup && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setWorkspacePopup(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="bg-card border border-border shadow-2xl w-[380px] px-8 py-7 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setWorkspacePopup(null)}
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="font-display text-base uppercase tracking-[0.15em] text-foreground mb-1.5">
+              {workspacePopup.title}
+            </div>
+            <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-6">
+              {workspacePopup.message}
+            </p>
+            <button
+              onClick={() => setWorkspacePopup(null)}
+              className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
+            >
+              OK
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   // ── Full-page upload screen (first visit only) ──
   if (!inWorkspace) {
@@ -208,6 +251,7 @@ export default function CADToPDP() {
 
           <input ref={fileInputRef} type="file" accept=".glb,.gltf" className="hidden" onChange={onInputChange} />
         </motion.div>
+        {workspacePopupNode}
       </div>
     );
   }
@@ -384,7 +428,10 @@ export default function CADToPDP() {
                 undoCount={0}
                 redoCount={0}
                 onDownload={async () => {
-                  if (!canvasRef.current && !glbUrl) { toast.error("No model to download"); return; }
+                  if (!canvasRef.current && !glbUrl) {
+                    showWorkspacePopup("No model to download", "Load a model before exporting.");
+                    return;
+                  }
                   try {
                     let blob: Blob;
                     if (canvasRef.current) {
@@ -394,7 +441,10 @@ export default function CADToPDP() {
                       if (!response.ok) throw new Error("Fetch failed");
                       blob = await response.blob();
                     }
-                    if (!blob || blob.size === 0) { toast.error("Export produced an empty file"); return; }
+                    if (!blob || blob.size === 0) {
+                      showWorkspacePopup("Export failed", "The exported model file was empty.");
+                      return;
+                    }
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
@@ -403,7 +453,9 @@ export default function CADToPDP() {
                     a.click();
                     a.remove();
                     setTimeout(() => URL.revokeObjectURL(url), 5000);
-                  } catch { toast.error("Export failed"); }
+                  } catch {
+                    showWorkspacePopup("Export failed", "The model could not be exported. Please try again.");
+                  }
                 }}
                 onScreenshot={captureScreenshot}
                 screenshotCount={screenshots.length}
@@ -429,14 +481,7 @@ export default function CADToPDP() {
                       >
                         <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
                       </button>
-                      <div className="absolute top-0.5 right-0.5 flex flex-row gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); downloadShot(shot); }}
-                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-accent transition-colors"
-                          title="Download"
-                        >
-                          <Download className="w-2.5 h-2.5 text-foreground" />
-                        </button>
+                      <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
                           className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
@@ -515,12 +560,9 @@ export default function CADToPDP() {
                     <div className="aspect-square border border-border overflow-hidden">
                       <img src={shot.dataUrl} alt={`Shot ${i + 1}`} className="w-full h-full object-cover" />
                     </div>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { removeScreenshot(shot.id); setLimitModalOpen(false); }} title="Remove" className="w-6 h-6 flex items-center justify-center bg-destructive/80 hover:bg-destructive rounded-sm">
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                      <button onClick={() => downloadShot(shot)} title="Download" className="w-6 h-6 flex items-center justify-center bg-card/80 hover:bg-accent rounded-sm">
-                        <Download className="w-3 h-3 text-white" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { removeScreenshot(shot.id); setLimitModalOpen(false); }} title="Remove" className="w-7 h-7 flex items-center justify-center bg-destructive/80 hover:bg-destructive rounded-sm">
+                        <X className="w-3.5 h-3.5 text-white" />
                       </button>
                     </div>
                   </div>
@@ -569,6 +611,7 @@ export default function CADToPDP() {
           </motion.div>
         )}
       </AnimatePresence>
+      {workspacePopupNode}
     </div>
   );
 }
