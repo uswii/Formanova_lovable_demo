@@ -10,22 +10,29 @@ import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { downloadAsset } from '@/lib/assets-api';
 
 interface PhotoPreviewModalProps {
   imageUrl: string;
   alt?: string;
   onClose: () => void;
+  /** Asset UUID — when present, download uses GET /assets/{id}/download for a named file */
+  assetId?: string | null;
 }
 
-export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
+export function PhotoPreviewModal({ imageUrl, alt, onClose, assetId }: PhotoPreviewModalProps) {
   const resolvedSrc = useAuthenticatedImage(imageUrl);
 
   const handleDownload = async () => {
+    if (assetId) {
+      await downloadAsset(assetId);
+      import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: assetId, file_type: 'jpg', context: 'generations-photo' }));
+      return;
+    }
     const urlParts = imageUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
     const filename = lastPart || 'generation.jpg';
     const ext = filename.lastIndexOf('.') > 0 ? filename.slice(filename.lastIndexOf('.') + 1) : 'jpg';
-
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
     const res = await authenticatedFetch(imageUrl);
     const blob = await res.blob();

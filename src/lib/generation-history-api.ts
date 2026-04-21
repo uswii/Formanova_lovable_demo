@@ -32,6 +32,8 @@ export interface WorkflowSummary {
   mode?: string | null;
   /** Total credits spent on this generation — populated from /credits/audit endpoint */
   credits_spent?: number | null;
+  /** UUID of the vault asset produced by this run, or null if none (failed runs, pre-vault runs) */
+  output_asset_id?: string | null;
 }
 
 export interface WorkflowStep {
@@ -107,6 +109,7 @@ export async function listMyWorkflows(
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
       mode: w.input?.mode ?? null,
+      output_asset_id: w.output_asset_id ?? null,
     };
   });
   if (__DEV__) {

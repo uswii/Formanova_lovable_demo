@@ -2,7 +2,7 @@
 // Purely presentational — no data fetching. Restyle freely; keep AssetCardProps stable.
 
 import { useState } from 'react';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil, Check, X, Download } from 'lucide-react';
 import type { UserAsset } from '@/lib/assets-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
@@ -14,9 +14,12 @@ export interface AssetCardProps {
   /** Show category label + inline rename (gated feature) */
   showMetadata?: boolean;
   onRename?: (asset: UserAsset, newName: string) => void;
+  onDownload?: (asset: UserAsset) => void;
 }
 
-export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadata, onRename }: AssetCardProps) {
+const RENAMEABLE_TYPES: UserAsset['asset_type'][] = ['model_photo', 'generated_photo', 'generated_cad'];
+
+export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadata, onRename, onDownload }: AssetCardProps) {
   const label = reshootLabel ?? (asset.asset_type === 'model_photo' ? 'New Shoot' : 'New Style');
   const displayName = asset.metadata?.name || asset.name;
   const [editing, setEditing] = useState(false);
@@ -55,8 +58,8 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
       </div>
 
       {/* ── Naming row — fixed height for grid alignment ── */}
-      <div className="h-10 sm:h-11 flex items-center px-3 overflow-hidden">
-        {asset.asset_type === 'model_photo' && editing ? (
+      <div className="h-10 sm:h-11 flex items-center px-3 gap-1.5 overflow-hidden">
+        {RENAMEABLE_TYPES.includes(asset.asset_type) && editing ? (
           <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
             <input
               autoFocus
@@ -66,41 +69,44 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
               placeholder="Enter a name…"
             />
-            <button
-              onClick={cancel}
-              className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-              aria-label="Cancel"
-            >
+            <button onClick={cancel} className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors" aria-label="Cancel">
               <X className="h-3 w-3" />
             </button>
-            <button
-              onClick={handleRenameCommit}
-              className="flex-shrink-0 p-1.5 rounded text-foreground hover:bg-muted/30 transition-colors"
-              aria-label="Save"
-            >
+            <button onClick={handleRenameCommit} className="flex-shrink-0 p-1.5 rounded text-foreground hover:bg-muted/30 transition-colors" aria-label="Save">
               <Check className="h-3 w-3" />
             </button>
           </div>
-        ) : asset.asset_type === 'model_photo' ? (
-          <button
-            className="flex items-center justify-center gap-2 sm:gap-2.5 w-full h-full rounded hover:bg-muted/20 transition-colors group/rename"
-            title="Click to rename"
-            onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(displayName ?? ''); }}
-          >
-            {saved ? (
-              <>
-                <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
-                <span className="font-mono text-[11px] text-formanova-success truncate">Saved!</span>
-              </>
-            ) : (
-              <>
-                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
-                  {displayName || <span className="italic opacity-60">Click to edit</span>}
-                </span>
-                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
-              </>
+        ) : RENAMEABLE_TYPES.includes(asset.asset_type) ? (
+          <>
+            <button
+              className="flex items-center gap-2 flex-1 min-w-0 h-full rounded hover:bg-muted/20 transition-colors group/rename"
+              title="Click to rename"
+              onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(displayName ?? ''); }}
+            >
+              {saved ? (
+                <>
+                  <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+                  <span className="font-mono text-[11px] text-formanova-success truncate">Saved!</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                    {displayName || <span className="italic opacity-60">Click to edit</span>}
+                  </span>
+                  <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
+                </>
+              )}
+            </button>
+            {onDownload && (
+              <button
+                onClick={e => { e.stopPropagation(); onDownload(asset); }}
+                className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
+                aria-label="Download"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
             )}
-          </button>
+          </>
         ) : (
           showMetadata && asset.metadata?.category ? (
             <span className="font-mono text-[11px] text-muted-foreground capitalize truncate w-full text-center">{asset.metadata.category}</span>
