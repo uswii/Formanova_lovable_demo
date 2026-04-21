@@ -8,7 +8,7 @@
  * Has NO state of its own — all values flow in as props from UnifiedStudio.
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gem, AlertTriangle } from 'lucide-react';
+import { Gem, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -116,9 +116,10 @@ export function StudioGeneratingStep({
 
         <button
           onClick={onKeepBrowsing}
-          className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground hover:text-foreground/70 transition-colors mb-6"
+          className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground hover:text-foreground/70 transition-colors mb-6"
         >
-          Keep browsing →
+          Keep browsing
+          <ArrowRight className="h-3 w-3 shrink-0" />
         </button>
 
         <div className="flex gap-4">
