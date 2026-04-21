@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { Maximize2, Box, Download, Pencil, Check, X, Layers } from 'lucide-react';
