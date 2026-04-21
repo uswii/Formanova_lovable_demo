@@ -126,7 +126,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const rawFilename = workflow.glb_filename || 'model.glb';
   const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
   const baseName = rawFilename.replace(/\.[^.]+$/, '');
-  const shownBaseName = workflow.output_asset_id ? (displayName ?? baseName) : baseName;
+  const shownBaseName = displayName ?? baseName;
   const shownFilename = `${shownBaseName}.${extension}`;
   const visibleFilename = `${truncateDisplayName(shownBaseName)}.${extension}`;
 

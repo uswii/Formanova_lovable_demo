@@ -127,6 +127,25 @@ function getAssetArtifactKeys(asset: UserAsset): string[] {
   ].filter((v): v is string => Boolean(v));
 }
 
+function sortByCreatedDesc<T extends { created_at?: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Date.parse(b.created_at ?? '') - Date.parse(a.created_at ?? ''));
+}
+
+function buildOrderedCadAssetNameMap(workflows: WorkflowSummary[], assets: UserAsset[]): Record<string, string> {
+  const cadWorkflows = sortByCreatedDesc(
+    workflows.filter(w => w.source_type === 'cad_text' && w.status === 'completed'),
+  );
+  const cadAssetNames = sortByCreatedDesc(assets)
+    .map(getAssetDisplayName)
+    .filter(Boolean);
+
+  return cadWorkflows.reduce<Record<string, string>>((acc, workflow, index) => {
+    const name = cadAssetNames[index];
+    if (name) acc[workflow.workflow_id] = name;
+    return acc;
+  }, {});
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
 export default function Generations() {
@@ -147,7 +166,8 @@ export default function Generations() {
     byAssetId: Record<string, string>;
     byWorkflowId: Record<string, string>;
     byArtifactKey: Record<string, string>;
-  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {} });
+    byOrderedCadWorkflowId: Record<string, string>;
+  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {}, byOrderedCadWorkflowId: {} });
 
   const resolveGeneratedAssetName = useCallback((workflow: WorkflowSummary): string | null => {
     const maps = generatedAssetNamesRef.current;
@@ -157,6 +177,7 @@ export default function Generations() {
       (workflow.output_asset_id ? maps.byAssetId[workflow.output_asset_id] : undefined) ||
       maps.byWorkflowId[workflow.workflow_id] ||
       (artifactKey ? maps.byArtifactKey[artifactKey] : undefined) ||
+      maps.byOrderedCadWorkflowId[workflow.workflow_id] ||
       null
     );
   }, []);
@@ -204,11 +225,13 @@ export default function Generations() {
         const assetNameMap: Record<string, string> = {};
         const workflowAssetNameMap: Record<string, string> = {};
         const artifactAssetNameMap: Record<string, string> = {};
+        let orderedCadWorkflowNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
             fetchUserAssets('generated_photo', 0, 100),
             fetchUserAssets('generated_cad', 0, 100),
           ]);
+          orderedCadWorkflowNameMap = buildOrderedCadAssetNameMap(workflows, cads.items);
           [...photos.items, ...cads.items].forEach(a => {
             const name = getAssetDisplayName(a);
             if (!name) return;
@@ -225,6 +248,7 @@ export default function Generations() {
           byAssetId: assetNameMap,
           byWorkflowId: workflowAssetNameMap,
           byArtifactKey: artifactAssetNameMap,
+          byOrderedCadWorkflowId: orderedCadWorkflowNameMap,
         };
 
         // Re-apply enriched data + asset names
