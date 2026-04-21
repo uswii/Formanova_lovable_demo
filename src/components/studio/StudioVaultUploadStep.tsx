@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import {
   Check, X, Diamond, Upload, ArrowRight, Loader2,
-  ChevronLeft, ChevronRight, ImageIcon, Lightbulb,
+  ChevronLeft, ChevronRight, ImageIcon, Lightbulb, Pencil, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -21,6 +21,8 @@ import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { renameAsset } from '@/lib/assets-api';
+import type { UserAsset } from '@/lib/assets-api';
 
 function ProductThumb({ src, alt }: { src: string; alt: string }) {
   const resolved = useAuthenticatedImage(src);
@@ -31,6 +33,117 @@ function ProductThumb({ src, alt }: { src: string; alt: string }) {
       loading="lazy"
       className="w-full block transition-transform duration-300 group-hover:scale-105"
     />
+  );
+}
+
+function ProductCard({
+  asset,
+  isSelected,
+  onSelect,
+}: {
+  asset: UserAsset;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const displayName = asset.metadata?.name || asset.name;
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(displayName ?? '');
+  const [localName, setLocalName] = useState(displayName ?? '');
+  const [saved, setSaved] = useState(false);
+
+  const handleRenameCommit = async () => {
+    setEditing(false);
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed !== localName) {
+      try {
+        await renameAsset(asset.id, trimmed);
+        setLocalName(trimmed);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1800);
+      } catch {
+        setNameInput(localName);
+      }
+    }
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setNameInput(localName);
+  };
+
+  return (
+    <div className="break-inside-avoid mb-2">
+      <button
+        type="button"
+        onClick={() => !editing && onSelect()}
+        className={`relative overflow-hidden border transition-all group w-full
+          ${isSelected
+            ? 'border-[hsl(var(--formanova-hero-accent))]'
+            : 'border-border/20 hover:border-foreground/30'}`}
+      >
+        <ProductThumb src={asset.thumbnail_url} alt={localName || 'Product'} />
+        {isSelected && (
+          <div className="absolute inset-0 flex items-center justify-center"
+               style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
+            <div className="w-6 h-6 flex items-center justify-center"
+                 style={{ background: 'hsl(var(--formanova-hero-accent))' }}>
+              <Check className="h-3.5 w-3.5 text-background" />
+            </div>
+          </div>
+        )}
+        {!isSelected && (
+          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10
+                          transition-colors flex items-center justify-center">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity
+                             font-mono text-[9px] tracking-[0.15em] uppercase
+                             text-background bg-foreground/70 px-2 py-1">
+              Use
+            </span>
+          </div>
+        )}
+      </button>
+
+      {/* Naming row */}
+      <div className="h-9 flex items-center px-1 overflow-hidden">
+        {editing ? (
+          <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()}>
+            <input
+              autoFocus
+              className="font-mono text-[10px] text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow px-1.5 py-0.5 outline-none flex-1 min-w-0 transition-colors"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
+              placeholder="Name..."
+            />
+            <button onClick={cancel} className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="Cancel">
+              <X className="h-3 w-3" />
+            </button>
+            <button onClick={handleRenameCommit} className="flex-shrink-0 p-1 text-foreground hover:bg-muted/30 transition-colors" aria-label="Save">
+              <Check className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            className="flex items-center gap-1.5 w-full h-full hover:bg-muted/20 transition-colors px-1 group/rename"
+            onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(localName); }}
+          >
+            {saved ? (
+              <>
+                <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+                <span className="font-mono text-[10px] text-formanova-success truncate">Saved!</span>
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-[10px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                  {localName || <span className="italic opacity-60">Add name</span>}
+                </span>
+                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors ml-auto" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -244,6 +357,7 @@ export function StudioVaultUploadStep({
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
   const [showAll, setShowAll] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
 
@@ -277,6 +391,15 @@ export function StudioVaultUploadStep({
   const totalPages = isModelShotMode
     ? Math.max(1, Math.ceil(filteredAssets.length / PAGE_SIZE))
     : Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const searchActive = productSearch.trim().length > 0;
+  const searchQuery = productSearch.toLowerCase();
+  const displayAssets = searchActive
+    ? filteredAssets.filter(a => {
+        const name = a.metadata?.name || a.name || '';
+        return name.toLowerCase().includes(searchQuery);
+      })
+    : assets;
 
   // Show upload guide if user has no uploads matching the current context
   const showGuide = !isLoading && assets.length === 0;
@@ -450,6 +573,20 @@ export function StudioVaultUploadStep({
         {/* ── Product library ── */}
         {!showGuide && (
           <>
+            {/* Search bar */}
+            {!isLoading && !error && assets.length > 0 && (
+              <div className="relative flex-shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={productSearch}
+                  onChange={e => setProductSearch(e.target.value)}
+                  className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
+                />
+              </div>
+            )}
+
             {isLoading && (
               <div className={`${CANVAS_H} border border-border/30 grid grid-cols-3 gap-2 content-start p-2`}>
                 {Array.from({ length: 9 }).map((_, i) => (
@@ -464,52 +601,26 @@ export function StudioVaultUploadStep({
 
             {!isLoading && !error && assets.length > 0 && (
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
-                <div className="columns-3 gap-2">
-                  {/* Product thumbnails */}
-                  {assets.map((asset) => {
-                    const isSelected = asset.id === activeProductAssetId;
-                    return (
-                      <div key={asset.id} className="break-inside-avoid mb-2">
-                        <button
-                          type="button"
-                          onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                          className={`relative overflow-hidden border transition-all group w-full
-                            ${isSelected
-                              ? 'border-[hsl(var(--formanova-hero-accent))]'
-                              : 'border-border/20 hover:border-foreground/30'}`}
-                        >
-                          <ProductThumb
-                            src={asset.thumbnail_url}
-                            alt={asset.name ?? 'Product'}
-                          />
-                          {isSelected && (
-                            <div className="absolute inset-0 flex items-center justify-center"
-                                 style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
-                              <div className="w-6 h-6 flex items-center justify-center"
-                                   style={{ background: 'hsl(var(--formanova-hero-accent))' }}>
-                                <Check className="h-3.5 w-3.5 text-background" />
-                              </div>
-                            </div>
-                          )}
-                          {!isSelected && (
-                            <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10
-                                            transition-colors flex items-center justify-center">
-                              <span className="opacity-0 group-hover:opacity-100 transition-opacity
-                                               font-mono text-[9px] tracking-[0.15em] uppercase
-                                               text-background bg-foreground/70 px-2 py-1">
-                                Use
-                              </span>
-                            </div>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                {searchActive && displayAssets.length === 0 ? (
+                  <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center py-8">
+                    No products match "{productSearch}"
+                  </p>
+                ) : (
+                  <div className="columns-3 gap-2">
+                    {displayAssets.map((asset) => (
+                      <ProductCard
+                        key={asset.id}
+                        asset={asset}
+                        isSelected={asset.id === activeProductAssetId}
+                        onSelect={() => onProductSelect(asset.thumbnail_url, asset.id)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {!isLoading && !error && totalPages > 1 && (
+            {!isLoading && !error && !searchActive && totalPages > 1 && (
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(page - 1)}
