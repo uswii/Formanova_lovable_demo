@@ -37,7 +37,7 @@ export default function SketchToCAD() {
 
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup-only effect; previewUrl intentionally excluded so revoke runs once on unmount, not on every URL change
   }, []);
 
   const handleFileSelect = useCallback((file: File) => {
@@ -362,7 +362,7 @@ export default function SketchToCAD() {
                 onClick={() => {
                   const panel = leftPanelRef.current;
                   if (!panel) return;
-                  leftCollapsed ? panel.expand() : panel.collapse();
+                  if (leftCollapsed) { panel.expand(); } else { panel.collapse(); }
                 }}
                 className="w-7 h-7 flex items-center justify-center bg-background/20 hover:bg-background/40 backdrop-blur-sm transition-colors border border-white/10"
               >

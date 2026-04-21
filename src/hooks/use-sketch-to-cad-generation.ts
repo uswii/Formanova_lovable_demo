@@ -180,7 +180,6 @@ export function useSketchToCadGeneration(
     } finally {
       setIsGenerating(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshCredits is stable (CreditsContext); including it would cause infinite re-renders if the caller passes inline callbacks
   }, [isGenerating, onProgress, onSuccess, onFailed, refreshCredits]);
 
   return { generate, isGenerating, creditBlock, setCreditBlock };
