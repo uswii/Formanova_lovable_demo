@@ -55,11 +55,6 @@ export async function updateAssetMetadata(
   return response.json();
 }
 
-export async function fetchAssetById(assetId: string): Promise<UserAsset> {
-  const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}`);
-  if (!response.ok) throw new Error(`Failed to fetch asset: ${response.status}`);
-  return response.json();
-}
 
 export async function renameAsset(assetId: string, name: string): Promise<UserAsset> {
   const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}`, {

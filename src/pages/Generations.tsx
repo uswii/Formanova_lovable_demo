@@ -13,7 +13,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
-import { fetchAssetById } from '@/lib/assets-api';
+import { fetchUserAssets } from '@/lib/assets-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
@@ -130,14 +130,26 @@ export default function Generations() {
       try {
         if (!cached) setGlobalLoading(true);
         const rawWorkflows = await listMyWorkflows(100, 0);
-        // Filter out unknown source types — these are not meaningful to the user
         const workflows = rawWorkflows.filter(w => w.source_type !== 'unknown');
         if (import.meta.env.DEV) console.log('[Generations] fetched:', rawWorkflows.length, '→ valid:', workflows.length);
 
-        // Re-apply any previously enriched data so thumbnails don't flash
+        // Build asset id → name map from generated asset lists
+        const assetNameMap: Record<string, string> = {};
+        try {
+          const [photos, cads] = await Promise.all([
+            fetchUserAssets('generated_photo', 0, 200),
+            fetchUserAssets('generated_cad', 0, 200),
+          ]);
+          [...photos.items, ...cads.items].forEach(a => {
+            if (a.name) assetNameMap[a.id] = a.name;
+          });
+        } catch { /* non-fatal — names just won't show */ }
+
+        // Re-apply enriched data + asset names
         const merged = workflows.map(w => {
           const e = enrichedRef.current[w.workflow_id];
-          return e ? { ...w, ...e } : w;
+          const output_asset_name = w.output_asset_id ? (assetNameMap[w.output_asset_id] ?? null) : null;
+          return { ...w, ...(e ?? {}), ...(output_asset_name ? { output_asset_name } : {}) };
         });
         setAllWorkflows(merged);
         saveCache(workflows, enrichedRef.current);
@@ -206,10 +218,6 @@ export default function Generations() {
         const batch = allUnenriched.slice(i, i + 3);
         const results = await Promise.allSettled(
           batch.map(async (wf) => {
-            const assetName = wf.output_asset_id
-              ? await fetchAssetById(wf.output_asset_id).then(a => a.name).catch(() => null)
-              : null;
-
             if (wf.source_type === 'cad_text') {
               const [details, cadResult] = await Promise.all([
                 getWorkflowDetails(wf.workflow_id),
@@ -217,17 +225,17 @@ export default function Generations() {
               ]);
               const stepData = extractCadTextData(details.steps ?? []);
               if (cadResult.glb_url) stepData.glb_url = cadResult.glb_url;
-              return { id: wf.workflow_id, data: { ...stepData, output_asset_name: assetName } };
+              return { id: wf.workflow_id, data: stepData };
             }
             if (wf.source_type === 'product_shot') {
               const thumbnail_url = await extractProductShotThumbnail(wf.workflow_id);
               if (thumbnail_url) preloadImage(thumbnail_url);
-              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '', output_asset_name: assetName } };
+              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
             }
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '', output_asset_name: assetName } };
+            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
           })
         );
 
