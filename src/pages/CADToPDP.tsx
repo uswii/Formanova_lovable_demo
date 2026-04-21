@@ -11,7 +11,6 @@ import type { CADCanvasHandle } from "@/components/text-to-cad/CADCanvas";
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import PDPMeshPanel from "@/components/cad-to-pdp/PDPMeshPanel";
 import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
-import { detectLayerMaterialId } from "@/lib/layer-material-detect";
 
 const MAX_SHOTS = 4;
 
@@ -75,23 +74,8 @@ export default function CADToPDP() {
     e.target.value = "";
   }, [loadFile]);
 
-  // Auto-apply materials from layer names after load
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
-
-    // Group meshes by detected material id and apply in one pass per material
-    const byMat: Record<string, string[]> = {};
-    detected.forEach(({ name }) => {
-      const matId = detectLayerMaterialId(name);
-      if (!byMat[matId]) byMat[matId] = [];
-      byMat[matId].push(name);
-    });
-    // Apply after a single rAF so the canvas has rendered the model first
-    requestAnimationFrame(() => {
-      Object.entries(byMat).forEach(([matId, names]) => {
-        canvasRef.current?.applyMaterial(matId, names);
-      });
-    });
   }, []);
 
   const handleModelReady = useCallback(() => {
