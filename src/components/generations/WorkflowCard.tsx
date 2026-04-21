@@ -126,7 +126,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const rawFilename = workflow.glb_filename || 'model.glb';
   const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
   const baseName = rawFilename.replace(/\.[^.]+$/, '');
-  const shownBaseName = displayName ?? baseName;
+  const shownBaseName = workflow.output_asset_id ? (displayName ?? baseName) : baseName;
   const shownFilename = `${shownBaseName}.${extension}`;
   const visibleFilename = `${truncateDisplayName(shownBaseName)}.${extension}`;
 
@@ -138,15 +138,13 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
   const handleConfirmRename = useCallback(async () => {
     const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
-    if (sanitized && sanitized !== baseName) {
+    if (sanitized && sanitized !== baseName && workflow.output_asset_id) {
       setDisplayName(sanitized);
       saveStoredRename(workflow.workflow_id, sanitized);
-      if (workflow.output_asset_id) {
-        try {
-          await renameAsset(workflow.output_asset_id, sanitized);
-        } catch (err) {
-          console.error('[WorkflowCard] rename asset error:', err);
-        }
+      try {
+        await renameAsset(workflow.output_asset_id, sanitized);
+      } catch (err) {
+        console.error('[WorkflowCard] rename asset error:', err);
       }
     }
     setIsRenaming(false);
@@ -273,7 +271,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   >
                     {isEnriching ? '—' : visibleFilename}
                   </span>
-                  {!isEnriching && workflow.glb_url && (
+                  {!isEnriching && workflow.glb_url && workflow.output_asset_id && (
                     <button
                       onClick={handleStartRename}
                       className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
