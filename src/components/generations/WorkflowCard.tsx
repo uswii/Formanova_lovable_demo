@@ -12,7 +12,7 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { renameAsset } from '@/lib/assets-api';
+import { downloadAsset, renameAsset } from '@/lib/assets-api';
 
 const CAD_RENAMES_KEY = 'formanova_cad_renames';
 const DISPLAY_NAME_MAX_CHARS = 50;
@@ -156,6 +156,10 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     if (!workflow.glb_url) return;
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: shownFilename, file_type: 'glb', context: 'generations' }));
     try {
+      if (workflow.output_asset_id) {
+        await downloadAsset(workflow.output_asset_id);
+        return;
+      }
       const resp = await authenticatedFetch(workflow.glb_url);
       if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
       const blob = await resp.blob();

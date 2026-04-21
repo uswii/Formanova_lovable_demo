@@ -14,13 +14,35 @@ export interface UserAsset {
   thumbnail_url: string;   // Artifact proxy URL — always load via useAuthenticatedImage, never use directly in <img src>
   name: string | null;
   display_name?: string | null;
+  artifact_sha256?: string | null;
+  sha256?: string | null;
+  uri?: string | null;
+  artifact_url?: string | null;
+  url?: string | null;
+  source_workflow_id?: string | null;
+  workflow_id?: string | null;
+  workflow_run_id?: string | null;
+  generation_workflow_id?: string | null;
   metadata?: {
     category?: string;
     name?: string;
     display_name?: string;
     asset_name?: string;
+    displayName?: string;
+    assetName?: string;
+    label?: string;
+    title?: string;
     filename?: string;
     original_filename?: string;
+    artifact_sha256?: string;
+    sha256?: string;
+    uri?: string;
+    artifact_url?: string;
+    url?: string;
+    source_workflow_id?: string;
+    workflow_id?: string;
+    workflow_run_id?: string;
+    generation_workflow_id?: string;
     display_type?: string;
     is_worn?: string;
     flagged?: string;
@@ -82,12 +104,31 @@ export async function renameAsset(assetId: string, name: string): Promise<UserAs
 }
 
 export function getAssetDisplayName(asset: UserAsset): string {
+  const anyAsset = asset as UserAsset & {
+    label?: string | null;
+    title?: string | null;
+    filename?: string | null;
+    original_filename?: string | null;
+    displayName?: string | null;
+    assetName?: string | null;
+  };
+
   return (
     asset.name ||
     asset.display_name ||
+    anyAsset.displayName ||
+    anyAsset.assetName ||
+    anyAsset.label ||
+    anyAsset.title ||
+    anyAsset.filename?.replace(/\.[^.]+$/, '') ||
+    anyAsset.original_filename?.replace(/\.[^.]+$/, '') ||
     asset.metadata?.name ||
     asset.metadata?.display_name ||
     asset.metadata?.asset_name ||
+    asset.metadata?.displayName ||
+    asset.metadata?.assetName ||
+    asset.metadata?.label ||
+    asset.metadata?.title ||
     asset.metadata?.filename?.replace(/\.[^.]+$/, '') ||
     asset.metadata?.original_filename?.replace(/\.[^.]+$/, '') ||
     ''

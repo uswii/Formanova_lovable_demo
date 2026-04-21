@@ -80,12 +80,41 @@ async function batchSettled<T>(
 
 function getAssetWorkflowId(asset: UserAsset): string | null {
   return (
+    asset.workflow_id ||
+    asset.workflow_run_id ||
+    asset.source_workflow_id ||
+    asset.generation_workflow_id ||
     asset.metadata?.workflow_id ||
     asset.metadata?.workflow_run_id ||
     asset.metadata?.source_workflow_id ||
     asset.metadata?.generation_workflow_id ||
     null
   );
+}
+
+function getArtifactKey(value?: string | null): string | null {
+  if (!value) return null;
+  const clean = value.split('?')[0];
+  const artifactMatch = clean.match(/\/artifacts\/([^/]+)/);
+  if (artifactMatch?.[1]) return artifactMatch[1];
+  const file = clean.split('/').pop();
+  return file || null;
+}
+
+function getAssetArtifactKeys(asset: UserAsset): string[] {
+  return [
+    asset.artifact_sha256,
+    asset.sha256,
+    asset.metadata?.artifact_sha256,
+    asset.metadata?.sha256,
+    getArtifactKey(asset.uri),
+    getArtifactKey(asset.artifact_url),
+    getArtifactKey(asset.url),
+    getArtifactKey(asset.thumbnail_url),
+    getArtifactKey(asset.metadata?.uri),
+    getArtifactKey(asset.metadata?.artifact_url),
+    getArtifactKey(asset.metadata?.url),
+  ].filter((v): v is string => Boolean(v));
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -104,6 +133,23 @@ export default function Generations() {
 
   // Track enriched IDs + their data for sessionStorage persistence
   const enrichedRef = useRef<Record<string, Partial<WorkflowSummary>>>({});
+  const generatedAssetNamesRef = useRef<{
+    byAssetId: Record<string, string>;
+    byWorkflowId: Record<string, string>;
+    byArtifactKey: Record<string, string>;
+  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {} });
+
+  const resolveGeneratedAssetName = useCallback((workflow: WorkflowSummary): string | null => {
+    const maps = generatedAssetNamesRef.current;
+    const artifactKey = getArtifactKey(workflow.glb_url);
+    return (
+      workflow.output_asset_name ||
+      (workflow.output_asset_id ? maps.byAssetId[workflow.output_asset_id] : undefined) ||
+      maps.byWorkflowId[workflow.workflow_id] ||
+      (artifactKey ? maps.byArtifactKey[artifactKey] : undefined) ||
+      null
+    );
+  }, []);
 
   // ── Step 1: Fetch workflow list — use cache for instant load ──────
   useEffect(() => {
@@ -147,6 +193,7 @@ export default function Generations() {
         // output_asset_id, so also match by metadata.workflow_id when available.
         const assetNameMap: Record<string, string> = {};
         const workflowAssetNameMap: Record<string, string> = {};
+        const artifactAssetNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
             fetchUserAssets('generated_photo', 0, 200),
@@ -158,16 +205,24 @@ export default function Generations() {
             assetNameMap[a.id] = name;
             const workflowId = getAssetWorkflowId(a);
             if (workflowId) workflowAssetNameMap[workflowId] = name;
+            getAssetArtifactKeys(a).forEach(key => {
+              artifactAssetNameMap[key] = name;
+            });
           });
         } catch { /* non-fatal — names just won't show */ }
+
+        generatedAssetNamesRef.current = {
+          byAssetId: assetNameMap,
+          byWorkflowId: workflowAssetNameMap,
+          byArtifactKey: artifactAssetNameMap,
+        };
 
         // Re-apply enriched data + asset names
         const merged = workflows.map(w => {
           const e = enrichedRef.current[w.workflow_id];
-          const output_asset_name = w.output_asset_name || (w.output_asset_id
-            ? (assetNameMap[w.output_asset_id] ?? workflowAssetNameMap[w.workflow_id] ?? null)
-            : (workflowAssetNameMap[w.workflow_id] ?? null));
-          return { ...w, ...(e ?? {}), ...(output_asset_name ? { output_asset_name } : {}) };
+          const hydrated = { ...w, ...(e ?? {}) };
+          const output_asset_name = resolveGeneratedAssetName(hydrated);
+          return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
         });
         setAllWorkflows(merged);
         saveCache(merged, enrichedRef.current);
@@ -183,7 +238,7 @@ export default function Generations() {
     })();
 
     return () => { clearTimeout(safetyTimeout); controller.abort(); };
-  }, [user]);
+  }, [resolveGeneratedAssetName, user]);
 
   // ── Pagination helper ─────────────────────────────────────────────
     const getSection = useCallback(
@@ -271,7 +326,12 @@ export default function Generations() {
         }
         if (Object.keys(updates).length > 0) {
           setAllWorkflows(prev =>
-            prev.map(w => updates[w.workflow_id] ? { ...w, ...updates[w.workflow_id] } : w)
+            prev.map(w => {
+              if (!updates[w.workflow_id]) return w;
+              const hydrated = { ...w, ...updates[w.workflow_id] };
+              const output_asset_name = resolveGeneratedAssetName(hydrated);
+              return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
+            })
           );
           saveCache(allWorkflows, enrichedRef.current);
         }
@@ -284,7 +344,7 @@ export default function Generations() {
     })();
 
     return () => { cancelled = true; };
-  }, [allWorkflows.length, globalLoading]);
+  }, [allWorkflows.length, globalLoading, resolveGeneratedAssetName]);
 
   // ── Step 3: Fetch credit audit — throttled, only visible page items first
   const auditFetchedRef = useRef<Set<string>>(new Set());
