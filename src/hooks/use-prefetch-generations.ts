@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { listMyWorkflows, getWorkflowDetails, type WorkflowSummary } from '@/lib/generation-history-api';
 
-const CACHE_KEY = 'formanova_gen_cache';
+const CACHE_KEY = 'formanova_gen_cache_v3';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CachePayload {
@@ -71,7 +71,7 @@ export function usePrefetchGenerations() {
         saveCache(valid, enriched);
 
         // Start background enrichment for the first ~15 workflows (covers page 1 of all sections)
-        const { extractPhotoThumbnail, extractCadTextData } = await getExtractors();
+        const { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } = await getExtractors();
         const toEnrich = valid
           .filter(w => w.status === 'completed' || (w.source_type === 'cad_text' && w.status === 'failed'))
           .slice(0, 15);
@@ -81,6 +81,10 @@ export function usePrefetchGenerations() {
           const batch = toEnrich.slice(i, i + 3);
           const results = await Promise.allSettled(
             batch.map(async (wf) => {
+              if (wf.source_type === 'product_shot') {
+                const thumb = await extractProductShotThumbnail(wf.workflow_id);
+                return { id: wf.workflow_id, thumbnail_url: thumb ?? '' };
+              }
               const details = await getWorkflowDetails(wf.workflow_id);
               if (wf.source_type === 'cad_text') {
                 return { id: wf.workflow_id, ...extractCadTextData(details.steps ?? []) };
