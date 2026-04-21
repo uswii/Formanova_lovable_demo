@@ -20,7 +20,7 @@ interface Screenshot {
 }
 
 export default function CADToPDP() {
-  const [hasModel, setHasModel] = useState(false);
+  const [inWorkspace, setInWorkspace] = useState(false);
   const [glbUrl, setGlbUrl] = useState<string | undefined>();
   const [fileName, setFileName] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
@@ -38,6 +38,8 @@ export default function CADToPDP() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const hasModel = !!glbUrl;
+
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
     [meshes]
@@ -54,7 +56,7 @@ export default function CADToPDP() {
     if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
     setGlbUrl(url);
     setFileName(file.name);
-    setHasModel(true);
+    setInWorkspace(true);
     setIsModelLoading(true);
     setMeshes([]);
     setScreenshots([]);
@@ -74,9 +76,9 @@ export default function CADToPDP() {
     e.target.value = "";
   }, [loadFile]);
 
+  // Clears the model but stays in workspace — thumbnail slot and viewport become upload zones
   const clearModel = useCallback(() => {
     if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
-    setHasModel(false);
     setGlbUrl(undefined);
     setFileName("");
     setMeshes([]);
@@ -92,7 +94,6 @@ export default function CADToPDP() {
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
     toast.success("Model loaded");
-    // Capture thumbnail for left panel
     requestAnimationFrame(() => {
       const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
       if (canvas) {
@@ -120,10 +121,6 @@ export default function CADToPDP() {
     if (screenshots.length >= MAX_SHOTS) { setLimitModalOpen(true); return; }
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
     if (!canvas) { toast.error("Viewport not ready"); return; }
-    // Trigger a fresh render (zoomIn+zoomOut cancel out; net change = 0),
-    // then capture in the rAF that follows — after R3F has drawn the frame with
-    // any applied materials (preserveDrawingBuffer:false means we must capture
-    // in the same rAF tick as the render).
     canvasRef.current?.zoomIn();
     canvasRef.current?.zoomOut();
     requestAnimationFrame(() => {
@@ -148,11 +145,13 @@ export default function CADToPDP() {
     const a = document.createElement("a");
     a.href = shot.dataUrl;
     a.download = `pdp-shot-${shot.id}.png`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
   }, []);
 
-  // ── Upload screen ──
-  if (!hasModel) {
+  // ── Full-page upload screen (first visit only) ──
+  if (!inWorkspace) {
     return (
       <div className="min-h-[calc(100dvh-5rem)] bg-background flex items-center justify-center px-4">
         <motion.div
@@ -210,14 +209,14 @@ export default function CADToPDP() {
     <div className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background">
       <ResizablePanelGroup direction="horizontal" className="h-full">
 
-        {/* Left panel: uploaded model info */}
+        {/* Left panel */}
         <ResizablePanel id="pdp-left" order={1} defaultSize={18} minSize={14} maxSize={28}>
           <div className="flex flex-col bg-card border-r border-border h-full">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
               <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
             </div>
 
-            {/* Thumbnail */}
+            {/* Thumbnail / upload slot */}
             <div className="px-3 pt-3 flex-shrink-0">
               <div className="relative w-full aspect-square border border-border overflow-hidden bg-muted/20">
                 {isModelLoading ? (
@@ -236,24 +235,31 @@ export default function CADToPDP() {
                     </button>
                   </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Diamond className="w-8 h-8 text-muted-foreground/30" />
-                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors"
+                  >
+                    <Diamond className="w-7 h-7 text-primary/60" />
+                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">Load model</span>
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* Replace button */}
-            <div className="px-3 pb-3 flex-shrink-0">
-              <input ref={fileInputRef} type="file" accept=".glb,.gltf" className="hidden" onChange={onInputChange} />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
-              >
-                <Upload className="w-3 h-3" />
-                Replace model
-              </button>
-            </div>
+            {/* Replace button — only when model is loaded */}
+            {hasModel && (
+              <div className="px-3 pt-2 pb-3 flex-shrink-0">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
+                >
+                  <Upload className="w-3 h-3" />
+                  Replace model
+                </button>
+              </div>
+            )}
+
+            <input ref={fileInputRef} type="file" accept=".glb,.gltf" className="hidden" onChange={onInputChange} />
           </div>
         </ResizablePanel>
 
@@ -280,21 +286,51 @@ export default function CADToPDP() {
                 {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
               </button>
 
-              <CADRuntimeErrorBoundary resetKeys={[glbUrl, hasModel]}>
-                <CADCanvas
-                  ref={canvasRef}
-                  hasModel={hasModel}
-                  glbUrl={glbUrl}
-                  selectedMeshNames={selectedMeshNames}
-                  onMeshClick={handleSelectMesh}
-                  transformMode={transformMode}
-                  onMeshesDetected={handleMeshesDetected}
-                  lightIntensity={1}
-                  onModelReady={handleModelReady}
-                  qualityMode="balanced"
-                  gemMode="simple"
-                />
-              </CADRuntimeErrorBoundary>
+              {/* Upload drop zone when no model is loaded */}
+              {!hasModel && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`absolute inset-0 z-10 flex items-center justify-center transition-colors cursor-pointer ${
+                    isDragging ? "bg-foreground/5" : "hover:bg-foreground/[0.03]"
+                  }`}
+                >
+                  <div className="flex flex-col items-center text-center pointer-events-none">
+                    <div className="relative w-16 h-16 mb-4">
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
+                      <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
+                        <Diamond className="h-7 w-7 text-primary" />
+                      </div>
+                    </div>
+                    <p className="font-display text-base tracking-[0.15em] text-foreground/70 uppercase mb-1">
+                      Drop CAD file here
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-[0.12em]">
+                      GLB or GLTF
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {hasModel && (
+                <CADRuntimeErrorBoundary resetKeys={[glbUrl]}>
+                  <CADCanvas
+                    ref={canvasRef}
+                    hasModel={hasModel}
+                    glbUrl={glbUrl}
+                    selectedMeshNames={selectedMeshNames}
+                    onMeshClick={handleSelectMesh}
+                    transformMode={transformMode}
+                    onMeshesDetected={handleMeshesDetected}
+                    lightIntensity={1}
+                    onModelReady={handleModelReady}
+                    qualityMode="balanced"
+                    gemMode="simple"
+                  />
+                </CADRuntimeErrorBoundary>
+              )}
 
               {isModelLoading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 backdrop-blur-sm">
@@ -354,7 +390,7 @@ export default function CADToPDP() {
               />
             </div>
 
-            {/* Screenshot strip — centered under viewport only */}
+            {/* Screenshot strip */}
             <AnimatePresence>
               {screenshots.length > 0 && (
                 <motion.div
@@ -373,25 +409,24 @@ export default function CADToPDP() {
                       >
                         <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
                       </button>
-                      {/* Remove */}
-                      <button
-                        onClick={() => removeScreenshot(shot.id)}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-card border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:border-destructive"
-                        title="Remove"
-                      >
-                        <X className="w-2.5 h-2.5 text-foreground" />
-                      </button>
-                      {/* Download */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); downloadShot(shot); }}
-                        className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-card border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
-                        title="Download"
-                      >
-                        <Download className="w-2.5 h-2.5 text-foreground" />
-                      </button>
+                      <div className="absolute top-0.5 right-0.5 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
+                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                          title="Remove"
+                        >
+                          <X className="w-2.5 h-2.5 text-foreground" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); downloadShot(shot); }}
+                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-accent transition-colors"
+                          title="Download"
+                        >
+                          <Download className="w-2.5 h-2.5 text-foreground" />
+                        </button>
+                      </div>
                     </div>
                   ))}
-                  {/* Empty slot hints */}
                   {Array.from({ length: MAX_SHOTS - screenshots.length }).map((_, i) => (
                     <div key={`empty-${i}`} className="w-16 h-16 border border-dashed border-border/30 flex-shrink-0" />
                   ))}
@@ -447,14 +482,12 @@ export default function CADToPDP() {
               <button onClick={() => setLimitModalOpen(false)} className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
                 <X className="w-4 h-4" />
               </button>
-
               <div className="font-display text-base uppercase tracking-[0.15em] text-foreground mb-1.5">
                 Screenshot limit reached
               </div>
               <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5">
                 You have 4 screenshots saved. Remove one below to take a new shot.
               </p>
-
               <div className="grid grid-cols-4 gap-2 mb-6">
                 {screenshots.map((shot, i) => (
                   <div key={shot.id} className="relative group">
@@ -472,7 +505,6 @@ export default function CADToPDP() {
                   </div>
                 ))}
               </div>
-
               <button
                 onClick={() => setLimitModalOpen(false)}
                 className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
@@ -507,7 +539,7 @@ export default function CADToPDP() {
                 <X className="w-4 h-4 text-foreground" />
               </button>
               <button
-                onClick={() => { const a = document.createElement("a"); a.href = lightboxShot.dataUrl; a.download = `pdp-shot-${lightboxShot.id}.png`; a.click(); }}
+                onClick={() => { const a = document.createElement("a"); a.href = lightboxShot.dataUrl; a.download = `pdp-shot-${lightboxShot.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }}
                 className="absolute bottom-2 right-2 px-3 py-1.5 bg-card/90 border border-border font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
               >
                 Download
