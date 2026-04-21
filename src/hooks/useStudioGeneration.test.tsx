@@ -181,6 +181,34 @@ describe('useStudioGeneration', () => {
     });
   });
 
+  it('resumeGeneration restores workflowId, sets generating step, and tracks via Context', async () => {
+    const runningGeneration: TrackedGeneration = {
+      workflowId: 'wf-resume-1', status: 'running', progress: 40,
+      generationStep: 'Processing', resultImages: [],
+      isProductShot: false, jewelryType: 'ring', startedAt: Date.now() - 5000,
+    };
+
+    const ctx = makeContextValue({
+      generations: [runningGeneration],
+      trackGeneration: vi.fn(),
+      clearGeneration: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useStudioGeneration(baseOptions()), { wrapper: wrapper(ctx) });
+
+    // Before resume: hook has no workflowId, isGenerating=false
+    expect(result.current.workflowId).toBeNull();
+    expect(result.current.isGenerating).toBe(false);
+
+    act(() => { result.current.resumeGeneration('wf-resume-1'); });
+
+    // After resume: workflowId matches, hook sees the running generation via Context
+    expect(result.current.workflowId).toBe('wf-resume-1');
+    expect(mockSetCurrentStep).toHaveBeenCalledWith('generating');
+    expect(result.current.isGenerating).toBe(true);
+    expect(result.current.generationProgress).toBe(40);
+  });
+
   it('calls clearStudioSession on generation completion', async () => {
     mockStartPhotoshoot.mockResolvedValue({ workflow_id: 'wf-test-4', status_url: '', result_url: '' });
 
