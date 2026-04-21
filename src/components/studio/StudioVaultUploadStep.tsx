@@ -103,41 +103,42 @@ function ProductCard({
         )}
       </button>
 
-      {/* Naming row */}
-      <div className="h-9 flex items-center px-1 overflow-hidden">
+      {/* Naming row — fixed height matches ModelCard, never overlaps image */}
+      <div className="h-10 sm:h-11 flex items-center px-2 overflow-hidden">
         {editing ? (
-          <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
             <input
               autoFocus
-              className="font-mono text-[10px] text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow px-1.5 py-0.5 outline-none flex-1 min-w-0 transition-colors"
+              className="font-mono text-[11px] text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none flex-1 min-w-0 transition-colors"
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
-              placeholder="Name..."
+              placeholder="Enter a name..."
             />
-            <button onClick={cancel} className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="Cancel">
+            <button onClick={cancel} className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors" aria-label="Cancel">
               <X className="h-3 w-3" />
             </button>
-            <button onClick={handleRenameCommit} className="flex-shrink-0 p-1 text-foreground hover:bg-muted/30 transition-colors" aria-label="Save">
+            <button onClick={handleRenameCommit} className="flex-shrink-0 p-1.5 rounded text-foreground hover:bg-muted/30 transition-colors" aria-label="Save">
               <Check className="h-3 w-3" />
             </button>
           </div>
         ) : (
           <button
-            className="flex items-center gap-1.5 w-full h-full hover:bg-muted/20 transition-colors px-1 group/rename"
+            className="flex items-center justify-center gap-2 sm:gap-2.5 w-full h-full rounded hover:bg-muted/20 transition-colors group/rename"
+            title="Click to rename"
             onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(localName); }}
           >
             {saved ? (
               <>
                 <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
-                <span className="font-mono text-[10px] text-formanova-success truncate">Saved!</span>
+                <span className="font-mono text-[11px] text-formanova-success truncate">Saved!</span>
               </>
             ) : (
               <>
-                <span className="font-mono text-[10px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
-                  {localName || <span className="italic opacity-60">Add name</span>}
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors">
+                  {localName || <span className="italic text-muted-foreground/60">Click to name</span>}
                 </span>
-                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors ml-auto" />
+                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
               </>
             )}
           </button>
@@ -573,20 +574,6 @@ export function StudioVaultUploadStep({
         {/* ── Product library ── */}
         {!showGuide && (
           <>
-            {/* Search bar */}
-            {!isLoading && !error && assets.length > 0 && (
-              <div className="relative flex-shrink-0">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search by name..."
-                  value={productSearch}
-                  onChange={e => setProductSearch(e.target.value)}
-                  className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
-                />
-              </div>
-            )}
-
             {isLoading && (
               <div className={`${CANVAS_H} border border-border/30 grid grid-cols-3 gap-2 content-start p-2`}>
                 {Array.from({ length: 9 }).map((_, i) => (
@@ -600,23 +587,39 @@ export function StudioVaultUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} overflow-y-auto border border-border/30 p-2`}>
-                {searchActive && displayAssets.length === 0 ? (
-                  <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center py-8">
-                    No products match "{productSearch}"
-                  </p>
-                ) : (
-                  <div className="columns-3 gap-2">
-                    {displayAssets.map((asset) => (
-                      <ProductCard
-                        key={asset.id}
-                        asset={asset}
-                        isSelected={asset.id === activeProductAssetId}
-                        onSelect={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                      />
-                    ))}
+              <div className={`${CANVAS_H} flex flex-col border border-border/30`}>
+                {/* Search bar — lives inside the fixed-height container so it never shifts vertical alignment */}
+                <div className="flex-shrink-0 border-b border-border/20 px-2 py-1.5">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search by name..."
+                      value={productSearch}
+                      onChange={e => setProductSearch(e.target.value)}
+                      className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
+                    />
                   </div>
-                )}
+                </div>
+                {/* Scrollable grid */}
+                <div className="flex-1 overflow-y-auto p-2">
+                  {searchActive && displayAssets.length === 0 ? (
+                    <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center py-8">
+                      No products match "{productSearch}"
+                    </p>
+                  ) : (
+                    <div className="columns-3 gap-2">
+                      {displayAssets.map((asset) => (
+                        <ProductCard
+                          key={asset.id}
+                          asset={asset}
+                          isSelected={asset.id === activeProductAssetId}
+                          onSelect={() => onProductSelect(asset.thumbnail_url, asset.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
