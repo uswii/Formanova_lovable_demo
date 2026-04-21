@@ -263,6 +263,12 @@ export function useStudioGeneration({
     setCurrentStep('model');
   }, [setCurrentStep]);
 
+  const resumeGeneration = useCallback((id: string) => {
+    setWorkflowId(id);
+    hasNavigatedAway.current = false;
+    setCurrentStep('generating');
+  }, [setCurrentStep]);
+
   const resetGeneration = useCallback(() => {
     hasNavigatedAway.current = false;
     setResultImages([]);
@@ -287,6 +293,7 @@ export function useStudioGeneration({
     setFeedbackOpen,
     handleGenerate,
     handleKeepBrowsing,
+    resumeGeneration,
     resetGeneration,
   };
 }

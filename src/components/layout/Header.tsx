@@ -59,7 +59,9 @@ function GenerationIndicator() {
         state: { asyncResult: { workflowId: mostRecent.workflowId, resultImages: mostRecent.resultImages } },
       });
     } else {
-      navigate(`/studio/${mostRecent.jewelryType}`);
+      navigate(`/studio/${mostRecent.jewelryType}`, {
+        state: { viewGenerating: mostRecent.workflowId },
+      });
     }
   };
 

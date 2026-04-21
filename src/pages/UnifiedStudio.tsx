@@ -263,22 +263,28 @@ export default function UnifiedStudio() {
     }
   }, []); // run once on mount — location.state is set before component renders
 
-  // Handle result navigation from toast/header indicator click
+  // Handle result/resume navigation from toast or header indicator click
   useEffect(() => {
-    const state = location.state as { asyncResult?: { workflowId: string; resultImages: string[] } } | null;
-    if (!state?.asyncResult) return;
-    setResultImages(state.asyncResult.resultImages);
-    setCurrentStep('results');
+    const state = location.state as {
+      asyncResult?: { workflowId: string; resultImages: string[] };
+      viewGenerating?: string;
+    } | null;
+    if (!state?.asyncResult && !state?.viewGenerating) return;
+    if (state.asyncResult) {
+      setResultImages(state.asyncResult.resultImages);
+      setCurrentStep('results');
+    } else if (state.viewGenerating) {
+      resumeGeneration(state.viewGenerating);
+    }
     // Clear route state so a refresh doesn't re-apply
     navigate(location.pathname, { replace: true, state: null });
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Dep: location.state — re-runs when the router delivers new asyncResult state (covers the
-  // case where the user is already on this page when "View Results" is clicked from the toast
-  // or header indicator, so the component is never remounted).
-  // Other deps excluded: navigate, setResultImages, setCurrentStep — all stable refs.
+  // Dep: location.state — re-runs when the router delivers new state (covers the case where the
+  // user is already on this page when toast/header is clicked, so component is never remounted).
+  // Other deps excluded: navigate, setResultImages, setCurrentStep, resumeGeneration — all stable refs.
   // No loop risk: navigate(replace+clear) sets state to null → effect re-runs → guard exits.
-  // Regression to watch: any navigation to this route must NOT set an `asyncResult` key in
-  // location.state for a different purpose, or it will be misread here.
+  // Regression to watch: any navigation to this route must NOT set asyncResult or viewGenerating
+  // in location.state for a different purpose, or it will be misread here.
 
   // ─── Session restore — bring back jewelry/model state after reload ─────────
   useEffect(() => {
@@ -396,6 +402,7 @@ export default function UnifiedStudio() {
     setFeedbackOpen,
     handleGenerate,
     handleKeepBrowsing,
+    resumeGeneration,
     resetGeneration,
   } = useStudioGeneration({
     isProductShot,
