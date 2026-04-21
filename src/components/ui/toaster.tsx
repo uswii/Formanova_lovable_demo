@@ -13,10 +13,8 @@ export function Toaster() {
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && <ToastDescription>{description}</ToastDescription>}
             </div>
-            <div className="flex flex-col items-end justify-between gap-2 shrink-0 self-stretch">
-              <ToastClose />
-              {action}
-            </div>
+            {action}
+            <ToastClose />
           </Toast>
         );
       })}
