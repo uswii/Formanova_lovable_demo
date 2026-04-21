@@ -63,8 +63,8 @@ const RULES: { pattern: RegExp; label: string; color: string }[] = [
   { pattern: /cubic[-_.\s]?zirconia|\bcz\b/i, label: 'Cubic Zirconia', color: '#B0C8D8' },
   { pattern: /moissanite|moissanit/i, label: 'Moissanite', color: '#B4C8D4' },
   { pattern: /\bmelee\b|\bmele\b/i, label: 'Melee', color: '#A0BCC8' },
-  { pattern: /gemstone|gem(?:s\b|\b)|jewel|brill|crystal/i, label: 'Gemstone', color: '#E8F0F8' },
-  { pattern: /\bstones?\b/i, label: 'Gemstone', color: '#E8F0F8' },
+  { pattern: /gemstone|gem(?:s\b|\b)|jewel|brill|crystal/i, label: 'Generic Gemstone', color: '#E8F0F8' },
+  { pattern: /\bstones?\b/i, label: 'Generic Gemstone', color: '#E8F0F8' },
   // ── Ring components (default gold) ──
   { pattern: /\bband\b|\bshank\b|\bstrand\b/i, label: 'Band / Shank', color: '#E8C84A' },
   { pattern: /\bprongs?\b/i, label: 'Prong', color: '#E8C84A' },
@@ -121,7 +121,7 @@ const LABEL_TO_MAT_ID: Record<string, string> = {
   'Diamond': 'diamond', 'Center Stone': 'diamond', 'Side Stone': 'diamond',
   'Accent Stone': 'diamond', 'Halo Stones': 'diamond', 'Pave Stones': 'diamond',
   'Melee': 'diamond', 'Cubic Zirconia': 'diamond', 'Moissanite': 'diamond',
-  'Gemstone': 'diamond', 'Pearl': 'diamond', 'Opal': 'diamond',
+  'Generic Gemstone': 'diamond', 'Pearl': 'diamond', 'Opal': 'diamond',
   'Ruby': 'ruby', 'Garnet': 'ruby', 'Morganite': 'ruby',
   'Emerald': 'emerald', 'Tourmaline': 'emerald',
   'Sapphire': 'sapphire', 'Tanzanite': 'sapphire',
@@ -138,3 +138,24 @@ export function detectLayerMaterialId(meshName: string): string {
 export function cleanLayerName(meshName: string): string {
   return stripName(meshName) || meshName;
 }
+
+export const MAT_ID_TO_DISPLAY: Record<string, { label: string; color: string }> = {
+  'gold-yellow-polished':   { label: 'Yellow Gold',  color: '#E8C84A' },
+  'gold-rose-polished':     { label: 'Rose Gold',    color: '#C27C85' },
+  'gold-white-polished':    { label: 'White Gold',   color: '#D0CCC8' },
+  'silver-natural-polished':{ label: 'Silver',       color: '#C0C0C0' },
+  'platinum-natural-polished':{ label: 'Platinum',   color: '#D8D8D8' },
+  'titanium-natural-polished':{ label: 'Titanium',   color: '#9EA3A8' },
+  'titanium-black-polished':  { label: 'Dark Metal', color: '#7A7D80' },
+  'rhodium-black-polished':   { label: 'Black Metal',color: '#2A2A2A' },
+  'brass-natural-polished':   { label: 'Brass',      color: '#C9A84C' },
+  'copper-natural-polished':  { label: 'Copper',     color: '#D4836A' },
+  'diamond':      { label: 'Diamond',   color: '#E8F0F8' },
+  'ruby':         { label: 'Ruby',      color: '#E0115F' },
+  'emerald':      { label: 'Emerald',   color: '#50C878' },
+  'sapphire':     { label: 'Sapphire',  color: '#0F52BA' },
+  'amethyst':     { label: 'Amethyst',  color: '#9966CC' },
+  'topaz':        { label: 'Topaz',     color: '#FFC87C' },
+  'aquamarine':   { label: 'Aquamarine',color: '#7FFFD4' },
+  'black-diamond':{ label: 'Onyx',      color: '#101010' },
+};

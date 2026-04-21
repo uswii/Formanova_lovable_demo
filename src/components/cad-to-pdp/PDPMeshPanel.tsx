@@ -4,15 +4,16 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import MaterialSphere from "@/components/cad-studio/MaterialSphere";
-import { cleanLayerName, detectLayerMaterial } from "@/lib/layer-material-detect";
+import { cleanLayerName, detectLayerMaterial, MAT_ID_TO_DISPLAY } from "@/lib/layer-material-detect";
 
 interface PDPMeshPanelProps {
   meshes: MeshItemData[];
+  appliedMaterials?: Record<string, string>;
   onSelectMesh: (name: string, multi: boolean) => void;
   onApplyMaterial: (matId: string) => void;
 }
 
-export default function PDPMeshPanel({ meshes, onSelectMesh, onApplyMaterial }: PDPMeshPanelProps) {
+export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMesh, onApplyMaterial }: PDPMeshPanelProps) {
   const [search, setSearch] = useState("");
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
   const [meshCollapsed, setMeshCollapsed] = useState(false);
@@ -66,7 +67,7 @@ export default function PDPMeshPanel({ meshes, onSelectMesh, onApplyMaterial }: 
         <ColHeader title="Material" onToggle={() => setMaterialCollapsed(false)} />
         <div className="flex-1 flex flex-col min-h-0 border-t border-border">
           <SectionHeader title="Layers" subtitle={meshSubtitle} collapsed={false} onToggle={() => setMeshCollapsed(true)} />
-          <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} onClick={handleMeshClick} />
+          <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} appliedMaterials={appliedMaterials} onClick={handleMeshClick} />
         </div>
       </div>
     );
@@ -96,7 +97,7 @@ export default function PDPMeshPanel({ meshes, onSelectMesh, onApplyMaterial }: 
         <ResizablePanel defaultSize={55} minSize={20}>
           <div className="flex flex-col h-full">
             <SectionHeader title="Layers" subtitle={meshSubtitle} collapsed={false} onToggle={() => setMeshCollapsed(true)} />
-            <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} onClick={handleMeshClick} />
+            <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} appliedMaterials={appliedMaterials} onClick={handleMeshClick} />
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -167,9 +168,10 @@ function MatContent({ hasSelection, matTab, setMatTab, filteredMaterials, onAppl
   );
 }
 
-function MeshList({ search, setSearch, filtered, meshes, onClick }: {
+function MeshList({ search, setSearch, filtered, meshes, appliedMaterials, onClick }: {
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[]; meshes: MeshItemData[];
+  appliedMaterials: Record<string, string>;
   onClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
 }) {
   return (
@@ -188,8 +190,11 @@ function MeshList({ search, setSearch, filtered, meshes, onClick }: {
         {filtered.map((mesh) => {
           const detected = detectLayerMaterial(mesh.name);
           const cleaned = cleanLayerName(mesh.name) || mesh.name;
-          const displayLabel = detected.label === "Generic Metal" ? cleaned : detected.label;
-          const showSecondary = displayLabel !== cleaned;
+          const appliedMatId = appliedMaterials[mesh.name];
+          const appliedDisplay = appliedMatId ? MAT_ID_TO_DISPLAY[appliedMatId] : undefined;
+          const swatchColor = appliedDisplay ? appliedDisplay.color : detected.color;
+          const baseLabel = detected.label === "Generic Metal" ? cleaned : detected.label;
+          const displayLabel = appliedDisplay ? `${cleaned}_${appliedDisplay.label}` : baseLabel;
           return (
             <button key={mesh.name} onClick={(e) => onClick(mesh, e)}
               className={`w-full text-left px-3 py-2.5 mb-1 transition-all border ${mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"} ${!mesh.visible ? "opacity-35" : ""}`}
@@ -197,17 +202,12 @@ function MeshList({ search, setSearch, filtered, meshes, onClick }: {
               <div className="flex items-center gap-2">
                 <div
                   className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10"
-                  style={{ backgroundColor: detected.color }}
+                  style={{ backgroundColor: swatchColor }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] truncate font-medium">
                     {!mesh.visible && "[H] "}{displayLabel}
                   </div>
-                  {showSecondary && (
-                    <div className="font-mono text-[9px] text-muted-foreground truncate">
-                      {cleaned}
-                    </div>
-                  )}
                 </div>
               </div>
             </button>

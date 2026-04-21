@@ -26,6 +26,7 @@ export default function CADToPDP() {
   const [isDragging, setIsDragging] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
+  const [appliedMaterials, setAppliedMaterials] = useState<Record<string, string>>({});
   const [transformMode] = useState("orbit");
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
@@ -59,6 +60,7 @@ export default function CADToPDP() {
     setInWorkspace(true);
     setIsModelLoading(true);
     setMeshes([]);
+    setAppliedMaterials({});
     setScreenshots([]);
     setGlbThumbnail(null);
   }, [glbUrl]);
@@ -82,6 +84,7 @@ export default function CADToPDP() {
     setGlbUrl(undefined);
     setFileName("");
     setMeshes([]);
+    setAppliedMaterials({});
     setScreenshots([]);
     setGlbThumbnail(null);
     setIsModelLoading(false);
@@ -115,6 +118,11 @@ export default function CADToPDP() {
   const handleApplyMaterial = useCallback((matId: string) => {
     if (!selectedNames.length) { toast.error("Select a layer first"); return; }
     canvasRef.current?.applyMaterial(matId, selectedNames);
+    setAppliedMaterials((prev) => {
+      const next = { ...prev };
+      selectedNames.forEach((name) => { next[name] = matId; });
+      return next;
+    });
   }, [selectedNames]);
 
   const captureScreenshot = useCallback(() => {
@@ -409,20 +417,20 @@ export default function CADToPDP() {
                       >
                         <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
                       </button>
-                      <div className="absolute top-0.5 right-0.5 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
-                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
-                          title="Remove"
-                        >
-                          <X className="w-2.5 h-2.5 text-foreground" />
-                        </button>
+                      <div className="absolute top-0.5 right-0.5 flex flex-row gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => { e.stopPropagation(); downloadShot(shot); }}
                           className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-accent transition-colors"
                           title="Download"
                         >
                           <Download className="w-2.5 h-2.5 text-foreground" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
+                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                          title="Remove"
+                        >
+                          <X className="w-2.5 h-2.5 text-foreground" />
                         </button>
                       </div>
                     </div>
@@ -454,6 +462,7 @@ export default function CADToPDP() {
           {hasModel && !rightCollapsed && (
             <PDPMeshPanel
               meshes={meshes}
+              appliedMaterials={appliedMaterials}
               onSelectMesh={handleSelectMesh}
               onApplyMaterial={handleApplyMaterial}
             />
