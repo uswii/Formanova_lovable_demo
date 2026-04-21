@@ -112,16 +112,10 @@ function cleanDisplayName(value?: string | null): string {
   return name && !isShaLikeName(name) ? name : '';
 }
 
-function cleanFilenameDisplayName(value?: string | null): string {
-  return cleanDisplayName(value?.replace(/\.[^.]+$/, ''));
-}
-
 export function getAssetDisplayName(asset: UserAsset): string {
   const anyAsset = asset as UserAsset & {
     label?: string | null;
     title?: string | null;
-    filename?: string | null;
-    original_filename?: string | null;
     displayName?: string | null;
     assetName?: string | null;
   };
@@ -133,17 +127,6 @@ export function getAssetDisplayName(asset: UserAsset): string {
     cleanDisplayName(anyAsset.assetName) ||
     cleanDisplayName(anyAsset.label) ||
     cleanDisplayName(anyAsset.title) ||
-    cleanFilenameDisplayName(anyAsset.filename) ||
-    cleanFilenameDisplayName(anyAsset.original_filename) ||
-    cleanDisplayName(asset.metadata?.name) ||
-    cleanDisplayName(asset.metadata?.display_name) ||
-    cleanDisplayName(asset.metadata?.asset_name) ||
-    cleanDisplayName(asset.metadata?.displayName) ||
-    cleanDisplayName(asset.metadata?.assetName) ||
-    cleanDisplayName(asset.metadata?.label) ||
-    cleanDisplayName(asset.metadata?.title) ||
-    cleanFilenameDisplayName(asset.metadata?.filename) ||
-    cleanFilenameDisplayName(asset.metadata?.original_filename) ||
     ''
   );
 }

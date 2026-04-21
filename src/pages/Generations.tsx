@@ -13,7 +13,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
-import { fetchUserAssets, getAssetDisplayName, type AssetType, type UserAsset } from '@/lib/assets-api';
+import { fetchUserAssets, getAssetDisplayName, type UserAsset } from '@/lib/assets-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
@@ -90,17 +90,6 @@ function getAssetWorkflowId(asset: UserAsset): string | null {
     asset.metadata?.generation_workflow_id ||
     null
   );
-}
-
-async function fetchAllUserAssets(type: AssetType): Promise<UserAsset[]> {
-  const pageSize = 100;
-  const items: UserAsset[] = [];
-  for (let page = 0; page < 10; page += 1) {
-    const data = await fetchUserAssets(type, page, pageSize);
-    items.push(...data.items);
-    if (items.length >= data.total || data.items.length < pageSize) break;
-  }
-  return items;
 }
 
 function getArtifactKey(value?: string | null): string | null {
@@ -207,10 +196,10 @@ export default function Generations() {
         const artifactAssetNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
-            fetchAllUserAssets('generated_photo'),
-            fetchAllUserAssets('generated_cad'),
+            fetchUserAssets('generated_photo', 0, 100),
+            fetchUserAssets('generated_cad', 0, 100),
           ]);
-          [...photos, ...cads].forEach(a => {
+          [...photos.items, ...cads.items].forEach(a => {
             const name = getAssetDisplayName(a);
             if (!name) return;
             assetNameMap[a.id] = name;
