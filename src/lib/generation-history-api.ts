@@ -34,6 +34,8 @@ export interface WorkflowSummary {
   credits_spent?: number | null;
   /** UUID of the vault asset produced by this run, or null for failed/pre-vault runs */
   output_asset_id?: string | null;
+  /** User-friendly name from the vault asset (e.g. "Photoshoot 3") — populated during enrichment */
+  output_asset_name?: string | null;
 }
 
 export interface WorkflowStep {

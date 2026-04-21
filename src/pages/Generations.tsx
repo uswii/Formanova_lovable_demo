@@ -13,6 +13,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
+import { fetchAssetById } from '@/lib/assets-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
@@ -205,28 +206,28 @@ export default function Generations() {
         const batch = allUnenriched.slice(i, i + 3);
         const results = await Promise.allSettled(
           batch.map(async (wf) => {
+            const assetName = wf.output_asset_id
+              ? await fetchAssetById(wf.output_asset_id).then(a => a.name).catch(() => null)
+              : null;
+
             if (wf.source_type === 'cad_text') {
-              // Use both details (for screenshots/metadata) and result (for sink-based GLB fallback)
               const [details, cadResult] = await Promise.all([
                 getWorkflowDetails(wf.workflow_id),
                 fetchCadResult(wf.workflow_id),
               ]);
               const stepData = extractCadTextData(details.steps ?? []);
-              // Override GLB URL with the authoritative sink-based result
-              if (cadResult.glb_url) {
-                stepData.glb_url = cadResult.glb_url;
-              }
-              return { id: wf.workflow_id, data: stepData };
+              if (cadResult.glb_url) stepData.glb_url = cadResult.glb_url;
+              return { id: wf.workflow_id, data: { ...stepData, output_asset_name: assetName } };
             }
             if (wf.source_type === 'product_shot') {
               const thumbnail_url = await extractProductShotThumbnail(wf.workflow_id);
               if (thumbnail_url) preloadImage(thumbnail_url);
-              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '', output_asset_name: assetName } };
             }
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '', output_asset_name: assetName } };
           })
         );
 

@@ -87,7 +87,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(
-    () => loadStoredRenames()[workflow.workflow_id] ?? workflow.name ?? null
+    () => loadStoredRenames()[workflow.workflow_id] ?? workflow.output_asset_name ?? null
   );
   const [renameValue, setRenameValue] = useState('');
 
@@ -323,7 +323,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(
-    () => loadPhotoRenames()[workflow.workflow_id] ?? workflow.name ?? null,
+    () => loadPhotoRenames()[workflow.workflow_id] ?? workflow.output_asset_name ?? null,
   );
   const [renameValue, setRenameValue] = useState('');
 
