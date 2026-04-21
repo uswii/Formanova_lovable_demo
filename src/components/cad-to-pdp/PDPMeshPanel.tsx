@@ -4,7 +4,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import MaterialSphere from "@/components/cad-studio/MaterialSphere";
-import { cleanLayerName } from "@/lib/layer-material-detect";
+import { cleanLayerName, detectLayerMaterial } from "@/lib/layer-material-detect";
 
 interface PDPMeshPanelProps {
   meshes: MeshItemData[];
@@ -185,18 +185,29 @@ function MeshList({ search, setSearch, filtered, meshes, onClick }: {
             {meshes.length === 0 ? "Load a GLB to see layers" : "No matching layers"}
           </div>
         )}
-        {filtered.map((mesh) => (
-          <button key={mesh.name} onClick={(e) => onClick(mesh, e)}
-            className={`w-full text-left px-3 py-2.5 mb-1 transition-all border ${mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"} ${!mesh.visible ? "opacity-35" : ""}`}
-          >
-            <div className="text-[11px] truncate font-medium">
-              {!mesh.visible && "[H] "}{cleanLayerName(mesh.name)}
-            </div>
-            <div className="font-mono text-[9px] text-muted-foreground">
-              {mesh.verts}v / {mesh.faces}f
-            </div>
-          </button>
-        ))}
+        {filtered.map((mesh) => {
+          const detected = detectLayerMaterial(mesh.name);
+          return (
+            <button key={mesh.name} onClick={(e) => onClick(mesh, e)}
+              className={`w-full text-left px-3 py-2.5 mb-1 transition-all border ${mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"} ${!mesh.visible ? "opacity-35" : ""}`}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10"
+                  style={{ backgroundColor: detected.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] truncate font-medium">
+                    {!mesh.visible && "[H] "}{detected.label}
+                  </div>
+                  <div className="font-mono text-[9px] text-muted-foreground truncate">
+                    {cleanLayerName(mesh.name)}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
