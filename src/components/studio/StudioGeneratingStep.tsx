@@ -116,7 +116,7 @@ export function StudioGeneratingStep({
 
         <button
           onClick={onKeepBrowsing}
-          className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors mb-6"
+          className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground hover:text-foreground/70 transition-colors mb-6"
         >
           Keep browsing →
         </button>
