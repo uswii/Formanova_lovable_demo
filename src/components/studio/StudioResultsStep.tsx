@@ -82,6 +82,14 @@ export function StudioResultsStep({
 
       {/* Action buttons directly under results */}
       <div className="mx-auto flex w-full max-w-[360px] flex-col gap-4 pt-2">
+        <Button
+          size="lg"
+          onClick={handleStartOver}
+          className="h-12 w-full gap-2 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-6 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90"
+        >
+          <Diamond className="h-4 w-4" />
+          New Photoshoot
+        </Button>
         <div className="flex items-center justify-center gap-3">
           <Button
             type="button"
@@ -115,14 +123,6 @@ export function StudioResultsStep({
             </span>
           </Button>
         </div>
-        <Button
-          size="lg"
-          onClick={handleStartOver}
-          className="h-12 w-full gap-2 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-6 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90"
-        >
-          <Diamond className="h-4 w-4" />
-          New Photoshoot
-        </Button>
       </div>
 
       <FeedbackModal
