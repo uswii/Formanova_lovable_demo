@@ -553,6 +553,9 @@ export default function CADToPDP() {
                     transition={{ duration: isCanvasInteracting ? 0.12 : 0.35, ease: "easeOut" }}
                     className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50"
                     style={{ pointerEvents: isCanvasInteracting ? 'none' : 'auto' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onPointerLeave={(e) => e.stopPropagation()}
                   >
                     <button
                       onClick={captureScreenshot}
@@ -573,33 +576,37 @@ export default function CADToPDP() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-14 left-1/2 -translate-x-1/2 z-40 w-[520px] max-w-[88%] bg-card border border-border shadow-lg"
+                    className="absolute top-14 left-1/2 -translate-x-1/2 z-40 w-[600px] max-w-[90%] bg-card border border-border shadow-xl"
                   >
-                    <div className="flex items-center gap-4 px-4 py-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="text-[10px] text-primary font-bold tracking-[0.12em] uppercase">Final Render</span>
-                          <Info className="w-3 h-3 text-primary flex-shrink-0" />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Colors are placeholders.<br />Final render will apply realistic materials.
-                        </p>
+                    <button
+                      onClick={() => setShowFinalLookPreview(false)}
+                      className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent/60 transition-colors z-10"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="px-5 pt-4 pb-5">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-[10px] text-primary font-bold tracking-[0.14em] uppercase">Final Render</span>
+                        <Info className="w-3 h-3 text-primary flex-shrink-0" />
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-14 h-14 border border-border/30 overflow-hidden">
-                          <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 pr-6">
+                        Colors shown here are flat placeholders only — the final render will apply photorealistic materials, lighting, and reflections.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 flex flex-col items-center gap-1.5">
+                          <div className="w-full aspect-square border border-border/40 overflow-hidden bg-muted/20">
+                            <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">Flat Preview</span>
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
-                        <div className="w-14 h-14 border border-border/20 overflow-hidden">
-                          <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
+                        <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+                        <div className="flex-1 flex flex-col items-center gap-1.5">
+                          <div className="w-full aspect-square border border-border/20 overflow-hidden bg-muted/20">
+                            <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">Final Render</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setShowFinalLookPreview(false)}
-                        className="w-5 h-5 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground flex-shrink-0 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
                     </div>
                   </motion.div>
                 )}
