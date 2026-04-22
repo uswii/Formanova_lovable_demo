@@ -410,7 +410,6 @@ export default function CADToPDP() {
               ref={viewportRef}
               data-cad-viewport
               className="relative flex-1 min-h-0 border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
-              style={{ background: "#000000" }}
             >
               {/* Step progress — top center of viewport */}
               {(() => {
