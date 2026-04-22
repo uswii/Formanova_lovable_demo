@@ -559,9 +559,9 @@ export default function CADToPDP() {
                 {hasModel && !isModelLoading && (
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: isCanvasInteracting ? 0.06 : 1, y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 12 }}
-                    transition={{ duration: isCanvasInteracting ? 0.12 : 0.35, ease: "easeOut" }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
                     className="absolute bottom-8 inset-x-0 flex flex-col items-center gap-2 z-50 pointer-events-none"
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => e.stopPropagation()}
@@ -584,8 +584,7 @@ export default function CADToPDP() {
                     </AnimatePresence>
                     <button
                       onClick={captureScreenshot}
-                      disabled={isCanvasInteracting}
-                      className="pointer-events-auto flex items-center gap-3 px-12 py-4 bg-primary text-primary-foreground font-display text-sm tracking-[0.18em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xl disabled:pointer-events-none"
+                      className="pointer-events-auto flex items-center gap-3 px-12 py-4 bg-primary text-primary-foreground font-display text-sm tracking-[0.18em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xl"
                     >
                       <Camera className="w-5 h-5 flex-shrink-0" />
                       Capture
