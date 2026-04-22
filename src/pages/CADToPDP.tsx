@@ -143,6 +143,18 @@ export default function CADToPDP() {
     if (file) loadFile(file);
   }, [loadFile]);
 
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const fileItem = items.find((i) => i.kind === "file");
+      if (!fileItem) return;
+      const file = fileItem.getAsFile();
+      if (file) loadFile(file);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [loadFile]);
+
   const onInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) loadFile(file);
@@ -302,13 +314,13 @@ export default function CADToPDP() {
                 </div>
               </div>
               <p className="font-display text-lg tracking-[0.1em] text-foreground uppercase mb-1.5">
-                Drop your CAD file here
+                Drop your 3D ring file here
               </p>
               <p className="text-sm text-muted-foreground mb-6">
-                Drag and drop, or click to browse
+                Drag &amp; drop · click to browse · paste (Ctrl+V)
               </p>
               <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 border border-border/40 px-4 py-2">
-                GLB or GLTF
+                Browse 3D Ring Files
               </span>
             </div>
           </div>
