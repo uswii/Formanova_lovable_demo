@@ -2,6 +2,14 @@ import React from 'react';
 import { Check, X, Pencil } from 'lucide-react';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
+const DISPLAY_NAME_MAX_CHARS = 50;
+
+function truncateDisplayName(name: string): string {
+  return name.length > DISPLAY_NAME_MAX_CHARS
+    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
+    : name;
+}
+
 export interface UserModel {
   id: string;
   name: string;
@@ -20,6 +28,10 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   const [editing, setEditing] = React.useState(false);
   const [nameInput, setNameInput] = React.useState(model.name);
   const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!editing) setNameInput(model.name);
+  }, [editing, model.name]);
 
   const commit = () => {
     setEditing(false);
@@ -55,16 +67,7 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
         )}
       </button>
 
-      {/* Delete button */}
-      <button
-        onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center z-10"
-        aria-label="Delete model"
-      >
-        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-      </button>
-
-      {/* -- Naming row -- fixed height for grid alignment -- */}
+{/* -- Naming row -- fixed height for grid alignment -- */}
       <div className="h-10 sm:h-11 flex items-center px-2 overflow-hidden">
         {editing ? (
           <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
@@ -74,6 +77,7 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
+              maxLength={50}
               placeholder="Enter a name..."
             />
             <button
@@ -104,8 +108,8 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
               </>
             ) : (
               <>
-                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
-                  {model.name || <span className="italic opacity-60">Click to name</span>}
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors" title={model.name || undefined}>
+                  {model.name ? truncateDisplayName(model.name) : <span className="italic opacity-60">Click to name</span>}
                 </span>
                 <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
               </>

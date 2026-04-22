@@ -13,13 +13,23 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
+import { fetchUserAssets, getAssetDisplayName } from '@/lib/assets-api';
+import {
+  loadCache,
+  saveCache,
+  preloadImage,
+  withTimeout,
+  getAssetWorkflowId,
+  getArtifactKey,
+  getAssetArtifactKeys,
+  buildOrderedCadAssetNameMap,
+  type CachePayload,
+} from '@/lib/generation-history-utils';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { ScissorGLBGrid } from '@/components/generations/ScissorGLBGrid';
 import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
 
 const PER_PAGE = 5;
-const CACHE_KEY = 'formanova_gen_cache';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text';
 
@@ -28,53 +38,6 @@ interface SectionState {
   page: number;
   totalPages: number;
   loading: boolean;
-}
-
-// ── SessionStorage cache helpers ─────────────────────────────────────
-
-interface CachePayload {
-  workflows: WorkflowSummary[];
-  enriched: Record<string, Partial<WorkflowSummary>>;
-  ts: number;
-}
-
-function loadCache(): CachePayload | null {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const parsed: CachePayload = JSON.parse(raw);
-    if (Date.now() - parsed.ts > CACHE_TTL_MS) {
-      sessionStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-    return parsed;
-  } catch { return null; }
-}
-
-function saveCache(workflows: WorkflowSummary[], enriched: Record<string, Partial<WorkflowSummary>>) {
-  try {
-    const payload: CachePayload = { workflows, enriched, ts: Date.now() };
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
-  } catch { /* quota exceeded — ignore */ }
-}
-
-/** Preload an image into browser cache */
-function preloadImage(url: string) {
-  if (!url || url.startsWith('data:') || url.includes('/artifacts/')) return;
-  const img = new Image();
-  img.src = url;
-}
-
-async function batchSettled<T>(
-  tasks: Array<() => Promise<T>>,
-  concurrency = 5,
-): Promise<PromiseSettledResult<T>[]> {
-  const results: PromiseSettledResult<T>[] = [];
-  for (let i = 0; i < tasks.length; i += concurrency) {
-    const batch = tasks.slice(i, i + concurrency).map((t) => t());
-    results.push(...(await Promise.allSettled(batch)));
-  }
-  return results;
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -93,6 +56,25 @@ export default function Generations() {
 
   // Track enriched IDs + their data for sessionStorage persistence
   const enrichedRef = useRef<Record<string, Partial<WorkflowSummary>>>({});
+  const generatedAssetNamesRef = useRef<{
+    byAssetId: Record<string, string>;
+    byWorkflowId: Record<string, string>;
+    byArtifactKey: Record<string, string>;
+    byOrderedCadWorkflowId: Record<string, string>;
+  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {}, byOrderedCadWorkflowId: {} });
+
+  const resolveGeneratedAssetName = useCallback((workflow: WorkflowSummary): string | null => {
+    const maps = generatedAssetNamesRef.current;
+    const artifactKey = getArtifactKey(workflow.glb_url);
+    return (
+      workflow.output_asset_name ||
+      (workflow.output_asset_id ? maps.byAssetId[workflow.output_asset_id] : undefined) ||
+      maps.byWorkflowId[workflow.workflow_id] ||
+      (artifactKey ? maps.byArtifactKey[artifactKey] : undefined) ||
+      maps.byOrderedCadWorkflowId[workflow.workflow_id] ||
+      null
+    );
+  }, []);
 
   // ── Step 1: Fetch workflow list — use cache for instant load ──────
   useEffect(() => {
@@ -129,17 +111,49 @@ export default function Generations() {
       try {
         if (!cached) setGlobalLoading(true);
         const rawWorkflows = await listMyWorkflows(100, 0);
-        // Filter out unknown source types — these are not meaningful to the user
         const workflows = rawWorkflows.filter(w => w.source_type !== 'unknown');
         if (import.meta.env.DEV) console.log('[Generations] fetched:', rawWorkflows.length, '→ valid:', workflows.length);
 
-        // Re-apply any previously enriched data so thumbnails don't flash
+        // Build generated asset name maps. Some older workflow rows do not expose
+        // output_asset_id, so also match by metadata.workflow_id when available.
+        const assetNameMap: Record<string, string> = {};
+        const workflowAssetNameMap: Record<string, string> = {};
+        const artifactAssetNameMap: Record<string, string> = {};
+        let orderedCadWorkflowNameMap: Record<string, string> = {};
+        try {
+          const [photos, cads] = await Promise.all([
+            fetchUserAssets('generated_photo', 0, 100),
+            fetchUserAssets('generated_cad', 0, 100),
+          ]);
+          orderedCadWorkflowNameMap = buildOrderedCadAssetNameMap(workflows, cads.items);
+          [...photos.items, ...cads.items].forEach(a => {
+            const name = getAssetDisplayName(a);
+            if (!name) return;
+            assetNameMap[a.id] = name;
+            const workflowId = getAssetWorkflowId(a);
+            if (workflowId) workflowAssetNameMap[workflowId] = name;
+            getAssetArtifactKeys(a).forEach(key => {
+              artifactAssetNameMap[key] = name;
+            });
+          });
+        } catch { /* non-fatal — names just won't show */ }
+
+        generatedAssetNamesRef.current = {
+          byAssetId: assetNameMap,
+          byWorkflowId: workflowAssetNameMap,
+          byArtifactKey: artifactAssetNameMap,
+          byOrderedCadWorkflowId: orderedCadWorkflowNameMap,
+        };
+
+        // Re-apply enriched data + asset names
         const merged = workflows.map(w => {
           const e = enrichedRef.current[w.workflow_id];
-          return e ? { ...w, ...e } : w;
+          const hydrated = { ...w, ...(e ?? {}) };
+          const output_asset_name = resolveGeneratedAssetName(hydrated);
+          return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
         });
         setAllWorkflows(merged);
-        saveCache(workflows, enrichedRef.current);
+        saveCache(merged, enrichedRef.current);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
         if (err.name !== 'AuthExpiredError' && !cached) {
@@ -152,7 +166,7 @@ export default function Generations() {
     })();
 
     return () => { clearTimeout(safetyTimeout); controller.abort(); };
-  }, [user]);
+  }, [resolveGeneratedAssetName, user]);
 
   // ── Pagination helper ─────────────────────────────────────────────
     const getSection = useCallback(
@@ -198,56 +212,53 @@ export default function Generations() {
 
     let cancelled = false;
 
+    const applyEnrichment = (id: string, data: Partial<WorkflowSummary>) => {
+      enrichedRef.current[id] = data;
+      setAllWorkflows(prev =>
+        prev.map(w => {
+          if (w.workflow_id !== id) return w;
+          const hydrated = { ...w, ...data };
+          const output_asset_name = resolveGeneratedAssetName(hydrated);
+          return { ...hydrated, ...(output_asset_name ? { output_asset_name } : {}) };
+        })
+      );
+    };
+
     // Throttled sequential-batch enrichment (3 at a time with delay)
     (async () => {
       for (let i = 0; i < allUnenriched.length; i += 3) {
         if (cancelled) return;
         const batch = allUnenriched.slice(i, i + 3);
-        const results = await Promise.allSettled(
+        await Promise.allSettled(
           batch.map(async (wf) => {
             if (wf.source_type === 'cad_text') {
-              // Use both details (for screenshots/metadata) and result (for sink-based GLB fallback)
-              const [details, cadResult] = await Promise.all([
-                getWorkflowDetails(wf.workflow_id),
-                fetchCadResult(wf.workflow_id),
-              ]);
+              const details = await getWorkflowDetails(wf.workflow_id);
               const stepData = extractCadTextData(details.steps ?? []);
-              // Override GLB URL with the authoritative sink-based result
-              if (cadResult.glb_url) {
-                stepData.glb_url = cadResult.glb_url;
+              if (!cancelled) applyEnrichment(wf.workflow_id, stepData);
+
+              if (!stepData.glb_url) {
+                const cadResult = await withTimeout(fetchCadResult(wf.workflow_id), 5000);
+                if (!cancelled && cadResult?.glb_url) {
+                  applyEnrichment(wf.workflow_id, { ...stepData, glb_url: cadResult.glb_url });
+                }
               }
-              return { id: wf.workflow_id, data: stepData };
+              return;
             }
             if (wf.source_type === 'product_shot') {
               const thumbnail_url = await extractProductShotThumbnail(wf.workflow_id);
               if (thumbnail_url) preloadImage(thumbnail_url);
-              return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+              if (!cancelled) applyEnrichment(wf.workflow_id, { thumbnail_url: thumbnail_url ?? '' });
+              return;
             }
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+            if (!cancelled) applyEnrichment(wf.workflow_id, { thumbnail_url: thumbnail_url ?? '' });
           })
         );
 
         if (cancelled) return;
-
-        // Apply results
-        const updates: Record<string, Partial<WorkflowSummary>> = {};
-        for (const r of results) {
-          if (r.status === 'fulfilled' && r.value) {
-            enrichedRef.current[r.value.id] = r.value.data;
-            updates[r.value.id] = r.value.data;
-          } else if (r.status === 'rejected') {
-            // Mark as failed so we don't retry
-          }
-        }
-        if (Object.keys(updates).length > 0) {
-          setAllWorkflows(prev =>
-            prev.map(w => updates[w.workflow_id] ? { ...w, ...updates[w.workflow_id] } : w)
-          );
-          saveCache(allWorkflows, enrichedRef.current);
-        }
+        saveCache(allWorkflows, enrichedRef.current);
 
         // Small delay between batches to avoid hammering the backend
         if (i + 3 < allUnenriched.length) {
@@ -257,7 +268,7 @@ export default function Generations() {
     })();
 
     return () => { cancelled = true; };
-  }, [allWorkflows.length, globalLoading]);
+  }, [allWorkflows.length, globalLoading, resolveGeneratedAssetName]);
 
   // ── Step 3: Fetch credit audit — throttled, only visible page items first
   const auditFetchedRef = useRef<Set<string>>(new Set());

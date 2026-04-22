@@ -32,6 +32,10 @@ export interface WorkflowSummary {
   mode?: string | null;
   /** Total credits spent on this generation — populated from /credits/audit endpoint */
   credits_spent?: number | null;
+  /** UUID of the vault asset produced by this run, or null for failed/pre-vault runs */
+  output_asset_id?: string | null;
+  /** User-friendly name from the vault asset (e.g. "Photoshoot 3") — populated during enrichment */
+  output_asset_name?: string | null;
 }
 
 export interface WorkflowStep {
@@ -59,6 +63,32 @@ export interface WorkflowDetail {
     finished_at: string | null;
   };
   steps: WorkflowStep[];
+}
+
+function extractOutputAssetId(workflow: any): string | null {
+  return (
+    workflow.output_asset_id ??
+    workflow.output_asset?.id ??
+    workflow.output_asset?.asset_id ??
+    workflow.result?.output_asset_id ??
+    workflow.result?.output_asset?.id ??
+    null
+  );
+}
+
+function extractOutputAssetName(workflow: any): string | null {
+  return (
+    workflow.output_asset_name ??
+    workflow.asset_name ??
+    workflow.display_name ??
+    workflow.output_asset?.name ??
+    workflow.output_asset?.display_name ??
+    workflow.result?.output_asset_name ??
+    workflow.result?.asset_name ??
+    workflow.result?.output_asset?.name ??
+    workflow.result?.output_asset?.display_name ??
+    null
+  );
 }
 
 // ─── API Functions ──────────────────────────────────────────────────
@@ -107,6 +137,8 @@ export async function listMyWorkflows(
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
       mode: w.input?.mode ?? null,
+      output_asset_id: extractOutputAssetId(w),
+      output_asset_name: extractOutputAssetName(w),
     };
   });
   if (__DEV__) {

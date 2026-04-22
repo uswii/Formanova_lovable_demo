@@ -11,6 +11,8 @@ export interface AzureUploadResponse {
   sas_url: string;  // Proxy URL: /api/artifacts/<sha256> — use this everywhere
   https_url: string;  // Direct blob URL (no auth, avoid using)
   asset_id?: string | null;  // set by backend registration; null if fail-open triggered
+  name?: string | null;
+  display_name?: string | null;
 }
 
 export async function uploadToAzure(

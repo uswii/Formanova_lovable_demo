@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
+import { GenerationsContextProvider } from "@/contexts/GenerationsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
@@ -64,6 +65,7 @@ const UnifiedStudio = lazyWithRetry(() => import("./pages/UnifiedStudio"));
 const CADStudio = lazyWithRetry(() => import("./pages/CADStudio"));
 const CADToCatalog = lazyWithRetry(() => import("./pages/CADToCatalog"));
 const TextToCAD = lazyWithRetry(() => import("./pages/TextToCAD"));
+const ImageToCAD = lazyWithRetry(() => import("./pages/ImageToCAD"));
 const Generations = lazyWithRetry(() => import("./pages/Generations"));
 const Credits = lazyWithRetry(() => import("./pages/Credits"));
 const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
@@ -175,26 +177,27 @@ const App = () => (
             </Suspense>
           </DeferredDecorations>
           <BrowserRouter>
-            <PostHogPageView />
-            <PostReloadHandler />
-            <OnboardingRedirectHandler />
-            <VersionBanner />
-            
-            <DeferredDecorations>
-              <Suspense fallback={null}>
-                <FloatingElements />
-                <ScrollProgressIndicator />
-                <ThemeDecorations />
-              </Suspense>
-            </DeferredDecorations>
-            <div className="min-h-screen flex flex-col relative z-10">
-              <Header />
-              <main className="flex-1">
-              <RouteErrorBoundary>
-              <ChunkErrorBoundary>
+            <GenerationsContextProvider>
+              <PostHogPageView />
+              <PostReloadHandler />
+              <OnboardingRedirectHandler />
+              <VersionBanner />
 
-                <Suspense fallback={<PageLoader />}>
-                <Routes>
+              <DeferredDecorations>
+                <Suspense fallback={null}>
+                  <FloatingElements />
+                  <ScrollProgressIndicator />
+                  <ThemeDecorations />
+                </Suspense>
+              </DeferredDecorations>
+              <div className="min-h-screen flex flex-col relative z-10">
+                <Header />
+                <main className="flex-1">
+                <RouteErrorBoundary>
+                <ChunkErrorBoundary>
+
+                  <Suspense fallback={<PageLoader />}>
+                  <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
                   <Route path="/feedback" element={<FeedbackRedirect />} />
@@ -230,6 +233,7 @@ const App = () => (
                   <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
+                  <Route path="/image-to-cad" element={<ProtectedRoute><CADGate><ImageToCAD /></CADGate></ProtectedRoute>} />
                   
                   {/* Admin routes */}
                   <Route path="/admin" element={<AdminRouteGuard><AdminLayout /></AdminRouteGuard>}>
@@ -248,11 +252,12 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-                </Suspense>
-              </ChunkErrorBoundary>
-              </RouteErrorBoundary>
-              </main>
-            </div>
+                  </Suspense>
+                </ChunkErrorBoundary>
+                </RouteErrorBoundary>
+                </main>
+              </div>
+            </GenerationsContextProvider>
           </BrowserRouter>
         </TooltipProvider>
         </CreditsProvider>

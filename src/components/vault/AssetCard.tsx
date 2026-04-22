@@ -2,8 +2,8 @@
 // Purely presentational — no data fetching. Restyle freely; keep AssetCardProps stable.
 
 import { useState } from 'react';
-import { Pencil, Check, X } from 'lucide-react';
-import type { UserAsset } from '@/lib/assets-api';
+import { Pencil, Check, X, Download } from 'lucide-react';
+import { getAssetDisplayName, type UserAsset } from '@/lib/assets-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
 export interface AssetCardProps {
@@ -14,11 +14,13 @@ export interface AssetCardProps {
   /** Show category label + inline rename (gated feature) */
   showMetadata?: boolean;
   onRename?: (asset: UserAsset, newName: string) => void;
+  onDownload?: (asset: UserAsset) => void;
 }
 
-export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadata, onRename }: AssetCardProps) {
+export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadata, onRename, onDownload }: AssetCardProps) {
   const label = reshootLabel ?? (asset.asset_type === 'model_photo' ? 'New Shoot' : 'New Style');
-  const displayName = asset.metadata?.name || asset.name;
+  const displayName = getAssetDisplayName(asset);
+  const isGenerated = asset.asset_type === 'generated_photo' || asset.asset_type === 'generated_cad';
   const [editing, setEditing] = useState(false);
   const resolvedThumbnail = useAuthenticatedImage(asset.thumbnail_url);
   const [nameInput, setNameInput] = useState(displayName ?? '');
@@ -56,7 +58,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
 
       {/* ── Naming row — fixed height for grid alignment ── */}
       <div className="h-10 sm:h-11 flex items-center px-3 overflow-hidden">
-        {asset.asset_type === 'model_photo' && editing ? (
+        {onRename && editing ? (
           <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
             <input
               autoFocus
@@ -64,7 +66,8 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
-              placeholder="Enter a name…"
+              maxLength={50}
+              placeholder="Enter a name..."
             />
             <button
               onClick={cancel}
@@ -81,7 +84,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               <Check className="h-3 w-3" />
             </button>
           </div>
-        ) : asset.asset_type === 'model_photo' ? (
+        ) : onRename ? (
           <button
             className="flex items-center justify-center gap-2 sm:gap-2.5 w-full h-full rounded hover:bg-muted/20 transition-colors group/rename"
             title="Click to rename"
@@ -94,7 +97,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               </>
             ) : (
               <>
-                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                <span className="font-mono text-[11px] truncate text-foreground transition-colors">
                   {displayName || <span className="italic opacity-60">Click to edit</span>}
                 </span>
                 <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
@@ -115,6 +118,19 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
             onClick={(e) => { e.stopPropagation(); onReshoot(asset); }}
           >
             {label}
+          </button>
+        </div>
+      )}
+
+      {isGenerated && onDownload && (
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            className="p-1.5 rounded bg-background/80 backdrop-blur-sm text-foreground hover:bg-background transition-colors"
+            title="Download"
+            onClick={(e) => { e.stopPropagation(); onDownload(asset); }}
+            aria-label="Download"
+          >
+            <Download className="h-3.5 w-3.5" />
           </button>
         </div>
       )}

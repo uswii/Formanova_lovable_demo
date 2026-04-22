@@ -5,6 +5,15 @@ import { reloadPreservingSession } from '@/lib/reload-utils';
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 const DEPLOY_SAFETY_POLL_MS = 10_000; // re-check every 10s while deploy unsafe
+const ACKED_UPDATE_VERSION_KEY = 'formanova_acked_update_version';
+
+type GenerationWindow = Window & {
+  __generationInProgress?: boolean;
+};
+
+function isGenerationInProgress(): boolean {
+  return Boolean((window as GenerationWindow).__generationInProgress);
+}
 
 /**
  * Checks /api/admin/active-generations to see if it's safe to prompt a refresh.
@@ -39,6 +48,7 @@ async function isDeploySafe(): Promise<boolean> {
 export function useVersionPolling() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const initialVersion = useRef<string | null>(null);
+  const pendingVersion = useRef<string | null>(null);
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
 
@@ -54,8 +64,14 @@ export function useVersionPolling() {
    * poll the deploy-safety endpoint before surfacing the banner.
    */
   const waitForDeploySafety = useCallback(async () => {
+    const version = pendingVersion.current;
+    if (!version || localStorage.getItem(ACKED_UPDATE_VERSION_KEY) === version) {
+      setUpdateAvailable(false);
+      return;
+    }
+
     // Never interrupt an active generation
-    if ((window as any).__generationInProgress) {
+    if (isGenerationInProgress()) {
       safetyTimerRef.current = setTimeout(waitForDeploySafety, DEPLOY_SAFETY_POLL_MS);
       return;
     }
@@ -82,8 +98,14 @@ export function useVersionPolling() {
       }
 
       if (version !== initialVersion.current) {
+        pendingVersion.current = version;
+        if (localStorage.getItem(ACKED_UPDATE_VERSION_KEY) === version) {
+          setUpdateAvailable(false);
+          return;
+        }
+
         // If generation in progress locally, defer — the event listener will catch it
-        if ((window as any).__generationInProgress) return;
+        if (isGenerationInProgress()) return;
         // Check backend safety before showing banner
         waitForDeploySafety();
       }
@@ -128,10 +150,17 @@ export function useVersionPolling() {
   }, [checkVersion]);
 
   const refresh = useCallback(() => {
+    if (pendingVersion.current) {
+      localStorage.setItem(ACKED_UPDATE_VERSION_KEY, pendingVersion.current);
+      setUpdateAvailable(false);
+    }
     reloadPreservingSession();
   }, []);
 
   const dismiss = useCallback(() => {
+    if (pendingVersion.current) {
+      localStorage.setItem(ACKED_UPDATE_VERSION_KEY, pendingVersion.current);
+    }
     setUpdateAvailable(false);
   }, []);
 
