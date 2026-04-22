@@ -8,7 +8,7 @@
  * Has NO state of its own — all values flow in as props from UnifiedStudio.
  */
 import { motion } from 'framer-motion';
-import { Diamond, RefreshCw } from 'lucide-react';
+import { Diamond, RefreshCw, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResultImageItem } from '@/components/studio/ResultImageItem';
 import { FeedbackModal } from '@/components/studio/FeedbackModal';
@@ -30,7 +30,6 @@ interface StudioResultsStepProps {
   setCurrentStep: (step: StudioStep) => void;
   handleGenerate: () => void;
   handleStartOver: () => void;
-  user: any;
   feedbackOpen: boolean;
   setFeedbackOpen: (open: boolean) => void;
   jewelryUploadedUrl: string | null;
@@ -50,7 +49,6 @@ export function StudioResultsStep({
   setCurrentStep,
   handleGenerate,
   handleStartOver,
-  user,
   feedbackOpen,
   setFeedbackOpen,
   jewelryUploadedUrl,
@@ -111,16 +109,18 @@ export function StudioResultsStep({
         </Button>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
-        Not happy with the result?{' '}
-        <button
+      <div className="flex justify-center">
+        <Button
           type="button"
-          className="underline underline-offset-2 hover:text-foreground transition-colors"
+          variant="outline"
+          size="sm"
           onClick={() => setFeedbackOpen(true)}
+          className="gap-2 font-mono text-[10px] uppercase tracking-wider"
         >
-          Tell us what went wrong
-        </button>
-      </p>
+          <Wrench className="h-4 w-4" />
+          Fix this result
+        </Button>
+      </div>
 
       <FeedbackModal
         open={feedbackOpen}

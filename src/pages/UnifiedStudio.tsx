@@ -606,7 +606,6 @@ export default function UnifiedStudio() {
             setCurrentStep={setCurrentStep}
             handleGenerate={handleGenerate}
             handleStartOver={handleStartOver}
-            user={user}
             feedbackOpen={feedbackOpen}
             setFeedbackOpen={setFeedbackOpen}
             jewelryUploadedUrl={jewelryUploadedUrl}
