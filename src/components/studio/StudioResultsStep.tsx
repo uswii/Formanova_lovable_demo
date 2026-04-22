@@ -81,7 +81,7 @@ export function StudioResultsStep({
       )}
 
       {/* Action buttons directly under results */}
-      <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3 pt-2">
+      <div className="mx-auto flex w-full max-w-[360px] flex-col gap-4 pt-2">
         <div className="flex items-center justify-center gap-3">
           <Button variant="outline" size="lg" onClick={handleStartOver} className="h-11 flex-1 gap-2 px-4 font-mono text-[10px] uppercase tracking-wider">
             <Diamond className="h-4 w-4" />
