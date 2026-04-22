@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2 } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, Eye, ArrowRight, Camera } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -12,9 +12,9 @@ import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/C
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import PDPMeshPanel from "@/components/cad-to-pdp/PDPMeshPanel";
 import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
-import { WorkspacePopupModal, LimitModal, LightboxModal, KeyboardShortcutsModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
+import { WorkspacePopupModal, LightboxModal, KeyboardShortcutsModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
 
-const MAX_SHOTS = 4;
+const HAS_SEEN_FINAL_LOOK_KEY = 'hasSeenFinalLookPreview';
 
 interface WorkspacePopup {
   title: string;
@@ -33,12 +33,15 @@ export default function CADToPDP() {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [lightboxShot, setLightboxShot] = useState<Screenshot | null>(null);
-  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [glbThumbnail, setGlbThumbnail] = useState<string | null>(null);
   const [workspacePopup, setWorkspacePopup] = useState<WorkspacePopup | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [undoCount, setUndoCount] = useState(0);
   const [redoCount, setRedoCount] = useState(0);
+
+  const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
+  const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
+  const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
 
@@ -223,10 +226,22 @@ export default function CADToPDP() {
       selectedNames.forEach((name) => { next[name] = matId; });
       return next;
     });
+    if (!localStorage.getItem(HAS_SEEN_FINAL_LOOK_KEY)) {
+      localStorage.setItem(HAS_SEEN_FINAL_LOOK_KEY, 'true');
+      setShowFinalLookPreview(true);
+    }
   }, [selectedNames, appliedMaterials, showWorkspacePopup]);
 
+  const handleCanvasPointerDown = useCallback(() => {
+    if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
+    setIsCanvasInteracting(true);
+  }, []);
+
+  const handleCanvasPointerUp = useCallback(() => {
+    interactionTimerRef.current = setTimeout(() => setIsCanvasInteracting(false), 800);
+  }, []);
+
   const captureScreenshot = useCallback(() => {
-    if (screenshots.length >= MAX_SHOTS) { setLimitModalOpen(true); return; }
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
     if (!canvas) {
       showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
@@ -410,6 +425,9 @@ export default function CADToPDP() {
               ref={viewportRef}
               data-cad-viewport
               className="relative flex-1 min-h-0 border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
+              onPointerDown={handleCanvasPointerDown}
+              onPointerUp={handleCanvasPointerUp}
+              onPointerLeave={handleCanvasPointerUp}
             >
               {/* Step progress — top center of viewport */}
               {(() => {
@@ -524,11 +542,33 @@ export default function CADToPDP() {
                   {screenshots.length > 0 && (
                     <>
                       <span className="text-muted-foreground/30">·</span>
-                      <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">{screenshots.length}/{MAX_SHOTS} shots</span>
+                      <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">{screenshots.length} shot{screenshots.length > 1 ? 's' : ''}</span>
                     </>
                   )}
                 </div>
               )}
+
+              {/* Floating Capture CTA */}
+              <AnimatePresence>
+                {hasModel && !isModelLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: isCanvasInteracting ? 0.08 : 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: isCanvasInteracting ? 0.15 : 0.4, ease: "easeOut" }}
+                    className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50"
+                    style={{ pointerEvents: isCanvasInteracting ? 'none' : 'auto' }}
+                  >
+                    <button
+                      onClick={captureScreenshot}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-display text-xs tracking-[0.15em] uppercase hover:bg-foreground/90 active:scale-[0.98] transition-all shadow-lg"
+                    >
+                      <Camera className="w-3.5 h-3.5 flex-shrink-0" />
+                      Capture
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <ViewportSideTools
                 visible={hasModel && !isModelLoading}
@@ -570,8 +610,6 @@ export default function CADToPDP() {
                     showWorkspacePopup("Export failed", "The model could not be exported. Please try again.");
                   }
                 }}
-                onScreenshot={captureScreenshot}
-                screenshotCount={screenshots.length}
               />
             </div>
 
@@ -605,9 +643,6 @@ export default function CADToPDP() {
                       </div>
                     </div>
                   ))}
-                  {Array.from({ length: MAX_SHOTS - screenshots.length }).map((_, i) => (
-                    <div key={`empty-${i}`} className="w-16 h-16 border border-dashed border-border/30 flex-shrink-0" />
-                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -635,20 +670,58 @@ export default function CADToPDP() {
               appliedMaterials={appliedMaterials}
               onSelectMesh={handleSelectMesh}
               onApplyMaterial={handleApplyMaterial}
+              onOpenFinalLookPreview={() => setShowFinalLookPreview(true)}
             />
           )}
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      <LimitModal
-        open={limitModalOpen}
-        screenshots={screenshots}
-        onClose={() => setLimitModalOpen(false)}
-        onRemove={removeScreenshot}
-      />
       <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} />
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
+      {/* Final Look Preview — anchored to Materials panel */}
+      <AnimatePresence>
+        {showFinalLookPreview && !rightCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, x: 8, scale: 0.97 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 8, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed z-[70] w-72 right-0 border border-border bg-card shadow-xl"
+            style={{ top: '5rem' }}
+          >
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/40">
+              <div className="flex items-center gap-2">
+                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-display text-xs tracking-[0.15em] uppercase text-foreground">
+                  Final Look Preview
+                </span>
+              </div>
+              <button
+                onClick={() => setShowFinalLookPreview(false)}
+                className="w-5 h-5 flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 rounded transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <p className="px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
+              Colors here are placeholders. Final render applies real materials and lighting.
+            </p>
+            <div className="px-4 pb-4 flex items-center gap-2">
+              <div className="flex-1 aspect-square bg-muted/40 border border-border/30 flex items-center justify-center overflow-hidden">
+                {/* replace with: <img src="/path/before.webp" className="w-full h-full object-cover" alt="Before" /> */}
+                <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-wider">Before</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+              <div className="flex-1 aspect-square bg-primary/5 border border-primary/20 flex items-center justify-center overflow-hidden">
+                {/* replace with: <img src="/path/after.webp" className="w-full h-full object-cover" alt="After" /> */}
+                <span className="font-mono text-[9px] text-primary/40 uppercase tracking-wider">After</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

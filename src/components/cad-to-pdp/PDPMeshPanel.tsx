@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Eye } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import { cleanLayerName, detectLayerMaterial, MAT_ID_TO_DISPLAY } from "@/lib/layer-material-detect";
@@ -10,9 +10,10 @@ interface PDPMeshPanelProps {
   appliedMaterials?: Record<string, string>;
   onSelectMesh: (name: string, multi: boolean) => void;
   onApplyMaterial: (matId: string) => void;
+  onOpenFinalLookPreview?: () => void;
 }
 
-export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMesh, onApplyMaterial }: PDPMeshPanelProps) {
+export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMesh, onApplyMaterial, onOpenFinalLookPreview }: PDPMeshPanelProps) {
   const [search, setSearch] = useState("");
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
   const [meshCollapsed, setMeshCollapsed] = useState(false);
@@ -75,7 +76,7 @@ export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMe
     return (
       <div className="flex flex-col bg-card border-l border-border h-full">
         <div className="flex-1 flex flex-col min-h-0">
-          <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed={false} onToggle={() => setMaterialCollapsed(true)} />
+          <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed={false} onToggle={() => setMaterialCollapsed(true)} eyeAction={onOpenFinalLookPreview} />
           <MatContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
         </div>
         <ColHeader title="Layers" sub={meshSubtitle} onToggle={() => setMeshCollapsed(false)} />
@@ -88,7 +89,7 @@ export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMe
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
         <ResizablePanel defaultSize={45} minSize={20}>
           <div className="flex flex-col h-full">
-            <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed={false} onToggle={() => setMaterialCollapsed(true)} />
+            <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed={false} onToggle={() => setMaterialCollapsed(true)} eyeAction={onOpenFinalLookPreview} />
             <MatContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
           </div>
         </ResizablePanel>
@@ -104,15 +105,28 @@ export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMe
   );
 }
 
-function SectionHeader({ title, subtitle, collapsed, onToggle }: { title: string; subtitle: string; collapsed: boolean; onToggle: () => void }) {
+function SectionHeader({ title, subtitle, collapsed, onToggle, eyeAction }: { title: string; subtitle: string; collapsed: boolean; onToggle: () => void; eyeAction?: () => void }) {
   return (
-    <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-accent/20 border-b border-border flex-shrink-0">
-      <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">{title}</span>
-      <span className="flex items-center gap-2">
-        <span className="font-mono text-[10px] text-muted-foreground">{subtitle}</span>
-        {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
-      </span>
-    </button>
+    <div className="w-full flex items-center border-b border-border flex-shrink-0">
+      <button onClick={onToggle} className="flex-1 flex items-center px-4 py-3 text-left transition-colors hover:bg-accent/20">
+        <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">{title}</span>
+      </button>
+      <div className="flex items-center gap-1 px-3 py-3">
+        {eyeAction && (
+          <button
+            onClick={eyeAction}
+            title="Final Look Preview"
+            className="w-5 h-5 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+          >
+            <Eye className="w-3 h-3" />
+          </button>
+        )}
+        <button onClick={onToggle} className="flex items-center gap-1.5">
+          <span className="font-mono text-[10px] text-muted-foreground">{subtitle}</span>
+          {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
+        </button>
+      </div>
+    </div>
   );
 }
 
