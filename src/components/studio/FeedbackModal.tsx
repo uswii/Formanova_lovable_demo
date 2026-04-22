@@ -58,6 +58,7 @@ interface Props {
   modelImageUrl: string | null;
   resultImageUrl: string | null;
   category: FeedbackCategory;
+  userEmail?: string | null;
 }
 
 export function FeedbackModal({
@@ -69,6 +70,7 @@ export function FeedbackModal({
   modelImageUrl,
   resultImageUrl,
   category,
+  userEmail,
 }: Props) {
   const [text, setText] = useState('');
   const [profanityError, setProfanityError] = useState(false);
@@ -144,8 +146,8 @@ export function FeedbackModal({
                 Request received
               </DialogTitle>
               <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground">
-                Our creative team is working on fixing your result. You'll receive the revised result within 24 hours.
-                Delays might happen, up to a maximum of 48 hours.
+                Our creative team is working on fixing your result. You'll receive the result in your email within 24 hours.
+                Please check {userEmail ?? 'your email'} soon. Delays might happen, up to a maximum of 48 hours.
               </DialogDescription>
             </div>
             <Button className="mt-1 w-full sm:w-auto sm:min-w-[140px]" onClick={handleClose}>

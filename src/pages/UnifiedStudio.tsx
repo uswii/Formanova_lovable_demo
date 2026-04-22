@@ -612,6 +612,7 @@ export default function UnifiedStudio() {
             jewelrySasUrl={jewelrySasUrl}
             jewelryImage={jewelryImage}
             activeModelUrl={activeModelUrl}
+            userEmail={user?.email}
           />
         )}
       </div>
