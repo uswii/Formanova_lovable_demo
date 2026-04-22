@@ -64,7 +64,7 @@ export default function MeshInspector({
                       className="w-2.5 h-2.5 rounded-full border border-border/40 flex-shrink-0"
                       style={{ background: assigned.preview }}
                     />
-                    <span className="text-[9px] text-muted-foreground truncate">{assigned.name}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">{assigned.name}</span>
                   </div>
                 )}
               </div>

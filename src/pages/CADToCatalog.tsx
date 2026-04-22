@@ -146,8 +146,8 @@ export default function CADToCatalog() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-card/60 backdrop-blur-sm z-10 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-xs font-light tracking-[4px] uppercase whitespace-nowrap">
-              <span className="font-semibold text-primary">CAD</span> → Catalog
+            <h1 className="text-sm font-semibold tracking-widest uppercase whitespace-nowrap">
+              CAD to PDP
             </h1>
             {fileName && (
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/30 min-w-0">
@@ -185,7 +185,7 @@ export default function CADToCatalog() {
               className="text-xs gap-1.5 tracking-wider uppercase"
             >
               <Upload className="w-3.5 h-3.5 flex-shrink-0" />
-              Upload GLB
+              Browse 3D Ring Files
             </Button>
             <Button
               size="sm"

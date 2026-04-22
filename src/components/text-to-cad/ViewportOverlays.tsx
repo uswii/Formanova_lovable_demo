@@ -161,11 +161,11 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
       <SideDivider />
 
       {/* History */}
-      <button onClick={onUndo} disabled={undoCount === 0} className={SIDE_BTN} title="Undo">
+      <button onClick={onUndo} disabled={undoCount === 0} className={`${SIDE_BTN} ${undoCount > 0 ? "text-primary hover:text-primary" : ""}`} title="Undo">
         <SideTooltip label={`Undo${undoCount > 0 ? ` (${undoCount})` : ""}`} />
         <Undo2 className="w-3.5 h-3.5" />
       </button>
-      <button onClick={onRedo} disabled={redoCount === 0} className={SIDE_BTN} title="Redo">
+      <button onClick={onRedo} disabled={redoCount === 0} className={`${SIDE_BTN} ${redoCount > 0 ? "text-primary hover:text-primary" : ""}`} title="Redo">
         <SideTooltip label={`Redo${redoCount > 0 ? ` (${redoCount})` : ""}`} />
         <Redo2 className="w-3.5 h-3.5" />
       </button>
@@ -200,6 +200,20 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
         </button>
       )}
 
+      {onScreenshot && (
+        <>
+          <SideDivider />
+          <button
+            onClick={onScreenshot}
+            className={`${SIDE_BTN} text-primary hover:text-primary`}
+            title="Capture screenshot"
+          >
+            <SideTooltip label={screenshotCount !== undefined ? `Screenshot (${screenshotCount}/4)` : "Screenshot"} />
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
+
       <SideDivider />
 
       {/* Export */}
@@ -232,20 +246,6 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
             : <Printer className="w-3.5 h-3.5" />}
         </button>
-      )}
-
-      {onScreenshot && (
-        <>
-          <SideDivider />
-          <button
-            onClick={onScreenshot}
-            className={SIDE_BTN}
-            title="Capture screenshot"
-          >
-            <SideTooltip label={screenshotCount !== undefined ? `Screenshot (${screenshotCount}/4)` : "Screenshot"} />
-            <Camera className="w-3.5 h-3.5" />
-          </button>
-        </>
       )}
     </div>
   );

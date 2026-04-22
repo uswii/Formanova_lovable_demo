@@ -26,7 +26,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
             onClick={() => setTab("metal")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
               tab === "metal"
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-card text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -37,7 +37,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
             onClick={() => setTab("gemstone")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
               tab === "gemstone"
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-card text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -65,7 +65,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
               className="flex flex-col items-center gap-1 p-2 rounded-xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group overflow-hidden min-w-0"
             >
               <MaterialSphere category={mat.category} preview={mat.preview} size={36} />
-              <span className="text-[8px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground text-center leading-tight w-full break-words hyphens-auto overflow-hidden">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground text-center leading-snug w-full break-words hyphens-auto overflow-hidden">
                 {mat.name}
               </span>
             </button>

@@ -1,5 +1,119 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Keyboard, Trash2 } from "lucide-react";
+
+const PDP_SHORTCUT_SECTIONS = [
+  {
+    title: "History",
+    shortcuts: [
+      { keys: ["Ctrl+Z"], desc: "Undo" },
+      { keys: ["Ctrl+Y", "/", "Ctrl+Shift+Z"], desc: "Redo" },
+    ],
+  },
+  {
+    title: "View",
+    shortcuts: [
+      { keys: ["F"], desc: "Reset camera" },
+      { keys: ["+"], desc: "Zoom in" },
+      { keys: ["-"], desc: "Zoom out" },
+    ],
+  },
+  {
+    title: "Selection",
+    shortcuts: [
+      { keys: ["Ctrl+A"], desc: "Select all layers" },
+      { keys: ["Esc"], desc: "Deselect all" },
+    ],
+  },
+  {
+    title: "Mouse Controls",
+    shortcuts: [
+      { keys: ["Scroll"], desc: "Zoom" },
+      { keys: ["Left Drag"], desc: "Orbit" },
+      { keys: ["Right Drag"], desc: "Pan" },
+      { keys: ["Click"], desc: "Select layer" },
+      { keys: ["Shift+Click"], desc: "Multi-select" },
+    ],
+  },
+];
+
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 font-mono text-[10px] font-semibold bg-background border border-border rounded text-foreground whitespace-nowrap flex-shrink-0">
+      {children}
+    </kbd>
+  );
+}
+
+interface KeyboardShortcutsModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[200] bg-black/20"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[201] w-[380px] max-h-[min(80vh,calc(100vh-120px))] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <div className="flex items-center gap-2">
+                <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-foreground">
+                  Keyboard Shortcuts
+                </span>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+              {PDP_SHORTCUT_SECTIONS.map((section) => (
+                <div key={section.title}>
+                  <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                    {section.title}
+                  </h3>
+                  <div className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
+                    {section.shortcuts.map((sc) => (
+                      <div key={sc.desc} className="contents">
+                        <span className="text-[11px] text-foreground/80 leading-normal text-left">{sc.desc}</span>
+                        <div className="flex items-center gap-1 justify-end whitespace-nowrap flex-shrink-0">
+                          {sc.keys.map((k, i) => (
+                            k === "/" ? (
+                              <span key={i} className="text-[9px] text-muted-foreground/50 mx-0.5">/</span>
+                            ) : (
+                              <Kbd key={i}>{k}</Kbd>
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
 
 export interface Screenshot {
   id: number;
@@ -92,7 +206,7 @@ export function LimitModal({ open, screenshots, onClose, onRemove }: LimitModalP
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => { onRemove(shot.id); onClose(); }} title="Remove" className="w-7 h-7 flex items-center justify-center bg-destructive/80 hover:bg-destructive rounded-sm">
-                      <X className="w-3.5 h-3.5 text-white" />
+                      <Trash2 className="w-3.5 h-3.5 text-white" />
                     </button>
                   </div>
                 </div>

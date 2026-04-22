@@ -371,7 +371,7 @@ export default function StudioViewport({
               </svg>
             </div>
             <p className="text-muted-foreground/50 text-xs uppercase tracking-[3px]">
-              Upload a GLB model to begin
+              Upload 3D Ring File
             </p>
           </div>
         </div>
