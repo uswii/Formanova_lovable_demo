@@ -576,7 +576,7 @@ export default function CADToPDP() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-14 left-0 right-20 flex justify-center z-40 pointer-events-none"
+                    className="absolute top-14 left-0 right-0 flex justify-center z-[60] pointer-events-none"
                   >
                     <div className="pointer-events-auto relative w-[560px] max-w-full bg-card border border-border shadow-xl">
                       <button
