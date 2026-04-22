@@ -184,16 +184,18 @@ export default function CADToPDP() {
   }, []);
 
   const handleModelReady = useCallback(() => {
-    setIsModelLoading(false);
-    requestAnimationFrame(() => {
-      const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-      if (canvas) {
-        try {
-          const dataUrl = canvas.toDataURL("image/png");
-          if (dataUrl && dataUrl !== "data:,") setGlbThumbnail(dataUrl);
-        } catch { /* cross-origin or context lost */ }
-      }
-    });
+    setTimeout(() => {
+      setIsModelLoading(false);
+      requestAnimationFrame(() => {
+        const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+        if (canvas) {
+          try {
+            const dataUrl = canvas.toDataURL("image/png");
+            if (dataUrl && dataUrl !== "data:,") setGlbThumbnail(dataUrl);
+          } catch { /* cross-origin or context lost */ }
+        }
+      });
+    }, 800);
   }, []);
 
   const handleSelectMesh = useCallback((name: string, multi: boolean) => {
@@ -503,7 +505,7 @@ export default function CADToPDP() {
               )}
 
               {isModelLoading && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background backdrop-blur-sm">
+                <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ background: "#000000" }}>
                   <div className="flex flex-col items-center gap-6">
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
