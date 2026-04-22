@@ -247,23 +247,35 @@ export default function CADToPDP() {
       showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
       return;
     }
-    invalidate();
+    // Deselect all meshes so selection highlights are gone in the capture
+    const prevSelection = meshes.filter(m => m.selected).map(m => m.name);
+    if (prevSelection.length > 0) {
+      setMeshes(p => p.map(m => ({ ...m, selected: false })));
+    }
+    // Wait for React to commit the deselection, then force a clean frame
     requestAnimationFrame(() => {
-      try {
-        const offscreen = document.createElement("canvas");
-        offscreen.width = canvas.width;
-        offscreen.height = canvas.height;
-        const ctx = offscreen.getContext("2d");
-        if (!ctx) return;
-        ctx.fillStyle = "#f5f5f3";
-        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-        ctx.drawImage(canvas, 0, 0);
-        const dataUrl = offscreen.toDataURL("image/png");
-        if (!dataUrl || dataUrl === "data:,") return;
-        setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
-      } catch { /* silent */ }
+      invalidate();
+      requestAnimationFrame(() => {
+        try {
+          const offscreen = document.createElement("canvas");
+          offscreen.width = canvas.width;
+          offscreen.height = canvas.height;
+          const ctx = offscreen.getContext("2d");
+          if (!ctx) return;
+          ctx.fillStyle = "#f5f5f3";
+          ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+          ctx.drawImage(canvas, 0, 0);
+          const dataUrl = offscreen.toDataURL("image/png");
+          if (!dataUrl || dataUrl === "data:,") return;
+          setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
+        } catch { /* silent */ }
+        // Restore selection
+        if (prevSelection.length > 0) {
+          setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
+        }
+      });
     });
-  }, [screenshots.length, showWorkspacePopup]);
+  }, [meshes, showWorkspacePopup]);
 
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
@@ -709,14 +721,12 @@ export default function CADToPDP() {
               Colors here are placeholders. Final render applies real materials and lighting.
             </p>
             <div className="px-4 pb-4 flex items-center gap-2">
-              <div className="flex-1 aspect-square bg-muted/40 border border-border/30 flex items-center justify-center overflow-hidden">
-                {/* replace with: <img src="/path/before.webp" className="w-full h-full object-cover" alt="Before" /> */}
-                <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-wider">Before</span>
+              <div className="flex-1 aspect-square border border-border/30 overflow-hidden">
+                <img src="/email-examples/ring-raw.webp" alt="Before" className="w-full h-full object-cover" />
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
-              <div className="flex-1 aspect-square bg-primary/5 border border-primary/20 flex items-center justify-center overflow-hidden">
-                {/* replace with: <img src="/path/after.webp" className="w-full h-full object-cover" alt="After" /> */}
-                <span className="font-mono text-[9px] text-primary/40 uppercase tracking-wider">After</span>
+              <div className="flex-1 aspect-square border border-border/20 overflow-hidden">
+                <img src="/email-examples/ring-styled.webp" alt="After" className="w-full h-full object-cover" />
               </div>
             </div>
           </motion.div>
