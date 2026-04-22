@@ -1,14 +1,12 @@
 import { useRef, useCallback, Suspense, useEffect, useMemo, useState } from "react";
-import { Canvas, useThree, useFrame, ThreeEvent, useLoader } from "@react-three/fiber";
+import { Canvas, ThreeEvent } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
   useGLTF,
-  MeshRefractionMaterial,
 } from "@react-three/drei";
-import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
-import type { MaterialDef, GemRefractionConfig } from "./materials";
+import type { MaterialDef } from "./materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
@@ -44,7 +42,7 @@ const MAT_FLAT_COLOR: Record<string, string> = {
 };
 const FALLBACK_FLAT_COLOR = "#E8C84A";
 
-// ── Material cache ──
+// ── Material cache (per model URL — cleared on model change) ──
 const matCache = new Map<string, THREE.Material>();
 
 // ── Loaded GLB Model ──
@@ -113,34 +111,28 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Build materials with caching.
-  // Assigned materials always render as a flat solid color (no metalness/shine) — CAD-to-PDP mode.
-  const { standardMeshes, gemMeshes } = useMemo(() => {
+  // Assigned materials render as MeshBasicMaterial (flat solid color — no lights, no env map).
+  // MeshBasicMaterial is the only guaranteed way to get zero shine regardless of scene HDRI.
+  const standardMeshes = useMemo(() => {
     const standard: (typeof meshDataList[0] & { material: THREE.Material })[] = [];
-    const gems: { meshData: typeof meshDataList[0]; refractionConfig: GemRefractionConfig }[] = [];
 
     meshDataList.forEach((md) => {
       const assigned = meshMaterials[md.name];
 
-      // Flat color cache key is per material-id (not per mesh) — all meshes with same
-      // material share one MeshStandardMaterial instance.
+      // Flat cache key is per material-id so all meshes with the same assignment share one instance.
       const cacheKey = assigned
-        ? `studio_flat_${assigned.id}`
-        : `studio_orig_${md.name}`;
-      let material: THREE.Material;
+        ? `flat_${assigned.id}`
+        : `orig_${md.name}`;
 
+      let material: THREE.Material;
       const cached = matCache.get(cacheKey);
       if (cached) {
         material = cached;
       } else {
         if (assigned) {
           const flatColor = MAT_FLAT_COLOR[assigned.id] ?? FALLBACK_FLAT_COLOR;
-          material = new THREE.MeshStandardMaterial({
+          material = new THREE.MeshBasicMaterial({
             color: new THREE.Color(flatColor),
-            metalness: 0,
-            roughness: 0.85,
-            flatShading: true,
-            envMapIntensity: 0,
           });
         } else {
           const orig = md.original;
@@ -149,7 +141,7 @@ function LoadedModel({
         matCache.set(cacheKey, material);
       }
 
-      // Selection highlight — skip if a material has been applied so it's visible immediately
+      // Selection highlight on unassigned meshes only
       if (selectedMeshes.has(md.name) && !assigned) {
         const mat = material as THREE.MeshPhysicalMaterial;
         if (mat?.emissive) {
@@ -161,7 +153,7 @@ function LoadedModel({
       standard.push({ ...md, material });
     });
 
-    return { standardMeshes: standard, gemMeshes: gems };
+    return standard;
   }, [meshDataList, meshMaterials, selectedMeshes]);
 
   return (
@@ -177,82 +169,7 @@ function LoadedModel({
           onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name, e); }}
         />
       ))}
-      {/* Diamond overlay with MeshRefractionMaterial */}
-      {gemMeshes.map((gem) => (
-        <StudioGemOverlay
-          key={`gem_${gem.meshData.name}`}
-          geometry={gem.meshData.geometry}
-          position={gem.meshData.position}
-          rotation={gem.meshData.rotation}
-          scale={gem.meshData.scale}
-          refractionConfig={gem.refractionConfig}
-          name={gem.meshData.name}
-          onMeshClick={onMeshClick}
-        />
-      ))}
     </group>
-  );
-}
-
-// ── Preload diamond HDRI at Canvas mount time ──
-function DiamondHDRIPreloader() {
-  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
-  useEffect(() => {
-    if (envMap) {
-      envMap.mapping = THREE.EquirectangularReflectionMapping;
-    }
-  }, [envMap]);
-  return null;
-}
-
-/**
- * StudioGemOverlay — renders a gem with MeshRefractionMaterial
- * using dedicated diamond HDRI for realistic refraction.
- */
-function StudioGemOverlay({
-  geometry,
-  position,
-  rotation,
-  scale,
-  refractionConfig,
-  name,
-  onMeshClick,
-}: {
-  geometry: THREE.BufferGeometry;
-  position: THREE.Vector3;
-  rotation: THREE.Euler;
-  scale: THREE.Vector3;
-  refractionConfig: GemRefractionConfig;
-  name: string;
-  onMeshClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
-}) {
-  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
-
-  useEffect(() => {
-    if (envMap) envMap.mapping = THREE.EquirectangularReflectionMapping;
-  }, [envMap]);
-
-  if (!envMap) return null;
-
-  return (
-    <mesh
-      geometry={geometry}
-      position={position}
-      rotation={rotation}
-      scale={scale}
-      castShadow
-      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(name, e); }}
-    >
-      <MeshRefractionMaterial
-        envMap={envMap}
-        color={new THREE.Color(refractionConfig.color)}
-        ior={refractionConfig.ior}
-        aberrationStrength={refractionConfig.sparkle * Q.aberrationScale}
-        bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
-        fresnel={refractionConfig.fresnel}
-        toneMapped={false}
-      />
-    </mesh>
   );
 }
 
@@ -282,9 +199,10 @@ export default function StudioViewport({
   const [isModelLoading, setIsModelLoading] = useState(false);
   const prevModelUrl = useRef<string | null>(null);
 
-  // Track when a new model URL is set → show loading overlay until meshes are detected
+  // Track when a new model URL is set → clear stale material cache + show loading overlay
   useEffect(() => {
     if (modelUrl && modelUrl !== prevModelUrl.current) {
+      matCache.clear();
       setIsModelLoading(true);
       prevModelUrl.current = modelUrl;
     } else if (!modelUrl) {
@@ -332,8 +250,6 @@ export default function StudioViewport({
         }}
       >
         <Suspense fallback={null}>
-          {/* Preload diamond HDRI eagerly to prevent black flash on first gem application */}
-          <DiamondHDRIPreloader />
           <ambientLight intensity={0.1} />
           <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
           {Q.maxLights >= 4 && (
@@ -369,7 +285,7 @@ export default function StudioViewport({
         </Suspense>
       </Canvas>
 
-      {/* Model loading overlay — covers black canvas gap */}
+      {/* Model loading overlay — covers canvas during GLB load */}
       {isModelLoading && !isProcessing && (
         <div className="absolute inset-0 bg-background flex items-center justify-center z-20">
           <div className="flex flex-col items-center gap-4">
