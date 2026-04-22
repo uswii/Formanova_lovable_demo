@@ -81,41 +81,39 @@ export function StudioResultsStep({
       )}
 
       {/* Action buttons directly under results */}
-      <div className="flex items-center justify-center gap-4 pt-2">
-        <Button variant="outline" size="lg" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider h-11 px-6">
-          <Diamond className="h-4 w-4" />
-          New Photoshoot
-        </Button>
-        <Button
-          size="lg"
-          onClick={() => {
-            setRegenerationCount(c => c + 1);
-            trackRegenerateClicked({
-              context: 'unified-studio',
-              category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-              regeneration_number: regenerationCount + 1,
-            });
-            setResultImages([]);
-            setCurrentStep('generating');
-            handleGenerate();
-          }}
-          className="gap-2 font-display text-base uppercase tracking-wide h-11 px-6 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Regenerate
-          <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-            &le; <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
-          </span>
-        </Button>
-      </div>
-
-      <div className="flex justify-center">
+      <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3 pt-2">
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" size="lg" onClick={handleStartOver} className="h-11 flex-1 gap-2 px-4 font-mono text-[10px] uppercase tracking-wider">
+            <Diamond className="h-4 w-4" />
+            New Photoshoot
+          </Button>
+          <Button
+            size="lg"
+            onClick={() => {
+              setRegenerationCount(c => c + 1);
+              trackRegenerateClicked({
+                context: 'unified-studio',
+                category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
+                regeneration_number: regenerationCount + 1,
+              });
+              setResultImages([]);
+              setCurrentStep('generating');
+              handleGenerate();
+            }}
+            className="h-11 flex-1 gap-2 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-4 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Regenerate
+            <span className="ml-1 flex items-center gap-1 font-mono text-sm normal-case tracking-normal opacity-70">
+              &le; <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
+            </span>
+          </Button>
+        </div>
         <Button
           type="button"
           variant="outline"
-          size="sm"
           onClick={() => setFeedbackOpen(true)}
-          className="gap-2 font-mono text-[10px] uppercase tracking-wider"
+          className="h-10 w-full gap-2 font-mono text-[10px] uppercase tracking-wider"
         >
           <Wrench className="h-4 w-4" />
           Fix this result
