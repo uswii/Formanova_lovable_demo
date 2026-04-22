@@ -5,6 +5,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
+import { invalidate } from "@react-three/fiber";
 import CADRuntimeErrorBoundary from "@/components/cad/CADRuntimeErrorBoundary";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
 import type { MeshItemData } from "@/components/text-to-cad/types";
@@ -228,8 +229,7 @@ export default function CADToPDP() {
       showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
       return;
     }
-    canvasRef.current?.zoomIn();
-    canvasRef.current?.zoomOut();
+    invalidate();
     requestAnimationFrame(() => {
       try {
         const offscreen = document.createElement("canvas");
