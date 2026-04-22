@@ -722,11 +722,11 @@ export default function CADToPDP() {
             </p>
             <div className="px-4 pb-4 flex items-center gap-2">
               <div className="flex-1 aspect-square border border-border/30 overflow-hidden">
-                <img src="/email-examples/ring-raw.webp" alt="Before" className="w-full h-full object-cover" />
+                <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
               <div className="flex-1 aspect-square border border-border/20 overflow-hidden">
-                <img src="/email-examples/ring-styled.webp" alt="After" className="w-full h-full object-cover" />
+                <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
               </div>
             </div>
           </motion.div>
