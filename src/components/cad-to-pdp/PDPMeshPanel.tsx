@@ -2,9 +2,8 @@ import { useState, useMemo, useRef } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "@/components/text-to-cad/types";
-import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
-import MaterialSphere from "@/components/cad-studio/MaterialSphere";
 import { cleanLayerName, detectLayerMaterial, MAT_ID_TO_DISPLAY } from "@/lib/layer-material-detect";
+import { PDP_FLAT_METALS, PDP_FLAT_GEMS, PDP_FLAT_PALETTE_MAP, type PDPFlatEntry } from "@/lib/pdp-flat-materials";
 
 interface PDPMeshPanelProps {
   meshes: MeshItemData[];
@@ -32,7 +31,7 @@ export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMe
   );
 
   const filteredMaterials = useMemo(
-    () => MATERIAL_LIBRARY.filter((m) => m.category === matTab),
+    () => matTab === "metal" ? PDP_FLAT_METALS : PDP_FLAT_GEMS,
     [matTab]
   );
 
@@ -133,7 +132,7 @@ function MatContent({ hasSelection, matTab, setMatTab, filteredMaterials, onAppl
   hasSelection: boolean;
   matTab: "metal" | "gemstone";
   setMatTab: (t: "metal" | "gemstone") => void;
-  filteredMaterials: typeof MATERIAL_LIBRARY;
+  filteredMaterials: PDPFlatEntry[];
   onApplyMaterial: (matId: string) => void;
 }) {
   return (
@@ -158,9 +157,12 @@ function MatContent({ hasSelection, matTab, setMatTab, filteredMaterials, onAppl
             className="py-2 px-1.5 text-center transition-all hover:bg-accent/50 active:scale-[0.97] bg-muted/20 border border-border/50 disabled:opacity-30 disabled:cursor-not-allowed group"
           >
             <div className="flex justify-center mb-1">
-              <MaterialSphere category={m.category} preview={m.preview} size={24} />
+              <div
+                className="w-6 h-6 rounded-full border border-black/20 flex-shrink-0"
+                style={{ backgroundColor: m.color }}
+              />
             </div>
-            <div className="text-[8px] truncate font-mono font-semibold text-muted-foreground group-hover:text-foreground leading-tight">{m.name}</div>
+            <div className="text-[8px] truncate font-mono font-semibold text-muted-foreground group-hover:text-foreground leading-tight">{m.label}</div>
           </button>
         ))}
       </div>
@@ -191,7 +193,11 @@ function MeshList({ search, setSearch, filtered, meshes, appliedMaterials, onCli
           const detected = detectLayerMaterial(mesh.name);
           const cleaned = cleanLayerName(mesh.name) || mesh.name;
           const appliedMatId = appliedMaterials[mesh.name];
-          const appliedDisplay = appliedMatId ? MAT_ID_TO_DISPLAY[appliedMatId] : undefined;
+          const appliedDisplay = appliedMatId
+            ? (MAT_ID_TO_DISPLAY[appliedMatId] ?? (PDP_FLAT_PALETTE_MAP.has(appliedMatId)
+                ? { label: PDP_FLAT_PALETTE_MAP.get(appliedMatId)!.label, color: PDP_FLAT_PALETTE_MAP.get(appliedMatId)!.color }
+                : undefined))
+            : undefined;
           const swatchColor = appliedDisplay ? appliedDisplay.color : detected.color;
           const baseLabel = detected.label === "Generic Metal" ? cleaned : detected.label;
           const displayLabel = appliedDisplay ? `${cleaned}_${appliedDisplay.label}` : baseLabel;

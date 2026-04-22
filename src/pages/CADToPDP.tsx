@@ -4,6 +4,7 @@ import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2 } from
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
+import "@/lib/pdp-flat-materials";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import { invalidate } from "@react-three/fiber";
 import CADRuntimeErrorBoundary from "@/components/cad/CADRuntimeErrorBoundary";
