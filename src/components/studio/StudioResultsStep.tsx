@@ -113,7 +113,7 @@ export function StudioResultsStep({
           type="button"
           variant="outline"
           onClick={() => setFeedbackOpen(true)}
-          className="h-10 w-full gap-2 font-mono text-[10px] uppercase tracking-wider"
+          className="h-10 w-full gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
         >
           <Wrench className="h-4 w-4" />
           Fix this result
