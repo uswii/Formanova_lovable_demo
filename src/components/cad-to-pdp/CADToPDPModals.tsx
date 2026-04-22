@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, Trash2 } from "lucide-react";
+import { X, Keyboard, Trash2, Download } from "lucide-react";
 
 const PDP_SHORTCUT_SECTIONS = [
   {
@@ -247,22 +247,25 @@ export function LightboxModal({ shot, onClose }: LightboxModalProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <img src={shot.dataUrl} alt="Screenshot" className="max-w-full max-h-[90vh] object-contain border border-border" />
-            <button onClick={onClose} className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors">
-              <X className="w-4 h-4 text-foreground" />
-            </button>
-            <button
-              onClick={() => {
-                const a = document.createElement("a");
-                a.href = shot.dataUrl;
-                a.download = `pdp-shot-${shot.id}.png`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-              }}
-              className="absolute bottom-2 right-2 px-3 py-1.5 bg-card/90 border border-border font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              Download
-            </button>
+            <div className="absolute top-2 right-2 flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = shot.dataUrl;
+                  a.download = `pdp-shot-${shot.id}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                }}
+                className="h-8 px-3 flex items-center gap-1.5 bg-card/90 border border-border font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                <Download className="w-3 h-3" />
+                Download
+              </button>
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors">
+                <X className="w-4 h-4 text-foreground" />
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}
