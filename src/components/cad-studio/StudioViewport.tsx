@@ -1,5 +1,5 @@
 import { useRef, useCallback, Suspense, useEffect, useMemo, useState } from "react";
-import { Canvas, ThreeEvent } from "@react-three/fiber";
+import { Canvas, ThreeEvent, useThree } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
@@ -111,50 +111,41 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Assigned materials render as MeshBasicMaterial (flat solid color — no lights, no env map).
-  // MeshBasicMaterial is the only guaranteed way to get zero shine regardless of scene HDRI.
+  const { invalidate } = useThree();
+
+  // Assigned materials: always create a fresh MeshBasicMaterial — never cached.
+  // MeshBasicMaterial has zero lighting/env-map response (guaranteed flat color).
+  // We skip the cache intentionally: previous cache entries may be stale shiny materials
+  // from earlier code versions, and MeshBasicMaterial is cheap enough to create per-render.
+  // Unassigned meshes: cache the cloned original GLB material (clone is expensive).
   const standardMeshes = useMemo(() => {
     const standard: (typeof meshDataList[0] & { material: THREE.Material })[] = [];
 
     meshDataList.forEach((md) => {
       const assigned = meshMaterials[md.name];
-
-      // Flat cache key is per material-id so all meshes with the same assignment share one instance.
-      const cacheKey = assigned
-        ? `flat_${assigned.id}`
-        : `orig_${md.name}`;
-
       let material: THREE.Material;
-      const cached = matCache.get(cacheKey);
-      if (cached) {
-        material = cached;
+
+      if (assigned) {
+        const flatColor = MAT_FLAT_COLOR[assigned.id] ?? FALLBACK_FLAT_COLOR;
+        material = new THREE.MeshBasicMaterial({ color: new THREE.Color(flatColor) });
       } else {
-        if (assigned) {
-          const flatColor = MAT_FLAT_COLOR[assigned.id] ?? FALLBACK_FLAT_COLOR;
-          material = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(flatColor),
-          });
+        const cacheKey = `orig_${md.name}`;
+        const cached = matCache.get(cacheKey);
+        if (cached) {
+          material = cached;
         } else {
           const orig = md.original;
           material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
-        }
-        matCache.set(cacheKey, material);
-      }
-
-      // Selection highlight on unassigned meshes only
-      if (selectedMeshes.has(md.name) && !assigned) {
-        const mat = material as THREE.MeshPhysicalMaterial;
-        if (mat?.emissive) {
-          mat.emissive = new THREE.Color(0x334455);
-          mat.emissiveIntensity = 0.15;
+          matCache.set(cacheKey, material);
         }
       }
 
       standard.push({ ...md, material });
     });
 
+    invalidate();
     return standard;
-  }, [meshDataList, meshMaterials, selectedMeshes]);
+  }, [meshDataList, meshMaterials, selectedMeshes, invalidate]);
 
   return (
     <group ref={groupRef}>
