@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, Camera, ChevronLeft, ChevronRight, Trash2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,29 @@ export default function CADToCatalog() {
     setSelectedMeshes(new Set());
     setMeshMaterials({});
   }, [modelUrl]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        if (meshes.length > 0) setSelectedMeshes(new Set(meshes.map((m) => m.name)));
+      }
+
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedMeshes.size > 0) {
+        e.preventDefault();
+        setMeshMaterials((prev) => {
+          const next = { ...prev };
+          selectedMeshes.forEach((name) => delete next[name]);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [meshes, selectedMeshes]);
 
   const handleGeneratePhotoshoot = useCallback(async () => {
     if (!modelUrl) {
@@ -217,7 +240,7 @@ export default function CADToCatalog() {
           {modelUrl && selectedMeshes.size > 0 && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-card/70 backdrop-blur-sm border border-border/20">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                {selectedMeshes.size} mesh{selectedMeshes.size > 1 ? 'es' : ''} selected · Hold Shift to multi-select
+                {selectedMeshes.size} mesh{selectedMeshes.size > 1 ? 'es' : ''} selected · Shift to multi-select · Ctrl+A all · Del to clear
               </span>
             </div>
           )}
