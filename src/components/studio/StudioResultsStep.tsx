@@ -36,6 +36,7 @@ interface StudioResultsStepProps {
   jewelrySasUrl: string | null;
   jewelryImage: string | null;
   activeModelUrl: string | null;
+  userEmail?: string | null;
 }
 
 export function StudioResultsStep({
@@ -55,6 +56,7 @@ export function StudioResultsStep({
   jewelrySasUrl,
   jewelryImage,
   activeModelUrl,
+  userEmail,
 }: StudioResultsStepProps) {
   return (
     <motion.div
@@ -134,6 +136,7 @@ export function StudioResultsStep({
         modelImageUrl={activeModelUrl}
         resultImageUrl={resultImages[0] ?? null}
         category={(TO_SINGULAR[effectiveJewelryType] ?? 'other') as FeedbackCategory}
+        userEmail={userEmail}
       />
     </motion.div>
   );
