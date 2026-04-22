@@ -135,8 +135,12 @@ function LoadedModel({
       } else {
         if (assigned) {
           const flatColor = MAT_FLAT_COLOR[assigned.id] ?? FALLBACK_FLAT_COLOR;
-          material = new THREE.MeshBasicMaterial({
+          material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(flatColor),
+            metalness: 0,
+            roughness: 0.85,
+            flatShading: true,
+            envMap: null,
           });
         } else {
           const orig = md.original;
