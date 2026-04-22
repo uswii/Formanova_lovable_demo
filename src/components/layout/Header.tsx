@@ -44,7 +44,6 @@ function GenerationIndicator() {
       return () => clearTimeout(t);
     }
     prevRunningCount.current = runningCount;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runningCount, completedGenerations.length]);
 
   if (runningCount === 0 && !showReady) return null;

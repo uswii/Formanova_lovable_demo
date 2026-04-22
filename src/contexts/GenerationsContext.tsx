@@ -154,7 +154,9 @@ export function GenerationsContextProvider({ children }: { children: React.React
 
         const result = pollResult.result;
         const hasActivityError = Object.values(result).some(
-          (items) => Array.isArray(items) && items.some((i: any) => i?.action === 'error' || i?.status === 'failed')
+          (items) => Array.isArray(items) && (items as { action?: string; status?: string }[]).some(
+            (i) => i?.action === 'error' || i?.status === 'failed'
+          )
         );
 
         if (hasActivityError) {
@@ -205,7 +207,6 @@ export function GenerationsContextProvider({ children }: { children: React.React
         toast({ variant: 'destructive', title: 'Generation failed', description: 'Try again from the studio' });
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   // Deps excluded: runningKey only. The effect body also captures refreshCredits, toast, and navigate.
   // These are intentionally excluded because:
   //   - refreshCredits and toast are stable refs (guaranteed by CreditsContext and useToast contracts).
@@ -218,7 +219,7 @@ export function GenerationsContextProvider({ children }: { children: React.React
   // stop refreshing or toasts stop firing after completion.
   // Also watch: if runningKey doesn't update when a new workflowId is added, the new generation
   // won't start polling. Always verify trackGeneration triggers a re-run.
-  }, [runningKey]);
+  }, [runningKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Abort all controllers on provider unmount
   useEffect(() => {

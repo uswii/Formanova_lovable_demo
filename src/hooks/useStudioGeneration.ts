@@ -150,14 +150,13 @@ export function useStudioGeneration({
       setGenerationError('unavailable');
       clearGeneration(workflowId!);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // Deps excluded: workflowId, clearGeneration, setResultImages, setCurrentStep, clearStudioSession,
     // effectiveJewelryType, validationResult. All are stable refs, setters, or hook-level constants
     // that don't change identity between renders.
     // Regression to watch: if workflowId changes while in flight (user submits a second generation),
     // myGeneration becomes undefined and the effect is a no-op — safe because the new generation
     // will trigger its own completion effect when it resolves.
-  }, [myGeneration?.status]);
+  }, [myGeneration?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerate = useCallback(async () => {
     if (isSubmitting) return;

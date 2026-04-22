@@ -118,7 +118,7 @@ export default function UnifiedStudio() {
   const location = useLocation();
   const [isProductShot, setIsProductShot] = useState<boolean>(() => {
     // Priority: location.state (fresh nav) > URL ?mode= (refresh) > sessionStorage (fallback)
-    const stateMode = (location.state as any)?.mode;
+    const stateMode = (location.state as { mode?: string } | null)?.mode;
     if (stateMode === 'product-shot') {
       sessionStorage.setItem('formanova_studio_mode', 'product-shot');
       return true;
