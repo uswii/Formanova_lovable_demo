@@ -59,30 +59,20 @@ export const PDP_FLAT_PALETTE_MAP = new Map<string, PDPFlatEntry>(
   _all.map((e) => [e.id, e])
 );
 
-// Push flat entries into MATERIAL_LIBRARY so CADCanvas.applyMaterial() can find them.
-// MeshStandardMaterial(metalness:0) responds to lighting so geometry detail/form stays visible,
-// but envMapIntensity:0 blocks the scene HDRI so there's no metallic sheen.
+// MeshBasicMaterial — renders the exact hex color, unaffected by scene lighting or HDRI.
+// This matches what the backend captureColorPreview function sees: the same hex colors
+// without lighting variance, so viewport and rendered output are visually consistent.
 _all.forEach((entry) => {
   if (MATERIAL_LIBRARY.find((m) => m.id === entry.id)) return;
-  const isGem = entry.category === "gemstone";
   const def: MaterialDef = {
     id: entry.id,
     name: entry.label,
     category: entry.category,
     preview: entry.color,
-    create: () => {
-      const c = new THREE.Color(entry.color);
-      const mat = new THREE.MeshStandardMaterial({
-        color: c,
-        emissive: c,
-        emissiveIntensity: 0.55,
-        metalness: 0,
-        roughness: isGem ? 0.55 : 0.72,
-        envMapIntensity: 0,
-        side: THREE.DoubleSide,
-      });
-      return mat as any;
-    },
+    create: () => new THREE.MeshBasicMaterial({
+      color: new THREE.Color(entry.color),
+      side: THREE.DoubleSide,
+    }) as any,
   };
   MATERIAL_LIBRARY.push(def);
 });
