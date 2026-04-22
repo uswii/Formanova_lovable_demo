@@ -66,40 +66,12 @@ export default function InitialPromptScreen({
         {/* Title */}
         <div className="text-center mb-6">
           <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-2">
-            Text‑to‑3D
+            Text to CAD
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
             Describe your ring design
           </p>
         </div>
-
-        {/* Generation Quality - hidden until model selection is ready to ship.
-        <div className="mb-4 max-w-[680px] mx-auto">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Generation Quality
-          </h3>
-          <div className="flex gap-0 border border-border">
-            {AI_MODELS.filter((m) => !m.hidden).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => !m.comingSoon && setModel(m.id)}
-                disabled={m.comingSoon}
-                className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
-                  m.comingSoon
-                    ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
-                    : model === m.id
-                      ? "text-primary-foreground bg-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
-                }`}
-              >
-                {m.label}
-                {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
-                {!m.comingSoon && <span className={`block font-mono text-[8px] mt-0.5 normal-case tracking-wide ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-        */}
 
         {/* Prompt */}
         <div className="mb-3 relative max-w-[680px] mx-auto">
@@ -139,7 +111,7 @@ export default function InitialPromptScreen({
             >
               {isGenerating ? "Generating…" : (
                 <>
-                  Generate Ring
+                  Generate 3D Ring
                   <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                     <span className="text-[13px] font-mono font-semibold">≤</span>
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
@@ -150,7 +122,6 @@ export default function InitialPromptScreen({
             </button>
           </div>
         )}
-
 
         {/* Example Prompts */}
         <div className="mt-6">

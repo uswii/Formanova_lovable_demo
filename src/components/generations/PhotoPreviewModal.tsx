@@ -8,31 +8,30 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
-import { useDownloadRename } from '@/components/DownloadRenameDialog';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { downloadAsset } from '@/lib/assets-api';
 
 interface PhotoPreviewModalProps {
   imageUrl: string;
   alt?: string;
   onClose: () => void;
+  assetId?: string | null;
 }
 
-export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
-  const { promptRename, DownloadDialog } = useDownloadRename();
+export function PhotoPreviewModal({ imageUrl, alt, onClose, assetId }: PhotoPreviewModalProps) {
   const resolvedSrc = useAuthenticatedImage(imageUrl);
 
   const handleDownload = async () => {
+    if (assetId) {
+      await downloadAsset(assetId);
+      import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: assetId, file_type: 'jpg', context: 'generations-photo' }));
+      return;
+    }
     const urlParts = imageUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
-    const nameWithExt = lastPart || 'generation.jpg';
-    const dotIdx = nameWithExt.lastIndexOf('.');
-    const baseName = dotIdx > 0 ? nameWithExt.slice(0, dotIdx) : nameWithExt;
-    const ext = dotIdx > 0 ? nameWithExt.slice(dotIdx + 1) : 'jpg';
-
-    const filename = await promptRename(baseName, ext);
-    if (!filename) return;
-
+    const filename = lastPart || 'generation.jpg';
+    const ext = filename.lastIndexOf('.') > 0 ? filename.slice(filename.lastIndexOf('.') + 1) : 'jpg';
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
     const res = await authenticatedFetch(imageUrl);
     const blob = await res.blob();
@@ -54,7 +53,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
         </DialogHeader>
 
         <div className="p-6 pt-4 space-y-4">
-          {/* Hero image */}
           <div className="relative bg-muted overflow-hidden">
             <OptimizedImage
               src={resolvedSrc ?? ""}
@@ -63,7 +61,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
             />
           </div>
 
-          {/* Download button */}
           <div className="flex justify-end">
             <Button
               variant="outline"
@@ -76,7 +73,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
           </div>
         </div>
       </DialogContent>
-      {DownloadDialog}
     </Dialog>
   );
 }

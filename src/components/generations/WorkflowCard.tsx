@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { Maximize2, Box, Download, Pencil, Check, X, Layers } from 'lucide-react';
@@ -12,7 +12,32 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { CAD_RENAME_ENABLED } from '@/lib/feature-flags';
+import { downloadAsset, isShaLikeName, renameAsset } from '@/lib/assets-api';
+
+const CAD_RENAMES_KEY = 'formanova_cad_renames';
+const DISPLAY_NAME_MAX_CHARS = 50;
+
+function truncateDisplayName(name: string): string {
+  return name.length > DISPLAY_NAME_MAX_CHARS
+    ? `${name.slice(0, DISPLAY_NAME_MAX_CHARS)}...`
+    : name;
+}
+
+function getStoredRename(map: Record<string, string>, workflowId: string): string | null {
+  const value = map[workflowId];
+  return value && !isShaLikeName(value) ? value : null;
+}
+
+function loadStoredRenames(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(CAD_RENAMES_KEY) ?? '{}'); } catch { return {}; }
+}
+function saveStoredRename(workflowId: string, name: string) {
+  try {
+    const map = loadStoredRenames();
+    map[workflowId] = name;
+    localStorage.setItem(CAD_RENAMES_KEY, JSON.stringify(map));
+  } catch { /* quota — ignore */ }
+}
 
 const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -73,8 +98,16 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(
+    () => getStoredRename(loadStoredRenames(), workflow.workflow_id) ?? workflow.output_asset_name ?? null
+  );
   const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    if (workflow.output_asset_name && !getStoredRename(loadStoredRenames(), workflow.workflow_id)) {
+      setDisplayName(workflow.output_asset_name);
+    }
+  }, [workflow.output_asset_name]);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
@@ -93,7 +126,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const rawFilename = workflow.glb_filename || 'model.glb';
   const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
   const baseName = rawFilename.replace(/\.[^.]+$/, '');
-  const shownFilename = displayName ? `${displayName}.${extension}` : rawFilename;
+  const shownBaseName = displayName ?? baseName;
+  const shownFilename = `${shownBaseName}.${extension}`;
+  const visibleFilename = `${truncateDisplayName(shownBaseName)}.${extension}`;
 
   const handleStartRename = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -101,13 +136,19 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     setIsRenaming(true);
   };
 
-  const handleConfirmRename = useCallback(() => {
+  const handleConfirmRename = useCallback(async () => {
     const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
-    if (sanitized && sanitized !== baseName) {
+    if (sanitized && sanitized !== baseName && workflow.output_asset_id) {
       setDisplayName(sanitized);
+      saveStoredRename(workflow.workflow_id, sanitized);
+      try {
+        await renameAsset(workflow.output_asset_id, sanitized);
+      } catch (err) {
+        console.error('[WorkflowCard] rename asset error:', err);
+      }
     }
     setIsRenaming(false);
-  }, [renameValue, baseName]);
+  }, [renameValue, baseName, workflow.workflow_id, workflow.output_asset_id]);
 
   const handleCancelRename = () => {
     setIsRenaming(false);
@@ -118,6 +159,10 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
     if (!workflow.glb_url) return;
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: shownFilename, file_type: 'glb', context: 'generations' }));
     try {
+      if (workflow.output_asset_id) {
+        await downloadAsset(workflow.output_asset_id);
+        return;
+      }
       const resp = await authenticatedFetch(workflow.glb_url);
       if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
       const blob = await resp.blob();
@@ -194,11 +239,22 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
         {/* ── File box — only shown when GLB is available or still loading ── */}
         {(workflow.glb_url || isEnriching) && (
-          <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="mx-4 mb-4 flex items-center rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
+            {/* Left spacer — mirrors right button group width so the name stays truly centered */}
+            <div className="flex-1 flex justify-start">
+              {workflow.glb_url ? (
+                <div className="flex items-center gap-1.5 invisible" aria-hidden>
+                  <div className="h-7 w-7" />
+                  <div className="h-7 w-[72px] sm:w-[104px]" />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Center: filename + rename */}
+            <div className="flex items-center gap-1.5">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
               {isRenaming ? (
-                <div className="flex items-center gap-1 min-w-0" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                   <Input
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
@@ -207,6 +263,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                       if (e.key === 'Escape') handleCancelRename();
                     }}
                     autoFocus
+                    maxLength={50}
                     className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 min-w-[80px] max-w-[140px]"
                   />
                   <span className="text-[10px] text-muted-foreground font-mono">.{extension}</span>
@@ -218,11 +275,14 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
-                    {isEnriching ? '—' : shownFilename}
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="font-mono text-[10px] tracking-wider text-foreground truncate max-w-[140px]"
+                    title={shownFilename}
+                  >
+                    {isEnriching ? '—' : visibleFilename}
                   </span>
-                  {CAD_RENAME_ENABLED && !isEnriching && workflow.glb_url && (
+                  {!isEnriching && workflow.glb_url && workflow.output_asset_id && (
                     <button
                       onClick={handleStartRename}
                       className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
@@ -235,33 +295,36 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               )}
             </div>
 
-            {workflow.glb_url ? (
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleDownloadGlb}
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  title="Download GLB"
-                  aria-label="Download GLB"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleLoadInStudio}
-                  className="h-7 px-2.5 font-mono text-[9px] tracking-wider uppercase gap-1 whitespace-nowrap"
-                >
-                  <Layers className="h-3 w-3 flex-shrink-0" />
-                  <span className="hidden sm:inline">Load in Studio</span>
-                  <span className="sm:hidden">Studio</span>
-                </Button>
-              </div>
-            ) : (
-              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
-                Loading…
-              </span>
-            )}
+            {/* Right: action buttons */}
+            <div className="flex-1 flex justify-end">
+              {workflow.glb_url ? (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDownloadGlb}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    title="Download GLB"
+                    aria-label="Download GLB"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleLoadInStudio}
+                    className="h-7 px-2.5 font-mono text-[9px] tracking-wider uppercase gap-1 whitespace-nowrap"
+                  >
+                    <Layers className="h-3 w-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">Load in Studio</span>
+                    <span className="sm:hidden">Studio</span>
+                  </Button>
+                </div>
+              ) : (
+                <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
+                  Loading…
+                </span>
+              )}
+            </div>
           </div>
         )}
       </motion.div>
@@ -283,11 +346,58 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 // ─── Photo / CAD-render card ────────────────────────────────────────────────
 // Matches the "From Text to CAD" card style: image-first, minimal metadata.
 
+const PHOTO_RENAMES_KEY = 'formanova_photo_renames';
+function loadPhotoRenames(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(PHOTO_RENAMES_KEY) ?? '{}'); } catch { return {}; }
+}
+function savePhotoRename(id: string, name: string) {
+  try {
+    const map = loadPhotoRenames();
+    map[id] = name;
+    localStorage.setItem(PHOTO_RENAMES_KEY, JSON.stringify(map));
+  } catch { /* quota */ }
+}
+
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(
+    () => loadPhotoRenames()[workflow.workflow_id] ?? workflow.output_asset_name ?? null,
+  );
+  const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    if (workflow.output_asset_name && !loadPhotoRenames()[workflow.workflow_id]) {
+      setDisplayName(workflow.output_asset_name);
+    }
+  }, [workflow.output_asset_name]);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(displayName ?? '');
+    setIsRenaming(true);
+  };
+
+  const handleConfirmPhotoRename = async () => {
+    const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
+    if (sanitized) {
+      setDisplayName(sanitized);
+      savePhotoRename(workflow.workflow_id, sanitized);
+      if (workflow.output_asset_id) {
+        try {
+          await renameAsset(workflow.output_asset_id, sanitized);
+        } catch (err) {
+          console.error('[WorkflowCard] photo rename error:', err);
+        }
+      }
+    }
+    setIsRenaming(false);
+  };
+
+  const handleCancelPhotoRename = () => setIsRenaming(false);
 
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
@@ -331,6 +441,52 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </div>
         ) : null}
 
+        {/* Rename row — only when asset is linked */}
+        {workflow.output_asset_id && (
+          <div className="mx-2 sm:mx-3 mt-2 min-w-0" onClick={e => e.stopPropagation()}>
+            {isRenaming ? (
+              <div className="flex flex-col gap-1">
+                <Input
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleConfirmPhotoRename();
+                    if (e.key === 'Escape') handleCancelPhotoRename();
+                  }}
+                  autoFocus
+                  placeholder="Name..."
+                  maxLength={50}
+                  className="h-6 w-full font-mono text-[10px] tracking-wider px-1.5 py-0"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button onClick={handleCancelPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                  <button onClick={handleConfirmPhotoRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <Check className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0">
+                <span
+                  className="font-mono text-[10px] tracking-wider text-foreground truncate max-w-[calc(100%-1.25rem)]"
+                  title={displayName ?? undefined}
+                >
+                  {displayName ? truncateDisplayName(displayName) : <span className="text-muted-foreground/40 italic">Untitled</span>}
+                </span>
+                <button
+                  onClick={handleStartRename}
+                  className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
+                  aria-label="Rename generation"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Card footer: index · credits · date */}
         <div className="flex items-center justify-end sm:justify-between px-3 pt-3 pb-3 gap-2">
           <span className="hidden sm:inline font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none min-w-0">
@@ -350,8 +506,9 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
       {previewOpen && hasThumbnail && (
         <PhotoPreviewModal
           imageUrl={workflow.thumbnail_url!}
-          alt={workflow.name || 'Generation preview'}
+          alt={displayName || workflow.name || 'Generation preview'}
           onClose={() => setPreviewOpen(false)}
+          assetId={workflow.output_asset_id}
         />
       )}
     </>

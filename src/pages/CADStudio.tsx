@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, Camera } from "lucide-react";
+import { ArrowRight, Layers, ImageIcon } from "lucide-react";
 
 import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
-import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
+import imageToCadImg from "@/assets/examples/cad-example-1.webp";
 
 const cadFeatures = [
   {
@@ -15,12 +15,12 @@ const cadFeatures = [
     image: textToCadImg,
   },
   {
-    title: "CAD to Catalog",
-    description: "Turn CAD files into catalog-ready product visuals.",
-    route: "/cad-to-catalog",
-    comingSoon: true,
-    icon: Camera,
-    image: cadToCatalogImg,
+    title: "Image to CAD",
+    description: "Upload a photo or sketch and generate a 3D ring from your design.",
+    route: "/image-to-cad",
+    comingSoon: false,
+    icon: ImageIcon,
+    image: imageToCadImg,
   },
 ];
 

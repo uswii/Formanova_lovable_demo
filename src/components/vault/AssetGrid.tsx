@@ -15,6 +15,7 @@ interface AssetGridProps {
   reshootLabel?: string;
   showMetadata?: boolean;
   onRename?: AssetCardProps['onRename'];
+  onDownload?: AssetCardProps['onDownload'];
 }
 
 export function AssetGrid({
@@ -27,6 +28,7 @@ export function AssetGrid({
   reshootLabel,
   showMetadata,
   onRename,
+  onDownload,
 }: AssetGridProps) {
   if (isLoading) {
     return (
@@ -59,6 +61,7 @@ export function AssetGrid({
           reshootLabel={reshootLabel}
           showMetadata={showMetadata}
           onRename={onRename}
+          onDownload={onDownload}
         />
       ))}
     </MasonryGrid>
