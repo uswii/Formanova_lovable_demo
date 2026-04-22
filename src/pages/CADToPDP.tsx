@@ -41,7 +41,9 @@ export default function CADToPDP() {
 
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
+  const [captureWarning, setCaptureWarning] = useState(false);
   const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
 
@@ -247,6 +249,15 @@ export default function CADToPDP() {
       showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
       return;
     }
+    // Block capture if any selected mesh has no material assigned yet
+    const selectedWithNoMaterial = meshes.filter(m => m.selected && !appliedMaterials[m.name]);
+    if (selectedWithNoMaterial.length > 0) {
+      if (captureWarningTimer.current) clearTimeout(captureWarningTimer.current);
+      setCaptureWarning(true);
+      captureWarningTimer.current = setTimeout(() => setCaptureWarning(false), 2500);
+      return;
+    }
+    setCaptureWarning(false);
     // Deselect so selection highlights don't appear in the capture
     const prevSelection = meshes.filter(m => m.selected).map(m => m.name);
     if (prevSelection.length > 0) {
@@ -271,7 +282,7 @@ export default function CADToPDP() {
         setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
       }
     });
-  }, [meshes, showWorkspacePopup]);
+  }, [meshes, appliedMaterials, showWorkspacePopup]);
 
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
@@ -551,11 +562,26 @@ export default function CADToPDP() {
                     animate={{ opacity: isCanvasInteracting ? 0.06 : 1, y: 0 }}
                     exit={{ opacity: 0, y: 12 }}
                     transition={{ duration: isCanvasInteracting ? 0.12 : 0.35, ease: "easeOut" }}
-                    className="absolute bottom-8 inset-x-0 flex justify-center z-50 pointer-events-none"
+                    className="absolute bottom-8 inset-x-0 flex flex-col items-center gap-2 z-50 pointer-events-none"
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => e.stopPropagation()}
                     onPointerLeave={(e) => e.stopPropagation()}
                   >
+                    <AnimatePresence>
+                      {captureWarning && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.15 }}
+                          className="pointer-events-auto bg-card border border-border shadow-lg px-4 py-2.5"
+                        >
+                          <p className="font-mono text-[11px] text-foreground text-center">
+                            Apply a material to the selected layer first, or unselect it
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <button
                       onClick={captureScreenshot}
                       disabled={isCanvasInteracting}
