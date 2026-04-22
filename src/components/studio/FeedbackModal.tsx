@@ -163,9 +163,6 @@ export function FeedbackModal({
               <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
                 What went wrong?
               </DialogTitle>
-              <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground mt-1">
-                Describe the problem with the result. We review every report.
-              </DialogDescription>
             </div>
 
             {/* Images */}
@@ -203,7 +200,7 @@ export function FeedbackModal({
               onClick={handleSubmit}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send feedback
+              Request Fix
             </Button>
           </div>
         )}
