@@ -141,11 +141,11 @@ export function FeedbackModal({
             <CheckCircle2 className="h-9 w-9 text-formanova-success" />
             <div className="space-y-1">
               <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
-                Feedback received
+                Request received
               </DialogTitle>
               <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground">
-                We take every case seriously. Your report goes directly to the team and
-                we use it to make our results better. We may get back to you.
+                Our creative team is working on fixing your result. You'll receive the revised result within 24 hours.
+                Delays might happen, up to a maximum of 48 hours.
               </DialogDescription>
             </div>
             <Button className="mt-1 w-full sm:w-auto sm:min-w-[140px]" onClick={handleClose}>
