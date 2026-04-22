@@ -192,7 +192,7 @@ export function useStudioUpload({
       // Add to My Models list -- use real asset_id so dedup matches backend fetch
       const newModel: UserModel = {
         id: azResult.asset_id ?? `user-${Date.now()}`,
-        name: file.name.replace(/\.[^.]+$/, ''),
+        name: azResult.name || azResult.display_name || file.name.replace(/\.[^.]+$/, ''),
         url: stableUrl,
         uploadedAt: Date.now(),
       };

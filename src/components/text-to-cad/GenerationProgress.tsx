@@ -4,10 +4,12 @@ import { Diamond } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
   generate_initial: "Generating design",
+  generate_from_sketch: "Analyzing your design",
   build_initial: "Rendering preview",
   generate_fix: "Fixing mesh",
   build_retry: "Refining mesh",
   validate_output: "Validating output",
+  validate_against_sketch: "Validating against image",
   build_corrected: "Rendering final",
   success_final: "Generation complete",
   success_original_glb: "Your 3D design is ready",
@@ -62,10 +64,7 @@ export default function GenerationProgress({
   const isDone = currentStep === "success_final" || currentStep === "success_original_glb";
   const isTerminal = isFailed || isDone;
 
-  let label = NODE_LABELS[currentStep] || "";
-  if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Fixing mesh (attempt ${retryAttempt} of ${maxAttempts})`;
-  }
+  const label = NODE_LABELS[currentStep] || "";
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background backdrop-blur-sm">

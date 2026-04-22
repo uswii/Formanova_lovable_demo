@@ -10,17 +10,24 @@ import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { downloadAsset } from '@/lib/assets-api';
 
 interface PhotoPreviewModalProps {
   imageUrl: string;
   alt?: string;
   onClose: () => void;
+  assetId?: string | null;
 }
 
-export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
+export function PhotoPreviewModal({ imageUrl, alt, onClose, assetId }: PhotoPreviewModalProps) {
   const resolvedSrc = useAuthenticatedImage(imageUrl);
 
   const handleDownload = async () => {
+    if (assetId) {
+      await downloadAsset(assetId);
+      import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: assetId, file_type: 'jpg', context: 'generations-photo' }));
+      return;
+    }
     const urlParts = imageUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
     const filename = lastPart || 'generation.jpg';
@@ -47,7 +54,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
         </DialogHeader>
 
         <div className="p-6 pt-4 space-y-4">
-          {/* Hero image */}
           <div className="relative bg-muted overflow-hidden">
             <OptimizedImage
               src={resolvedSrc ?? ""}
@@ -56,7 +62,6 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
             />
           </div>
 
-          {/* Download button */}
           <div className="flex justify-end">
             <Button
               variant="outline"

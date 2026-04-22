@@ -35,13 +35,13 @@ let _dragStartRotDeg: [number, number, number] | null = null;
 
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
-  color: new THREE.Color(0x3399ff),
+  color: new THREE.Color(0xff6600),
   transparent: true,
   opacity: 0.35,
   depthWrite: false,
   roughness: 0.4,
   metalness: 0.1,
-  emissive: new THREE.Color(0x2277dd),
+  emissive: new THREE.Color(0xcc4400),
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
@@ -563,7 +563,7 @@ const LoadedModel = forwardRef<
         if (!gemRe.test(lower) && !metalRe.test(lower)) {
           if (phys.transmission > 0.5 || phys.ior > 2.0) isGem = true;
         }
-        const color = isGem ? 0x1a3a6b : 0x77dd77;
+        const color = isGem ? 0x4a90d9 : 0x77dd77;
         autoMaterials[md.name] = {
           preview: `#${color.toString(16).padStart(6, '0')}`,
           id: `flat-${isGem ? 'gem' : 'metal'}-${md.name}`,

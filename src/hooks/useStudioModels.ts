@@ -41,7 +41,7 @@
  * can push a freshly uploaded model into the optimistic list before fetchMyModels syncs.
  */
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
+import { fetchUserAssets, getAssetDisplayName, renameAsset, type UserAsset } from '@/lib/assets-api';
 import type { UserModel } from '@/components/studio/ModelCard';
 
 const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
@@ -88,7 +88,7 @@ export function useStudioModels({
       const data = await fetchUserAssets(isProductShot ? 'inspiration_photo' : 'model_photo', 0, 100);
       const backendModels: UserModel[] = data.items.map((a: UserAsset) => ({
         id: a.id,
-        name: a.metadata?.name || a.name || '',
+        name: getAssetDisplayName(a) || (isProductShot ? 'Inspiration' : 'Model'),
         url: a.thumbnail_url,
         uploadedAt: new Date(a.created_at).getTime(),
       }));
@@ -138,7 +138,7 @@ export function useStudioModels({
     setMyModels(updateList);
     setLocalPendingModels(updateList);
     try {
-      await updateAssetMetadata(modelId, { name: newName });
+      await renameAsset(modelId, newName);
     } catch (e) {
       console.warn('[MyModels] Rename failed', e);
     }
