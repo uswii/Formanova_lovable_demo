@@ -83,12 +83,8 @@ export function StudioResultsStep({
       {/* Action buttons directly under results */}
       <div className="mx-auto flex w-full max-w-[360px] flex-col gap-4 pt-2">
         <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" size="lg" onClick={handleStartOver} className="h-11 flex-1 gap-2 px-4 font-mono text-[10px] uppercase tracking-wider">
-            <Diamond className="h-4 w-4" />
-            New Photoshoot
-          </Button>
           <Button
-            size="lg"
+            size="sm"
             onClick={() => {
               setRegenerationCount(c => c + 1);
               trackRegenerateClicked({
@@ -100,23 +96,32 @@ export function StudioResultsStep({
               setCurrentStep('generating');
               handleGenerate();
             }}
-            className="h-11 flex-1 gap-2 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-4 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90"
+            className="h-10 flex-1 gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] bg-background px-3 font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
           >
             <RefreshCw className="h-4 w-4" />
             Regenerate
-            <span className="ml-1 flex items-center gap-1 font-mono text-sm normal-case tracking-normal opacity-70">
+            <span className="ml-1 flex items-center gap-1 text-xs normal-case tracking-normal opacity-70">
               &le; <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
             </span>
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setFeedbackOpen(true)}
+            className="h-10 flex-1 gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] px-3 font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
+          >
+            <Wrench className="h-4 w-4" />
+            Fix this result
+          </Button>
         </div>
         <Button
-          type="button"
-          variant="outline"
-          onClick={() => setFeedbackOpen(true)}
-          className="h-10 w-full gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
+          size="lg"
+          onClick={handleStartOver}
+          className="h-12 w-full gap-2 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-6 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90"
         >
-          <Wrench className="h-4 w-4" />
-          Fix this result
+          <Diamond className="h-4 w-4" />
+          New Photoshoot
         </Button>
       </div>
 
