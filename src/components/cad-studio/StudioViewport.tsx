@@ -14,6 +14,36 @@ import { getQualitySettings } from "@/lib/gpu-detect";
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
+// ── Flat color swatch per material ID (CAD-to-PDP only) ──
+// Maps each material ID to a solid display color with no metalness/shine.
+// Gems use their visible body color; metals use their alloy color.
+const MAT_FLAT_COLOR: Record<string, string> = {
+  "gold-yellow-polished":    "#E8C84A",
+  "gold-yellow-brushed":     "#E8C84A",
+  "gold-yellow-satin":       "#E8C84A",
+  "gold-yellow-matte":       "#E8C84A",
+  "gold-rose-polished":      "#C27C85",
+  "gold-white-polished":     "#D0CCC8",
+  "silver-natural-polished": "#C0C0C0",
+  "silver-natural-brushed":  "#C0C0C0",
+  "platinum-natural-polished": "#D8D8D8",
+  "rhodium-natural-polished":  "#D8D8D8",
+  "rhodium-black-polished":    "#2A2A2A",
+  "titanium-natural-polished": "#9EA3A8",
+  "titanium-black-polished":   "#7A7D80",
+  "brass-natural-polished":    "#C9A84C",
+  "copper-natural-polished":   "#D4836A",
+  "diamond":       "#E8F0F8",
+  "ruby":          "#E0115F",
+  "emerald":       "#50C878",
+  "sapphire":      "#0F52BA",
+  "black-diamond": "#101010",
+  "amethyst":      "#9966CC",
+  "topaz":         "#FFC87C",
+  "aquamarine":    "#7FFFD4",
+};
+const FALLBACK_FLAT_COLOR = "#E8C84A";
+
 // ── Material cache ──
 const matCache = new Map<string, THREE.Material>();
 
@@ -83,21 +113,20 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Build materials with caching — separate gems from standard
+  // Build materials with caching.
+  // Assigned materials always render as a flat solid color (no metalness/shine) — CAD-to-PDP mode.
   const { standardMeshes, gemMeshes } = useMemo(() => {
     const standard: (typeof meshDataList[0] & { material: THREE.Material })[] = [];
     const gems: { meshData: typeof meshDataList[0]; refractionConfig: GemRefractionConfig }[] = [];
 
     meshDataList.forEach((md) => {
       const assigned = meshMaterials[md.name];
-      
-      // If assigned a gemstone with refractionConfig, render via overlay
-      if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig });
-        return;
-      }
 
-      const cacheKey = assigned ? `studio_${md.name}_${assigned.id}` : `studio_orig_${md.name}`;
+      // Flat color cache key is per material-id (not per mesh) — all meshes with same
+      // material share one MeshStandardMaterial instance.
+      const cacheKey = assigned
+        ? `studio_flat_${assigned.id}`
+        : `studio_orig_${md.name}`;
       let material: THREE.Material;
 
       const cached = matCache.get(cacheKey);
@@ -105,7 +134,12 @@ function LoadedModel({
         material = cached;
       } else {
         if (assigned) {
-          material = assigned.create();
+          const flatColor = MAT_FLAT_COLOR[assigned.id] ?? FALLBACK_FLAT_COLOR;
+          material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(flatColor),
+            roughness: 1.0,
+            metalness: 0.0,
+          });
         } else {
           const orig = md.original;
           material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();

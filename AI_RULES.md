@@ -102,6 +102,8 @@ Temporary email allowlists should move to env vars or backend/admin config.
 
 Do not let page or component files grow past 500 lines without explicit justification.
 
+Exception: `UnifiedStudio.tsx` has a hard cap of 700 lines.
+
 More important than line count: do not mix API calls, polling, local UI state, result parsing, and rendering in one new file.
 
 ---
