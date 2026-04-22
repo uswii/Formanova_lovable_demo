@@ -239,19 +239,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
         {/* ── File box — only shown when GLB is available or still loading ── */}
         {(workflow.glb_url || isEnriching) && (
-          <div className="mx-4 mb-4 flex items-center rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
-            {/* Left spacer — mirrors right button group width so the name stays truly centered */}
-            <div className="flex-1 flex justify-start">
-              {workflow.glb_url ? (
-                <div className="flex items-center gap-1.5 invisible" aria-hidden>
-                  <div className="h-7 w-7" />
-                  <div className="h-7 w-[72px] sm:w-[104px]" />
-                </div>
-              ) : null}
-            </div>
-
-            {/* Center: filename + rename */}
-            <div className="flex items-center gap-1.5">
+          <div className="mx-4 mb-4 flex items-center gap-2 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
+            {/* Left: filename + rename */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
               {isRenaming ? (
                 <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
@@ -296,9 +286,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </div>
 
             {/* Right: action buttons */}
-            <div className="flex-1 flex justify-end">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {workflow.glb_url ? (
-                <div className="flex items-center gap-1.5">
+                <>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -318,7 +308,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                     <span className="hidden sm:inline">Load in Studio</span>
                     <span className="sm:hidden">Studio</span>
                   </Button>
-                </div>
+                </>
               ) : (
                 <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
                   Loading…

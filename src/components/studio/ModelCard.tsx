@@ -67,16 +67,7 @@ export function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
         )}
       </button>
 
-      {/* Delete button */}
-      <button
-        onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center z-10"
-        aria-label="Delete model"
-      >
-        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-      </button>
-
-      {/* -- Naming row -- fixed height for grid alignment -- */}
+{/* -- Naming row -- fixed height for grid alignment -- */}
       <div className="h-10 sm:h-11 flex items-center px-2 overflow-hidden">
         {editing ? (
           <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
