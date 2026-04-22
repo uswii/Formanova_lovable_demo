@@ -140,7 +140,7 @@ function LoadedModel({
             metalness: 0,
             roughness: 0.85,
             flatShading: true,
-            envMap: null,
+            envMapIntensity: 0,
           });
         } else {
           const orig = md.original;
