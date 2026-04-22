@@ -84,6 +84,16 @@ export function StudioResultsStep({
       <div className="mx-auto flex w-full max-w-[360px] flex-col gap-4 pt-2">
         <div className="flex items-center justify-center gap-3">
           <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setFeedbackOpen(true)}
+            className="h-10 flex-1 gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] px-3 font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
+          >
+            <Wrench className="h-4 w-4" />
+            Fix this result
+          </Button>
+          <Button
             size="sm"
             onClick={() => {
               setRegenerationCount(c => c + 1);
@@ -103,16 +113,6 @@ export function StudioResultsStep({
             <span className="ml-1 flex items-center gap-1 text-xs normal-case tracking-normal opacity-70">
               &le; <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" /> 10
             </span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setFeedbackOpen(true)}
-            className="h-10 flex-1 gap-2 border-2 border-[hsl(var(--formanova-hero-accent))] px-3 font-mono text-[10px] uppercase tracking-wider text-[hsl(var(--formanova-hero-accent))] hover:bg-[hsl(var(--formanova-hero-accent))]/10 hover:text-[hsl(var(--formanova-hero-accent))]"
-          >
-            <Wrench className="h-4 w-4" />
-            Fix this result
           </Button>
         </div>
         <Button
