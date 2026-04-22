@@ -632,13 +632,13 @@ export default function UnifiedStudio() {
             setCurrentStep={setCurrentStep}
             handleGenerate={handleGenerate}
             handleStartOver={handleStartOver}
-            user={user}
             feedbackOpen={feedbackOpen}
             setFeedbackOpen={setFeedbackOpen}
             jewelryUploadedUrl={jewelryUploadedUrl}
             jewelrySasUrl={jewelrySasUrl}
             jewelryImage={jewelryImage}
             activeModelUrl={activeModelUrl}
+            userEmail={user?.email}
           />
         )}
       </div>

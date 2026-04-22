@@ -58,6 +58,7 @@ interface Props {
   modelImageUrl: string | null;
   resultImageUrl: string | null;
   category: FeedbackCategory;
+  userEmail?: string | null;
 }
 
 export function FeedbackModal({
@@ -69,6 +70,7 @@ export function FeedbackModal({
   modelImageUrl,
   resultImageUrl,
   category,
+  userEmail,
 }: Props) {
   const [text, setText] = useState('');
   const [profanityError, setProfanityError] = useState(false);
@@ -141,11 +143,11 @@ export function FeedbackModal({
             <CheckCircle2 className="h-9 w-9 text-formanova-success" />
             <div className="space-y-1">
               <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
-                Feedback received
+                Request received
               </DialogTitle>
               <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground">
-                We take every case seriously. Your report goes directly to the team and
-                we use it to make our results better. We may get back to you.
+                Our creative team is working on fixing your result. You'll receive the result in your email within 24 hours.
+                Please check {userEmail ?? 'your email'} soon. Delays might happen, up to a maximum of 48 hours.
               </DialogDescription>
             </div>
             <Button className="mt-1 w-full sm:w-auto sm:min-w-[140px]" onClick={handleClose}>
@@ -163,9 +165,6 @@ export function FeedbackModal({
               <DialogTitle className="font-display text-2xl tracking-wide [text-shadow:none]">
                 What went wrong?
               </DialogTitle>
-              <DialogDescription className="text-sm text-justify leading-relaxed text-muted-foreground mt-1">
-                Describe the problem with the result. We review every report.
-              </DialogDescription>
             </div>
 
             {/* Images */}
@@ -203,7 +202,7 @@ export function FeedbackModal({
               onClick={handleSubmit}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send feedback
+              Request Fix
             </Button>
           </div>
         )}
