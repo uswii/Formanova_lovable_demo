@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, Eye, ArrowRight, Camera } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Info } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -247,33 +247,29 @@ export default function CADToPDP() {
       showWorkspacePopup("Viewport not ready", "Load a model before taking a screenshot.");
       return;
     }
-    // Deselect all meshes so selection highlights are gone in the capture
+    // Deselect so selection highlights don't appear in the capture
     const prevSelection = meshes.filter(m => m.selected).map(m => m.name);
     if (prevSelection.length > 0) {
       setMeshes(p => p.map(m => ({ ...m, selected: false })));
     }
-    // Wait for React to commit the deselection, then force a clean frame
+    invalidate();
     requestAnimationFrame(() => {
-      invalidate();
-      requestAnimationFrame(() => {
-        try {
-          const offscreen = document.createElement("canvas");
-          offscreen.width = canvas.width;
-          offscreen.height = canvas.height;
-          const ctx = offscreen.getContext("2d");
-          if (!ctx) return;
-          ctx.fillStyle = "#f5f5f3";
-          ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-          ctx.drawImage(canvas, 0, 0);
-          const dataUrl = offscreen.toDataURL("image/png");
-          if (!dataUrl || dataUrl === "data:,") return;
-          setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
-        } catch { /* silent */ }
-        // Restore selection
-        if (prevSelection.length > 0) {
-          setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
-        }
-      });
+      try {
+        const offscreen = document.createElement("canvas");
+        offscreen.width = canvas.width;
+        offscreen.height = canvas.height;
+        const ctx = offscreen.getContext("2d");
+        if (!ctx) return;
+        ctx.fillStyle = "#f5f5f3";
+        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+        ctx.drawImage(canvas, 0, 0);
+        const dataUrl = offscreen.toDataURL("image/png");
+        if (!dataUrl || dataUrl === "data:,") return;
+        setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
+      } catch { /* silent */ }
+      if (prevSelection.length > 0) {
+        setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
+      }
     });
   }, [meshes, showWorkspacePopup]);
 
@@ -547,37 +543,64 @@ export default function CADToPDP() {
                 </div>
               )}
 
-              {hasModel && !isModelLoading && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 font-mono text-[9px] h-[30px]">
-                  <div className="w-[6px] h-[6px] rounded-full bg-green-400 flex-shrink-0" />
-                  <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">Ready</span>
-                  {screenshots.length > 0 && (
-                    <>
-                      <span className="text-muted-foreground/30">·</span>
-                      <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">{screenshots.length} shot{screenshots.length > 1 ? 's' : ''}</span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Floating Capture CTA */}
+              {/* Floating Capture CTA — fades on interaction like Photoshop/Figma */}
               <AnimatePresence>
                 {hasModel && !isModelLoading && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: isCanvasInteracting ? 0.08 : 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: isCanvasInteracting ? 0.15 : 0.4, ease: "easeOut" }}
-                    className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: isCanvasInteracting ? 0.06 : 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    transition={{ duration: isCanvasInteracting ? 0.12 : 0.35, ease: "easeOut" }}
+                    className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50"
                     style={{ pointerEvents: isCanvasInteracting ? 'none' : 'auto' }}
                   >
                     <button
                       onClick={captureScreenshot}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-display text-xs tracking-[0.15em] uppercase hover:bg-foreground/90 active:scale-[0.98] transition-all shadow-lg"
+                      className="flex items-center gap-3 px-12 py-4 bg-primary text-primary-foreground font-display text-sm tracking-[0.18em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xl"
                     >
-                      <Camera className="w-3.5 h-3.5 flex-shrink-0" />
+                      <Camera className="w-5 h-5 flex-shrink-0" />
                       Capture
                     </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Final Render popup — inside viewport, top-center */}
+              <AnimatePresence>
+                {showFinalLookPreview && hasModel && !isModelLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-14 left-1/2 -translate-x-1/2 z-40 w-[520px] max-w-[88%] bg-card border border-border shadow-lg"
+                  >
+                    <div className="flex items-center gap-4 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-[10px] text-primary font-bold tracking-[0.12em] uppercase">Final Render</span>
+                          <Info className="w-3 h-3 text-primary flex-shrink-0" />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Colors are placeholders.<br />Final render will apply realistic materials.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="w-14 h-14 border border-border/30 overflow-hidden">
+                          <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
+                        <div className="w-14 h-14 border border-border/20 overflow-hidden">
+                          <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowFinalLookPreview(false)}
+                        className="w-5 h-5 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground flex-shrink-0 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -692,46 +715,6 @@ export default function CADToPDP() {
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
-      {/* Final Look Preview — anchored to Materials panel */}
-      <AnimatePresence>
-        {showFinalLookPreview && !rightCollapsed && (
-          <motion.div
-            initial={{ opacity: 0, x: 8, scale: 0.97 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 8, scale: 0.97 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed z-[70] w-72 right-0 border border-border bg-card shadow-xl"
-            style={{ top: '5rem' }}
-          >
-            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/40">
-              <div className="flex items-center gap-2">
-                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-display text-xs tracking-[0.15em] uppercase text-foreground">
-                  Final Look Preview
-                </span>
-              </div>
-              <button
-                onClick={() => setShowFinalLookPreview(false)}
-                className="w-5 h-5 flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 rounded transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            <p className="px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
-              Colors here are placeholders. Final render applies real materials and lighting.
-            </p>
-            <div className="px-4 pb-4 flex items-center gap-2">
-              <div className="flex-1 aspect-square border border-border/30 overflow-hidden">
-                <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
-              <div className="flex-1 aspect-square border border-border/20 overflow-hidden">
-                <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

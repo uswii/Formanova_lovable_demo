@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { ChevronUp, ChevronDown, Eye } from "lucide-react";
+import { ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import { cleanLayerName, detectLayerMaterial, MAT_ID_TO_DISPLAY } from "@/lib/layer-material-detect";
@@ -115,10 +115,11 @@ function SectionHeader({ title, subtitle, collapsed, onToggle, eyeAction }: { ti
         {eyeAction && (
           <button
             onClick={eyeAction}
-            title="Final Look Preview"
-            className="w-5 h-5 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+            title="Preview Mode"
+            className="flex items-center gap-1 text-primary text-[10px] font-bold tracking-[0.1em] uppercase hover:opacity-70 transition-opacity"
           >
-            <Eye className="w-3 h-3" />
+            Final Render
+            <Info className="w-3 h-3" />
           </button>
         )}
         <button onClick={onToggle} className="flex items-center gap-1.5">
