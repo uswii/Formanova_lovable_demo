@@ -71,10 +71,13 @@ _all.forEach((entry) => {
     category: entry.category,
     preview: entry.color,
     create: () => {
+      const c = new THREE.Color(entry.color);
       const mat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(entry.color),
+        color: c,
+        emissive: c,
+        emissiveIntensity: 0.35,
         metalness: 0,
-        roughness: isGem ? 0.65 : 0.8,
+        roughness: isGem ? 0.55 : 0.72,
         envMapIntensity: 0,
         side: THREE.DoubleSide,
       });
