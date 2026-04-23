@@ -1456,6 +1456,7 @@ const LoadedModel = forwardRef<
 
       if (!visibleMeshes.length) return null;
 
+      const canvas = glRenderer.domElement;
       const controls = (glRenderer.domElement as any).__orbitControls;
       const savedPosition = camera.position.clone();
       const savedTarget = controls?.target?.clone?.() ?? null;
