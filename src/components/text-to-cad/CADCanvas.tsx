@@ -7,6 +7,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
+  Outlines,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -48,7 +49,7 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
 
 const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
-const OUTLINE_SCALE = 1.018;
+const OUTLINE_THICKNESS = 0.028;
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -64,26 +65,16 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
 }
 
-function LayerOutline({ geometry, color }: { geometry: THREE.BufferGeometry; color: string }) {
-  const material = useMemo(() => new THREE.MeshBasicMaterial({
-    color: new THREE.Color(color),
-    side: THREE.BackSide,
-    transparent: true,
-    opacity: 0.98,
-    toneMapped: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -2,
-    depthWrite: false,
-  }), [color]);
-
-  useEffect(() => () => material.dispose(), [material]);
-
+function LayerOutline({ color }: { color: string }) {
   return (
-    <mesh
-      geometry={geometry}
-      material={material}
-      renderOrder={10}
-      scale={[OUTLINE_SCALE, OUTLINE_SCALE, OUTLINE_SCALE]}
+    <Outlines
+      color={color}
+      screenspace
+      thickness={OUTLINE_THICKNESS}
+      opacity={1}
+      transparent
+      toneMapped={false}
+      angle={Math.PI}
     />
   );
 }
@@ -1629,7 +1620,7 @@ const LoadedModel = forwardRef<
           }}
         >
           {showLayerOutlines && !md.rendersOwnOutline && (
-            <LayerOutline geometry={md.geometry} color={md.outlineColor} />
+            <LayerOutline color={md.outlineColor} />
           )}
         </mesh>
       ))}
@@ -1829,7 +1820,7 @@ function DiamondEnvMapConsumer({
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
-      {showOutline && <LayerOutline geometry={geometry} color={outlineColor} />}
+      {showOutline && <LayerOutline color={outlineColor} />}
     </mesh>
   );
 }
