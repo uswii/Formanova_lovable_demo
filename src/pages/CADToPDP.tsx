@@ -44,6 +44,7 @@ export default function CADToPDP() {
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
+  const [debugMaskPreviewUrl, setDebugMaskPreviewUrl] = useState<string | null>(null);
   const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -194,6 +195,10 @@ export default function CADToPDP() {
     return canvasRef.current?.captureStyledViewport(maxSize ? { maxSize } : undefined) ?? null;
   }, []);
 
+  const captureViewportMaskDataUrl = useCallback((maxSize?: number) => {
+    return canvasRef.current?.captureDebugMaskViewport(maxSize ? { maxSize } : undefined) ?? null;
+  }, []);
+
   const capturePlainViewportThumbnail = useCallback(() => {
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
     if (!canvas) return null;
@@ -294,6 +299,35 @@ export default function CADToPDP() {
       });
     });
   }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl]);
+
+  const captureDebugMask = useCallback(() => {
+    const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      showWorkspacePopup("Viewport not ready", "Load a model before previewing the mask.");
+      return;
+    }
+    const prevSelection = meshes.filter(m => m.selected).map(m => m.name);
+    flushSync(() => {
+      if (prevSelection.length > 0) {
+        setMeshes(p => p.map(m => ({ ...m, selected: false })));
+      }
+      setShowViewportGizmo(false);
+    });
+    invalidate();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const dataUrl = captureViewportMaskDataUrl();
+        if (dataUrl) setDebugMaskPreviewUrl(dataUrl);
+        flushSync(() => {
+          setShowViewportGizmo(true);
+          if (prevSelection.length > 0) {
+            setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
+          }
+        });
+        invalidate();
+      });
+    });
+  }, [meshes, showWorkspacePopup, captureViewportMaskDataUrl]);
 
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
@@ -601,6 +635,12 @@ export default function CADToPDP() {
                       <Camera className="w-5 h-5 flex-shrink-0" />
                       Capture
                     </button>
+                    <button
+                      onClick={captureDebugMask}
+                      className="pointer-events-auto px-4 py-2 bg-card/95 border border-border text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shadow-lg"
+                    >
+                      Mask Debug
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -756,6 +796,34 @@ export default function CADToPDP() {
       <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} onRemove={removeScreenshot} />
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <AnimatePresence>
+        {debugMaskPreviewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[220] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            onClick={() => setDebugMaskPreviewUrl(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="relative max-w-[92vw] max-h-[92vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img src={debugMaskPreviewUrl} alt="Debug mask preview" className="max-w-full max-h-[92vh] object-contain border border-border bg-white" />
+              <button
+                onClick={() => setDebugMaskPreviewUrl(null)}
+                className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors"
+              >
+                <X className="w-4 h-4 text-foreground" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

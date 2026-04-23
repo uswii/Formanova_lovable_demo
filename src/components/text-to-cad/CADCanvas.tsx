@@ -437,6 +437,7 @@ export interface CanvasSnapshot {
 
 interface StyledCaptureOptions {
   maxSize?: number;
+  debugMaskOnly?: boolean;
 }
 
 // ── Loaded Model ──
@@ -462,6 +463,7 @@ const LoadedModel = forwardRef<
     exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
     exportSceneRawBlob: () => Promise<Blob>;
     captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
+    captureDebugMaskViewport: (options?: StyledCaptureOptions) => string | null;
   },
   {
   url: string;
@@ -1690,6 +1692,7 @@ const LoadedModel = forwardRef<
         glRenderer.readRenderTargetPixels(segTarget, 0, 0, captureWidth, captureHeight, segPixels);
         const segData = { data: flipCapturePixels(segPixels, captureWidth, captureHeight) };
 
+        glRenderer.setClearColor(0xffffff, 1);
         glRenderer.setRenderTarget(maskTarget);
         glRenderer.clear(true, true, true);
         glRenderer.render(maskScene, camera);
@@ -1697,6 +1700,11 @@ const LoadedModel = forwardRef<
         const maskPixels = new Uint8Array(captureWidth * captureHeight * 4);
         glRenderer.readRenderTargetPixels(maskTarget, 0, 0, captureWidth, captureHeight, maskPixels);
         const maskData = flipCapturePixels(maskPixels, captureWidth, captureHeight);
+
+        if (options?.debugMaskOnly) {
+          ctx.putImageData(new ImageData(new Uint8ClampedArray(maskData), captureWidth, captureHeight), 0, 0);
+          return offscreen.toDataURL("image/png");
+        }
 
         glRenderer.setClearColor(VIEWPORT_BACKGROUND_COLOR, 1);
         glRenderer.toneMapping = prevToneMapping;
@@ -2258,6 +2266,7 @@ export interface CADCanvasHandle {
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
   exportSceneRawBlob: () => Promise<Blob>;
   captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
+  captureDebugMaskViewport: (options?: StyledCaptureOptions) => string | null;
 }
 
 interface CADCanvasProps {
@@ -2343,6 +2352,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
       exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
       captureStyledViewport: (options) => modelRef.current?.captureStyledViewport(options) ?? null,
+      captureDebugMaskViewport: (options) => modelRef.current?.captureStyledViewport({ ...options, debugMaskOnly: true }) ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
