@@ -47,11 +47,12 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
-const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
+const DEFAULT_LAYER_OUTLINE_COLOR = "#000000";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
 const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
 const CAPTURE_BACKGROUND_COLOR = "#f5f5f3";
+const CAPTURE_STROKE_RADIUS = 2;
 
 function generateSegColors(n: number): string[] {
   const colors: string[] = [];
@@ -1559,7 +1560,6 @@ const LoadedModel = forwardRef<
           }
         }
 
-        const strokeRadius = Math.max(1, Math.round(Math.min(width, height) / 500));
         const dilated = new Uint8Array(width * height);
         const dilatedColors = new Uint8Array(width * height * 3);
 
@@ -1569,10 +1569,10 @@ const LoadedModel = forwardRef<
             if (!isBoundary[pixelIndex]) continue;
 
             const colorIndex = pixelIndex * 3;
-            for (let dy = -strokeRadius; dy <= strokeRadius; dy++) {
+            for (let dy = -CAPTURE_STROKE_RADIUS; dy <= CAPTURE_STROKE_RADIUS; dy++) {
               const ny = y + dy;
               if (ny < 0 || ny >= height) continue;
-              for (let dx = -strokeRadius; dx <= strokeRadius; dx++) {
+              for (let dx = -CAPTURE_STROKE_RADIUS; dx <= CAPTURE_STROKE_RADIUS; dx++) {
                 const nx = x + dx;
                 if (nx < 0 || nx >= width) continue;
                 const neighborIndex = ny * width + nx;
