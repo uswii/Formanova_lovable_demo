@@ -7,7 +7,6 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
-  Edges,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -49,6 +48,7 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
 
 const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
+const OUTLINE_SCALE = 1.008;
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -62,6 +62,29 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   const color = new THREE.Color(preview);
   const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
+}
+
+function LayerOutline({ color }: { color: string }) {
+  const material = useMemo(() => new THREE.MeshBasicMaterial({
+    color: new THREE.Color(color),
+    side: THREE.BackSide,
+    transparent: true,
+    opacity: 0.98,
+    toneMapped: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    depthWrite: false,
+  }), [color]);
+
+  useEffect(() => () => material.dispose(), [material]);
+
+  return (
+    <mesh
+      material={material}
+      renderOrder={10}
+      scale={[OUTLINE_SCALE, OUTLINE_SCALE, OUTLINE_SCALE]}
+    />
+  );
 }
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
@@ -1605,11 +1628,7 @@ const LoadedModel = forwardRef<
           }}
         >
           {showLayerOutlines && (
-            <Edges
-              scale={1.0015}
-              threshold={22}
-              color={md.outlineColor}
-            />
+            <LayerOutline color={md.outlineColor} />
           )}
         </mesh>
       ))}
