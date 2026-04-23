@@ -1478,7 +1478,6 @@ const LoadedModel = forwardRef<
       if (!ctx) return null;
 
       const segColors = generateSegColors(visibleEntries.length);
-      const segColorMap = new Map<string, [number, number, number]>();
       const savedMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
       const segMaterials: THREE.MeshBasicMaterial[] = [];
       const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
@@ -1487,21 +1486,19 @@ const LoadedModel = forwardRef<
       const prevExposure = glRenderer.toneMappingExposure;
 
       try {
-        visibleEntries.forEach(({ mesh, outlineColor }, index) => {
+        visibleEntries.forEach(({ mesh }, index) => {
           savedMaterials.set(mesh, mesh.material);
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
           segMaterials.push(segMat);
           mesh.material = segMat;
-          const segRgb = colorToRgb(segColors[index]);
-          segColorMap.set(`${segRgb[0]},${segRgb[1]},${segRgb[2]}`, colorToRgb(outlineColor || DEFAULT_LAYER_OUTLINE_COLOR));
         });
 
-        glRenderer.setClearColor(CAPTURE_BACKGROUND_COLOR, 1);
+        glRenderer.setClearColor("#ffffff", 1);
         glRenderer.toneMapping = THREE.NoToneMapping;
         glRenderer.toneMappingExposure = 1;
         glRenderer.render(rootScene, camera);
 
-        ctx.fillStyle = CAPTURE_BACKGROUND_COLOR;
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(canvas, 0, 0);
         const segData = ctx.getImageData(0, 0, width, height);
@@ -1551,12 +1548,10 @@ const LoadedModel = forwardRef<
             if (!edge) continue;
 
             isBoundary[pixelIndex] = 1;
-            const styleKey = `${r},${g},${b}`;
-            const boundaryRgb = segColorMap.get(styleKey) ?? colorToRgb(DEFAULT_LAYER_OUTLINE_COLOR);
             const colorIndex = pixelIndex * 3;
-            boundaryColors[colorIndex] = boundaryRgb[0];
-            boundaryColors[colorIndex + 1] = boundaryRgb[1];
-            boundaryColors[colorIndex + 2] = boundaryRgb[2];
+            boundaryColors[colorIndex] = 0;
+            boundaryColors[colorIndex + 1] = 0;
+            boundaryColors[colorIndex + 2] = 0;
           }
         }
 
