@@ -23,6 +23,7 @@ interface WorkspacePopup {
 }
 
 export default function CADToPDP() {
+  const [isMobile, setIsMobile] = useState(false);
   const [inWorkspace, setInWorkspace] = useState(false);
   const [glbUrl, setGlbUrl] = useState<string | undefined>();
   const [fileName, setFileName] = useState<string>("");
@@ -58,6 +59,14 @@ export default function CADToPDP() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasModel = !!glbUrl;
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
@@ -343,27 +352,27 @@ export default function CADToPDP() {
       { n: 4, label: "Submit for Product Shot" },
     ];
     return (
-      <div className="min-h-[calc(100dvh-5rem)] bg-background flex items-center justify-center px-4">
+      <div className="min-h-[calc(100dvh-5rem)] bg-background flex items-center justify-center px-4 py-6 md:py-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
-          className="w-full max-w-[580px] px-4 py-8"
+          className="w-full max-w-[580px] px-2 md:px-4 py-6 md:py-8"
         >
-          <div className="text-center mb-10">
-            <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-2">
+          <div className="text-center mb-8 md:mb-10">
+            <h1 className="font-display text-3xl md:text-5xl tracking-[0.16em] md:tracking-[0.2em] text-foreground uppercase mb-2">
               CAD to PDP
             </h1>
-            <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
+            <p className="font-mono text-[10px] md:text-[11px] text-muted-foreground tracking-[0.12em] md:tracking-[0.15em] uppercase">
               Turn your 3D ring file into studio-ready product images
             </p>
           </div>
 
           {/* 4-step guide */}
-          <div className="flex items-start justify-center gap-0 mb-10">
+          <div className="grid grid-cols-2 md:flex md:items-start justify-center gap-x-3 gap-y-4 md:gap-0 mb-8 md:mb-10">
             {STEPS.map((s, i) => (
-              <div key={s.n} className="flex items-start">
-                <div className="flex flex-col items-center gap-2 w-[110px]">
+              <div key={s.n} className="flex items-start justify-center">
+                <div className="flex flex-col items-center gap-2 w-full md:w-[110px]">
                   <div className={`w-5 h-5 flex-shrink-0 flex items-center justify-center font-mono text-[10px] font-bold border transition-all ${s.n === 1 ? "bg-foreground text-background border-foreground" : "border-border/40 text-muted-foreground/40"}`}>
                     {s.n}
                   </div>
@@ -371,8 +380,8 @@ export default function CADToPDP() {
                     {s.label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className="w-10 h-px bg-border/30 mt-2.5 flex-shrink-0" />
+                {i < STEPS.length - 1 && i % 2 === 0 && (
+                  <div className="hidden md:block w-10 h-px bg-border/30 mt-2.5 flex-shrink-0" />
                 )}
               </div>
             ))}
@@ -388,20 +397,20 @@ export default function CADToPDP() {
             }`}
             style={{ minHeight: 200 }}
           >
-            <div className="flex flex-col items-center text-center px-6 py-10">
-              <div className="relative mx-auto w-20 h-20 mb-6">
+            <div className="flex flex-col items-center text-center px-5 md:px-6 py-8 md:py-10">
+              <div className="relative mx-auto w-16 h-16 md:w-20 md:h-20 mb-5 md:mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
                 <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                  <Diamond className="h-9 w-9 text-primary" />
+                  <Diamond className="h-7 w-7 md:h-9 md:w-9 text-primary" />
                 </div>
               </div>
-              <p className="font-display text-lg tracking-[0.1em] text-foreground uppercase mb-1.5">
+              <p className="font-display text-base md:text-lg tracking-[0.08em] md:tracking-[0.1em] text-foreground uppercase mb-1.5">
                 Drop your 3D ring file here
               </p>
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-sm text-muted-foreground mb-5 md:mb-6">
                 Drag &amp; drop · click to browse · paste (Ctrl+V)
               </p>
-              <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 border border-border/40 px-4 py-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] md:tracking-[0.15em] text-muted-foreground/60 border border-border/40 px-4 py-2">
                 Browse 3D Ring Files
               </span>
             </div>
@@ -416,11 +425,11 @@ export default function CADToPDP() {
 
   // ── Workspace ──
   return (
-    <div className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
+    <div className="flex min-h-[calc(100dvh-5rem)] md:h-[calc(100vh-5rem)] overflow-y-auto md:overflow-hidden bg-background">
+      <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="min-h-[calc(100dvh-5rem)] md:h-full">
 
         {/* Left panel */}
-        <ResizablePanel id="pdp-left" order={1} defaultSize={18} minSize={14} maxSize={28}>
+        <ResizablePanel id="pdp-left" order={1} defaultSize={isMobile ? 24 : 18} minSize={isMobile ? 18 : 14} maxSize={isMobile ? 35 : 28}>
           <div className="flex flex-col bg-card border-r border-border h-full">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
               <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
@@ -483,12 +492,12 @@ export default function CADToPDP() {
         <ResizableHandle withHandle />
 
         {/* Viewport */}
-        <ResizablePanel id="pdp-viewport" order={2} defaultSize={60} minSize={35}>
+        <ResizablePanel id="pdp-viewport" order={2} defaultSize={isMobile ? 46 : 60} minSize={isMobile ? 38 : 35}>
           <div className="flex flex-col h-full">
             <div
               ref={viewportRef}
               data-cad-viewport
-              className="relative flex-1 min-h-0 border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
+              className="relative flex-1 min-h-[44dvh] md:min-h-0 border-y md:border-y-0 md:border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
               onPointerDown={handleCanvasPointerDown}
               onPointerUp={handleCanvasPointerUp}
               onPointerLeave={handleCanvasPointerUp}
@@ -503,7 +512,7 @@ export default function CADToPDP() {
                   { n: 4, label: "Submit" },
                 ];
                 return (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex items-center pointer-events-none">
+                  <div className="absolute top-2 md:top-3 left-1/2 -translate-x-1/2 z-50 flex max-w-[calc(100%-1rem)] md:max-w-none items-center pointer-events-none">
                     {steps.map((s, i) => {
                       const done = s.n < currentStep;
                       const active = s.n === currentStep;
@@ -513,12 +522,12 @@ export default function CADToPDP() {
                             <div className={`w-5 h-5 flex items-center justify-center font-mono text-[9px] font-bold border transition-all ${done || active ? "bg-foreground text-background border-foreground" : "bg-card/80 border-border/40 text-muted-foreground/40"}`}>
                               {done ? "✓" : s.n}
                             </div>
-                            <span className={`font-mono text-[9px] uppercase tracking-[0.12em] hidden sm:inline transition-colors ${active ? "text-foreground" : done ? "text-muted-foreground/60" : "text-muted-foreground/30"}`}>
+                            <span className={`font-mono text-[8px] md:text-[9px] uppercase tracking-[0.12em] hidden sm:inline transition-colors ${active ? "text-foreground" : done ? "text-muted-foreground/60" : "text-muted-foreground/30"}`}>
                               {s.label}
                             </span>
                           </div>
                           {i < steps.length - 1 && (
-                            <div className={`w-8 h-px transition-colors ${done ? "bg-foreground/40" : "bg-border/30"}`} />
+                            <div className={`w-4 md:w-8 h-px transition-colors ${done ? "bg-foreground/40" : "bg-border/30"}`} />
                           )}
                         </div>
                       );
@@ -531,9 +540,9 @@ export default function CADToPDP() {
               <button
                 onClick={() => {
                   const p = rightPanelRef.current;
-                  if (p) { if (rightCollapsed) { p.expand(22); } else { p.collapse(); } }
+                  if (p) { if (rightCollapsed) { p.expand(isMobile ? 30 : 22); } else { p.collapse(); } }
                 }}
-                className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors md:top-2"
                 title={rightCollapsed ? "Show layers" : "Hide layers"}
               >
                 {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
@@ -608,7 +617,7 @@ export default function CADToPDP() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 12 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="absolute bottom-8 inset-x-0 flex flex-col items-center gap-2 z-50 pointer-events-none"
+                    className="absolute bottom-4 md:bottom-8 inset-x-0 flex flex-col items-center gap-2 z-50 pointer-events-none px-3"
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => e.stopPropagation()}
                     onPointerLeave={(e) => e.stopPropagation()}
@@ -630,7 +639,7 @@ export default function CADToPDP() {
                     </AnimatePresence>
                     <button
                       onClick={captureScreenshot}
-                      className="pointer-events-auto flex items-center gap-3 px-12 py-4 bg-primary text-primary-foreground font-display text-sm tracking-[0.18em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xl"
+                      className="pointer-events-auto flex items-center gap-3 px-6 md:px-12 py-3.5 md:py-4 bg-primary text-primary-foreground font-display text-xs md:text-sm tracking-[0.18em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xl"
                     >
                       <Camera className="w-5 h-5 flex-shrink-0" />
                       Capture
@@ -653,27 +662,27 @@ export default function CADToPDP() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-14 left-0 right-0 flex justify-center z-[60] pointer-events-none"
+                    className="absolute top-12 md:top-14 left-0 right-0 flex justify-center z-[60] pointer-events-none px-3"
                   >
-                    <div className="pointer-events-auto relative w-[560px] max-w-full bg-card border border-border shadow-xl">
+                    <div className="pointer-events-auto relative w-full max-w-[560px] bg-card border border-border shadow-xl">
                       <button
                         onClick={() => setShowFinalLookPreview(false)}
                         className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent/60 transition-colors z-10"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
-                      <div className="px-5 pt-4 pb-5">
-                        <p className="text-sm text-muted-foreground leading-relaxed mb-4 pr-6">
+                      <div className="px-4 md:px-5 pt-4 pb-5">
+                        <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-4 pr-6">
                           Colors shown here are flat placeholders only. The final render will apply photorealistic materials, lighting and reflections.
                         </p>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col md:flex-row items-center gap-3">
                           <div className="flex-1 flex flex-col items-center gap-1.5">
                             <div className="w-full aspect-square border border-border/40 overflow-hidden bg-muted/20">
                               <img src="/cad-to-pdp/final-look-before.webp" alt="Before" className="w-full h-full object-cover" />
                             </div>
                             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">Flat Preview</span>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+                          <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0 rotate-90 md:rotate-0" />
                           <div className="flex-1 flex flex-col items-center gap-1.5">
                             <div className="w-full aspect-square border border-border/20 overflow-hidden bg-muted/20">
                               <img src="/cad-to-pdp/final-look-after.webp" alt="After" className="w-full h-full object-cover" />
@@ -738,7 +747,7 @@ export default function CADToPDP() {
                   animate={{ height: 96, opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-shrink-0 bg-card border-t border-border flex items-center gap-3 px-4 overflow-x-auto scrollbar-thin"
+                  className="flex-shrink-0 bg-card border-t border-border flex items-center gap-3 px-3 md:px-4 overflow-x-auto scrollbar-thin"
                 >
                   {screenshots.map((shot, i) => (
                     <div key={shot.id} className="relative group flex-shrink-0">
@@ -773,9 +782,9 @@ export default function CADToPDP() {
           ref={rightPanelRef}
           id="pdp-right"
           order={3}
-          defaultSize={22}
-          minSize={15}
-          maxSize={35}
+          defaultSize={isMobile ? 30 : 22}
+          minSize={isMobile ? 22 : 15}
+          maxSize={isMobile ? 42 : 35}
           collapsible
           collapsedSize={0}
           onCollapse={() => setRightCollapsed(true)}

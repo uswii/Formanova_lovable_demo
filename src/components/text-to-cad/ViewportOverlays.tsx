@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard, Printer, Scale, Loader2, Camera } from "lucide-react";
+import { Undo2, Redo2, Download, Plus, Minus, RotateCcw, Maximize, Eye, Keyboard, Printer, Scale, Loader2, Camera } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -113,7 +113,7 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
 const SIDE_BTN = "w-9 h-9 flex items-center justify-center text-muted-foreground/80 hover:text-foreground hover:bg-accent/50 transition-all duration-150 cursor-pointer active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed relative group";
 
 function SideDivider() {
-  return <div className="mx-2 h-px bg-border/30" />;
+  return <div className="self-stretch my-2 w-px md:w-auto md:mx-2 md:my-0 h-auto md:h-px bg-border/30" />;
 }
 
 function SideTooltip({ label }: { label: string }) {
@@ -147,7 +147,7 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   if (!visible) return null;
 
   return (
-    <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg overflow-visible">
+    <div className="absolute left-1/2 bottom-20 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8 md:top-1/2 md:bottom-auto md:-translate-y-1/2 z-50 flex flex-row md:flex-col max-w-[calc(100%-1rem)] md:max-w-none bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg overflow-x-auto md:overflow-visible">
       {/* Zoom */}
       <button onClick={onZoomIn} className={SIDE_BTN} title="Zoom in">
         <SideTooltip label="Zoom In" />
@@ -175,7 +175,7 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
       {/* View */}
       <button onClick={onResetView} className={SIDE_BTN} title="Reset view">
         <SideTooltip label="Reset View" />
-        <Maximize2 className="w-3.5 h-3.5" />
+        <RotateCcw className="w-3.5 h-3.5" />
       </button>
       {onFullscreen && (
         <button onClick={onFullscreen} className={SIDE_BTN} title="Fullscreen">
