@@ -74,7 +74,7 @@ describe('CAD workflow request bodies', () => {
 
   it('omits state_backend_url when VITE_PIPELINE_API_URL is a relative path', () => {
     // import.meta.env.VITE_PIPELINE_API_URL is '' in test env
-    const body = buildCadEditStartBody('desc', 'json-source-789', null, null, null);
+    const body = buildCadEditStartBody('desc', 'json-source-789', null);
     expect(body.payload).not.toHaveProperty('state_backend_url');
   });
 });
