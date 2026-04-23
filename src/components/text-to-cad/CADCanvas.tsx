@@ -54,6 +54,7 @@ const OUTLINE_EDGE_STRENGTH = 8;
 const CAPTURE_STROKE_RADIUS = 2;
 const CAPTURE_MAX_SIZE = 2048;
 const CAPTURE_COMPONENT_POSITION_EPS = 1e-5;
+const VIEWPORT_BACKGROUND_COLOR = "#f5f5f3";
 
 function generateSegColors(n: number): string[] {
   const colors: string[] = [];
@@ -1587,8 +1588,9 @@ const LoadedModel = forwardRef<
           return { name, meshes: visibleMeshes, components: splitMeshes };
         })
         .filter((group) => group.components.length > 0);
+      const segmentationComponents = captureGroups.flatMap((group) => group.components);
 
-      if (!captureGroups.length) return null;
+      if (!segmentationComponents.length) return null;
 
       const controls = (glRenderer.domElement as any).__orbitControls;
       const savedPosition = camera.position.clone();
@@ -1610,7 +1612,7 @@ const LoadedModel = forwardRef<
       const ctx = offscreen.getContext("2d", { willReadFrequently: true });
       if (!ctx) return null;
 
-      const segColors = generateSegColors(captureGroups.length);
+      const segColors = generateSegColors(segmentationComponents.length);
       const segMaterials: THREE.MeshBasicMaterial[] = [];
       const maskMaterials: THREE.MeshBasicMaterial[] = [];
       const segScene = new THREE.Scene();
@@ -1649,24 +1651,22 @@ const LoadedModel = forwardRef<
         camera.aspect = 1;
         camera.updateProjectionMatrix();
 
-        captureGroups.forEach((group, index) => {
+        segmentationComponents.forEach(({ mesh, geometry }, index) => {
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
           const maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
           segMaterials.push(segMat);
           maskMaterials.push(maskMat);
-          group.components.forEach(({ mesh, geometry }) => {
-            mesh.updateWorldMatrix(true, false);
-            const segMesh = new THREE.Mesh(geometry, segMat);
-            const maskMesh = new THREE.Mesh(geometry, maskMat);
-            segMesh.matrixAutoUpdate = false;
-            segMesh.matrix.copy(mesh.matrixWorld);
-            segMesh.matrixWorld.copy(mesh.matrixWorld);
-            maskMesh.matrixAutoUpdate = false;
-            maskMesh.matrix.copy(mesh.matrixWorld);
-            maskMesh.matrixWorld.copy(mesh.matrixWorld);
-            segScene.add(segMesh);
-            maskScene.add(maskMesh);
-          });
+          mesh.updateWorldMatrix(true, false);
+          const segMesh = new THREE.Mesh(geometry, segMat);
+          const maskMesh = new THREE.Mesh(geometry, maskMat);
+          segMesh.matrixAutoUpdate = false;
+          segMesh.matrix.copy(mesh.matrixWorld);
+          segMesh.matrixWorld.copy(mesh.matrixWorld);
+          maskMesh.matrixAutoUpdate = false;
+          maskMesh.matrix.copy(mesh.matrixWorld);
+          maskMesh.matrixWorld.copy(mesh.matrixWorld);
+          segScene.add(segMesh);
+          maskScene.add(maskMesh);
         });
 
         glRenderer.setClearColor("#ffffff", 1);
@@ -1688,7 +1688,7 @@ const LoadedModel = forwardRef<
         glRenderer.readRenderTargetPixels(maskTarget, 0, 0, captureSize, captureSize, maskPixels);
         const maskData = flipCapturePixels(maskPixels, captureSize, captureSize);
 
-        glRenderer.setClearColor(prevClearColor, prevClearAlpha);
+        glRenderer.setClearColor(VIEWPORT_BACKGROUND_COLOR, 1);
         glRenderer.toneMapping = prevToneMapping;
         glRenderer.toneMappingExposure = prevExposure;
         glRenderer.setRenderTarget(colorTarget);
@@ -1865,7 +1865,7 @@ const LoadedModel = forwardRef<
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
       const outlineColor = getLayerOutlineColor(assigned);
-      const captureGroupKey = `mesh:${md.name}`;
+      const captureGroupKey = `mesh:${md.name}:${standard.length + gems.length}`;
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
@@ -2452,7 +2452,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: '#f5f5f3' }}>
+      <div ref={canvasContainerRef} className="w-full h-full relative" style={{ backgroundColor: VIEWPORT_BACKGROUND_COLOR }}>
         {/* Debug HUD */}
         {debugActive && <DebugHUD stats={debugStats} />}
         {/* Loading overlay */}
