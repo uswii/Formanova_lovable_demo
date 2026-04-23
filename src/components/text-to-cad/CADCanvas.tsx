@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Canvas, useThree, useFrame, ThreeEvent, invalidate, useLoader } from "@react-three/fiber";
-import { EffectComposer, Outline } from "@react-three/postprocessing";
 import {
   Environment,
   OrbitControls,
@@ -46,129 +45,6 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
-
-const DEFAULT_LAYER_OUTLINE_COLOR = "#000000";
-const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
-const OUTLINE_WIDTH = 700;
-const OUTLINE_EDGE_STRENGTH = 8;
-const CAPTURE_STROKE_RADIUS = 2;
-const CAPTURE_MAX_SIZE = 2048;
-const CAPTURE_COMPONENT_POSITION_EPS = 1e-5;
-
-function generateSegColors(n: number): string[] {
-  const colors: string[] = [];
-  for (let i = 0; i < n; i++) {
-    const hue = i / Math.max(n, 1);
-    const color = new THREE.Color().setHSL(hue, 1.0, 0.45);
-    colors.push(`#${color.getHexString()}`);
-  }
-  return colors;
-}
-
-function getLayerOutlineColor(materialDef?: MaterialDef): string {
-  if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
-
-  const name = `${materialDef.id} ${materialDef.name}`.toLowerCase();
-  if (name.includes("black") || name.includes("onyx")) return DARK_LAYER_OUTLINE_COLOR;
-
-  const preview = typeof materialDef.preview === "string" ? materialDef.preview : "";
-  if (!preview) return DEFAULT_LAYER_OUTLINE_COLOR;
-
-  const color = new THREE.Color(preview);
-  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-  return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
-}
-
-function quantizeCapturePosition(value: number): number {
-  return Math.round(value / CAPTURE_COMPONENT_POSITION_EPS);
-}
-
-function getCaptureComponentGeometries(geometry: THREE.BufferGeometry): THREE.BufferGeometry[] {
-  const positionAttr = geometry.getAttribute("position");
-  if (!positionAttr || positionAttr.count < 3) return [geometry];
-
-  const indexAttr = geometry.getIndex();
-  const sourceIndices = indexAttr
-    ? Array.from(indexAttr.array as ArrayLike<number>, Number)
-    : Array.from({ length: positionAttr.count }, (_, i) => i);
-
-  if (sourceIndices.length < 3) return [geometry];
-
-  const canonicalByVertex = new Int32Array(positionAttr.count);
-  const canonicalLookup = new Map<string, number>();
-  let canonicalCount = 0;
-
-  for (let i = 0; i < positionAttr.count; i++) {
-    const key = [
-      quantizeCapturePosition(positionAttr.getX(i)),
-      quantizeCapturePosition(positionAttr.getY(i)),
-      quantizeCapturePosition(positionAttr.getZ(i)),
-    ].join("|");
-    const existing = canonicalLookup.get(key);
-    if (existing !== undefined) {
-      canonicalByVertex[i] = existing;
-      continue;
-    }
-    canonicalLookup.set(key, canonicalCount);
-    canonicalByVertex[i] = canonicalCount;
-    canonicalCount++;
-  }
-
-  if (canonicalCount < 3) return [geometry];
-
-  const parent = Array.from({ length: canonicalCount }, (_, i) => i);
-  const find = (value: number): number => {
-    let current = value;
-    while (parent[current] !== current) {
-      parent[current] = parent[parent[current]];
-      current = parent[current];
-    }
-    return current;
-  };
-  const unite = (a: number, b: number) => {
-    const rootA = find(a);
-    const rootB = find(b);
-    if (rootA !== rootB) parent[rootB] = rootA;
-  };
-
-  for (let i = 0; i <= sourceIndices.length - 3; i += 3) {
-    const a = canonicalByVertex[sourceIndices[i]];
-    const b = canonicalByVertex[sourceIndices[i + 1]];
-    const c = canonicalByVertex[sourceIndices[i + 2]];
-    unite(a, b);
-    unite(a, c);
-  }
-
-  const componentIndexMap = new Map<number, number[]>();
-  for (let i = 0; i <= sourceIndices.length - 3; i += 3) {
-    const a = sourceIndices[i];
-    const b = sourceIndices[i + 1];
-    const c = sourceIndices[i + 2];
-    const root = find(canonicalByVertex[a]);
-    const bucket = componentIndexMap.get(root);
-    if (bucket) {
-      bucket.push(a, b, c);
-    } else {
-      componentIndexMap.set(root, [a, b, c]);
-    }
-  }
-
-  if (componentIndexMap.size <= 1) return [geometry];
-
-  return Array.from(componentIndexMap.values()).map((componentIndices) => {
-    const componentGeometry = new THREE.BufferGeometry();
-    Object.entries(geometry.attributes).forEach(([name, attribute]) => {
-      componentGeometry.setAttribute(name, attribute);
-    });
-    if (geometry.morphAttributes) {
-      componentGeometry.morphAttributes = geometry.morphAttributes;
-    }
-    componentGeometry.setIndex(componentIndices);
-    componentGeometry.computeBoundingBox();
-    componentGeometry.computeBoundingSphere();
-    return componentGeometry;
-  });
-}
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
@@ -422,10 +298,6 @@ export interface CanvasSnapshot {
   assignedMaterials: Record<string, MaterialDef>;
 }
 
-interface StyledCaptureOptions {
-  maxSize?: number;
-}
-
 // ── Loaded Model ──
 const LoadedModel = forwardRef<
   {
@@ -448,7 +320,6 @@ const LoadedModel = forwardRef<
     exportSceneBlob: () => Promise<Blob>;
     exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
     exportSceneRawBlob: () => Promise<Blob>;
-    captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
   },
   {
   url: string;
@@ -467,10 +338,8 @@ const LoadedModel = forwardRef<
     onDebugGemStats?: (total: number, refraction: number, fallback: number, effectiveBounces: number) => void;
     gemMode?: GemMode;
     onGemModeForced?: (mode: GemMode) => void;
-    showLayerOutlines?: boolean;
-    registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced, showLayerOutlines = false, registerOutlineTarget }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -520,8 +389,6 @@ const LoadedModel = forwardRef<
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
-  const visibleCaptureRefs = useRef<Map<string, Set<THREE.Mesh>>>(new Map());
-  const captureComponentGeoCache = useRef<Map<string, THREE.BufferGeometry[]>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
   // Store normalisation factors so exportSceneRawBlob can reverse the transform
@@ -533,27 +400,7 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
-  const { camera, gl: glRenderer, scene: rootScene } = useThree();
-  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => {
-    const groups = visibleCaptureRefs.current;
-
-    if (previousMesh) {
-      const prevGroup = groups.get(name);
-      if (prevGroup) {
-        prevGroup.delete(previousMesh);
-        if (prevGroup.size === 0) groups.delete(name);
-      }
-    }
-
-    if (!mesh) return;
-
-    let group = groups.get(name);
-    if (!group) {
-      group = new Set<THREE.Mesh>();
-      groups.set(name, group);
-    }
-    group.add(mesh);
-  }, []);
+  const { camera, gl: glRenderer } = useThree();
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -1560,175 +1407,6 @@ const LoadedModel = forwardRef<
       console.log(`[Raw Export] Done. Blob size: ${blob.size} bytes, normScale: ${normScaleRef.current}`);
       return blob;
     },
-    captureStyledViewport: (options?: StyledCaptureOptions): string | null => {
-      const captureGroups = Array.from(visibleCaptureRefs.current.entries())
-        .map(([name, meshes]) => {
-          const visibleMeshes = Array.from(meshes).filter((mesh) => !!mesh && mesh.visible);
-          const splitMeshes = visibleMeshes.flatMap((mesh) => {
-            const cacheKey = mesh.geometry.uuid;
-            let componentGeometries = captureComponentGeoCache.current.get(cacheKey);
-            if (!componentGeometries) {
-              componentGeometries = getCaptureComponentGeometries(mesh.geometry);
-              captureComponentGeoCache.current.set(cacheKey, componentGeometries);
-            }
-            return componentGeometries.map((geometry) => ({ mesh, geometry }));
-          });
-          return { name, meshes: visibleMeshes, components: splitMeshes };
-        })
-        .filter((group) => group.components.length > 0);
-
-      if (!captureGroups.length) return null;
-
-      const canvas = glRenderer.domElement;
-      const controls = (glRenderer.domElement as any).__orbitControls;
-      const savedPosition = camera.position.clone();
-      const savedTarget = controls?.target?.clone?.() ?? null;
-      const savedAutoRotate = controls?.autoRotate ?? false;
-      const savedFov = (camera as THREE.PerspectiveCamera).fov;
-      const oldWidth = glRenderer.domElement.width;
-      const oldHeight = glRenderer.domElement.height;
-      if (!oldWidth || !oldHeight) return null;
-
-      const gl = glRenderer.getContext();
-      const requestedSize = options?.maxSize ?? CAPTURE_MAX_SIZE;
-      const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || requestedSize;
-      const captureSize = Math.min(requestedSize, maxSize);
-
-      const offscreen = document.createElement("canvas");
-      offscreen.width = captureSize;
-      offscreen.height = captureSize;
-      const ctx = offscreen.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return null;
-
-      const segColors = generateSegColors(captureGroups.length);
-      const segMaterials: THREE.MeshBasicMaterial[] = [];
-      const segScene = new THREE.Scene();
-      const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
-      const prevClearAlpha = glRenderer.getClearAlpha();
-      const prevToneMapping = glRenderer.toneMapping;
-      const prevExposure = glRenderer.toneMappingExposure;
-
-      try {
-        if (controls) controls.autoRotate = false;
-        (camera as THREE.PerspectiveCamera).fov = 30;
-        glRenderer.setSize(captureSize, captureSize);
-        camera.aspect = 1;
-        camera.updateProjectionMatrix();
-
-        captureGroups.forEach((group, index) => {
-          const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
-          segMaterials.push(segMat);
-          group.components.forEach(({ mesh, geometry }) => {
-            mesh.updateWorldMatrix(true, false);
-            const segMesh = new THREE.Mesh(geometry, segMat);
-            segMesh.matrixAutoUpdate = false;
-            segMesh.matrix.copy(mesh.matrixWorld);
-            segMesh.matrixWorld.copy(mesh.matrixWorld);
-            segScene.add(segMesh);
-          });
-        });
-
-        glRenderer.setClearColor("#ffffff", 1);
-        glRenderer.toneMapping = THREE.NoToneMapping;
-        glRenderer.toneMappingExposure = 1;
-        glRenderer.render(segScene, camera);
-
-        ctx.clearRect(0, 0, captureSize, captureSize);
-        ctx.drawImage(canvas, 0, 0);
-        const segData = ctx.getImageData(0, 0, captureSize, captureSize);
-
-        glRenderer.setClearColor(prevClearColor, prevClearAlpha);
-        glRenderer.toneMapping = prevToneMapping;
-        glRenderer.toneMappingExposure = prevExposure;
-        glRenderer.render(rootScene, camera);
-
-        ctx.clearRect(0, 0, captureSize, captureSize);
-        ctx.drawImage(canvas, 0, 0);
-        const geoData = ctx.getImageData(0, 0, captureSize, captureSize);
-
-        const width = captureSize;
-        const height = captureSize;
-        const isBoundary = new Uint8Array(width * height);
-        const sd = segData.data;
-        const gd = geoData.data;
-
-        for (let y = 1; y < height - 1; y++) {
-          for (let x = 1; x < width - 1; x++) {
-            const pixelIndex = y * width + x;
-            const i = pixelIndex * 4;
-            const r = sd[i];
-            const g = sd[i + 1];
-            const b = sd[i + 2];
-
-            let edge = false;
-            for (let dy = -1; dy <= 1 && !edge; dy++) {
-              for (let dx = -1; dx <= 1 && !edge; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const ni = ((y + dy) * width + (x + dx)) * 4;
-                if (
-                  Math.abs(sd[ni] - r) > 8 ||
-                  Math.abs(sd[ni + 1] - g) > 8 ||
-                  Math.abs(sd[ni + 2] - b) > 8
-                ) {
-                  edge = true;
-                }
-              }
-            }
-
-            if (!edge) continue;
-
-            isBoundary[pixelIndex] = 1;
-          }
-        }
-
-        const dilated = new Uint8Array(width * height);
-        for (let y = CAPTURE_STROKE_RADIUS; y < height - CAPTURE_STROKE_RADIUS; y++) {
-          for (let x = CAPTURE_STROKE_RADIUS; x < width - CAPTURE_STROKE_RADIUS; x++) {
-            const pixelIndex = y * width + x;
-            if (!isBoundary[pixelIndex]) continue;
-            for (let dy = -CAPTURE_STROKE_RADIUS; dy <= CAPTURE_STROKE_RADIUS; dy++) {
-              const ny = y + dy;
-              for (let dx = -CAPTURE_STROKE_RADIUS; dx <= CAPTURE_STROKE_RADIUS; dx++) {
-                const nx = x + dx;
-                dilated[ny * width + nx] = 1;
-              }
-            }
-          }
-        }
-
-        for (let i = 0; i < width * height; i++) {
-          if (!dilated[i]) continue;
-          const rgbaIndex = i * 4;
-          gd[rgbaIndex] = 0;
-          gd[rgbaIndex + 1] = 0;
-          gd[rgbaIndex + 2] = 0;
-          gd[rgbaIndex + 3] = 255;
-        }
-
-        ctx.putImageData(geoData, 0, 0);
-        return offscreen.toDataURL("image/png");
-      } catch (error) {
-        console.error("[CADCanvas] Styled capture failed:", error);
-        return null;
-      } finally {
-        segMaterials.forEach((material) => material.dispose());
-        glRenderer.setSize(oldWidth, oldHeight);
-        camera.position.copy(savedPosition);
-        (camera as THREE.PerspectiveCamera).fov = savedFov;
-        camera.aspect = oldWidth / oldHeight;
-        camera.updateProjectionMatrix();
-        if (controls && savedTarget) {
-          controls.target.copy(savedTarget);
-          controls.autoRotate = savedAutoRotate;
-          controls.update();
-        }
-        glRenderer.setClearColor(prevClearColor, prevClearAlpha);
-        glRenderer.toneMapping = prevToneMapping;
-        glRenderer.toneMappingExposure = prevExposure;
-        glRenderer.render(rootScene, camera);
-        inv();
-      }
-    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // Selection-change detection moved into useMemo below (synchronous)
@@ -1773,8 +1451,8 @@ const LoadedModel = forwardRef<
     }
     prevAssignedRef.current = { ...assignedMaterials };
 
-    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string; rendersOwnOutline?: boolean; captureGroupKey: string })[] = [];
-    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean; outlineColor: string; captureGroupKey: string }[] = [];
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
+    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
     let refractionGemCount = 0;
 
     // Cheap fallback material for gems beyond the quality-tier cap
@@ -1797,13 +1475,11 @@ const LoadedModel = forwardRef<
 
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
-      const outlineColor = getLayerOutlineColor(assigned);
-      const captureGroupKey = `mesh:${md.name}`;
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
       if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected, outlineColor, captureGroupKey });
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
 
@@ -1817,22 +1493,22 @@ const LoadedModel = forwardRef<
             simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
             materialCache.current.set(simpleKey, simpleMat);
           }
-          standard.push({ ...md, material: simpleMat, isSelected, outlineColor, captureGroupKey });
+          standard.push({ ...md, material: simpleMat, isSelected });
           return;
         }
 
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
-          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected, outlineColor, captureGroupKey });
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor, rendersOwnOutline: true, captureGroupKey });
+          standard.push({ ...md, material: hiddenMat, isSelected });
           refractionGemCount++;
         } else {
           // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
           const color = assigned.refractionConfig.color;
           const fallback = gemFallbackMat.clone();
           fallback.color = new THREE.Color(color);
-          standard.push({ ...md, material: fallback, isSelected, outlineColor, captureGroupKey });
+          standard.push({ ...md, material: fallback, isSelected });
         }
         return;
       }
@@ -1844,7 +1520,7 @@ const LoadedModel = forwardRef<
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
-      standard.push({ ...md, material, isSelected, outlineColor, captureGroupKey });
+      standard.push({ ...md, material, isSelected });
     });
 
     return { standardElements: standard, gemElements: gems, refractionGemCount };
@@ -1899,23 +1575,7 @@ const LoadedModel = forwardRef<
       {standardElements.map((md) => (
         <mesh
           key={md.name}
-          ref={(r) => {
-            const previousMesh = meshRefs.current.get(md.name) ?? null;
-            if (r) meshRefs.current.set(md.name, r);
-            else meshRefs.current.delete(md.name);
-
-            if (r && !md.rendersOwnOutline) {
-              registerVisibleCaptureTarget(md.captureGroupKey, r, previousMesh);
-            } else {
-              registerVisibleCaptureTarget(md.captureGroupKey, null, previousMesh);
-            }
-
-            if (showLayerOutlines && !md.rendersOwnOutline && r) {
-              registerOutlineTarget?.(md.name, r, md.outlineColor);
-            } else {
-              registerOutlineTarget?.(md.name, null);
-            }
-          }}
+          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
           geometry={md.geometry}
           material={md.material}
           onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -1937,11 +1597,6 @@ const LoadedModel = forwardRef<
           scale={gem.meshData.scale}
           refractionConfig={gem.refractionConfig}
           isSelected={gem.isSelected}
-          outlineColor={gem.outlineColor}
-          captureGroupKey={gem.captureGroupKey}
-          showOutline={showLayerOutlines}
-          registerOutlineTarget={registerOutlineTarget}
-          registerCaptureTarget={registerVisibleCaptureTarget}
           meshRefs={meshRefs}
           onMeshClick={onMeshClick}
         />
@@ -2002,32 +1657,22 @@ function DiamondEnvMapLoader({ onEnvMapReady }: { onEnvMapReady: (map: THREE.Tex
  */
 function SyncedGemOverlay({
   meshName,
-  captureGroupKey,
   geometry,
   position,
   quaternion,
   scale,
   refractionConfig,
   isSelected,
-  outlineColor,
-  showOutline,
-  registerOutlineTarget,
-  registerCaptureTarget,
   meshRefs,
   onMeshClick,
 }: {
   meshName: string;
-  captureGroupKey: string;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
-  outlineColor: string;
-  showOutline: boolean;
-  registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
-  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => void;
   meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -2061,12 +1706,7 @@ function SyncedGemOverlay({
       scale={scale}
       refractionConfig={refractionConfig}
       isSelected={isSelected}
-      outlineColor={outlineColor}
-      showOutline={showOutline}
-      registerOutlineTarget={registerOutlineTarget}
-      registerCaptureTarget={registerCaptureTarget}
       meshName={meshName}
-      captureGroupKey={captureGroupKey}
       onMeshClick={onMeshClick}
     />
   );
@@ -2083,12 +1723,7 @@ function DiamondEnvMapConsumer({
   scale,
   refractionConfig,
   isSelected,
-  outlineColor,
-  showOutline,
-  registerOutlineTarget,
-  registerCaptureTarget,
   meshName,
-  captureGroupKey,
   onMeshClick,
 }: {
   meshRef: React.RefObject<THREE.Mesh>;
@@ -2098,26 +1733,10 @@ function DiamondEnvMapConsumer({
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
-  outlineColor: string;
-  showOutline: boolean;
-  registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
-  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => void;
   meshName: string;
-  captureGroupKey: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
   const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
-
-  const setGemMeshRef = useCallback((node: THREE.Mesh | null) => {
-    const previousMesh = meshRef.current;
-    meshRef.current = node;
-    registerCaptureTarget?.(captureGroupKey, node, previousMesh);
-    if (showOutline && node) {
-      registerOutlineTarget?.(meshName, node, outlineColor);
-    } else {
-      registerOutlineTarget?.(meshName, null);
-    }
-  }, [captureGroupKey, meshName, meshRef, outlineColor, registerCaptureTarget, registerOutlineTarget, showOutline]);
 
   useEffect(() => {
     if (envMap) {
@@ -2129,7 +1748,7 @@ function DiamondEnvMapConsumer({
 
   return (
     <mesh
-      ref={setGemMeshRef}
+      ref={meshRef}
       geometry={geometry}
       position={position}
       quaternion={quaternion}
@@ -2184,7 +1803,6 @@ export interface CADCanvasHandle {
   exportSceneBlob: () => Promise<Blob>;
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
   exportSceneRawBlob: () => Promise<Blob>;
-  captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
 }
 
 interface CADCanvasProps {
@@ -2204,17 +1822,12 @@ interface CADCanvasProps {
   qualityMode?: QualityMode;
   gemMode?: GemMode;
   onGemModeForced?: (mode: GemMode) => void;
-  showViewportGizmo?: boolean;
-  showLayerOutlines?: boolean;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced, showViewportGizmo = true, showLayerOutlines = false }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
-    const darkOutlineRefs = useRef<Map<string, THREE.Object3D>>(new Map());
-    const lightOutlineRefs = useRef<Map<string, THREE.Object3D>>(new Map());
-    const [, setOutlineRevision] = useState(0);
     
     // Compute effective quality settings based on mode
     const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
@@ -2224,29 +1837,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const getOrbitControls = useCallback(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('canvas');
       return canvas ? (canvas as any).__orbitControls : null;
-    }, []);
-
-    const registerOutlineTarget = useCallback((name: string, object: THREE.Object3D | null, color?: string) => {
-      const useLightOutline = color === DARK_LAYER_OUTLINE_COLOR;
-      const activeMap = useLightOutline ? lightOutlineRefs.current : darkOutlineRefs.current;
-      const inactiveMap = useLightOutline ? darkOutlineRefs.current : lightOutlineRefs.current;
-      let changed = false;
-
-      if (inactiveMap.delete(name)) changed = true;
-
-      if (object) {
-        if (activeMap.get(name) !== object) {
-          activeMap.set(name, object);
-          changed = true;
-        }
-      } else if (activeMap.delete(name)) {
-        changed = true;
-      }
-
-      if (changed) {
-        setOutlineRevision((v) => v + 1);
-        invalidate();
-      }
     }, []);
 
     useImperativeHandle(ref, () => ({
@@ -2269,7 +1859,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
       exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
-      captureStyledViewport: (options) => modelRef.current?.captureStyledViewport(options) ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
@@ -2454,8 +2043,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 magicTexturing={magicTexturing}
                 gemMode={gemMode}
                 onGemModeForced={onGemModeForced}
-                showLayerOutlines={showLayerOutlines}
-                registerOutlineTarget={registerOutlineTarget}
                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
                   setDebugStats(prev => ({
                     ...prev,
@@ -2480,33 +2067,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               maxPolarAngle={Math.PI}
               makeDefault
             />
-            {showLayerOutlines && (
-              <EffectComposer multisampling={0} autoClear={false}>
-                <Outline
-                  selection={[...darkOutlineRefs.current.values()]}
-                  visibleEdgeColor={0x2d2d2d}
-                  hiddenEdgeColor={0x2d2d2d}
-                  edgeStrength={OUTLINE_EDGE_STRENGTH}
-                  width={OUTLINE_WIDTH}
-                  blur={false}
-                  xRay={false}
-                />
-                <Outline
-                  selection={[...lightOutlineRefs.current.values()]}
-                  visibleEdgeColor={0xd9d9d9}
-                  hiddenEdgeColor={0xd9d9d9}
-                  edgeStrength={OUTLINE_EDGE_STRENGTH}
-                  width={OUTLINE_WIDTH}
-                  blur={false}
-                  xRay={false}
-                />
-              </EffectComposer>
-            )}
-            {showViewportGizmo && (
-              <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
-                <GizmoViewport labelColor="white" axisHeadScale={0.8} />
-              </GizmoHelper>
-            )}
+            <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
+              <GizmoViewport labelColor="white" axisHeadScale={0.8} />
+            </GizmoHelper>
 
           </Suspense>
         </Canvas>
