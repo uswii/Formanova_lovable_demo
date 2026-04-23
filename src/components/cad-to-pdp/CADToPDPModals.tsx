@@ -225,9 +225,10 @@ export function LimitModal({ open, screenshots, onClose, onRemove }: LimitModalP
 interface LightboxModalProps {
   shot: Screenshot | null;
   onClose: () => void;
+  onRemove: (id: number) => void;
 }
 
-export function LightboxModal({ shot, onClose }: LightboxModalProps) {
+export function LightboxModal({ shot, onClose, onRemove }: LightboxModalProps) {
   return (
     <AnimatePresence>
       {shot && (
@@ -248,6 +249,13 @@ export function LightboxModal({ shot, onClose }: LightboxModalProps) {
           >
             <img src={shot.dataUrl} alt="Screenshot" className="max-w-full max-h-[90vh] object-contain border border-border" />
             <div className="absolute top-2 right-2 flex items-center gap-1">
+              <button
+                onClick={() => onRemove(shot.id)}
+                className="h-8 px-3 flex items-center gap-1.5 bg-card/90 border border-border font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground hover:border-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </button>
               <button
                 onClick={() => {
                   const a = document.createElement("a");
