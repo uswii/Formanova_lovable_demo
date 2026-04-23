@@ -1605,11 +1605,16 @@ const LoadedModel = forwardRef<
       const gl = glRenderer.getContext();
       const requestedSize = options?.maxSize ?? CAPTURE_MAX_SIZE;
       const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || requestedSize;
-      const captureSize = Math.min(requestedSize, maxSize);
+      const sourceMaxSide = Math.max(oldWidth, oldHeight);
+      const captureScale = sourceMaxSide > 0
+        ? Math.min(requestedSize / sourceMaxSide, maxSize / sourceMaxSide)
+        : 1;
+      const captureWidth = Math.max(1, Math.round(oldWidth * captureScale));
+      const captureHeight = Math.max(1, Math.round(oldHeight * captureScale));
 
       const offscreen = document.createElement("canvas");
-      offscreen.width = captureSize;
-      offscreen.height = captureSize;
+      offscreen.width = captureWidth;
+      offscreen.height = captureHeight;
       const ctx = offscreen.getContext("2d", { willReadFrequently: true });
       if (!ctx) return null;
 
@@ -1622,19 +1627,19 @@ const LoadedModel = forwardRef<
       const prevToneMapping = glRenderer.toneMapping;
       const prevExposure = glRenderer.toneMappingExposure;
       const prevRenderTarget = glRenderer.getRenderTarget();
-      const segTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+      const segTarget = new THREE.WebGLRenderTarget(captureWidth, captureHeight, {
         format: THREE.RGBAFormat,
         type: THREE.UnsignedByteType,
         depthBuffer: true,
         stencilBuffer: false,
       });
-      const colorTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+      const colorTarget = new THREE.WebGLRenderTarget(captureWidth, captureHeight, {
         format: THREE.RGBAFormat,
         type: THREE.UnsignedByteType,
         depthBuffer: true,
         stencilBuffer: false,
       });
-      const maskTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+      const maskTarget = new THREE.WebGLRenderTarget(captureWidth, captureHeight, {
         format: THREE.RGBAFormat,
         type: THREE.UnsignedByteType,
         depthBuffer: true,
@@ -1653,8 +1658,7 @@ const LoadedModel = forwardRef<
 
       try {
         if (controls) controls.autoRotate = false;
-        (camera as THREE.PerspectiveCamera).fov = 30;
-        camera.aspect = 1;
+        camera.aspect = captureWidth / captureHeight;
         camera.updateProjectionMatrix();
 
         segmentationComponents.forEach(({ mesh, geometry }, index) => {
@@ -1682,17 +1686,17 @@ const LoadedModel = forwardRef<
         glRenderer.clear(true, true, true);
         glRenderer.render(segScene, camera);
 
-        const segPixels = new Uint8Array(captureSize * captureSize * 4);
-        glRenderer.readRenderTargetPixels(segTarget, 0, 0, captureSize, captureSize, segPixels);
-        const segData = { data: flipCapturePixels(segPixels, captureSize, captureSize) };
+        const segPixels = new Uint8Array(captureWidth * captureHeight * 4);
+        glRenderer.readRenderTargetPixels(segTarget, 0, 0, captureWidth, captureHeight, segPixels);
+        const segData = { data: flipCapturePixels(segPixels, captureWidth, captureHeight) };
 
         glRenderer.setRenderTarget(maskTarget);
         glRenderer.clear(true, true, true);
         glRenderer.render(maskScene, camera);
 
-        const maskPixels = new Uint8Array(captureSize * captureSize * 4);
-        glRenderer.readRenderTargetPixels(maskTarget, 0, 0, captureSize, captureSize, maskPixels);
-        const maskData = flipCapturePixels(maskPixels, captureSize, captureSize);
+        const maskPixels = new Uint8Array(captureWidth * captureHeight * 4);
+        glRenderer.readRenderTargetPixels(maskTarget, 0, 0, captureWidth, captureHeight, maskPixels);
+        const maskData = flipCapturePixels(maskPixels, captureWidth, captureHeight);
 
         glRenderer.setClearColor(VIEWPORT_BACKGROUND_COLOR, 1);
         glRenderer.toneMapping = prevToneMapping;
@@ -1701,12 +1705,12 @@ const LoadedModel = forwardRef<
         glRenderer.clear(true, true, true);
         glRenderer.render(rootScene, camera);
 
-        const colorPixels = new Uint8Array(captureSize * captureSize * 4);
-        glRenderer.readRenderTargetPixels(colorTarget, 0, 0, captureSize, captureSize, colorPixels);
-        const geoData = new ImageData(flipCapturePixels(colorPixels, captureSize, captureSize), captureSize, captureSize);
+        const colorPixels = new Uint8Array(captureWidth * captureHeight * 4);
+        glRenderer.readRenderTargetPixels(colorTarget, 0, 0, captureWidth, captureHeight, colorPixels);
+        const geoData = new ImageData(flipCapturePixels(colorPixels, captureWidth, captureHeight), captureWidth, captureHeight);
 
-        const width = captureSize;
-        const height = captureSize;
+        const width = captureWidth;
+        const height = captureHeight;
         const isBoundary = new Uint8Array(width * height);
         const sd = segData.data;
         const md = maskData;
