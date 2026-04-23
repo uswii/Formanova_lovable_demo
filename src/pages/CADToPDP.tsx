@@ -429,51 +429,109 @@ export default function CADToPDP() {
       <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="min-h-[calc(100dvh-5rem)] md:h-full">
 
         {/* Left panel */}
-        <ResizablePanel id="pdp-left" order={1} defaultSize={isMobile ? 24 : 18} minSize={isMobile ? 18 : 14} maxSize={isMobile ? 35 : 28}>
-          <div className="flex flex-col bg-card border-r border-border h-full">
+        <ResizablePanel id="pdp-left" order={1} defaultSize={isMobile ? 18 : 18} minSize={isMobile ? 14 : 14} maxSize={isMobile ? 24 : 28}>
+          <div className="flex flex-col bg-card md:border-r border-border h-full">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
-              <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
-            </div>
-
-            {/* Thumbnail / upload slot */}
-            <div className="px-3 pt-3 flex-shrink-0">
-              <div className="relative w-full aspect-square border border-border overflow-hidden bg-muted/20">
-                {isModelLoading ? (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
-                  </div>
-                ) : glbThumbnail ? (
-                  <>
-                    <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
-                    <button
-                      onClick={clearModel}
-                      className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
-                      title="Remove model"
-                    >
-                      <X className="w-3 h-3 text-foreground" />
-                    </button>
-                  </>
-                ) : (
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
+                {isMobile && hasModel && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-accent/30 transition-colors px-2"
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border rounded-md hover:border-foreground/30 hover:text-foreground transition-colors"
                   >
-                    <div className="relative w-10 h-10">
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
-                      <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                        <Diamond className="h-4 w-4 text-primary" />
-                      </div>
-                    </div>
-                    <span className="font-display text-[10px] tracking-[0.1em] text-foreground/60 uppercase text-center leading-tight">
-                      Drop your CAD file here
-                    </span>
+                    <Upload className="w-3 h-3" />
+                    Replace
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Replace button — only when model is loaded */}
-            {hasModel && (
+            <div className="px-3 py-3 flex-shrink-0">
+              {isMobile ? (
+                <div className="rounded-xl border border-border bg-muted/10 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-24 h-24 rounded-lg border border-border overflow-hidden bg-muted/20 flex-shrink-0">
+                      {isModelLoading ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/50" />
+                        </div>
+                      ) : glbThumbnail ? (
+                        <>
+                          <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
+                          <button
+                            onClick={clearModel}
+                            className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-card/90 border border-border rounded-sm hover:bg-destructive hover:border-destructive transition-colors"
+                            title="Remove model"
+                          >
+                            <X className="w-3 h-3 text-foreground" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors px-2"
+                        >
+                          <Diamond className="h-5 w-5 text-primary" />
+                          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground text-center">Upload</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-xs tracking-[0.14em] uppercase text-foreground mb-1">Model</div>
+                      <div className="text-sm text-foreground/80 truncate">{fileName || "No file loaded"}</div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mt-1">
+                        {hasModel ? `${meshes.length} layers detected` : "GLB or GLTF"}
+                      </div>
+                      {!hasModel && (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="mt-3 w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border rounded-md hover:border-foreground/30 hover:text-foreground transition-colors"
+                        >
+                          <Upload className="w-3 h-3" />
+                          Choose CAD File
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative w-full aspect-square border border-border overflow-hidden bg-muted/20">
+                  {isModelLoading ? (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
+                    </div>
+                  ) : glbThumbnail ? (
+                    <>
+                      <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
+                      <button
+                        onClick={clearModel}
+                        className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                        title="Remove model"
+                      >
+                        <X className="w-3 h-3 text-foreground" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-accent/30 transition-colors px-2"
+                    >
+                      <div className="relative w-10 h-10">
+                        <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
+                        <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
+                          <Diamond className="h-4 w-4 text-primary" />
+                        </div>
+                      </div>
+                      <span className="font-display text-[10px] tracking-[0.1em] text-foreground/60 uppercase text-center leading-tight">
+                        Drop your CAD file here
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {hasModel && !isMobile && (
               <div className="px-3 pt-2 pb-3 flex-shrink-0">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -489,7 +547,7 @@ export default function CADToPDP() {
           </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        {!isMobile && <ResizableHandle withHandle />}
 
         {/* Viewport */}
         <ResizablePanel id="pdp-viewport" order={2} defaultSize={isMobile ? 46 : 60} minSize={isMobile ? 38 : 35}>
@@ -537,6 +595,7 @@ export default function CADToPDP() {
               })()}
 
               {/* Right panel toggle */}
+              {!isMobile && (
               <button
                 onClick={() => {
                   const p = rightPanelRef.current;
@@ -547,6 +606,7 @@ export default function CADToPDP() {
               >
                 {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
               </button>
+              )}
 
               {/* Upload drop zone when no model is loaded */}
               {!hasModel && (
@@ -775,7 +835,7 @@ export default function CADToPDP() {
           </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        {!isMobile && <ResizableHandle withHandle />}
 
         {/* Right panel: mesh + material */}
         <ResizablePanel
@@ -790,13 +850,14 @@ export default function CADToPDP() {
           onCollapse={() => setRightCollapsed(true)}
           onExpand={() => setRightCollapsed(false)}
         >
-          {hasModel && !rightCollapsed && (
+          {hasModel && (!rightCollapsed || isMobile) && (
             <PDPMeshPanel
               meshes={meshes}
               appliedMaterials={appliedMaterials}
               onSelectMesh={handleSelectMesh}
               onApplyMaterial={handleApplyMaterial}
               onOpenFinalLookPreview={() => setShowFinalLookPreview(true)}
+              mobile={isMobile}
             />
           )}
         </ResizablePanel>

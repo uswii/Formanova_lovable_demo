@@ -11,9 +11,10 @@ interface PDPMeshPanelProps {
   onSelectMesh: (name: string, multi: boolean) => void;
   onApplyMaterial: (matId: string) => void;
   onOpenFinalLookPreview?: () => void;
+  mobile?: boolean;
 }
 
-export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMesh, onApplyMaterial, onOpenFinalLookPreview }: PDPMeshPanelProps) {
+export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMesh, onApplyMaterial, onOpenFinalLookPreview, mobile = false }: PDPMeshPanelProps) {
   const [search, setSearch] = useState("");
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
   const [meshCollapsed, setMeshCollapsed] = useState(false);
@@ -80,6 +81,24 @@ export default function PDPMeshPanel({ meshes, appliedMaterials = {}, onSelectMe
           <MatContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
         </div>
         <ColHeader title="Layers" sub={meshSubtitle} onToggle={() => setMeshCollapsed(false)} />
+      </div>
+    );
+  }
+
+  if (mobile) {
+    return (
+      <div className="flex flex-col bg-card border border-border rounded-xl overflow-hidden">
+        <div className="flex flex-col">
+          <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed={false} onToggle={() => setMaterialCollapsed(true)} eyeAction={onOpenFinalLookPreview} />
+          <MatContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
+        </div>
+        <div className="border-t border-border" />
+        <div className="flex flex-col min-h-0">
+          <SectionHeader title="Layers" subtitle={meshSubtitle} collapsed={false} onToggle={() => setMeshCollapsed(true)} />
+          <div className="max-h-[40dvh] overflow-hidden">
+            <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} appliedMaterials={appliedMaterials} onClick={handleMeshClick} />
+          </div>
+        </div>
       </div>
     );
   }
