@@ -194,6 +194,12 @@ export default function CADToPDP() {
     return canvasRef.current?.captureStyledViewport(maxSize ? { maxSize } : undefined) ?? null;
   }, []);
 
+  const capturePlainViewportThumbnail = useCallback(() => {
+    const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) return null;
+    return canvas.toDataURL("image/png");
+  }, []);
+
   const handleModelReady = useCallback(() => {
     setTimeout(() => {
       setIsModelLoading(false);
@@ -201,14 +207,14 @@ export default function CADToPDP() {
       invalidate();
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const dataUrl = captureViewportDataUrl(768);
-          if (dataUrl) setGlbThumbnail(dataUrl);
+          const thumbnailDataUrl = capturePlainViewportThumbnail();
+          if (thumbnailDataUrl) setGlbThumbnail(thumbnailDataUrl);
           flushSync(() => setShowViewportGizmo(true));
           invalidate();
         });
       });
     }, 800);
-  }, [captureViewportDataUrl]);
+  }, [capturePlainViewportThumbnail]);
 
   const handleSelectMesh = useCallback((name: string, multi: boolean) => {
     if (!name) { setMeshes((p) => p.map((m) => ({ ...m, selected: false }))); return; }

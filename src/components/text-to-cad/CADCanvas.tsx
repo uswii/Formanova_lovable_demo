@@ -53,6 +53,7 @@ const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
 const CAPTURE_STROKE_RADIUS = 2;
 const CAPTURE_MAX_SIZE = 2048;
+const CAPTURE_COMPONENT_POSITION_EPS = 1e-5;
 
 function generateSegColors(n: number): string[] {
   const colors: string[] = [];
@@ -76,6 +77,97 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   const color = new THREE.Color(preview);
   const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
+}
+
+function quantizeCapturePosition(value: number): number {
+  return Math.round(value / CAPTURE_COMPONENT_POSITION_EPS);
+}
+
+function getCaptureComponentGeometries(geometry: THREE.BufferGeometry): THREE.BufferGeometry[] {
+  const positionAttr = geometry.getAttribute("position");
+  if (!positionAttr || positionAttr.count < 3) return [geometry];
+
+  const indexAttr = geometry.getIndex();
+  const sourceIndices = indexAttr
+    ? Array.from(indexAttr.array as ArrayLike<number>, Number)
+    : Array.from({ length: positionAttr.count }, (_, i) => i);
+
+  if (sourceIndices.length < 3) return [geometry];
+
+  const canonicalByVertex = new Int32Array(positionAttr.count);
+  const canonicalLookup = new Map<string, number>();
+  let canonicalCount = 0;
+
+  for (let i = 0; i < positionAttr.count; i++) {
+    const key = [
+      quantizeCapturePosition(positionAttr.getX(i)),
+      quantizeCapturePosition(positionAttr.getY(i)),
+      quantizeCapturePosition(positionAttr.getZ(i)),
+    ].join("|");
+    const existing = canonicalLookup.get(key);
+    if (existing !== undefined) {
+      canonicalByVertex[i] = existing;
+      continue;
+    }
+    canonicalLookup.set(key, canonicalCount);
+    canonicalByVertex[i] = canonicalCount;
+    canonicalCount++;
+  }
+
+  if (canonicalCount < 3) return [geometry];
+
+  const parent = Array.from({ length: canonicalCount }, (_, i) => i);
+  const find = (value: number): number => {
+    let current = value;
+    while (parent[current] !== current) {
+      parent[current] = parent[parent[current]];
+      current = parent[current];
+    }
+    return current;
+  };
+  const unite = (a: number, b: number) => {
+    const rootA = find(a);
+    const rootB = find(b);
+    if (rootA !== rootB) parent[rootB] = rootA;
+  };
+
+  for (let i = 0; i <= sourceIndices.length - 3; i += 3) {
+    const a = canonicalByVertex[sourceIndices[i]];
+    const b = canonicalByVertex[sourceIndices[i + 1]];
+    const c = canonicalByVertex[sourceIndices[i + 2]];
+    unite(a, b);
+    unite(a, c);
+  }
+
+  const componentIndexMap = new Map<number, number[]>();
+  for (let i = 0; i <= sourceIndices.length - 3; i += 3) {
+    const a = sourceIndices[i];
+    const b = sourceIndices[i + 1];
+    const c = sourceIndices[i + 2];
+    const root = find(canonicalByVertex[a]);
+    const bucket = componentIndexMap.get(root);
+    if (bucket) {
+      bucket.push(a, b, c);
+    } else {
+      componentIndexMap.set(root, [a, b, c]);
+    }
+  }
+
+  if (componentIndexMap.size <= 1) return [geometry];
+
+  return Array.from(componentIndexMap.values()).map((componentIndices) => {
+    const componentGeometry = new THREE.BufferGeometry();
+    Object.entries(geometry.attributes).forEach(([name, attribute]) => {
+      componentGeometry.setAttribute(name, attribute);
+    });
+    if (geometry.morphAttributes) {
+      componentGeometry.morphAttributes = geometry.morphAttributes;
+    }
+    componentGeometry.setIndex(componentIndices);
+    componentGeometry.computeBoundingBox();
+    componentGeometry.computeBoundingSphere();
+    return componentGeometry;
+  });
 }
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
@@ -429,6 +521,7 @@ const LoadedModel = forwardRef<
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const visibleCaptureRefs = useRef<Map<string, Set<THREE.Mesh>>>(new Map());
+  const captureComponentGeoCache = useRef<Map<string, THREE.BufferGeometry[]>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
   // Store normalisation factors so exportSceneRawBlob can reverse the transform
@@ -1469,11 +1562,20 @@ const LoadedModel = forwardRef<
     },
     captureStyledViewport: (options?: StyledCaptureOptions): string | null => {
       const captureGroups = Array.from(visibleCaptureRefs.current.entries())
-        .map(([name, meshes]) => ({
-          name,
-          meshes: Array.from(meshes).filter((mesh) => !!mesh && mesh.visible),
-        }))
-        .filter((group) => group.meshes.length > 0);
+        .map(([name, meshes]) => {
+          const visibleMeshes = Array.from(meshes).filter((mesh) => !!mesh && mesh.visible);
+          const splitMeshes = visibleMeshes.flatMap((mesh) => {
+            const cacheKey = mesh.geometry.uuid;
+            let componentGeometries = captureComponentGeoCache.current.get(cacheKey);
+            if (!componentGeometries) {
+              componentGeometries = getCaptureComponentGeometries(mesh.geometry);
+              captureComponentGeoCache.current.set(cacheKey, componentGeometries);
+            }
+            return componentGeometries.map((geometry) => ({ mesh, geometry }));
+          });
+          return { name, meshes: visibleMeshes, components: splitMeshes };
+        })
+        .filter((group) => group.components.length > 0);
 
       if (!captureGroups.length) return null;
 
@@ -1499,8 +1601,8 @@ const LoadedModel = forwardRef<
       if (!ctx) return null;
 
       const segColors = generateSegColors(captureGroups.length);
-      const savedMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
       const segMaterials: THREE.MeshBasicMaterial[] = [];
+      const segScene = new THREE.Scene();
       const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
       const prevClearAlpha = glRenderer.getClearAlpha();
       const prevToneMapping = glRenderer.toneMapping;
@@ -1516,27 +1618,24 @@ const LoadedModel = forwardRef<
         captureGroups.forEach((group, index) => {
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
           segMaterials.push(segMat);
-          group.meshes.forEach((mesh) => {
-            savedMaterials.set(mesh, mesh.material);
-            mesh.material = segMat;
+          group.components.forEach(({ mesh, geometry }) => {
+            mesh.updateWorldMatrix(true, false);
+            const segMesh = new THREE.Mesh(geometry, segMat);
+            segMesh.matrixAutoUpdate = false;
+            segMesh.matrix.copy(mesh.matrixWorld);
+            segMesh.matrixWorld.copy(mesh.matrixWorld);
+            segScene.add(segMesh);
           });
         });
 
         glRenderer.setClearColor("#ffffff", 1);
         glRenderer.toneMapping = THREE.NoToneMapping;
         glRenderer.toneMappingExposure = 1;
-        glRenderer.render(rootScene, camera);
+        glRenderer.render(segScene, camera);
 
         ctx.clearRect(0, 0, captureSize, captureSize);
         ctx.drawImage(canvas, 0, 0);
         const segData = ctx.getImageData(0, 0, captureSize, captureSize);
-
-    captureGroups.forEach((group) => {
-          group.meshes.forEach((mesh) => {
-            const originalMaterial = savedMaterials.get(mesh);
-            if (originalMaterial) mesh.material = originalMaterial;
-          });
-        });
 
         glRenderer.setClearColor(prevClearColor, prevClearAlpha);
         glRenderer.toneMapping = prevToneMapping;
@@ -1612,12 +1711,6 @@ const LoadedModel = forwardRef<
         console.error("[CADCanvas] Styled capture failed:", error);
         return null;
       } finally {
-        captureGroups.forEach((group) => {
-          group.meshes.forEach((mesh) => {
-            const originalMaterial = savedMaterials.get(mesh);
-            if (originalMaterial) mesh.material = originalMaterial;
-          });
-        });
         segMaterials.forEach((material) => material.dispose());
         glRenderer.setSize(oldWidth, oldHeight);
         camera.position.copy(savedPosition);
