@@ -51,7 +51,7 @@ const DEFAULT_LAYER_OUTLINE_COLOR = "#000000";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
 const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
-const CAPTURE_STROKE_RADIUS = 2;
+const CAPTURE_STROKE_RADIUS = 1.5;
 const CAPTURE_MAX_SIZE = 2048;
 const CAPTURE_COMPONENT_POSITION_EPS = 1e-5;
 const VIEWPORT_BACKGROUND_COLOR = "#f5f5f3";
@@ -1885,13 +1885,16 @@ const LoadedModel = forwardRef<
         }
 
         const dilated = new Uint8Array(width * height);
-        for (let y = CAPTURE_STROKE_RADIUS; y < height - CAPTURE_STROKE_RADIUS; y++) {
-          for (let x = CAPTURE_STROKE_RADIUS; x < width - CAPTURE_STROKE_RADIUS; x++) {
+        const strokeRadiusCeil = Math.ceil(CAPTURE_STROKE_RADIUS);
+        const strokeRadiusSq = CAPTURE_STROKE_RADIUS * CAPTURE_STROKE_RADIUS;
+        for (let y = strokeRadiusCeil; y < height - strokeRadiusCeil; y++) {
+          for (let x = strokeRadiusCeil; x < width - strokeRadiusCeil; x++) {
             const pixelIndex = y * width + x;
             if (!isBoundary[pixelIndex]) continue;
-            for (let dy = -CAPTURE_STROKE_RADIUS; dy <= CAPTURE_STROKE_RADIUS; dy++) {
+            for (let dy = -strokeRadiusCeil; dy <= strokeRadiusCeil; dy++) {
               const ny = y + dy;
-              for (let dx = -CAPTURE_STROKE_RADIUS; dx <= CAPTURE_STROKE_RADIUS; dx++) {
+              for (let dx = -strokeRadiusCeil; dx <= strokeRadiusCeil; dx++) {
+                if (dx * dx + dy * dy > strokeRadiusSq) continue;
                 const nx = x + dx;
                 dilated[ny * width + nx] = 1;
               }
