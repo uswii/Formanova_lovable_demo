@@ -51,7 +51,6 @@ const DEFAULT_LAYER_OUTLINE_COLOR = "#000000";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
 const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
-const CAPTURE_BACKGROUND_COLOR = "#f5f5f3";
 const CAPTURE_STROKE_RADIUS = 2;
 const CAPTURE_MAX_SIZE = 2048;
 
@@ -425,7 +424,7 @@ const LoadedModel = forwardRef<
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
-  const visibleCaptureRefs = useRef<Map<string, THREE.Mesh>>(new Map());
+  const visibleCaptureRefs = useRef<Map<string, Set<THREE.Mesh>>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
   // Store normalisation factors so exportSceneRawBlob can reverse the transform
@@ -438,12 +437,25 @@ const LoadedModel = forwardRef<
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
   const { camera, gl: glRenderer, scene: rootScene } = useThree();
-  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null) => {
-    if (mesh) {
-      visibleCaptureRefs.current.set(name, mesh);
-    } else {
-      visibleCaptureRefs.current.delete(name);
+  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => {
+    const groups = visibleCaptureRefs.current;
+
+    if (previousMesh) {
+      const prevGroup = groups.get(name);
+      if (prevGroup) {
+        prevGroup.delete(previousMesh);
+        if (prevGroup.size === 0) groups.delete(name);
+      }
     }
+
+    if (!mesh) return;
+
+    let group = groups.get(name);
+    if (!group) {
+      group = new Set<THREE.Mesh>();
+      groups.set(name, group);
+    }
+    group.add(mesh);
   }, []);
 
   // ── Decompose scene into individual mesh data ──
@@ -1452,9 +1464,14 @@ const LoadedModel = forwardRef<
       return blob;
     },
     captureStyledViewport: (): string | null => {
-      const visibleMeshes = Array.from(visibleCaptureRefs.current.values()).filter((mesh) => !!mesh && mesh.visible);
+      const captureGroups = Array.from(visibleCaptureRefs.current.entries())
+        .map(([name, meshes]) => ({
+          name,
+          meshes: Array.from(meshes).filter((mesh) => !!mesh && mesh.visible),
+        }))
+        .filter((group) => group.meshes.length > 0);
 
-      if (!visibleMeshes.length) return null;
+      if (!captureGroups.length) return null;
 
       const canvas = glRenderer.domElement;
       const controls = (glRenderer.domElement as any).__orbitControls;
@@ -1476,7 +1493,7 @@ const LoadedModel = forwardRef<
       const ctx = offscreen.getContext("2d", { willReadFrequently: true });
       if (!ctx) return null;
 
-      const segColors = generateSegColors(visibleMeshes.length);
+      const segColors = generateSegColors(captureGroups.length);
       const savedMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
       const segMaterials: THREE.MeshBasicMaterial[] = [];
       const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
@@ -1491,11 +1508,13 @@ const LoadedModel = forwardRef<
         camera.aspect = 1;
         camera.updateProjectionMatrix();
 
-        visibleMeshes.forEach((mesh, index) => {
-          savedMaterials.set(mesh, mesh.material);
+        captureGroups.forEach((group, index) => {
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
           segMaterials.push(segMat);
-          mesh.material = segMat;
+          group.meshes.forEach((mesh) => {
+            savedMaterials.set(mesh, mesh.material);
+            mesh.material = segMat;
+          });
         });
 
         glRenderer.setClearColor("#ffffff", 1);
@@ -1503,22 +1522,23 @@ const LoadedModel = forwardRef<
         glRenderer.toneMappingExposure = 1;
         glRenderer.render(rootScene, camera);
 
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, captureSize, captureSize);
+        ctx.clearRect(0, 0, captureSize, captureSize);
         ctx.drawImage(canvas, 0, 0);
         const segData = ctx.getImageData(0, 0, captureSize, captureSize);
 
-        visibleMeshes.forEach((mesh) => {
-          const originalMaterial = savedMaterials.get(mesh);
-          if (originalMaterial) mesh.material = originalMaterial;
+        captureGroups.forEach((group) => {
+          group.meshes.forEach((mesh) => {
+            const originalMaterial = savedMaterials.get(mesh);
+            if (originalMaterial) mesh.material = originalMaterial;
+          });
         });
 
-        glRenderer.toneMapping = prevToneMapping;
-        glRenderer.toneMappingExposure = prevExposure;
+        glRenderer.setClearColor("#ffffff", 1);
+        glRenderer.toneMapping = THREE.NoToneMapping;
+        glRenderer.toneMappingExposure = 1;
         glRenderer.render(rootScene, camera);
 
-        ctx.fillStyle = CAPTURE_BACKGROUND_COLOR;
-        ctx.fillRect(0, 0, captureSize, captureSize);
+        ctx.clearRect(0, 0, captureSize, captureSize);
         ctx.drawImage(canvas, 0, 0);
         const geoData = ctx.getImageData(0, 0, captureSize, captureSize);
 
@@ -1587,9 +1607,11 @@ const LoadedModel = forwardRef<
         console.error("[CADCanvas] Styled capture failed:", error);
         return null;
       } finally {
-        visibleMeshes.forEach((mesh) => {
-          const originalMaterial = savedMaterials.get(mesh);
-          if (originalMaterial) mesh.material = originalMaterial;
+        captureGroups.forEach((group) => {
+          group.meshes.forEach((mesh) => {
+            const originalMaterial = savedMaterials.get(mesh);
+            if (originalMaterial) mesh.material = originalMaterial;
+          });
         });
         segMaterials.forEach((material) => material.dispose());
         glRenderer.setSize(oldWidth, oldHeight);
@@ -1779,13 +1801,14 @@ const LoadedModel = forwardRef<
         <mesh
           key={md.name}
           ref={(r) => {
+            const previousMesh = meshRefs.current.get(md.name) ?? null;
             if (r) meshRefs.current.set(md.name, r);
             else meshRefs.current.delete(md.name);
 
             if (r && !md.rendersOwnOutline) {
-              registerVisibleCaptureTarget(md.name, r, md.outlineColor);
+              registerVisibleCaptureTarget(md.name, r, previousMesh);
             } else {
-              registerVisibleCaptureTarget(md.name, null);
+              registerVisibleCaptureTarget(md.name, null, previousMesh);
             }
 
             if (showLayerOutlines && !md.rendersOwnOutline && r) {
@@ -1902,7 +1925,7 @@ function SyncedGemOverlay({
   outlineColor: string;
   showOutline: boolean;
   registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
-  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, color?: string) => void;
+  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => void;
   meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1974,15 +1997,16 @@ function DiamondEnvMapConsumer({
   outlineColor: string;
   showOutline: boolean;
   registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
-  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, color?: string) => void;
+  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => void;
   meshName: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
   const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
 
   const setGemMeshRef = useCallback((node: THREE.Mesh | null) => {
+    const previousMesh = meshRef.current;
     meshRef.current = node;
-    registerCaptureTarget?.(meshName, node, outlineColor);
+    registerCaptureTarget?.(meshName, node, previousMesh);
     if (showOutline && node) {
       registerOutlineTarget?.(meshName, node, outlineColor);
     } else {
