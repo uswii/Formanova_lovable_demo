@@ -14,7 +14,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
-import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, createSimpleGemMaterial } from "@/components/cad-studio/materials";
+import { findMaterial, findMaterialByName, createSimpleGemMaterial } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
@@ -79,6 +79,134 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   const color = new THREE.Color(preview);
   const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
+}
+
+function normalizeLayerMatchName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(mesh|object|part|layer|group)\s*\d+\s*/g, "")
+    .replace(/\s+(left|right|top|bottom|front|back|inner|outer)\b/g, "")
+    .replace(/\s+\d+\b/g, "")
+    .trim();
+}
+
+function layerHasKeyword(normalizedName: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeLayerMatchName(keyword);
+    return normalizedKeyword.length > 0 && normalizedName.includes(normalizedKeyword);
+  });
+}
+
+function createExportMetalMaterial(color: string, name: string): THREE.MeshPhysicalMaterial {
+  const material = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    metalness: 1.0,
+    roughness: 0.15,
+    envMapIntensity: 1.8,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.08,
+    side: THREE.DoubleSide,
+  });
+  material.name = name;
+  return material;
+}
+
+function createExportGemMaterial(color: string, name: string, opts?: { attenuationColor?: string; transmission?: number; ior?: number; roughness?: number; thickness?: number; metalness?: number }) {
+  const material = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    metalness: opts?.metalness ?? 0.0,
+    roughness: opts?.roughness ?? 0.0,
+    transmission: opts?.transmission ?? 1.0,
+    ior: opts?.ior ?? 1.8,
+    thickness: opts?.thickness ?? 2.0,
+    envMapIntensity: 2.5,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    attenuationDistance: 3.0,
+    attenuationColor: new THREE.Color(opts?.attenuationColor ?? color),
+    side: THREE.DoubleSide,
+  });
+  material.name = name;
+  return material;
+}
+
+function inferExportFallbackMaterial(layerName: string): THREE.MeshPhysicalMaterial {
+  const normalized = normalizeLayerMatchName(layerName);
+
+  const metalRules: Array<{ keywords: string[]; name: string; color: string }> = [
+    { keywords: ["10k yellow", "10k y gold", "10kt yellow", "14k yellow", "14k y gold", "14kt yellow", "18k yellow", "18k y gold", "18kt yellow", "22k yellow", "22k y gold", "22kt yellow", "24k yellow", "24k y gold", "24kt yellow", "yellow gold", "ygold", "y gold", "yg", "yellowgold", "gold", "gld"], name: "Yellow Gold", color: "#E8C84A" },
+    { keywords: ["10k rose", "10k pink", "10kt rose", "14k rose", "14k pink", "14kt rose", "18k rose", "18k pink", "18kt rose", "rose gold", "rgold", "pink gold", "rosegold"], name: "Rose Gold", color: "#C27C85" },
+    { keywords: ["10k white", "10kt white", "14k white", "14kt white", "18k white", "18kt white", "white gold", "wgold", "whitegold"], name: "White Gold", color: "#D0CCC8" },
+    { keywords: ["sterling", "925"], name: "Sterling Silver", color: "#C0C0C0" },
+    { keywords: ["silver", "silvr"], name: "Silver", color: "#C0C0C0" },
+    { keywords: ["platinum", "platnum", "plat"], name: "Platinum", color: "#D8D8D8" },
+    { keywords: ["palladium", "paladium"], name: "Palladium", color: "#CED0D4" },
+    { keywords: ["titanium", "titanum"], name: "Titanium", color: "#9EA3A8" },
+    { keywords: ["tungsten", "wolfram"], name: "Tungsten", color: "#7A7D80" },
+    { keywords: ["stainless", "steel"], name: "Stainless Steel", color: "#B0B3B6" },
+    { keywords: ["brass"], name: "Brass", color: "#C9A84C" },
+    { keywords: ["bronze"], name: "Bronze", color: "#B08D57" },
+    { keywords: ["copper"], name: "Copper", color: "#D4836A" },
+    { keywords: ["black metal", "gunmetal"], name: "Black Metal", color: "#2A2A2A" },
+  ];
+
+  for (const rule of metalRules) {
+    if (layerHasKeyword(normalized, rule.keywords)) {
+      return createExportMetalMaterial(rule.color, rule.name);
+    }
+  }
+
+  const componentRules: Array<{ keywords: string[]; name: string }> = [
+    { keywords: ["band", "shank", "strand"], name: "Band / Shank" },
+    { keywords: ["prong", "prongs"], name: "Prong" },
+    { keywords: ["bezel"], name: "Bezel Setting" },
+    { keywords: ["basket"], name: "Basket" },
+    { keywords: ["gallery"], name: "Gallery" },
+    { keywords: ["shoulder"], name: "Shoulder" },
+    { keywords: ["bridge"], name: "Bridge" },
+    { keywords: ["head", "setting head"], name: "Head" },
+    { keywords: ["halo"], name: "Halo Setting" },
+    { keywords: ["channel"], name: "Channel Setting" },
+    { keywords: ["claw"], name: "Claw" },
+  ];
+
+  for (const rule of componentRules) {
+    if (layerHasKeyword(normalized, rule.keywords)) {
+      return createExportMetalMaterial("#E8C84A", rule.name);
+    }
+  }
+
+  const gemRules: Array<{ keywords: string[]; name: string; color: string; opts?: Parameters<typeof createExportGemMaterial>[2] }> = [
+    { keywords: ["diamond", "dimond", "daimond", "diamnd", "center stone", "centre stone", "main stone", "gem", "gems", "gemstone", "stone", "stones", "jewel", "brill", "crystal"], name: "Diamond", color: "#E8F0F8", opts: { attenuationColor: "#E8F0F8", ior: 2.42 } },
+    { keywords: ["ruby", "rubie"], name: "Ruby", color: "#E0115F", opts: { attenuationColor: "#9B111E", ior: 1.77 } },
+    { keywords: ["emerald", "emrald"], name: "Emerald", color: "#50C878", opts: { attenuationColor: "#046307", ior: 1.58 } },
+    { keywords: ["sapphire", "saphire"], name: "Sapphire", color: "#0F52BA", opts: { attenuationColor: "#0F52BA", ior: 1.77 } },
+    { keywords: ["topaz"], name: "Topaz", color: "#FFC87C", opts: { attenuationColor: "#FFC87C", ior: 1.64 } },
+    { keywords: ["garnet"], name: "Garnet", color: "#9B111E", opts: { attenuationColor: "#9B111E", ior: 1.77 } },
+    { keywords: ["amethyst", "amethist"], name: "Amethyst", color: "#9966CC", opts: { attenuationColor: "#6B3FA0", ior: 1.54 } },
+    { keywords: ["pearl", "perl"], name: "Pearl", color: "#E8D8CC", opts: { transmission: 0.35, roughness: 0.18, thickness: 1.0, ior: 1.53, attenuationColor: "#E8D8CC" } },
+    { keywords: ["aquamarine"], name: "Aquamarine", color: "#7FFFD4", opts: { attenuationColor: "#7FFFD4", ior: 1.57 } },
+    { keywords: ["tanzanite"], name: "Tanzanite", color: "#4D5BA9", opts: { attenuationColor: "#4D5BA9", ior: 1.7 } },
+    { keywords: ["tourmaline"], name: "Tourmaline", color: "#4DC8B2", opts: { attenuationColor: "#4DC8B2", ior: 1.62 } },
+    { keywords: ["morganite"], name: "Morganite", color: "#F5B7B1", opts: { attenuationColor: "#F5B7B1", ior: 1.58 } },
+    { keywords: ["opal"], name: "Opal", color: "#D4E5F7", opts: { attenuationColor: "#D4E5F7", ior: 1.45, roughness: 0.08 } },
+    { keywords: ["turquoise"], name: "Turquoise", color: "#40E0D0", opts: { transmission: 0.2, roughness: 0.18, thickness: 1.0, ior: 1.61, attenuationColor: "#40E0D0" } },
+    { keywords: ["onyx"], name: "Onyx", color: "#101010", opts: { transmission: 0.15, roughness: 0.08, thickness: 1.0, ior: 1.54, metalness: 0.15, attenuationColor: "#101010" } },
+    { keywords: ["cubic zirconia", "cz", "moissanite", "moissanit", "side stone", "accent stone", "halo stone", "halo gem", "halo bead", "pave", "pave bead", "pave gem", "melee", "mele"], name: "Diamond", color: "#E8F0F8", opts: { attenuationColor: "#E8F0F8", ior: 2.2 } },
+  ];
+
+  for (const rule of gemRules) {
+    if (layerHasKeyword(normalized, rule.keywords)) {
+      return createExportGemMaterial(rule.color, rule.name, rule.opts);
+    }
+  }
+
+  return createExportMetalMaterial("#E8C84A", "Generic Metal");
 }
 
 function quantizeCapturePosition(value: number): number {
@@ -1481,9 +1609,9 @@ const LoadedModel = forwardRef<
           material = exportMat;
           console.log(`[GLB Export] ${md.name}: "${assigned.name}" (${assigned.category}) → color:#${exportMat.color.getHexString()} metal:${exportMat.metalness} rough:${exportMat.roughness} transmission:${exportMat.transmission} ior:${exportMat.ior} clearcoat:${exportMat.clearcoat}`);
         } else {
-          // No user assignment — export the original GLB material
-          material = md.originalMaterial.clone();
-          console.log(`[GLB Export] ${md.name}: no assignment, using original material`);
+          // No user assignment — infer material from layer name per 3D photography naming rules.
+          material = inferExportFallbackMaterial(md.name);
+          console.log(`[GLB Export] ${md.name}: no assignment, inferred "${material.name}" from layer name`);
         }
 
         const geo = md.geometry.clone();
