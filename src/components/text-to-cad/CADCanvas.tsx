@@ -7,7 +7,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
-  Edges,
+  Outlines,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -47,8 +47,8 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
-const DEFAULT_LAYER_OUTLINE_COLOR = "#101010";
-const DARK_LAYER_OUTLINE_COLOR = "#f7f2e8";
+const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
+const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -1605,10 +1605,15 @@ const LoadedModel = forwardRef<
           }}
         >
           {showLayerOutlines && (
-            <Edges
-              scale={1.002}
-              threshold={18}
+            <Outlines
               color={md.outlineColor}
+              thickness={0.024}
+              angle={Math.PI}
+              toneMapped={false}
+              opacity={0.95}
+              polygonOffset
+              polygonOffsetFactor={-4}
+              renderOrder={10}
             />
           )}
         </mesh>
