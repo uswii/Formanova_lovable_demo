@@ -7,6 +7,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
+  Edges,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -45,6 +46,23 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
+
+const DEFAULT_LAYER_OUTLINE_COLOR = "#101010";
+const DARK_LAYER_OUTLINE_COLOR = "#f7f2e8";
+
+function getLayerOutlineColor(materialDef?: MaterialDef): string {
+  if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
+
+  const name = `${materialDef.id} ${materialDef.name}`.toLowerCase();
+  if (name.includes("black") || name.includes("onyx")) return DARK_LAYER_OUTLINE_COLOR;
+
+  const preview = typeof materialDef.preview === "string" ? materialDef.preview : "";
+  if (!preview) return DEFAULT_LAYER_OUTLINE_COLOR;
+
+  const color = new THREE.Color(preview);
+  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+  return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
+}
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
@@ -338,8 +356,9 @@ const LoadedModel = forwardRef<
     onDebugGemStats?: (total: number, refraction: number, fallback: number, effectiveBounces: number) => void;
     gemMode?: GemMode;
     onGemModeForced?: (mode: GemMode) => void;
+    showLayerOutlines?: boolean;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced, showLayerOutlines = false }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -1451,7 +1470,7 @@ const LoadedModel = forwardRef<
     }
     prevAssignedRef.current = { ...assignedMaterials };
 
-    const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
     let refractionGemCount = 0;
 
@@ -1475,11 +1494,12 @@ const LoadedModel = forwardRef<
 
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
+      const outlineColor = getLayerOutlineColor(assigned);
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
       if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected, outlineColor });
         return;
       }
 
@@ -1493,7 +1513,7 @@ const LoadedModel = forwardRef<
             simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
             materialCache.current.set(simpleKey, simpleMat);
           }
-          standard.push({ ...md, material: simpleMat, isSelected });
+          standard.push({ ...md, material: simpleMat, isSelected, outlineColor });
           return;
         }
 
@@ -1501,14 +1521,14 @@ const LoadedModel = forwardRef<
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected });
+          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor });
           refractionGemCount++;
         } else {
           // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
           const color = assigned.refractionConfig.color;
           const fallback = gemFallbackMat.clone();
           fallback.color = new THREE.Color(color);
-          standard.push({ ...md, material: fallback, isSelected });
+          standard.push({ ...md, material: fallback, isSelected, outlineColor });
         }
         return;
       }
@@ -1520,7 +1540,7 @@ const LoadedModel = forwardRef<
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
-      standard.push({ ...md, material, isSelected });
+      standard.push({ ...md, material, isSelected, outlineColor });
     });
 
     return { standardElements: standard, gemElements: gems, refractionGemCount };
@@ -1583,7 +1603,15 @@ const LoadedModel = forwardRef<
             if (_isTransformDragging) return;
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
-        />
+        >
+          {showLayerOutlines && (
+            <Edges
+              scale={1.002}
+              threshold={18}
+              color={md.outlineColor}
+            />
+          )}
+        </mesh>
       ))}
 
       {/* Diamond overlay: refraction material rendered separately */}
@@ -1822,10 +1850,12 @@ interface CADCanvasProps {
   qualityMode?: QualityMode;
   gemMode?: GemMode;
   onGemModeForced?: (mode: GemMode) => void;
+  showViewportGizmo?: boolean;
+  showLayerOutlines?: boolean;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced, showViewportGizmo = true, showLayerOutlines = false }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
     
@@ -2043,6 +2073,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 magicTexturing={magicTexturing}
                 gemMode={gemMode}
                 onGemModeForced={onGemModeForced}
+                showLayerOutlines={showLayerOutlines}
                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
                   setDebugStats(prev => ({
                     ...prev,
@@ -2067,9 +2098,11 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               maxPolarAngle={Math.PI}
               makeDefault
             />
-            <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
-              <GizmoViewport labelColor="white" axisHeadScale={0.8} />
-            </GizmoHelper>
+            {showViewportGizmo && (
+              <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
+                <GizmoViewport labelColor="white" axisHeadScale={0.8} />
+              </GizmoHelper>
+            )}
 
           </Suspense>
         </Canvas>

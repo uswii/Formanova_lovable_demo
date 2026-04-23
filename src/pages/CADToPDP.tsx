@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -42,6 +43,7 @@ export default function CADToPDP() {
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
+  const [showViewportGizmo, setShowViewportGizmo] = useState(true);
   const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -188,20 +190,40 @@ export default function CADToPDP() {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
   }, []);
 
+  const captureViewportDataUrl = useCallback(() => {
+    const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) return null;
+    try {
+      const offscreen = document.createElement("canvas");
+      offscreen.width = canvas.width;
+      offscreen.height = canvas.height;
+      const ctx = offscreen.getContext("2d");
+      if (!ctx) return null;
+      ctx.fillStyle = "#f5f5f3";
+      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+      ctx.drawImage(canvas, 0, 0);
+      const dataUrl = offscreen.toDataURL("image/png");
+      return dataUrl && dataUrl !== "data:," ? dataUrl : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const handleModelReady = useCallback(() => {
     setTimeout(() => {
       setIsModelLoading(false);
+      flushSync(() => setShowViewportGizmo(false));
+      invalidate();
       requestAnimationFrame(() => {
-        const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-        if (canvas) {
-          try {
-            const dataUrl = canvas.toDataURL("image/png");
-            if (dataUrl && dataUrl !== "data:,") setGlbThumbnail(dataUrl);
-          } catch { /* cross-origin or context lost */ }
-        }
+        requestAnimationFrame(() => {
+          const dataUrl = captureViewportDataUrl();
+          if (dataUrl) setGlbThumbnail(dataUrl);
+          flushSync(() => setShowViewportGizmo(true));
+          invalidate();
+        });
       });
     }, 800);
-  }, []);
+  }, [captureViewportDataUrl]);
 
   const handleSelectMesh = useCallback((name: string, multi: boolean) => {
     if (!name) { setMeshes((p) => p.map((m) => ({ ...m, selected: false }))); return; }
@@ -260,29 +282,27 @@ export default function CADToPDP() {
     setCaptureWarning(false);
     // Deselect so selection highlights don't appear in the capture
     const prevSelection = meshes.filter(m => m.selected).map(m => m.name);
-    if (prevSelection.length > 0) {
-      setMeshes(p => p.map(m => ({ ...m, selected: false })));
-    }
+    flushSync(() => {
+      if (prevSelection.length > 0) {
+        setMeshes(p => p.map(m => ({ ...m, selected: false })));
+      }
+      setShowViewportGizmo(false);
+    });
     invalidate();
     requestAnimationFrame(() => {
-      try {
-        const offscreen = document.createElement("canvas");
-        offscreen.width = canvas.width;
-        offscreen.height = canvas.height;
-        const ctx = offscreen.getContext("2d");
-        if (!ctx) return;
-        ctx.fillStyle = "#f5f5f3";
-        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-        ctx.drawImage(canvas, 0, 0);
-        const dataUrl = offscreen.toDataURL("image/png");
-        if (!dataUrl || dataUrl === "data:,") return;
-        setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
-      } catch { /* silent */ }
-      if (prevSelection.length > 0) {
-        setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
-      }
+      requestAnimationFrame(() => {
+        const dataUrl = captureViewportDataUrl();
+        if (dataUrl) setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
+        flushSync(() => {
+          setShowViewportGizmo(true);
+          if (prevSelection.length > 0) {
+            setMeshes(p => p.map(m => ({ ...m, selected: prevSelection.includes(m.name) })));
+          }
+        });
+        invalidate();
+      });
     });
-  }, [meshes, appliedMaterials, showWorkspacePopup]);
+  }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl]);
 
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
@@ -536,6 +556,8 @@ export default function CADToPDP() {
                     onModelReady={handleModelReady}
                     qualityMode="balanced"
                     gemMode="simple"
+                    showViewportGizmo={showViewportGizmo}
+                    showLayerOutlines
                   />
                 </CADRuntimeErrorBoundary>
               )}
@@ -741,7 +763,7 @@ export default function CADToPDP() {
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} />
+      <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} onRemove={removeScreenshot} />
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
