@@ -48,7 +48,7 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
 
 const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
-const OUTLINE_SCALE = 1.008;
+const OUTLINE_SCALE = 1.018;
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -64,7 +64,7 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
 }
 
-function LayerOutline({ color }: { color: string }) {
+function LayerOutline({ geometry, color }: { geometry: THREE.BufferGeometry; color: string }) {
   const material = useMemo(() => new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
     side: THREE.BackSide,
@@ -80,6 +80,7 @@ function LayerOutline({ color }: { color: string }) {
 
   return (
     <mesh
+      geometry={geometry}
       material={material}
       renderOrder={10}
       scale={[OUTLINE_SCALE, OUTLINE_SCALE, OUTLINE_SCALE]}
@@ -1493,8 +1494,8 @@ const LoadedModel = forwardRef<
     }
     prevAssignedRef.current = { ...assignedMaterials };
 
-    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string })[] = [];
-    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string; rendersOwnOutline?: boolean })[] = [];
+    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean; outlineColor: string }[] = [];
     let refractionGemCount = 0;
 
     // Cheap fallback material for gems beyond the quality-tier cap
@@ -1542,9 +1543,9 @@ const LoadedModel = forwardRef<
 
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
-          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected, outlineColor });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor });
+          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor, rendersOwnOutline: true });
           refractionGemCount++;
         } else {
           // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
@@ -1627,8 +1628,8 @@ const LoadedModel = forwardRef<
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
         >
-          {showLayerOutlines && (
-            <LayerOutline color={md.outlineColor} />
+          {showLayerOutlines && !md.rendersOwnOutline && (
+            <LayerOutline geometry={md.geometry} color={md.outlineColor} />
           )}
         </mesh>
       ))}
@@ -1644,6 +1645,8 @@ const LoadedModel = forwardRef<
           scale={gem.meshData.scale}
           refractionConfig={gem.refractionConfig}
           isSelected={gem.isSelected}
+          outlineColor={gem.outlineColor}
+          showOutline={showLayerOutlines}
           meshRefs={meshRefs}
           onMeshClick={onMeshClick}
         />
@@ -1710,6 +1713,8 @@ function SyncedGemOverlay({
   scale,
   refractionConfig,
   isSelected,
+  outlineColor,
+  showOutline,
   meshRefs,
   onMeshClick,
 }: {
@@ -1720,6 +1725,8 @@ function SyncedGemOverlay({
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
+  outlineColor: string;
+  showOutline: boolean;
   meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1753,6 +1760,8 @@ function SyncedGemOverlay({
       scale={scale}
       refractionConfig={refractionConfig}
       isSelected={isSelected}
+      outlineColor={outlineColor}
+      showOutline={showOutline}
       meshName={meshName}
       onMeshClick={onMeshClick}
     />
@@ -1770,6 +1779,8 @@ function DiamondEnvMapConsumer({
   scale,
   refractionConfig,
   isSelected,
+  outlineColor,
+  showOutline,
   meshName,
   onMeshClick,
 }: {
@@ -1780,6 +1791,8 @@ function DiamondEnvMapConsumer({
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
+  outlineColor: string;
+  showOutline: boolean;
   meshName: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1816,6 +1829,7 @@ function DiamondEnvMapConsumer({
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
+      {showOutline && <LayerOutline geometry={geometry} color={outlineColor} />}
     </mesh>
   );
 }
