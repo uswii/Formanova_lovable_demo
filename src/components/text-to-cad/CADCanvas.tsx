@@ -1531,16 +1531,16 @@ const LoadedModel = forwardRef<
         ctx.drawImage(canvas, 0, 0);
         const segData = ctx.getImageData(0, 0, captureSize, captureSize);
 
-        captureGroups.forEach((group) => {
+    captureGroups.forEach((group) => {
           group.meshes.forEach((mesh) => {
             const originalMaterial = savedMaterials.get(mesh);
             if (originalMaterial) mesh.material = originalMaterial;
           });
         });
 
-        glRenderer.setClearColor("#ffffff", 1);
-        glRenderer.toneMapping = THREE.NoToneMapping;
-        glRenderer.toneMappingExposure = 1;
+        glRenderer.setClearColor(prevClearColor, prevClearAlpha);
+        glRenderer.toneMapping = prevToneMapping;
+        glRenderer.toneMappingExposure = prevExposure;
         glRenderer.render(rootScene, camera);
 
         ctx.clearRect(0, 0, captureSize, captureSize);
@@ -1680,8 +1680,8 @@ const LoadedModel = forwardRef<
     }
     prevAssignedRef.current = { ...assignedMaterials };
 
-    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string; rendersOwnOutline?: boolean })[] = [];
-    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean; outlineColor: string }[] = [];
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean; outlineColor: string; rendersOwnOutline?: boolean; captureGroupKey: string })[] = [];
+    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean; outlineColor: string; captureGroupKey: string }[] = [];
     let refractionGemCount = 0;
 
     // Cheap fallback material for gems beyond the quality-tier cap
@@ -1705,11 +1705,12 @@ const LoadedModel = forwardRef<
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
       const outlineColor = getLayerOutlineColor(assigned);
+      const captureGroupKey = `mesh:${md.name}`;
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
       if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected, outlineColor });
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected, outlineColor, captureGroupKey });
         return;
       }
 
@@ -1723,22 +1724,22 @@ const LoadedModel = forwardRef<
             simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
             materialCache.current.set(simpleKey, simpleMat);
           }
-          standard.push({ ...md, material: simpleMat, isSelected, outlineColor });
+          standard.push({ ...md, material: simpleMat, isSelected, outlineColor, captureGroupKey });
           return;
         }
 
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
-          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected, outlineColor });
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected, outlineColor, captureGroupKey });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor, rendersOwnOutline: true });
+          standard.push({ ...md, material: hiddenMat, isSelected, outlineColor, rendersOwnOutline: true, captureGroupKey });
           refractionGemCount++;
         } else {
           // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
           const color = assigned.refractionConfig.color;
           const fallback = gemFallbackMat.clone();
           fallback.color = new THREE.Color(color);
-          standard.push({ ...md, material: fallback, isSelected, outlineColor });
+          standard.push({ ...md, material: fallback, isSelected, outlineColor, captureGroupKey });
         }
         return;
       }
@@ -1750,7 +1751,7 @@ const LoadedModel = forwardRef<
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
-      standard.push({ ...md, material, isSelected, outlineColor });
+      standard.push({ ...md, material, isSelected, outlineColor, captureGroupKey });
     });
 
     return { standardElements: standard, gemElements: gems, refractionGemCount };
@@ -1811,9 +1812,9 @@ const LoadedModel = forwardRef<
             else meshRefs.current.delete(md.name);
 
             if (r && !md.rendersOwnOutline) {
-              registerVisibleCaptureTarget(md.name, r, previousMesh);
+              registerVisibleCaptureTarget(md.captureGroupKey, r, previousMesh);
             } else {
-              registerVisibleCaptureTarget(md.name, null, previousMesh);
+              registerVisibleCaptureTarget(md.captureGroupKey, null, previousMesh);
             }
 
             if (showLayerOutlines && !md.rendersOwnOutline && r) {
@@ -1844,6 +1845,7 @@ const LoadedModel = forwardRef<
           refractionConfig={gem.refractionConfig}
           isSelected={gem.isSelected}
           outlineColor={gem.outlineColor}
+          captureGroupKey={gem.captureGroupKey}
           showOutline={showLayerOutlines}
           registerOutlineTarget={registerOutlineTarget}
           registerCaptureTarget={registerVisibleCaptureTarget}
@@ -1907,6 +1909,7 @@ function DiamondEnvMapLoader({ onEnvMapReady }: { onEnvMapReady: (map: THREE.Tex
  */
 function SyncedGemOverlay({
   meshName,
+  captureGroupKey,
   geometry,
   position,
   quaternion,
@@ -1921,6 +1924,7 @@ function SyncedGemOverlay({
   onMeshClick,
 }: {
   meshName: string;
+  captureGroupKey: string;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
@@ -1969,6 +1973,7 @@ function SyncedGemOverlay({
       registerOutlineTarget={registerOutlineTarget}
       registerCaptureTarget={registerCaptureTarget}
       meshName={meshName}
+      captureGroupKey={captureGroupKey}
       onMeshClick={onMeshClick}
     />
   );
@@ -1990,6 +1995,7 @@ function DiamondEnvMapConsumer({
   registerOutlineTarget,
   registerCaptureTarget,
   meshName,
+  captureGroupKey,
   onMeshClick,
 }: {
   meshRef: React.RefObject<THREE.Mesh>;
@@ -2004,6 +2010,7 @@ function DiamondEnvMapConsumer({
   registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
   registerCaptureTarget?: (name: string, object: THREE.Mesh | null, previousMesh?: THREE.Mesh | null) => void;
   meshName: string;
+  captureGroupKey: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
   const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
@@ -2011,13 +2018,13 @@ function DiamondEnvMapConsumer({
   const setGemMeshRef = useCallback((node: THREE.Mesh | null) => {
     const previousMesh = meshRef.current;
     meshRef.current = node;
-    registerCaptureTarget?.(meshName, node, previousMesh);
+    registerCaptureTarget?.(captureGroupKey, node, previousMesh);
     if (showOutline && node) {
       registerOutlineTarget?.(meshName, node, outlineColor);
     } else {
       registerOutlineTarget?.(meshName, null);
     }
-  }, [meshName, meshRef, outlineColor, registerCaptureTarget, registerOutlineTarget, showOutline]);
+  }, [captureGroupKey, meshName, meshRef, outlineColor, registerCaptureTarget, registerOutlineTarget, showOutline]);
 
   useEffect(() => {
     if (envMap) {
