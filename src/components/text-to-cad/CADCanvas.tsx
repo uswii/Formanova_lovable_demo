@@ -330,6 +330,10 @@ export interface CanvasSnapshot {
   assignedMaterials: Record<string, MaterialDef>;
 }
 
+interface StyledCaptureOptions {
+  maxSize?: number;
+}
+
 // ── Loaded Model ──
 const LoadedModel = forwardRef<
   {
@@ -352,7 +356,7 @@ const LoadedModel = forwardRef<
     exportSceneBlob: () => Promise<Blob>;
     exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
     exportSceneRawBlob: () => Promise<Blob>;
-    captureStyledViewport: () => string | null;
+    captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
   },
   {
   url: string;
@@ -1463,7 +1467,7 @@ const LoadedModel = forwardRef<
       console.log(`[Raw Export] Done. Blob size: ${blob.size} bytes, normScale: ${normScaleRef.current}`);
       return blob;
     },
-    captureStyledViewport: (): string | null => {
+    captureStyledViewport: (options?: StyledCaptureOptions): string | null => {
       const captureGroups = Array.from(visibleCaptureRefs.current.entries())
         .map(([name, meshes]) => ({
           name,
@@ -1484,8 +1488,9 @@ const LoadedModel = forwardRef<
       if (!oldWidth || !oldHeight) return null;
 
       const gl = glRenderer.getContext();
-      const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || CAPTURE_MAX_SIZE;
-      const captureSize = Math.min(CAPTURE_MAX_SIZE, maxSize);
+      const requestedSize = options?.maxSize ?? CAPTURE_MAX_SIZE;
+      const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || requestedSize;
+      const captureSize = Math.min(requestedSize, maxSize);
 
       const offscreen = document.createElement("canvas");
       offscreen.width = captureSize;
@@ -2079,7 +2084,7 @@ export interface CADCanvasHandle {
   exportSceneBlob: () => Promise<Blob>;
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
   exportSceneRawBlob: () => Promise<Blob>;
-  captureStyledViewport: () => string | null;
+  captureStyledViewport: (options?: StyledCaptureOptions) => string | null;
 }
 
 interface CADCanvasProps {
@@ -2164,7 +2169,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
       exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
-      captureStyledViewport: () => modelRef.current?.captureStyledViewport() ?? null,
+      captureStyledViewport: (options) => modelRef.current?.captureStyledViewport(options) ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;

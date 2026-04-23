@@ -190,8 +190,8 @@ export default function CADToPDP() {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
   }, []);
 
-  const captureViewportDataUrl = useCallback(() => {
-    return canvasRef.current?.captureStyledViewport() ?? null;
+  const captureViewportDataUrl = useCallback((maxSize?: number) => {
+    return canvasRef.current?.captureStyledViewport(maxSize ? { maxSize } : undefined) ?? null;
   }, []);
 
   const handleModelReady = useCallback(() => {
@@ -201,7 +201,7 @@ export default function CADToPDP() {
       invalidate();
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const dataUrl = captureViewportDataUrl();
+          const dataUrl = captureViewportDataUrl(768);
           if (dataUrl) setGlbThumbnail(dataUrl);
           flushSync(() => setShowViewportGizmo(true));
           invalidate();
