@@ -191,22 +191,7 @@ export default function CADToPDP() {
   }, []);
 
   const captureViewportDataUrl = useCallback(() => {
-    const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!canvas) return null;
-    try {
-      const offscreen = document.createElement("canvas");
-      offscreen.width = canvas.width;
-      offscreen.height = canvas.height;
-      const ctx = offscreen.getContext("2d");
-      if (!ctx) return null;
-      ctx.fillStyle = "#f5f5f3";
-      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-      ctx.drawImage(canvas, 0, 0);
-      const dataUrl = offscreen.toDataURL("image/png");
-      return dataUrl && dataUrl !== "data:," ? dataUrl : null;
-    } catch {
-      return null;
-    }
+    return canvasRef.current?.captureStyledViewport() ?? null;
   }, []);
 
   const handleModelReady = useCallback(() => {
@@ -557,7 +542,6 @@ export default function CADToPDP() {
                     qualityMode="balanced"
                     gemMode="simple"
                     showViewportGizmo={showViewportGizmo}
-                    showLayerOutlines
                   />
                 </CADRuntimeErrorBoundary>
               )}

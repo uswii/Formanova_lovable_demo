@@ -51,6 +51,26 @@ const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
 const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
+const CAPTURE_BACKGROUND_COLOR = "#f5f5f3";
+
+function generateSegColors(n: number): string[] {
+  const colors: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const hue = i / Math.max(n, 1);
+    const color = new THREE.Color().setHSL(hue, 1.0, 0.45);
+    colors.push(`#${color.getHexString()}`);
+  }
+  return colors;
+}
+
+function colorToRgb(colorValue: string): [number, number, number] {
+  const color = new THREE.Color(colorValue);
+  return [
+    Math.round(color.r * 255),
+    Math.round(color.g * 255),
+    Math.round(color.b * 255),
+  ];
+}
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -340,6 +360,7 @@ const LoadedModel = forwardRef<
     exportSceneBlob: () => Promise<Blob>;
     exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
     exportSceneRawBlob: () => Promise<Blob>;
+    captureStyledViewport: () => string | null;
   },
   {
   url: string;
@@ -411,6 +432,7 @@ const LoadedModel = forwardRef<
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
+  const visibleCaptureRefs = useRef<Map<string, { mesh: THREE.Mesh; outlineColor: string }>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
   // Store normalisation factors so exportSceneRawBlob can reverse the transform
@@ -422,7 +444,14 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
-  const { camera, gl: glRenderer } = useThree();
+  const { camera, gl: glRenderer, scene: rootScene } = useThree();
+  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null, outlineColor?: string) => {
+    if (mesh) {
+      visibleCaptureRefs.current.set(name, { mesh, outlineColor: outlineColor || DEFAULT_LAYER_OUTLINE_COLOR });
+    } else {
+      visibleCaptureRefs.current.delete(name);
+    }
+  }, []);
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -1429,6 +1458,162 @@ const LoadedModel = forwardRef<
       console.log(`[Raw Export] Done. Blob size: ${blob.size} bytes, normScale: ${normScaleRef.current}`);
       return blob;
     },
+    captureStyledViewport: (): string | null => {
+      const visibleEntries = Array.from(visibleCaptureRefs.current.entries())
+        .map(([name, entry]) => ({ name, ...entry }))
+        .filter(({ mesh }) => !!mesh && mesh.visible);
+
+      if (!visibleEntries.length) return null;
+
+      const canvas = glRenderer.domElement;
+      const width = canvas.width;
+      const height = canvas.height;
+      if (!width || !height) return null;
+
+      const offscreen = document.createElement("canvas");
+      offscreen.width = width;
+      offscreen.height = height;
+      const ctx = offscreen.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return null;
+
+      const segColors = generateSegColors(visibleEntries.length);
+      const segColorMap = new Map<string, [number, number, number]>();
+      const savedMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+      const segMaterials: THREE.MeshBasicMaterial[] = [];
+      const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
+      const prevClearAlpha = glRenderer.getClearAlpha();
+      const prevToneMapping = glRenderer.toneMapping;
+      const prevExposure = glRenderer.toneMappingExposure;
+
+      try {
+        visibleEntries.forEach(({ mesh, outlineColor }, index) => {
+          savedMaterials.set(mesh, mesh.material);
+          const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
+          segMaterials.push(segMat);
+          mesh.material = segMat;
+          const segRgb = colorToRgb(segColors[index]);
+          segColorMap.set(`${segRgb[0]},${segRgb[1]},${segRgb[2]}`, colorToRgb(outlineColor || DEFAULT_LAYER_OUTLINE_COLOR));
+        });
+
+        glRenderer.setClearColor(CAPTURE_BACKGROUND_COLOR, 1);
+        glRenderer.toneMapping = THREE.NoToneMapping;
+        glRenderer.toneMappingExposure = 1;
+        glRenderer.render(rootScene, camera);
+
+        ctx.fillStyle = CAPTURE_BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(canvas, 0, 0);
+        const segData = ctx.getImageData(0, 0, width, height);
+
+        visibleEntries.forEach(({ mesh }) => {
+          const originalMaterial = savedMaterials.get(mesh);
+          if (originalMaterial) mesh.material = originalMaterial;
+        });
+
+        glRenderer.toneMapping = prevToneMapping;
+        glRenderer.toneMappingExposure = prevExposure;
+        glRenderer.render(rootScene, camera);
+
+        ctx.fillStyle = CAPTURE_BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(canvas, 0, 0);
+        const geoData = ctx.getImageData(0, 0, width, height);
+
+        const isBoundary = new Uint8Array(width * height);
+        const sd = segData.data;
+        const gd = geoData.data;
+        const boundaryColors = new Uint8Array(width * height * 3);
+
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const pixelIndex = y * width + x;
+            const i = pixelIndex * 4;
+            const r = sd[i];
+            const g = sd[i + 1];
+            const b = sd[i + 2];
+
+            let edge = false;
+            for (let dy = -1; dy <= 1 && !edge; dy++) {
+              for (let dx = -1; dx <= 1 && !edge; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const ni = ((y + dy) * width + (x + dx)) * 4;
+                if (
+                  Math.abs(sd[ni] - r) > 8 ||
+                  Math.abs(sd[ni + 1] - g) > 8 ||
+                  Math.abs(sd[ni + 2] - b) > 8
+                ) {
+                  edge = true;
+                }
+              }
+            }
+
+            if (!edge) continue;
+
+            isBoundary[pixelIndex] = 1;
+            const styleKey = `${r},${g},${b}`;
+            const boundaryRgb = segColorMap.get(styleKey) ?? colorToRgb(DEFAULT_LAYER_OUTLINE_COLOR);
+            const colorIndex = pixelIndex * 3;
+            boundaryColors[colorIndex] = boundaryRgb[0];
+            boundaryColors[colorIndex + 1] = boundaryRgb[1];
+            boundaryColors[colorIndex + 2] = boundaryRgb[2];
+          }
+        }
+
+        const strokeRadius = Math.max(1, Math.round(Math.min(width, height) / 500));
+        const dilated = new Uint8Array(width * height);
+        const dilatedColors = new Uint8Array(width * height * 3);
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const pixelIndex = y * width + x;
+            if (!isBoundary[pixelIndex]) continue;
+
+            const colorIndex = pixelIndex * 3;
+            for (let dy = -strokeRadius; dy <= strokeRadius; dy++) {
+              const ny = y + dy;
+              if (ny < 0 || ny >= height) continue;
+              for (let dx = -strokeRadius; dx <= strokeRadius; dx++) {
+                const nx = x + dx;
+                if (nx < 0 || nx >= width) continue;
+                const neighborIndex = ny * width + nx;
+                dilated[neighborIndex] = 1;
+                const dilatedColorIndex = neighborIndex * 3;
+                dilatedColors[dilatedColorIndex] = boundaryColors[colorIndex];
+                dilatedColors[dilatedColorIndex + 1] = boundaryColors[colorIndex + 1];
+                dilatedColors[dilatedColorIndex + 2] = boundaryColors[colorIndex + 2];
+              }
+            }
+          }
+        }
+
+        for (let i = 0; i < width * height; i++) {
+          if (!dilated[i]) continue;
+          const rgbaIndex = i * 4;
+          const rgbIndex = i * 3;
+          gd[rgbaIndex] = dilatedColors[rgbIndex];
+          gd[rgbaIndex + 1] = dilatedColors[rgbIndex + 1];
+          gd[rgbaIndex + 2] = dilatedColors[rgbIndex + 2];
+          gd[rgbaIndex + 3] = 255;
+        }
+
+        ctx.putImageData(geoData, 0, 0);
+        return offscreen.toDataURL("image/png");
+      } catch (error) {
+        console.error("[CADCanvas] Styled capture failed:", error);
+        return null;
+      } finally {
+        visibleEntries.forEach(({ mesh }) => {
+          const originalMaterial = savedMaterials.get(mesh);
+          if (originalMaterial) mesh.material = originalMaterial;
+        });
+        segMaterials.forEach((material) => material.dispose());
+        glRenderer.setClearColor(prevClearColor, prevClearAlpha);
+        glRenderer.toneMapping = prevToneMapping;
+        glRenderer.toneMappingExposure = prevExposure;
+        glRenderer.render(rootScene, camera);
+        inv();
+      }
+    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // Selection-change detection moved into useMemo below (synchronous)
@@ -1602,6 +1787,12 @@ const LoadedModel = forwardRef<
             if (r) meshRefs.current.set(md.name, r);
             else meshRefs.current.delete(md.name);
 
+            if (r && !md.rendersOwnOutline) {
+              registerVisibleCaptureTarget(md.name, r, md.outlineColor);
+            } else {
+              registerVisibleCaptureTarget(md.name, null);
+            }
+
             if (showLayerOutlines && !md.rendersOwnOutline && r) {
               registerOutlineTarget?.(md.name, r, md.outlineColor);
             } else {
@@ -1632,6 +1823,7 @@ const LoadedModel = forwardRef<
           outlineColor={gem.outlineColor}
           showOutline={showLayerOutlines}
           registerOutlineTarget={registerOutlineTarget}
+          registerCaptureTarget={registerVisibleCaptureTarget}
           meshRefs={meshRefs}
           onMeshClick={onMeshClick}
         />
@@ -1701,6 +1893,7 @@ function SyncedGemOverlay({
   outlineColor,
   showOutline,
   registerOutlineTarget,
+  registerCaptureTarget,
   meshRefs,
   onMeshClick,
 }: {
@@ -1714,6 +1907,7 @@ function SyncedGemOverlay({
   outlineColor: string;
   showOutline: boolean;
   registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
+  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, color?: string) => void;
   meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1750,6 +1944,7 @@ function SyncedGemOverlay({
       outlineColor={outlineColor}
       showOutline={showOutline}
       registerOutlineTarget={registerOutlineTarget}
+      registerCaptureTarget={registerCaptureTarget}
       meshName={meshName}
       onMeshClick={onMeshClick}
     />
@@ -1770,6 +1965,7 @@ function DiamondEnvMapConsumer({
   outlineColor,
   showOutline,
   registerOutlineTarget,
+  registerCaptureTarget,
   meshName,
   onMeshClick,
 }: {
@@ -1783,6 +1979,7 @@ function DiamondEnvMapConsumer({
   outlineColor: string;
   showOutline: boolean;
   registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
+  registerCaptureTarget?: (name: string, object: THREE.Mesh | null, color?: string) => void;
   meshName: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1790,12 +1987,13 @@ function DiamondEnvMapConsumer({
 
   const setGemMeshRef = useCallback((node: THREE.Mesh | null) => {
     meshRef.current = node;
+    registerCaptureTarget?.(meshName, node, outlineColor);
     if (showOutline && node) {
       registerOutlineTarget?.(meshName, node, outlineColor);
     } else {
       registerOutlineTarget?.(meshName, null);
     }
-  }, [meshName, meshRef, outlineColor, registerOutlineTarget, showOutline]);
+  }, [meshName, meshRef, outlineColor, registerCaptureTarget, registerOutlineTarget, showOutline]);
 
   useEffect(() => {
     if (envMap) {
@@ -1862,6 +2060,7 @@ export interface CADCanvasHandle {
   exportSceneBlob: () => Promise<Blob>;
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
   exportSceneRawBlob: () => Promise<Blob>;
+  captureStyledViewport: () => string | null;
 }
 
 interface CADCanvasProps {
@@ -1946,6 +2145,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       exportSceneStlBlob: (scaleMm) => modelRef.current!.exportSceneStlBlob(scaleMm),
       exportSceneRawBlob: () => modelRef.current!.exportSceneRawBlob(),
+      captureStyledViewport: () => modelRef.current?.captureStyledViewport() ?? null,
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
