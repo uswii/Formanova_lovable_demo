@@ -170,6 +170,17 @@ function getCaptureComponentGeometries(geometry: THREE.BufferGeometry): THREE.Bu
   });
 }
 
+function flipCapturePixels(pixels: Uint8Array, width: number, height: number): Uint8ClampedArray {
+  const flipped = new Uint8ClampedArray(pixels.length);
+  const rowSize = width * 4;
+  for (let y = 0; y < height; y++) {
+    const srcStart = (height - 1 - y) * rowSize;
+    const destStart = y * rowSize;
+    flipped.set(pixels.subarray(srcStart, srcStart + rowSize), destStart);
+  }
+  return flipped;
+}
+
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
   const { gl, invalidate: inv } = useThree();
@@ -1579,7 +1590,6 @@ const LoadedModel = forwardRef<
 
       if (!captureGroups.length) return null;
 
-      const canvas = glRenderer.domElement;
       const controls = (glRenderer.domElement as any).__orbitControls;
       const savedPosition = camera.position.clone();
       const savedTarget = controls?.target?.clone?.() ?? null;
@@ -1602,60 +1612,106 @@ const LoadedModel = forwardRef<
 
       const segColors = generateSegColors(captureGroups.length);
       const segMaterials: THREE.MeshBasicMaterial[] = [];
+      const maskMaterials: THREE.MeshBasicMaterial[] = [];
       const segScene = new THREE.Scene();
+      const maskScene = new THREE.Scene();
       const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
       const prevClearAlpha = glRenderer.getClearAlpha();
       const prevToneMapping = glRenderer.toneMapping;
       const prevExposure = glRenderer.toneMappingExposure;
+      const prevRenderTarget = glRenderer.getRenderTarget();
+      const segTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        depthBuffer: true,
+        stencilBuffer: false,
+      });
+      const colorTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        depthBuffer: true,
+        stencilBuffer: false,
+      });
+      const maskTarget = new THREE.WebGLRenderTarget(captureSize, captureSize, {
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        depthBuffer: true,
+        stencilBuffer: false,
+      });
+
+      if ("samples" in segTarget) segTarget.samples = 0;
+      if ("samples" in colorTarget) colorTarget.samples = 4;
+      if ("samples" in maskTarget) maskTarget.samples = 0;
 
       try {
         if (controls) controls.autoRotate = false;
         (camera as THREE.PerspectiveCamera).fov = 30;
-        glRenderer.setSize(captureSize, captureSize);
         camera.aspect = 1;
         camera.updateProjectionMatrix();
 
         captureGroups.forEach((group, index) => {
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
+          const maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
           segMaterials.push(segMat);
+          maskMaterials.push(maskMat);
           group.components.forEach(({ mesh, geometry }) => {
             mesh.updateWorldMatrix(true, false);
             const segMesh = new THREE.Mesh(geometry, segMat);
+            const maskMesh = new THREE.Mesh(geometry, maskMat);
             segMesh.matrixAutoUpdate = false;
             segMesh.matrix.copy(mesh.matrixWorld);
             segMesh.matrixWorld.copy(mesh.matrixWorld);
+            maskMesh.matrixAutoUpdate = false;
+            maskMesh.matrix.copy(mesh.matrixWorld);
+            maskMesh.matrixWorld.copy(mesh.matrixWorld);
             segScene.add(segMesh);
+            maskScene.add(maskMesh);
           });
         });
 
         glRenderer.setClearColor("#ffffff", 1);
         glRenderer.toneMapping = THREE.NoToneMapping;
         glRenderer.toneMappingExposure = 1;
+        glRenderer.setRenderTarget(segTarget);
+        glRenderer.clear(true, true, true);
         glRenderer.render(segScene, camera);
 
-        ctx.clearRect(0, 0, captureSize, captureSize);
-        ctx.drawImage(canvas, 0, 0);
-        const segData = ctx.getImageData(0, 0, captureSize, captureSize);
+        const segPixels = new Uint8Array(captureSize * captureSize * 4);
+        glRenderer.readRenderTargetPixels(segTarget, 0, 0, captureSize, captureSize, segPixels);
+        const segData = { data: flipCapturePixels(segPixels, captureSize, captureSize) };
+
+        glRenderer.setRenderTarget(maskTarget);
+        glRenderer.clear(true, true, true);
+        glRenderer.render(maskScene, camera);
+
+        const maskPixels = new Uint8Array(captureSize * captureSize * 4);
+        glRenderer.readRenderTargetPixels(maskTarget, 0, 0, captureSize, captureSize, maskPixels);
+        const maskData = flipCapturePixels(maskPixels, captureSize, captureSize);
 
         glRenderer.setClearColor(prevClearColor, prevClearAlpha);
         glRenderer.toneMapping = prevToneMapping;
         glRenderer.toneMappingExposure = prevExposure;
+        glRenderer.setRenderTarget(colorTarget);
+        glRenderer.clear(true, true, true);
         glRenderer.render(rootScene, camera);
 
-        ctx.clearRect(0, 0, captureSize, captureSize);
-        ctx.drawImage(canvas, 0, 0);
-        const geoData = ctx.getImageData(0, 0, captureSize, captureSize);
+        const colorPixels = new Uint8Array(captureSize * captureSize * 4);
+        glRenderer.readRenderTargetPixels(colorTarget, 0, 0, captureSize, captureSize, colorPixels);
+        const geoData = new ImageData(flipCapturePixels(colorPixels, captureSize, captureSize), captureSize, captureSize);
 
         const width = captureSize;
         const height = captureSize;
         const isBoundary = new Uint8Array(width * height);
         const sd = segData.data;
+        const md = maskData;
         const gd = geoData.data;
 
         for (let y = 1; y < height - 1; y++) {
           for (let x = 1; x < width - 1; x++) {
             const pixelIndex = y * width + x;
             const i = pixelIndex * 4;
+            const isObjectPixel = md[i] < 128 || md[i + 1] < 128 || md[i + 2] < 128;
+            if (!isObjectPixel) continue;
             const r = sd[i];
             const g = sd[i + 1];
             const b = sd[i + 2];
@@ -1665,6 +1721,11 @@ const LoadedModel = forwardRef<
               for (let dx = -1; dx <= 1 && !edge; dx++) {
                 if (dx === 0 && dy === 0) continue;
                 const ni = ((y + dy) * width + (x + dx)) * 4;
+                const neighborIsObject = md[ni] < 128 || md[ni + 1] < 128 || md[ni + 2] < 128;
+                if (!neighborIsObject) {
+                  edge = true;
+                  continue;
+                }
                 if (
                   Math.abs(sd[ni] - r) > 8 ||
                   Math.abs(sd[ni + 1] - g) > 8 ||
@@ -1699,6 +1760,8 @@ const LoadedModel = forwardRef<
         for (let i = 0; i < width * height; i++) {
           if (!dilated[i]) continue;
           const rgbaIndex = i * 4;
+          const isObjectPixel = md[rgbaIndex] < 128 || md[rgbaIndex + 1] < 128 || md[rgbaIndex + 2] < 128;
+          if (!isObjectPixel) continue;
           gd[rgbaIndex] = 0;
           gd[rgbaIndex + 1] = 0;
           gd[rgbaIndex + 2] = 0;
@@ -1712,7 +1775,11 @@ const LoadedModel = forwardRef<
         return null;
       } finally {
         segMaterials.forEach((material) => material.dispose());
-        glRenderer.setSize(oldWidth, oldHeight);
+        maskMaterials.forEach((material) => material.dispose());
+        segTarget.dispose();
+        colorTarget.dispose();
+        maskTarget.dispose();
+        glRenderer.setRenderTarget(prevRenderTarget);
         camera.position.copy(savedPosition);
         (camera as THREE.PerspectiveCamera).fov = savedFov;
         camera.aspect = oldWidth / oldHeight;

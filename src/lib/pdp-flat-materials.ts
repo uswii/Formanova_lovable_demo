@@ -60,8 +60,9 @@ export const PDP_FLAT_PALETTE_MAP = new Map<string, PDPFlatEntry>(
 );
 
 // MeshBasicMaterial — renders the exact hex color, unaffected by scene lighting or HDRI.
-// This matches what the backend captureColorPreview function sees: the same hex colors
-// without lighting variance, so viewport and rendered output are visually consistent.
+// This made CAD-to-PDP swatches look too flat compared with the default green/blue
+// placeholders used at model load. Use the same shaded placeholder behavior so
+// geometry remains readable after a swatch is applied.
 _all.forEach((entry) => {
   if (MATERIAL_LIBRARY.find((m) => m.id === entry.id)) return;
   const def: MaterialDef = {
@@ -69,8 +70,11 @@ _all.forEach((entry) => {
     name: entry.label,
     category: entry.category,
     preview: entry.color,
-    create: () => new THREE.MeshBasicMaterial({
+    create: () => new THREE.MeshStandardMaterial({
       color: new THREE.Color(entry.color),
+      metalness: 0,
+      roughness: entry.category === "gemstone" ? 0.6 : 0.8,
+      flatShading: true,
       side: THREE.DoubleSide,
     }) as any,
   };
