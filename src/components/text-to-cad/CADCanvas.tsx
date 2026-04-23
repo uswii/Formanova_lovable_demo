@@ -56,14 +56,15 @@ const CAPTURE_MAX_SIZE = 2048;
 const CAPTURE_COMPONENT_POSITION_EPS = 1e-5;
 const VIEWPORT_BACKGROUND_COLOR = "#f5f5f3";
 
-function generateSegColors(n: number): string[] {
-  const colors: string[] = [];
-  for (let i = 0; i < n; i++) {
-    const hue = i / Math.max(n, 1);
-    const color = new THREE.Color().setHSL(hue, 1.0, 0.45);
-    colors.push(`#${color.getHexString()}`);
-  }
-  return colors;
+function encodeSegmentationId(id: number): THREE.Color {
+  const r = (id & 0xff) / 255;
+  const g = ((id >> 8) & 0xff) / 255;
+  const b = ((id >> 16) & 0xff) / 255;
+  return new THREE.Color(r, g, b);
+}
+
+function decodeSegmentationId(data: Uint8ClampedArray | Uint8Array, index: number): number {
+  return data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
 }
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
@@ -1612,7 +1613,6 @@ const LoadedModel = forwardRef<
       const ctx = offscreen.getContext("2d", { willReadFrequently: true });
       if (!ctx) return null;
 
-      const segColors = generateSegColors(segmentationComponents.length);
       const segMaterials: THREE.MeshBasicMaterial[] = [];
       const maskMaterials: THREE.MeshBasicMaterial[] = [];
       const segScene = new THREE.Scene();
@@ -1644,6 +1644,12 @@ const LoadedModel = forwardRef<
       if ("samples" in segTarget) segTarget.samples = 0;
       if ("samples" in colorTarget) colorTarget.samples = 4;
       if ("samples" in maskTarget) maskTarget.samples = 0;
+      segTarget.texture.minFilter = THREE.NearestFilter;
+      segTarget.texture.magFilter = THREE.NearestFilter;
+      segTarget.texture.generateMipmaps = false;
+      maskTarget.texture.minFilter = THREE.NearestFilter;
+      maskTarget.texture.magFilter = THREE.NearestFilter;
+      maskTarget.texture.generateMipmaps = false;
 
       try {
         if (controls) controls.autoRotate = false;
@@ -1652,7 +1658,7 @@ const LoadedModel = forwardRef<
         camera.updateProjectionMatrix();
 
         segmentationComponents.forEach(({ mesh, geometry }, index) => {
-          const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
+          const segMat = new THREE.MeshBasicMaterial({ color: encodeSegmentationId(index + 1), side: THREE.DoubleSide });
           const maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
           segMaterials.push(segMat);
           maskMaterials.push(maskMat);
@@ -1669,7 +1675,7 @@ const LoadedModel = forwardRef<
           maskScene.add(maskMesh);
         });
 
-        glRenderer.setClearColor("#ffffff", 1);
+        glRenderer.setClearColor(0x000000, 1);
         glRenderer.toneMapping = THREE.NoToneMapping;
         glRenderer.toneMappingExposure = 1;
         glRenderer.setRenderTarget(segTarget);
@@ -1712,9 +1718,8 @@ const LoadedModel = forwardRef<
             const i = pixelIndex * 4;
             const isObjectPixel = md[i] < 128 || md[i + 1] < 128 || md[i + 2] < 128;
             if (!isObjectPixel) continue;
-            const r = sd[i];
-            const g = sd[i + 1];
-            const b = sd[i + 2];
+            const currentId = decodeSegmentationId(sd, i);
+            if (currentId === 0) continue;
 
             let edge = false;
             for (let dy = -1; dy <= 1 && !edge; dy++) {
@@ -1726,11 +1731,8 @@ const LoadedModel = forwardRef<
                   edge = true;
                   continue;
                 }
-                if (
-                  Math.abs(sd[ni] - r) > 8 ||
-                  Math.abs(sd[ni + 1] - g) > 8 ||
-                  Math.abs(sd[ni + 2] - b) > 8
-                ) {
+                const neighborId = decodeSegmentationId(sd, ni);
+                if (neighborId !== currentId) {
                   edge = true;
                 }
               }
