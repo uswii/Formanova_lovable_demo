@@ -53,6 +53,7 @@ const OUTLINE_WIDTH = 700;
 const OUTLINE_EDGE_STRENGTH = 8;
 const CAPTURE_BACKGROUND_COLOR = "#f5f5f3";
 const CAPTURE_STROKE_RADIUS = 2;
+const CAPTURE_MAX_SIZE = 2048;
 
 function generateSegColors(n: number): string[] {
   const colors: string[] = [];
@@ -62,15 +63,6 @@ function generateSegColors(n: number): string[] {
     colors.push(`#${color.getHexString()}`);
   }
   return colors;
-}
-
-function colorToRgb(colorValue: string): [number, number, number] {
-  const color = new THREE.Color(colorValue);
-  return [
-    Math.round(color.r * 255),
-    Math.round(color.g * 255),
-    Math.round(color.b * 255),
-  ];
 }
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
@@ -433,7 +425,7 @@ const LoadedModel = forwardRef<
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
-  const visibleCaptureRefs = useRef<Map<string, { mesh: THREE.Mesh; outlineColor: string }>>(new Map());
+  const visibleCaptureRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
   // Store normalisation factors so exportSceneRawBlob can reverse the transform
@@ -446,9 +438,9 @@ const LoadedModel = forwardRef<
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
   const { camera, gl: glRenderer, scene: rootScene } = useThree();
-  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null, outlineColor?: string) => {
+  const registerVisibleCaptureTarget = useCallback((name: string, mesh: THREE.Mesh | null) => {
     if (mesh) {
-      visibleCaptureRefs.current.set(name, { mesh, outlineColor: outlineColor || DEFAULT_LAYER_OUTLINE_COLOR });
+      visibleCaptureRefs.current.set(name, mesh);
     } else {
       visibleCaptureRefs.current.delete(name);
     }
@@ -1460,24 +1452,30 @@ const LoadedModel = forwardRef<
       return blob;
     },
     captureStyledViewport: (): string | null => {
-      const visibleEntries = Array.from(visibleCaptureRefs.current.entries())
-        .map(([name, entry]) => ({ name, ...entry }))
-        .filter(({ mesh }) => !!mesh && mesh.visible);
+      const visibleMeshes = Array.from(visibleCaptureRefs.current.values()).filter((mesh) => !!mesh && mesh.visible);
 
-      if (!visibleEntries.length) return null;
+      if (!visibleMeshes.length) return null;
 
-      const canvas = glRenderer.domElement;
-      const width = canvas.width;
-      const height = canvas.height;
-      if (!width || !height) return null;
+      const controls = (glRenderer.domElement as any).__orbitControls;
+      const savedPosition = camera.position.clone();
+      const savedTarget = controls?.target?.clone?.() ?? null;
+      const savedAutoRotate = controls?.autoRotate ?? false;
+      const savedFov = (camera as THREE.PerspectiveCamera).fov;
+      const oldWidth = glRenderer.domElement.width;
+      const oldHeight = glRenderer.domElement.height;
+      if (!oldWidth || !oldHeight) return null;
+
+      const gl = glRenderer.getContext();
+      const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || CAPTURE_MAX_SIZE;
+      const captureSize = Math.min(CAPTURE_MAX_SIZE, maxSize);
 
       const offscreen = document.createElement("canvas");
-      offscreen.width = width;
-      offscreen.height = height;
+      offscreen.width = captureSize;
+      offscreen.height = captureSize;
       const ctx = offscreen.getContext("2d", { willReadFrequently: true });
       if (!ctx) return null;
 
-      const segColors = generateSegColors(visibleEntries.length);
+      const segColors = generateSegColors(visibleMeshes.length);
       const savedMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
       const segMaterials: THREE.MeshBasicMaterial[] = [];
       const prevClearColor = glRenderer.getClearColor(new THREE.Color()).clone();
@@ -1486,7 +1484,13 @@ const LoadedModel = forwardRef<
       const prevExposure = glRenderer.toneMappingExposure;
 
       try {
-        visibleEntries.forEach(({ mesh }, index) => {
+        if (controls) controls.autoRotate = false;
+        (camera as THREE.PerspectiveCamera).fov = 30;
+        glRenderer.setSize(captureSize, captureSize);
+        camera.aspect = 1;
+        camera.updateProjectionMatrix();
+
+        visibleMeshes.forEach((mesh, index) => {
           savedMaterials.set(mesh, mesh.material);
           const segMat = new THREE.MeshBasicMaterial({ color: segColors[index], side: THREE.DoubleSide });
           segMaterials.push(segMat);
@@ -1499,11 +1503,11 @@ const LoadedModel = forwardRef<
         glRenderer.render(rootScene, camera);
 
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, captureSize, captureSize);
         ctx.drawImage(canvas, 0, 0);
-        const segData = ctx.getImageData(0, 0, width, height);
+        const segData = ctx.getImageData(0, 0, captureSize, captureSize);
 
-        visibleEntries.forEach(({ mesh }) => {
+        visibleMeshes.forEach((mesh) => {
           const originalMaterial = savedMaterials.get(mesh);
           if (originalMaterial) mesh.material = originalMaterial;
         });
@@ -1513,14 +1517,15 @@ const LoadedModel = forwardRef<
         glRenderer.render(rootScene, camera);
 
         ctx.fillStyle = CAPTURE_BACKGROUND_COLOR;
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, captureSize, captureSize);
         ctx.drawImage(canvas, 0, 0);
-        const geoData = ctx.getImageData(0, 0, width, height);
+        const geoData = ctx.getImageData(0, 0, captureSize, captureSize);
 
+        const width = captureSize;
+        const height = captureSize;
         const isBoundary = new Uint8Array(width * height);
         const sd = segData.data;
         const gd = geoData.data;
-        const boundaryColors = new Uint8Array(width * height * 3);
 
         for (let y = 1; y < height - 1; y++) {
           for (let x = 1; x < width - 1; x++) {
@@ -1548,34 +1553,19 @@ const LoadedModel = forwardRef<
             if (!edge) continue;
 
             isBoundary[pixelIndex] = 1;
-            const colorIndex = pixelIndex * 3;
-            boundaryColors[colorIndex] = 0;
-            boundaryColors[colorIndex + 1] = 0;
-            boundaryColors[colorIndex + 2] = 0;
           }
         }
 
         const dilated = new Uint8Array(width * height);
-        const dilatedColors = new Uint8Array(width * height * 3);
-
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
+        for (let y = CAPTURE_STROKE_RADIUS; y < height - CAPTURE_STROKE_RADIUS; y++) {
+          for (let x = CAPTURE_STROKE_RADIUS; x < width - CAPTURE_STROKE_RADIUS; x++) {
             const pixelIndex = y * width + x;
             if (!isBoundary[pixelIndex]) continue;
-
-            const colorIndex = pixelIndex * 3;
             for (let dy = -CAPTURE_STROKE_RADIUS; dy <= CAPTURE_STROKE_RADIUS; dy++) {
               const ny = y + dy;
-              if (ny < 0 || ny >= height) continue;
               for (let dx = -CAPTURE_STROKE_RADIUS; dx <= CAPTURE_STROKE_RADIUS; dx++) {
                 const nx = x + dx;
-                if (nx < 0 || nx >= width) continue;
-                const neighborIndex = ny * width + nx;
-                dilated[neighborIndex] = 1;
-                const dilatedColorIndex = neighborIndex * 3;
-                dilatedColors[dilatedColorIndex] = boundaryColors[colorIndex];
-                dilatedColors[dilatedColorIndex + 1] = boundaryColors[colorIndex + 1];
-                dilatedColors[dilatedColorIndex + 2] = boundaryColors[colorIndex + 2];
+                dilated[ny * width + nx] = 1;
               }
             }
           }
@@ -1584,10 +1574,9 @@ const LoadedModel = forwardRef<
         for (let i = 0; i < width * height; i++) {
           if (!dilated[i]) continue;
           const rgbaIndex = i * 4;
-          const rgbIndex = i * 3;
-          gd[rgbaIndex] = dilatedColors[rgbIndex];
-          gd[rgbaIndex + 1] = dilatedColors[rgbIndex + 1];
-          gd[rgbaIndex + 2] = dilatedColors[rgbIndex + 2];
+          gd[rgbaIndex] = 0;
+          gd[rgbaIndex + 1] = 0;
+          gd[rgbaIndex + 2] = 0;
           gd[rgbaIndex + 3] = 255;
         }
 
@@ -1597,11 +1586,21 @@ const LoadedModel = forwardRef<
         console.error("[CADCanvas] Styled capture failed:", error);
         return null;
       } finally {
-        visibleEntries.forEach(({ mesh }) => {
+        visibleMeshes.forEach((mesh) => {
           const originalMaterial = savedMaterials.get(mesh);
           if (originalMaterial) mesh.material = originalMaterial;
         });
         segMaterials.forEach((material) => material.dispose());
+        glRenderer.setSize(oldWidth, oldHeight);
+        camera.position.copy(savedPosition);
+        (camera as THREE.PerspectiveCamera).fov = savedFov;
+        camera.aspect = oldWidth / oldHeight;
+        camera.updateProjectionMatrix();
+        if (controls && savedTarget) {
+          controls.target.copy(savedTarget);
+          controls.autoRotate = savedAutoRotate;
+          controls.update();
+        }
         glRenderer.setClearColor(prevClearColor, prevClearAlpha);
         glRenderer.toneMapping = prevToneMapping;
         glRenderer.toneMappingExposure = prevExposure;
