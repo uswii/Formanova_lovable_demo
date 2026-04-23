@@ -18,7 +18,6 @@ npx vitest run src/path/to/test.test.ts  # Run single test file
 Required in `.env`:
 ```
 VITE_PIPELINE_API_URL=
-VITE_PIPELINE_API_KEY=
 VITE_PIPELINE_ADMIN_SECRET=
 VITE_ADMIN_EMAILS=   # Comma-separated list of admin emails
 ```

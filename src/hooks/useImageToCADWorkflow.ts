@@ -21,7 +21,6 @@ import {
 } from "@/lib/cad-workflows";
 import { resolveCadGenerationTier } from "@/lib/cad-tier";
 import { trackPaywallHit, trackCadGenerationCompleted } from "@/lib/posthog-events";
-import { getStoredToken } from "@/lib/auth-api";
 
 function fileToDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -211,7 +210,7 @@ export function useImageToCADWorkflow({ model, prompt, referenceImage, pushUndo,
       const startRes = await authenticatedFetch(`/api/run/${CAD_EDIT_WORKFLOW}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model, getStoredToken(), userId)),
+        body: JSON.stringify(buildCadEditStartBody(promptText, sourceWorkflowId, model)),
       });
 
       if (!startRes.ok) {
