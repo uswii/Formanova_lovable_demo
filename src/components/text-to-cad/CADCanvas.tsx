@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Canvas, useThree, useFrame, ThreeEvent, invalidate, useLoader } from "@react-three/fiber";
+import { EffectComposer, Outline } from "@react-three/postprocessing";
 import {
   Environment,
   OrbitControls,
@@ -7,7 +8,6 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
-  Outlines,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -49,7 +49,8 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
 
 const DEFAULT_LAYER_OUTLINE_COLOR = "#2d2d2d";
 const DARK_LAYER_OUTLINE_COLOR = "#d9d9d9";
-const OUTLINE_THICKNESS = 0.028;
+const OUTLINE_WIDTH = 700;
+const OUTLINE_EDGE_STRENGTH = 8;
 
 function getLayerOutlineColor(materialDef?: MaterialDef): string {
   if (!materialDef) return DEFAULT_LAYER_OUTLINE_COLOR;
@@ -63,20 +64,6 @@ function getLayerOutlineColor(materialDef?: MaterialDef): string {
   const color = new THREE.Color(preview);
   const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
   return luminance < 0.2 ? DARK_LAYER_OUTLINE_COLOR : DEFAULT_LAYER_OUTLINE_COLOR;
-}
-
-function LayerOutline({ color }: { color: string }) {
-  return (
-    <Outlines
-      color={color}
-      screenspace
-      thickness={OUTLINE_THICKNESS}
-      opacity={1}
-      transparent
-      toneMapped={false}
-      angle={Math.PI}
-    />
-  );
 }
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
@@ -372,8 +359,9 @@ const LoadedModel = forwardRef<
     gemMode?: GemMode;
     onGemModeForced?: (mode: GemMode) => void;
     showLayerOutlines?: boolean;
+    registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced, showLayerOutlines = false }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced, showLayerOutlines = false, registerOutlineTarget }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -1610,7 +1598,16 @@ const LoadedModel = forwardRef<
       {standardElements.map((md) => (
         <mesh
           key={md.name}
-          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+          ref={(r) => {
+            if (r) meshRefs.current.set(md.name, r);
+            else meshRefs.current.delete(md.name);
+
+            if (showLayerOutlines && !md.rendersOwnOutline && r) {
+              registerOutlineTarget?.(md.name, r, md.outlineColor);
+            } else {
+              registerOutlineTarget?.(md.name, null);
+            }
+          }}
           geometry={md.geometry}
           material={md.material}
           onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -1618,11 +1615,7 @@ const LoadedModel = forwardRef<
             if (_isTransformDragging) return;
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
-        >
-          {showLayerOutlines && !md.rendersOwnOutline && (
-            <LayerOutline color={md.outlineColor} />
-          )}
-        </mesh>
+        />
       ))}
 
       {/* Diamond overlay: refraction material rendered separately */}
@@ -1638,6 +1631,7 @@ const LoadedModel = forwardRef<
           isSelected={gem.isSelected}
           outlineColor={gem.outlineColor}
           showOutline={showLayerOutlines}
+          registerOutlineTarget={registerOutlineTarget}
           meshRefs={meshRefs}
           onMeshClick={onMeshClick}
         />
@@ -1706,6 +1700,7 @@ function SyncedGemOverlay({
   isSelected,
   outlineColor,
   showOutline,
+  registerOutlineTarget,
   meshRefs,
   onMeshClick,
 }: {
@@ -1718,6 +1713,7 @@ function SyncedGemOverlay({
   isSelected: boolean;
   outlineColor: string;
   showOutline: boolean;
+  registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
   meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
@@ -1753,6 +1749,7 @@ function SyncedGemOverlay({
       isSelected={isSelected}
       outlineColor={outlineColor}
       showOutline={showOutline}
+      registerOutlineTarget={registerOutlineTarget}
       meshName={meshName}
       onMeshClick={onMeshClick}
     />
@@ -1772,6 +1769,7 @@ function DiamondEnvMapConsumer({
   isSelected,
   outlineColor,
   showOutline,
+  registerOutlineTarget,
   meshName,
   onMeshClick,
 }: {
@@ -1784,10 +1782,20 @@ function DiamondEnvMapConsumer({
   isSelected: boolean;
   outlineColor: string;
   showOutline: boolean;
+  registerOutlineTarget?: (name: string, object: THREE.Object3D | null, color?: string) => void;
   meshName: string;
   onMeshClick: (name: string, multi: boolean) => void;
 }) {
   const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+
+  const setGemMeshRef = useCallback((node: THREE.Mesh | null) => {
+    meshRef.current = node;
+    if (showOutline && node) {
+      registerOutlineTarget?.(meshName, node, outlineColor);
+    } else {
+      registerOutlineTarget?.(meshName, null);
+    }
+  }, [meshName, meshRef, outlineColor, registerOutlineTarget, showOutline]);
 
   useEffect(() => {
     if (envMap) {
@@ -1799,7 +1807,7 @@ function DiamondEnvMapConsumer({
 
   return (
     <mesh
-      ref={meshRef}
+      ref={setGemMeshRef}
       geometry={geometry}
       position={position}
       quaternion={quaternion}
@@ -1820,7 +1828,6 @@ function DiamondEnvMapConsumer({
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
-      {showOutline && <LayerOutline color={outlineColor} />}
     </mesh>
   );
 }
@@ -1882,6 +1889,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced, showViewportGizmo = true, showLayerOutlines = false }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
+    const darkOutlineRefs = useRef<Map<string, THREE.Object3D>>(new Map());
+    const lightOutlineRefs = useRef<Map<string, THREE.Object3D>>(new Map());
+    const [, setOutlineRevision] = useState(0);
     
     // Compute effective quality settings based on mode
     const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
@@ -1891,6 +1901,29 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const getOrbitControls = useCallback(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('canvas');
       return canvas ? (canvas as any).__orbitControls : null;
+    }, []);
+
+    const registerOutlineTarget = useCallback((name: string, object: THREE.Object3D | null, color?: string) => {
+      const useLightOutline = color === DARK_LAYER_OUTLINE_COLOR;
+      const activeMap = useLightOutline ? lightOutlineRefs.current : darkOutlineRefs.current;
+      const inactiveMap = useLightOutline ? darkOutlineRefs.current : lightOutlineRefs.current;
+      let changed = false;
+
+      if (inactiveMap.delete(name)) changed = true;
+
+      if (object) {
+        if (activeMap.get(name) !== object) {
+          activeMap.set(name, object);
+          changed = true;
+        }
+      } else if (activeMap.delete(name)) {
+        changed = true;
+      }
+
+      if (changed) {
+        setOutlineRevision((v) => v + 1);
+        invalidate();
+      }
     }, []);
 
     useImperativeHandle(ref, () => ({
@@ -2098,6 +2131,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 gemMode={gemMode}
                 onGemModeForced={onGemModeForced}
                 showLayerOutlines={showLayerOutlines}
+                registerOutlineTarget={registerOutlineTarget}
                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
                   setDebugStats(prev => ({
                     ...prev,
@@ -2122,6 +2156,28 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               maxPolarAngle={Math.PI}
               makeDefault
             />
+            {showLayerOutlines && (
+              <EffectComposer multisampling={0} autoClear={false}>
+                <Outline
+                  selection={[...darkOutlineRefs.current.values()]}
+                  visibleEdgeColor={0x2d2d2d}
+                  hiddenEdgeColor={0x2d2d2d}
+                  edgeStrength={OUTLINE_EDGE_STRENGTH}
+                  width={OUTLINE_WIDTH}
+                  blur={false}
+                  xRay={false}
+                />
+                <Outline
+                  selection={[...lightOutlineRefs.current.values()]}
+                  visibleEdgeColor={0xd9d9d9}
+                  hiddenEdgeColor={0xd9d9d9}
+                  edgeStrength={OUTLINE_EDGE_STRENGTH}
+                  width={OUTLINE_WIDTH}
+                  blur={false}
+                  xRay={false}
+                />
+              </EffectComposer>
+            )}
             {showViewportGizmo && (
               <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
                 <GizmoViewport labelColor="white" axisHeadScale={0.8} />
