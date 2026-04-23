@@ -202,6 +202,7 @@ export default function Welcome() {
             <ThemeLogo className="h-8" />
             <nav className="flex items-center gap-8">
               <Link to="/studio" className="marta-label marta-link hover:text-foreground">Studio</Link>
+              <a href="https://formanova.ai/about/" className="marta-label marta-link hover:text-foreground">About</a>
               <Link to="/tutorial" className="marta-label marta-link hover:text-foreground">Tutorial</Link>
               <a href="https://linkedin.com/company/rare-sense-inc" target="_blank" rel="noopener noreferrer" className="marta-label marta-link hover:text-foreground">LinkedIn</a>
             </nav>
