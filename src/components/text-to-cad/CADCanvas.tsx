@@ -7,7 +7,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   MeshRefractionMaterial,
-  Outlines,
+  Edges,
 } from "@react-three/drei";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
@@ -1605,15 +1605,10 @@ const LoadedModel = forwardRef<
           }}
         >
           {showLayerOutlines && (
-            <Outlines
+            <Edges
+              scale={1.0015}
+              threshold={22}
               color={md.outlineColor}
-              thickness={0.024}
-              angle={Math.PI}
-              toneMapped={false}
-              opacity={0.95}
-              polygonOffset
-              polygonOffsetFactor={-4}
-              renderOrder={10}
             />
           )}
         </mesh>
