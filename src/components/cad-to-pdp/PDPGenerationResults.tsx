@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Eye, Sparkles, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, Sparkles, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
 import type { PDPJob as GenerationJob } from "@/contexts/PDPGenerationContext";
 import { TOOL_COSTS } from "@/lib/credits-api";
 
@@ -9,11 +9,12 @@ const PRODUCT_SHOT_COST = TOOL_COSTS.Product_shot_pipeline ?? 10;
 interface Props {
   jobs: GenerationJob[];
   onPreview: (job: GenerationJob) => void;
+  onDownload: (job: GenerationJob) => void;
   onStylize: (job: GenerationJob) => void;
   onRegenerate: (job: GenerationJob) => void;
 }
 
-export function PDPGenerationResults({ jobs, onPreview, onStylize, onRegenerate }: Props) {
+export function PDPGenerationResults({ jobs, onPreview, onDownload, onStylize, onRegenerate }: Props) {
   return (
     <div className="divide-y divide-border/40">
       {jobs.map((job, idx) => (
@@ -22,6 +23,7 @@ export function PDPGenerationResults({ jobs, onPreview, onStylize, onRegenerate 
           job={job}
           index={jobs.length - idx}
           onPreview={onPreview}
+          onDownload={onDownload}
           onStylize={onStylize}
           onRegenerate={onRegenerate}
         />
@@ -31,11 +33,12 @@ export function PDPGenerationResults({ jobs, onPreview, onStylize, onRegenerate 
 }
 
 function ResultCard({
-  job, index, onPreview, onStylize, onRegenerate,
+  job, index, onPreview, onDownload, onStylize, onRegenerate,
 }: {
   job: GenerationJob;
   index: number;
   onPreview: (job: GenerationJob) => void;
+  onDownload: (job: GenerationJob) => void;
   onStylize: (job: GenerationJob) => void;
   onRegenerate: (job: GenerationJob) => void;
 }) {
@@ -55,7 +58,7 @@ function ResultCard({
       <div className="flex items-start gap-3">
         {/* Thumbnail — larger */}
         <div
-          className={`relative flex-shrink-0 w-20 h-20 border border-border overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+          className={`group relative flex-shrink-0 w-20 h-20 border border-border overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
           onClick={() => isCompleted && onPreview(job)}
           role={isCompleted ? "button" : undefined}
           tabIndex={isCompleted ? 0 : undefined}
@@ -69,6 +72,18 @@ function ResultCard({
           <span className="absolute top-1 left-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-black/60 font-mono text-[8px] text-white/80">
             {index}
           </span>
+          {isCompleted && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(job);
+              }}
+              title="Download"
+              className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-sm border border-white/20 bg-black/65 text-white opacity-0 transition-all hover:bg-black/80 group-hover:opacity-100 focus:opacity-100"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+          )}
           {isGenerating && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/25">
               <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
@@ -106,23 +121,23 @@ function ResultCard({
 
           {/* Actions */}
           {showActionRow && (
-            <div className={`grid gap-2 ${isCompleted ? "grid-cols-3" : "grid-cols-1"}`}>
+            <div className={`flex items-stretch gap-2 ${isCompleted ? "" : "w-full"}`}>
               {isCompleted && (
-                <>
-                  <Btn icon={<Eye className="h-3.5 w-3.5" />} label="Preview" onClick={() => onPreview(job)} />
-                  <Btn
-                    icon={<Sparkles className="h-3.5 w-3.5" />}
-                    label="Product Shot"
-                    meta={`<= ${PRODUCT_SHOT_COST} credits`}
-                    onClick={() => onStylize(job)}
-                  />
-                </>
+                <Btn
+                  icon={<Sparkles className="h-4 w-4" />}
+                  label="Stylized Shot"
+                  meta={`<= ${PRODUCT_SHOT_COST} credits`}
+                  onClick={() => onStylize(job)}
+                  emphasis="primary"
+                  size="primary"
+                />
               )}
               <Btn
                 icon={<RotateCcw className="h-3.5 w-3.5" />}
                 label={isFailed ? "Retry" : "Regenerate"}
                 onClick={() => onRegenerate(job)}
                 emphasis={isCompleted ? "default" : "primary"}
+                size={isCompleted ? "secondary" : "primary"}
               />
             </div>
           )}
@@ -138,20 +153,26 @@ function Btn({
   meta,
   onClick,
   emphasis = "default",
+  size = "secondary",
 }: {
   icon: ReactNode;
   label: string;
   meta?: string;
   onClick: () => void;
   emphasis?: "default" | "primary";
+  size?: "primary" | "secondary";
 }) {
   return (
     <button
       onClick={onClick}
       title={label}
-      className={`flex h-11 items-center justify-center gap-2 rounded-sm border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+      className={`flex items-center justify-center rounded-sm border font-mono uppercase transition-colors ${
+        size === "primary"
+          ? "h-12 flex-1 gap-2.5 px-4 text-[10px] font-semibold tracking-[0.12em]"
+          : "h-12 gap-2 px-3 text-[9px] font-semibold tracking-[0.1em]"
+      } ${
         emphasis === "primary"
-          ? "border-primary/60 bg-primary/12 text-primary hover:border-primary hover:bg-primary/18"
+          ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
           : "border-border/70 bg-muted/20 text-foreground hover:border-foreground/35 hover:bg-muted/35"
       }`}
     >

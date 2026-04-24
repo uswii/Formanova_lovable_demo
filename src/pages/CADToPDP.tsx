@@ -378,6 +378,17 @@ export default function CADToPDP() {
     });
   }, []);
 
+  const handleDownloadPDPJob = useCallback((job: PDPJob) => {
+    const url = job.resultUrl ?? job.sourceDataUrl;
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pdp-result-${job.screenshotId}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
+
   const handleStylizePDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
     if (!url) return;
@@ -596,6 +607,7 @@ export default function CADToPDP() {
                 <PDPGenerationResults
                   jobs={generationJobs}
                   onPreview={handlePreviewPDPJob}
+                  onDownload={handleDownloadPDPJob}
                   onStylize={handleStylizePDPJob}
                   onRegenerate={regenerateJob}
                 />
@@ -623,6 +635,7 @@ export default function CADToPDP() {
                 <PDPGenerationResults
                   jobs={generationJobs}
                   onPreview={handlePreviewPDPJob}
+                  onDownload={handleDownloadPDPJob}
                   onStylize={handleStylizePDPJob}
                   onRegenerate={regenerateJob}
                 />
