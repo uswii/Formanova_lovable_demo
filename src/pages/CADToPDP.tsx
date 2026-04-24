@@ -25,6 +25,7 @@ import { useCreditPreflight } from "@/hooks/use-credit-preflight";
 import { CreditPreflightModal } from "@/components/CreditPreflightModal";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 
+
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
 
 interface WorkspacePopup {
@@ -37,11 +38,7 @@ interface GenerationPreview {
   downloadName: string;
 }
 
-interface UploadedGlbRef {
-  url: string;
-  assetId: string | null;
-  uri: string | null;
-}
+
 
 export default function CADToPDP() {
   const navigate = useNavigate();
@@ -84,7 +81,7 @@ export default function CADToPDP() {
   interface UndoEntry { snapshot: CanvasSnapshot; materials: Record<string, string>; }
   const undoStack = useRef<UndoEntry[]>([]);
   const redoStack = useRef<UndoEntry[]>([]);
-  const uploadedGlbRef = useRef<UploadedGlbRef | null>(null);
+  const glbFileRef = useRef<File | null>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,20 +137,6 @@ export default function CADToPDP() {
 
   const showWorkspacePopup = useCallback((title: string, message: string) => {
     setWorkspacePopup({ title, message });
-  }, []);
-
-  const uploadDataAsset = useCallback(async (
-    dataUrl: string,
-    assetType: "generated_photo" | "generated_cad",
-    metadata?: Record<string, string>,
-    contentType = "image/png",
-  ) => {
-    const uploaded = await uploadToAzure(dataUrl, contentType, assetType, metadata);
-    return {
-      url: uploaded.sas_url || uploaded.https_url,
-      assetId: uploaded.asset_id ?? null,
-      uri: uploaded.uri,
-    };
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -237,38 +220,12 @@ export default function CADToPDP() {
     setMeshes([]);
     setAppliedMaterials({});
     setGlbThumbnail(null);
-    uploadedGlbRef.current = null;
+    glbFileRef.current = file;
     undoStack.current = [];
     redoStack.current = [];
     setUndoCount(0);
     setRedoCount(0);
-
-    void (async () => {
-      try {
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        const uploaded = await uploadDataAsset(base64, "generated_cad", {
-          category: TO_SINGULAR.rings ?? "ring",
-          intended_use: "pdp",
-          filename: file.name,
-          source: "cad_to_pdp_glb",
-        }, file.type || "model/gltf-binary");
-        uploadedGlbRef.current = { url: uploaded.url, assetId: uploaded.assetId, uri: uploaded.uri ?? null };
-        console.log("[CADToPDP] GLB uploaded", {
-          glb_url: uploaded.url,
-          glb_asset_id: uploaded.assetId,
-          glb_uri: uploaded.uri,
-          filename: file.name,
-        });
-      } catch (error) {
-        console.warn("[CADToPDP] Failed to upload GLB for backend testing", error);
-      }
-    })();
-  }, [glbUrl, showWorkspacePopup, uploadDataAsset]);
+  }, [glbUrl, showWorkspacePopup]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -303,7 +260,7 @@ export default function CADToPDP() {
     setMeshes([]);
     setAppliedMaterials({});
     setGlbThumbnail(null);
-    uploadedGlbRef.current = null;
+    glbFileRef.current = null;
     setIsModelLoading(false);
     undoStack.current = [];
     redoStack.current = [];
@@ -415,47 +372,6 @@ export default function CADToPDP() {
         if (dataUrl) {
           const screenshotId = Date.now();
           setScreenshots((prev) => [...prev, { id: screenshotId, dataUrl, maskDataUrl: maskDataUrl ?? null }]);
-          void (async () => {
-            try {
-              const [captureUpload, maskUpload] = await Promise.all([
-                uploadDataAsset(dataUrl, "generated_photo", {
-                  category: TO_SINGULAR.rings ?? "ring",
-                  intended_use: "pdp",
-                  source: "cad_to_pdp_capture",
-                  screenshot_id: String(screenshotId),
-                }),
-                maskDataUrl
-                  ? uploadDataAsset(maskDataUrl, "generated_photo", {
-                      category: TO_SINGULAR.rings ?? "ring",
-                      intended_use: "pdp",
-                      source: "cad_to_pdp_mask",
-                      screenshot_id: String(screenshotId),
-                      display_type: "mask",
-                    })
-                  : Promise.resolve(null),
-              ]);
-              setScreenshots((prev) => prev.map((shot) => shot.id === screenshotId ? {
-                ...shot,
-                uploadedUrl: captureUpload.url,
-                uploadedAssetId: captureUpload.assetId,
-                captureUri: captureUpload.uri ?? null,
-                maskUploadedUrl: maskUpload?.url ?? null,
-                maskAssetId: maskUpload?.assetId ?? null,
-                maskUri: maskUpload?.uri ?? null,
-              } : shot));
-              console.log("[CADToPDP] Screenshot uploaded", {
-                screenshot_id: screenshotId,
-                capture_url: captureUpload.url,
-                capture_asset_id: captureUpload.assetId,
-                capture_uri: captureUpload.uri,
-                mask_url: maskUpload?.url ?? null,
-                mask_asset_id: maskUpload?.assetId ?? null,
-                mask_uri: maskUpload?.uri ?? null,
-              });
-            } catch (error) {
-              console.warn("[CADToPDP] Failed to upload screenshot or mask for backend testing", error);
-            }
-          })();
         }
         flushSync(() => {
           setShowViewportGizmo(true);
@@ -466,7 +382,7 @@ export default function CADToPDP() {
         invalidate();
       });
     });
-  }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl, captureViewportMaskDataUrl, uploadDataAsset]);
+  }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl, captureViewportMaskDataUrl]);
 
   const captureDebugMask = useCallback(() => {
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
@@ -506,7 +422,7 @@ export default function CADToPDP() {
     if (screenshots.length === 0) return;
     const approved = await checkCredits('cad_render_v1', screenshots.length);
     if (!approved) return;
-    generate(screenshots, uploadedGlbRef.current?.uri ?? null);
+    generate(screenshots, glbFileRef.current);
   }, [screenshots, generate, checkCredits]);
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {

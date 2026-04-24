@@ -13,8 +13,7 @@ const MAX_CONSECUTIVE_ERRORS = 5;
 interface ScreenshotPayload {
   id: number;
   dataUrl: string;
-  captureUri?: string | null;
-  maskUri?: string | null;
+  maskDataUrl?: string | null;
 }
 
 export interface PDPJob {
@@ -25,15 +24,14 @@ export interface PDPJob {
   resultUrl?: string;
   startedAt: number;
   errorMessage?: string;
-  glbUri?: string | null;
-  captureUri?: string | null;
-  maskUri?: string | null;
+  glbFile?: File | null;
+  maskDataUrl?: string | null;
   workflowId?: string | null;
 }
 
 interface PDPGenerationContextValue {
   jobs: PDPJob[];
-  generate: (screenshots: ScreenshotPayload[], glbUri?: string | null) => void;
+  generate: (screenshots: ScreenshotPayload[], glbFile?: File | null) => void;
   regenerateJob: (job: PDPJob) => void;
   removeJob: (id: string) => void;
 }
@@ -81,15 +79,45 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     abortRefs.current.set(job.id, ac);
 
     try {
-      if (!job.glbUri) {
-        patchJob(job.id, { status: 'failed', errorMessage: 'Model upload is still in progress. Please wait and try again.' });
-        return;
-      }
-      if (!job.captureUri) {
-        patchJob(job.id, { status: 'failed', errorMessage: 'Screenshot upload is still in progress. Please wait and try again.' });
+      if (!job.glbFile) {
+        patchJob(job.id, { status: 'failed', errorMessage: 'No GLB file available for upload.' });
         return;
       }
 
+      // Convert data URLs to blobs (raw fetch is allowed for data: URLs per AI_RULES)
+      const previewBlob = await fetch(job.sourceDataUrl).then(r => r.blob());
+      const maskBlob = job.maskDataUrl
+        ? await fetch(job.maskDataUrl).then(r => r.blob())
+        : null;
+
+      // Upload GLB + preview + mask together as multipart per spec
+      const formData = new FormData();
+      formData.append('glb_file', job.glbFile, job.glbFile.name || 'model.glb');
+      formData.append('preview_image', previewBlob, 'preview.png');
+      if (maskBlob) formData.append('mask_image', maskBlob, 'mask.png');
+
+      const uploadRes = await authenticatedFetch('/api/azure/upload-local-artifacts', {
+        method: 'POST',
+        body: formData,
+        signal: ac.signal,
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => 'Unknown error');
+        throw new Error(`Upload failed: ${errText}`);
+      }
+
+      const uploadData = await uploadRes.json();
+      const glbUri: string | undefined = uploadData?.glb_artifact?.uri;
+      const previewUri: string | undefined = uploadData?.images?.[0]?.uri;
+      const maskUri: string | undefined = uploadData?.images?.[1]?.uri;
+
+      if (!glbUri) throw new Error('No GLB URI in upload response');
+      if (!previewUri) throw new Error('No preview image URI in upload response');
+
+      if (ac.signal.aborted) return;
+
+      // Start workflow
       const startRes = await authenticatedFetch('/api/temporal/run-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,10 +125,10 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         body: JSON.stringify({
           workflow_name: 'cad_render_v1',
           payload: {
-            glb_artifact: { uri: job.glbUri },
+            glb_artifact: { uri: glbUri },
             images: [
-              { uri: job.captureUri },
-              ...(job.maskUri ? [{ uri: job.maskUri }] : []),
+              { uri: previewUri },
+              ...(maskUri ? [{ uri: maskUri }] : []),
             ],
           },
         }),
@@ -117,6 +145,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
 
       patchJob(job.id, { workflowId });
 
+      // Poll status
       let transient404Count = 0;
       let consecutiveErrors = 0;
 
@@ -210,7 +239,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     }
   }, [patchJob, toast, navigate]);
 
-  const generate = useCallback((screenshots: ScreenshotPayload[], glbUri?: string | null) => {
+  const generate = useCallback((screenshots: ScreenshotPayload[], glbFile?: File | null) => {
     const now = Date.now();
     const newJobs: PDPJob[] = screenshots.map((shot, i) => ({
       id: `pdp-${now}-${i}`,
@@ -218,9 +247,8 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       sourceDataUrl: shot.dataUrl,
       status: 'generating' as const,
       startedAt: now,
-      glbUri: glbUri ?? null,
-      captureUri: shot.captureUri ?? null,
-      maskUri: shot.maskUri ?? null,
+      glbFile: glbFile ?? null,
+      maskDataUrl: shot.maskDataUrl ?? null,
     }));
     setJobs(prev => [...newJobs, ...prev]);
     newJobs.forEach(job => { void startJob(job); });
