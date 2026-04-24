@@ -553,7 +553,7 @@ export default function CADToPDP() {
                 onClick={() => setTopSectionCollapsed((v) => !v)}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-accent/20"
               >
-                <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Top</span>
+                <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Thumbnail</span>
                 {topSectionCollapsed ? (
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 ) : (
@@ -793,33 +793,18 @@ export default function CADToPDP() {
                   onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={onDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`absolute inset-0 z-10 flex items-center justify-center transition-colors cursor-pointer ${
+                  className={`absolute inset-0 z-10 flex items-center justify-center transition-colors ${
                     isDragging ? "bg-foreground/5" : ""
                   }`}
                 >
                   <div className="flex flex-col items-center text-center pointer-events-none gap-6 px-6">
                     <div className="flex flex-col items-center gap-2">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground/40">
-                        Step 1
-                      </p>
                       <h2 className="font-display text-xl md:text-2xl tracking-[0.18em] md:tracking-[0.22em] text-foreground/80 uppercase leading-tight">
                         Your 3D ring<br />will appear here
                       </h2>
                       <p className="font-mono text-[10px] text-muted-foreground/50 tracking-[0.1em]">
-                        Upload a GLB or GLTF file to get started
+                        Upload a GLB or GLTF file from the left panel to get started
                       </p>
-                    </div>
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="relative w-14 h-14">
-                        <div className={`absolute inset-0 rounded-full bg-primary/10 ${isDragging ? "animate-ping" : "animate-pulse"}`} style={{ animationDuration: "2.5s" }} />
-                        <div className="absolute inset-0 rounded-full border border-primary/20 bg-background/60 flex items-center justify-center">
-                          <Diamond className="h-6 w-6 text-primary" />
-                        </div>
-                      </div>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 border border-border/50 px-5 py-2 hover:border-foreground/30 hover:text-muted-foreground transition-colors pointer-events-auto">
-                        {isDragging ? "Drop to upload" : "Choose file"}
-                      </span>
                     </div>
                   </div>
                 </div>

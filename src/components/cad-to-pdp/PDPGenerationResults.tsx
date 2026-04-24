@@ -94,12 +94,12 @@ function ResultCard({
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0 overflow-hidden pt-0.5">
+        <div className="flex h-28 flex-1 min-w-0 flex-col justify-center overflow-hidden">
           {/* Status row */}
-          <div className="mb-3 flex items-center gap-1.5">
+          <div className="mb-3 flex items-center justify-center gap-1.5">
             {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-formanova-success" />}
             {isFailed && <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-destructive" />}
-            <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.14em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
+            <span className={`text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
               {isGenerating ? "Generating…" : isCompleted ? "Completed" : "Failed"}
             </span>
           </div>
@@ -118,7 +118,14 @@ function ResultCard({
 
           {/* Actions */}
           {showActionRow && (
-            <div className={`grid gap-2 ${isCompleted ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className={`mx-auto grid w-full max-w-[320px] gap-2 ${isCompleted ? "grid-cols-2" : "grid-cols-1"}`}>
+              <Btn
+                icon={<RotateCcw className="h-3.5 w-3.5" />}
+                label={isFailed ? "Retry" : "Regenerate"}
+                onClick={() => onRegenerate(job)}
+                emphasis={isCompleted ? "default" : "primary"}
+                size={isCompleted ? "secondary" : "primary"}
+              />
               {isCompleted && (
                 <Btn
                   label="Stylized Shot"
@@ -127,13 +134,6 @@ function ResultCard({
                   size="primary"
                 />
               )}
-              <Btn
-                icon={<RotateCcw className="h-3.5 w-3.5" />}
-                label={isFailed ? "Retry" : "Regenerate"}
-                onClick={() => onRegenerate(job)}
-                emphasis={isCompleted ? "default" : "primary"}
-                size={isCompleted ? "secondary" : "primary"}
-              />
             </div>
           )}
         </div>
