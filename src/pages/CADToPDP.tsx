@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
@@ -18,6 +18,9 @@ import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
 import { WorkspacePopupModal, LightboxModal, KeyboardShortcutsModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
 import { usePDPGenerationContext } from "@/contexts/PDPGenerationContext";
 import type { PDPJob } from "@/contexts/PDPGenerationContext";
+import { imageSourceToBlob, compressImageBlob } from "@/lib/image-compression";
+import { uploadToAzure } from "@/lib/microservices-api";
+import { TO_SINGULAR } from "@/lib/jewelry-utils";
 
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
 
@@ -59,6 +62,8 @@ export default function CADToPDP() {
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
   const [debugMaskPreviewUrl, setDebugMaskPreviewUrl] = useState<string | null>(null);
+  const [topSectionCollapsed, setTopSectionCollapsed] = useState(false);
+  const [resultsSectionCollapsed, setResultsSectionCollapsed] = useState(false);
   const interactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -392,13 +397,39 @@ export default function CADToPDP() {
   const handleStylizePDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
     if (!url) return;
-    navigate("/studio/rings?step=model&mode=product-shot", {
-      state: {
-        mode: "product-shot",
-        preloadedJewelryUrl: url,
-      },
-    });
-  }, [navigate]);
+
+    void (async () => {
+      try {
+        const sourceBlob = await imageSourceToBlob(url);
+        const { blob: compressed } = await compressImageBlob(sourceBlob);
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(compressed);
+        });
+        const category = TO_SINGULAR.rings ?? "ring";
+        const uploaded = await uploadToAzure(base64, "image/jpeg", "jewelry_photo", {
+          category,
+          intended_use: "pdp",
+        });
+
+        navigate("/studio/rings?step=model&mode=product-shot", {
+          state: {
+            mode: "product-shot",
+            preloadedJewelryUrl: uploaded.sas_url || uploaded.https_url,
+            preloadedJewelryAssetId: uploaded.asset_id ?? null,
+          },
+        });
+      } catch (error) {
+        console.error("[CADToPDP] Failed to open stylized shot flow", error);
+        showWorkspacePopup(
+          "Could not open Product Shot",
+          "The result image could not be prepared for Product Shot. Please try again."
+        );
+      }
+    })();
+  }, [navigate, showWorkspacePopup]);
 
   // ── Full-page upload screen (first visit only) ──
   if (!inWorkspace) {
@@ -505,7 +536,20 @@ export default function CADToPDP() {
 
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="px-3 py-3">
+            <div className="border-b border-border">
+              <button
+                onClick={() => setTopSectionCollapsed((v) => !v)}
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-accent/20"
+              >
+                <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Top</span>
+                {topSectionCollapsed ? (
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </button>
+              {!topSectionCollapsed && (
+                <div className="px-3 py-3">
               {isMobile ? (
                 /* Mobile: compact row when model loaded, full card when no model */
                 hasModel ? (
@@ -595,22 +639,34 @@ export default function CADToPDP() {
                   )}
                 </div>
               )}
+                </div>
+              )}
             </div>
 
 
             {/* Mobile: results section */}
             {isMobile && generationJobs.length > 0 && (
               <div className="border-t border-border">
-                <div className="px-3 pt-2 pb-1">
+                <button
+                  onClick={() => setResultsSectionCollapsed((v) => !v)}
+                  className="flex w-full items-center justify-between px-3 pt-2 pb-1 text-left transition-colors hover:bg-accent/20"
+                >
                   <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
-                </div>
-                <PDPGenerationResults
-                  jobs={generationJobs}
-                  onPreview={handlePreviewPDPJob}
-                  onDownload={handleDownloadPDPJob}
-                  onStylize={handleStylizePDPJob}
-                  onRegenerate={regenerateJob}
-                />
+                  {resultsSectionCollapsed ? (
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </button>
+                {!resultsSectionCollapsed && (
+                  <PDPGenerationResults
+                    jobs={generationJobs}
+                    onPreview={handlePreviewPDPJob}
+                    onDownload={handleDownloadPDPJob}
+                    onStylize={handleStylizePDPJob}
+                    onRegenerate={regenerateJob}
+                  />
+                )}
               </div>
             )}
 
@@ -629,16 +685,26 @@ export default function CADToPDP() {
 
             {generationJobs.length > 0 && !isMobile && (
               <div className="border-t border-border">
-                <div className="px-3 pt-2 pb-1">
+                <button
+                  onClick={() => setResultsSectionCollapsed((v) => !v)}
+                  className="flex w-full items-center justify-between px-3 pt-2 pb-1 text-left transition-colors hover:bg-accent/20"
+                >
                   <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
-                </div>
-                <PDPGenerationResults
-                  jobs={generationJobs}
-                  onPreview={handlePreviewPDPJob}
-                  onDownload={handleDownloadPDPJob}
-                  onStylize={handleStylizePDPJob}
-                  onRegenerate={regenerateJob}
-                />
+                  {resultsSectionCollapsed ? (
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </button>
+                {!resultsSectionCollapsed && (
+                  <PDPGenerationResults
+                    jobs={generationJobs}
+                    onPreview={handlePreviewPDPJob}
+                    onDownload={handleDownloadPDPJob}
+                    onStylize={handleStylizePDPJob}
+                    onRegenerate={regenerateJob}
+                  />
+                )}
               </div>
             )}
 
@@ -1011,7 +1077,7 @@ export default function CADToPDP() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/78 backdrop-blur-sm"
             onClick={() => setGenerationPreview(null)}
           >
             <motion.div
@@ -1019,10 +1085,10 @@ export default function CADToPDP() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.93, opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="relative max-w-[90vw] max-h-[90vh]"
+              className="relative max-w-[96vw] max-h-[96vh]"
               onClick={e => e.stopPropagation()}
             >
-              <img src={generationPreview.url} alt="Generated result" className="max-w-full max-h-[90vh] object-contain border border-border" />
+              <img src={generationPreview.url} alt="Generated result" className="max-w-full max-h-[96vh] object-contain border border-white/10" />
               <div className="absolute top-3 right-3 flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -1033,14 +1099,14 @@ export default function CADToPDP() {
                     a.click();
                     a.remove();
                   }}
-                  className="flex h-10 items-center justify-center gap-2 rounded-sm border border-border bg-card/92 px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-lg backdrop-blur-sm transition-colors hover:border-foreground/30 hover:bg-card"
+                  className="flex h-10 items-center justify-center gap-2 rounded-sm border border-white/12 bg-white/8 px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md transition-colors hover:bg-white/14"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Download
                 </button>
                 <button
                   onClick={() => setGenerationPreview(null)}
-                  className="flex h-10 w-10 items-center justify-center rounded-sm border border-border bg-card/92 text-foreground shadow-lg backdrop-blur-sm transition-colors hover:border-foreground/30 hover:bg-card"
+                  className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/12 bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/14"
                 >
                   <X className="h-4 w-4" />
                 </button>

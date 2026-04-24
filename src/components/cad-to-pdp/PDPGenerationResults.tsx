@@ -2,9 +2,6 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Download, Sparkles, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
 import type { PDPJob as GenerationJob } from "@/contexts/PDPGenerationContext";
-import { TOOL_COSTS } from "@/lib/credits-api";
-
-const PRODUCT_SHOT_COST = TOOL_COSTS.Product_shot_pipeline ?? 10;
 
 interface Props {
   jobs: GenerationJob[];
@@ -79,7 +76,7 @@ function ResultCard({
                 onDownload(job);
               }}
               title="Download"
-              className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-sm border border-white/20 bg-black/65 text-white opacity-0 transition-all hover:bg-black/80 group-hover:opacity-100 focus:opacity-100"
+              className="absolute top-0 right-0 z-10 flex h-8 w-8 items-center justify-center bg-black/55 text-white transition-colors hover:bg-black/75"
             >
               <Download className="h-3.5 w-3.5" />
             </button>
@@ -126,7 +123,6 @@ function ResultCard({
                 <Btn
                   icon={<Sparkles className="h-4 w-4" />}
                   label="Stylized Shot"
-                  meta={`<= ${PRODUCT_SHOT_COST} credits`}
                   onClick={() => onStylize(job)}
                   emphasis="primary"
                   size="primary"
@@ -150,14 +146,12 @@ function ResultCard({
 function Btn({
   icon,
   label,
-  meta,
   onClick,
   emphasis = "default",
   size = "secondary",
 }: {
   icon: ReactNode;
   label: string;
-  meta?: string;
   onClick: () => void;
   emphasis?: "default" | "primary";
   size?: "primary" | "secondary";
@@ -169,7 +163,7 @@ function Btn({
       className={`flex items-center justify-center rounded-sm border font-mono uppercase transition-colors ${
         size === "primary"
           ? "h-12 flex-1 gap-2.5 px-4 text-[10px] font-semibold tracking-[0.12em]"
-          : "h-12 gap-2 px-3 text-[9px] font-semibold tracking-[0.1em]"
+          : "h-12 flex-1 gap-2 px-4 text-[10px] font-semibold tracking-[0.12em]"
       } ${
         emphasis === "primary"
           ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
@@ -177,10 +171,7 @@ function Btn({
       }`}
     >
       {icon}
-      <span className="flex flex-col items-start leading-none">
-        <span>{label}</span>
-        {meta ? <span className="mt-1 text-[8px] font-medium tracking-[0.08em] opacity-75">{meta}</span> : null}
-      </span>
+      <span className="whitespace-nowrap leading-none">{label}</span>
     </button>
   );
 }
