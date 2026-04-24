@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Sparkles } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -164,7 +164,6 @@ export default function CADToPDP() {
     setIsModelLoading(true);
     setMeshes([]);
     setAppliedMaterials({});
-    setScreenshots([]);
     setGlbThumbnail(null);
     undoStack.current = [];
     redoStack.current = [];
@@ -204,7 +203,6 @@ export default function CADToPDP() {
     setFileName("");
     setMeshes([]);
     setAppliedMaterials({});
-    setScreenshots([]);
     setGlbThumbnail(null);
     setIsModelLoading(false);
     undoStack.current = [];
@@ -471,7 +469,7 @@ export default function CADToPDP() {
           <div className="flex flex-col bg-card md:border-r border-border h-full overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
+                <span className="font-display text-base tracking-[0.2em] text-foreground uppercase">CAD to PDP</span>
                 {isMobile && hasModel && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -583,7 +581,7 @@ export default function CADToPDP() {
             {isMobile && generationJobs.length > 0 && (
               <div className="border-t border-border">
                 <div className="px-3 pt-2 pb-1">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">Results</span>
+                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
                 </div>
                 <PDPGenerationResults
                   jobs={generationJobs}
@@ -611,7 +609,7 @@ export default function CADToPDP() {
             {generationJobs.length > 0 && !isMobile && (
               <div className="border-t border-border">
                 <div className="px-3 pt-2 pb-1">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">Results</span>
+                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
                 </div>
                 <PDPGenerationResults
                   jobs={generationJobs}
@@ -637,7 +635,7 @@ export default function CADToPDP() {
             <div
               ref={viewportRef}
               data-cad-viewport
-              className="relative flex-1 min-h-[44dvh] md:min-h-0 border-y md:border-y-0 md:border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
+              className="relative flex-1 min-h-[44dvh] md:min-h-0 border-y md:border-y-0 md:border-x border-border/40"
               onPointerDown={handleCanvasPointerDown}
               onPointerUp={handleCanvasPointerUp}
               onPointerLeave={handleCanvasPointerUp}
@@ -649,7 +647,7 @@ export default function CADToPDP() {
                   { n: 1, label: "Upload" },
                   { n: 2, label: "Apply Material" },
                   { n: 3, label: "Capture" },
-                  { n: 4, label: "Submit" },
+                  { n: 4, label: "Generate" },
                 ];
                 return (
                   <div className="absolute top-2 md:top-3 left-1/2 -translate-x-1/2 z-50 flex max-w-[calc(100%-1rem)] md:max-w-none items-center pointer-events-none">
@@ -698,22 +696,32 @@ export default function CADToPDP() {
                   onDrop={onDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`absolute inset-0 z-10 flex items-center justify-center transition-colors cursor-pointer ${
-                    isDragging ? "bg-foreground/5" : "hover:bg-foreground/[0.03]"
+                    isDragging ? "bg-foreground/5" : ""
                   }`}
                 >
-                  <div className="flex flex-col items-center text-center pointer-events-none">
-                    <div className="relative w-16 h-16 mb-4">
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2.5s" }} />
-                      <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                        <Diamond className="h-7 w-7 text-primary" />
-                      </div>
+                  <div className="flex flex-col items-center text-center pointer-events-none gap-6 px-6">
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground/40">
+                        Step 1
+                      </p>
+                      <h2 className="font-display text-xl md:text-2xl tracking-[0.18em] md:tracking-[0.22em] text-foreground/80 uppercase leading-tight">
+                        Your 3D ring<br />will appear here
+                      </h2>
+                      <p className="font-mono text-[10px] text-muted-foreground/50 tracking-[0.1em]">
+                        Upload a GLB or GLTF file to get started
+                      </p>
                     </div>
-                    <p className="font-display text-base tracking-[0.15em] text-foreground/70 uppercase mb-1">
-                      Drop CAD file here
-                    </p>
-                    <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-[0.12em]">
-                      GLB or GLTF
-                    </p>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="relative w-14 h-14">
+                        <div className={`absolute inset-0 rounded-full bg-primary/10 ${isDragging ? "animate-ping" : "animate-pulse"}`} style={{ animationDuration: "2.5s" }} />
+                        <div className="absolute inset-0 rounded-full border border-primary/20 bg-background/60 flex items-center justify-center">
+                          <Diamond className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 border border-border/50 px-5 py-2 hover:border-foreground/30 hover:text-muted-foreground transition-colors pointer-events-auto">
+                        {isDragging ? "Drop to upload" : "Choose file"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -835,14 +843,14 @@ export default function CADToPDP() {
                             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">Final Render</span>
                           </div>
                         </div>
-                        <label className="flex items-center gap-2.5 mt-4 pt-3 border-t border-border/40">
+                        <label className="flex items-center justify-center gap-2.5 mt-4 pt-3 border-t border-border/40 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={dontShowFinalLookChecked}
                             onChange={e => setDontShowFinalLookChecked(e.target.checked)}
                             className="w-4 h-4 border border-border bg-background accent-primary flex-shrink-0"
                           />
-                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground select-none">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground select-none">
                             Don't show again
                           </span>
                         </label>
@@ -931,12 +939,11 @@ export default function CADToPDP() {
                     ))}
                   </div>
                   {/* Generate CTA — pinned to the right of the strip */}
-                  <div className="flex-shrink-0 flex items-center px-3 md:px-5 border-l border-border/60 bg-card">
+                  <div className="flex-shrink-0 flex items-center border-l border-border/60 bg-card">
                     <button
                       onClick={handleGenerate}
-                      className="flex items-center gap-2 px-4 md:px-5 py-3 bg-primary text-primary-foreground font-display text-[10px] md:text-xs tracking-[0.15em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-sm whitespace-nowrap"
+                      className="flex items-center justify-center px-5 py-3 bg-primary text-primary-foreground font-mono text-[11px] tracking-[0.12em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all whitespace-nowrap h-full"
                     >
-                      <Sparkles className="w-4 h-4 flex-shrink-0" />
                       Generate
                     </button>
                   </div>
