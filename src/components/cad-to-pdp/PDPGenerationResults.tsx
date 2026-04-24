@@ -1,16 +1,19 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Eye, Sparkles, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
 import type { PDPJob as GenerationJob } from "@/contexts/PDPGenerationContext";
+import { TOOL_COSTS } from "@/lib/credits-api";
+
+const PRODUCT_SHOT_COST = TOOL_COSTS.Product_shot_pipeline ?? 10;
 
 interface Props {
   jobs: GenerationJob[];
   onPreview: (job: GenerationJob) => void;
-  onDownload: (job: GenerationJob) => void;
+  onStylize: (job: GenerationJob) => void;
   onRegenerate: (job: GenerationJob) => void;
 }
 
-export function PDPGenerationResults({ jobs, onPreview, onDownload, onRegenerate }: Props) {
+export function PDPGenerationResults({ jobs, onPreview, onStylize, onRegenerate }: Props) {
   return (
     <div className="divide-y divide-border/40">
       {jobs.map((job, idx) => (
@@ -19,7 +22,7 @@ export function PDPGenerationResults({ jobs, onPreview, onDownload, onRegenerate
           job={job}
           index={jobs.length - idx}
           onPreview={onPreview}
-          onDownload={onDownload}
+          onStylize={onStylize}
           onRegenerate={onRegenerate}
         />
       ))}
@@ -28,12 +31,12 @@ export function PDPGenerationResults({ jobs, onPreview, onDownload, onRegenerate
 }
 
 function ResultCard({
-  job, index, onPreview, onDownload, onRegenerate,
+  job, index, onPreview, onStylize, onRegenerate,
 }: {
   job: GenerationJob;
   index: number;
   onPreview: (job: GenerationJob) => void;
-  onDownload: (job: GenerationJob) => void;
+  onStylize: (job: GenerationJob) => void;
   onRegenerate: (job: GenerationJob) => void;
 }) {
   const imgSrc = job.resultUrl ?? job.sourceDataUrl;
@@ -107,7 +110,12 @@ function ResultCard({
               {isCompleted && (
                 <>
                   <Btn icon={<Eye className="h-3.5 w-3.5" />} label="Preview" onClick={() => onPreview(job)} />
-                  <Btn icon={<Download className="h-3.5 w-3.5" />} label="Download" onClick={() => onDownload(job)} />
+                  <Btn
+                    icon={<Sparkles className="h-3.5 w-3.5" />}
+                    label="Product Shot"
+                    meta={`<= ${PRODUCT_SHOT_COST} credits`}
+                    onClick={() => onStylize(job)}
+                  />
                 </>
               )}
               <Btn
@@ -127,11 +135,13 @@ function ResultCard({
 function Btn({
   icon,
   label,
+  meta,
   onClick,
   emphasis = "default",
 }: {
   icon: ReactNode;
   label: string;
+  meta?: string;
   onClick: () => void;
   emphasis?: "default" | "primary";
 }) {
@@ -146,7 +156,10 @@ function Btn({
       }`}
     >
       {icon}
-      {label}
+      <span className="flex flex-col items-start leading-none">
+        <span>{label}</span>
+        {meta ? <span className="mt-1 text-[8px] font-medium tracking-[0.08em] opacity-75">{meta}</span> : null}
+      </span>
     </button>
   );
 }

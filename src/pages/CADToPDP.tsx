@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -31,6 +32,7 @@ interface GenerationPreview {
 }
 
 export default function CADToPDP() {
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
   const [inWorkspace, setInWorkspace] = useState(false);
   const [glbUrl, setGlbUrl] = useState<string | undefined>();
@@ -376,17 +378,16 @@ export default function CADToPDP() {
     });
   }, []);
 
-  const handleDownloadPDPJob = useCallback((job: PDPJob) => {
+  const handleStylizePDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
     if (!url) return;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pdp-result-${job.screenshotId}.jpg`;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, []);
+    navigate("/studio/rings?step=model&mode=product-shot", {
+      state: {
+        mode: "product-shot",
+        preloadedJewelryUrl: url,
+      },
+    });
+  }, [navigate]);
 
   // ── Full-page upload screen (first visit only) ──
   if (!inWorkspace) {
@@ -595,7 +596,7 @@ export default function CADToPDP() {
                 <PDPGenerationResults
                   jobs={generationJobs}
                   onPreview={handlePreviewPDPJob}
-                  onDownload={handleDownloadPDPJob}
+                  onStylize={handleStylizePDPJob}
                   onRegenerate={regenerateJob}
                 />
               </div>
@@ -622,7 +623,7 @@ export default function CADToPDP() {
                 <PDPGenerationResults
                   jobs={generationJobs}
                   onPreview={handlePreviewPDPJob}
-                  onDownload={handleDownloadPDPJob}
+                  onStylize={handleStylizePDPJob}
                   onRegenerate={regenerateJob}
                 />
               </div>

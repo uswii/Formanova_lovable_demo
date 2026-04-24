@@ -253,6 +253,7 @@ export default function UnifiedStudio() {
     } | null;
 
     if (state?.preloadedJewelryUrl) {
+      setJewelryImage(state.preloadedJewelryUrl);
       setJewelryUploadedUrl(state.preloadedJewelryUrl);
       setJewelryAssetId(state.preloadedJewelryAssetId ?? null);
     }
