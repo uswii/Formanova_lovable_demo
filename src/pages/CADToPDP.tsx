@@ -108,6 +108,16 @@ export default function CADToPDP() {
     setRedoCount(redoStack.current.length);
   }, [appliedMaterials]);
 
+  const closeFinalLookPreview = useCallback(() => {
+    if (dontShowFinalLookChecked) localStorage.setItem(DONT_SHOW_FINAL_LOOK_KEY, 'true');
+    setShowFinalLookPreview(false);
+    setDontShowFinalLookChecked(false);
+  }, [dontShowFinalLookChecked]);
+
+  useEffect(() => {
+    if (showFinalLookPreview) setDontShowFinalLookChecked(false);
+  }, [showFinalLookPreview]);
+
   useEffect(() => {
     if (!inWorkspace) return;
     const handler = (e: KeyboardEvent) => {
@@ -348,16 +358,6 @@ export default function CADToPDP() {
     setScreenshots((p) => p.filter((s) => s.id !== id));
     setLightboxShot((p) => (p?.id === id ? null : p));
   }, []);
-
-  const closeFinalLookPreview = useCallback(() => {
-    if (dontShowFinalLookChecked) localStorage.setItem(DONT_SHOW_FINAL_LOOK_KEY, 'true');
-    setShowFinalLookPreview(false);
-    setDontShowFinalLookChecked(false);
-  }, [dontShowFinalLookChecked]);
-
-  useEffect(() => {
-    if (showFinalLookPreview) setDontShowFinalLookChecked(false);
-  }, [showFinalLookPreview]);
 
   const handleGenerate = useCallback(() => {
     if (screenshots.length === 0) return;
