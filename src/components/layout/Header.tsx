@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useGenerations } from '@/contexts/GenerationsContext';
+import { usePDPGenerationContext } from '@/contexts/PDPGenerationContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,24 +29,25 @@ export function isNavLinkActivePath(pathname: string, link: Pick<NavLink, 'path'
 
 function GenerationIndicator() {
   const { generations } = useGenerations();
+  const { jobs: pdpJobs } = usePDPGenerationContext();
   const navigate = useNavigate();
   const [showReady, setShowReady] = useState(false);
   const prevRunningCount = useRef(0);
 
   const runningGenerations = generations.filter(g => g.status === 'running');
-  const runningCount = runningGenerations.length;
+  const pdpRunning = pdpJobs.filter(j => j.status === 'generating').length;
+  const pdpCompleted = pdpJobs.filter(j => j.status === 'completed').length;
+  const runningCount = runningGenerations.length + pdpRunning;
   const completedGenerations = generations.filter(g => g.status === 'completed');
 
-  // Show "Ready" flash when running count drops to zero and we have completed items
   useEffect(() => {
-    if (prevRunningCount.current > 0 && runningCount === 0 && completedGenerations.length > 0) {
+    if (prevRunningCount.current > 0 && runningCount === 0 && (completedGenerations.length > 0 || pdpCompleted > 0)) {
       setShowReady(true);
       const t = setTimeout(() => setShowReady(false), 3000);
       return () => clearTimeout(t);
     }
     prevRunningCount.current = runningCount;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runningCount, completedGenerations.length]);
+  }, [runningCount, completedGenerations.length, pdpCompleted]);
 
   if (runningCount === 0 && !showReady) return null;
 
@@ -53,6 +55,10 @@ function GenerationIndicator() {
     ?? completedGenerations[completedGenerations.length - 1];
 
   const handleClick = () => {
+    if (pdpRunning > 0 || pdpCompleted > 0) {
+      navigate('/cad-to-pdp');
+      return;
+    }
     if (!mostRecent) return;
     if (mostRecent.status === 'completed') {
       navigate(`/studio/${mostRecent.jewelryType}`, {

@@ -47,7 +47,7 @@ export default function CADToPDP() {
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [dontShowFinalLookChecked, setDontShowFinalLookChecked] = useState(false);
   const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
-  const { jobs: generationJobs, generate, regenerateJob, removeJob: removePDPJob } = usePDPGenerationContext();
+  const { jobs: generationJobs, generate, regenerateJob } = usePDPGenerationContext();
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
@@ -588,7 +588,6 @@ export default function CADToPDP() {
                   onPreview={handlePreviewPDPJob}
                   onDownload={handleDownloadPDPJob}
                   onRegenerate={regenerateJob}
-                  onRemove={removePDPJob}
                 />
               </div>
             )}
@@ -616,7 +615,6 @@ export default function CADToPDP() {
                   onPreview={handlePreviewPDPJob}
                   onDownload={handleDownloadPDPJob}
                   onRegenerate={regenerateJob}
-                  onRemove={removePDPJob}
                 />
               </div>
             )}
