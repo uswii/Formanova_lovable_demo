@@ -84,17 +84,20 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
+      if (!job.maskDataUrl) {
+        patchJob(job.id, { status: 'failed', errorMessage: 'Mask image not available. Please retake the screenshot.' });
+        return;
+      }
+
       // Convert data URLs to blobs (raw fetch is allowed for data: URLs per AI_RULES)
       const previewBlob = await fetch(job.sourceDataUrl).then(r => r.blob());
-      const maskBlob = job.maskDataUrl
-        ? await fetch(job.maskDataUrl).then(r => r.blob())
-        : null;
+      const maskBlob = await fetch(job.maskDataUrl).then(r => r.blob());
 
       // Upload GLB + preview + mask together as multipart per spec
       const formData = new FormData();
       formData.append('glb_file', job.glbFile, job.glbFile.name || 'model.glb');
       formData.append('preview_image', previewBlob, 'preview.png');
-      if (maskBlob) formData.append('mask_image', maskBlob, 'mask.png');
+      formData.append('mask_image', maskBlob, 'mask.png');
 
       const uploadRes = await authenticatedFetch('/api/azure/upload-local-artifacts', {
         method: 'POST',
@@ -114,6 +117,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
 
       if (!glbUri) throw new Error('No GLB URI in upload response');
       if (!previewUri) throw new Error('No preview image URI in upload response');
+      if (!maskUri) throw new Error('No mask image URI in upload response');
 
       if (ac.signal.aborted) return;
 
@@ -128,7 +132,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
             glb_artifact: { uri: glbUri },
             images: [
               { uri: previewUri },
-              ...(maskUri ? [{ uri: maskUri }] : []),
+              { uri: maskUri },
             ],
           },
         }),
