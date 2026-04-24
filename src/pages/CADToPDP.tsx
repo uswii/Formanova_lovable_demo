@@ -91,6 +91,18 @@ export default function CADToPDP() {
     [meshes]
   );
   const selectedNames = useMemo(() => meshes.filter((m) => m.selected).map((m) => m.name), [meshes]);
+  const latestJobByScreenshotId = useMemo(() => {
+    const next = new Map<number, PDPJob>();
+    for (const job of generationJobs) {
+      if (!next.has(job.screenshotId)) next.set(job.screenshotId, job);
+    }
+    return next;
+  }, [generationJobs]);
+  const runningScreenshotIds = useMemo(
+    () => new Set(generationJobs.filter((job) => job.status === "generating").map((job) => job.screenshotId)),
+    [generationJobs]
+  );
+  const hasRunningGenerations = runningScreenshotIds.size > 0;
 
   const showWorkspacePopup = useCallback((title: string, message: string) => {
     setWorkspacePopup({ title, message });
@@ -651,7 +663,7 @@ export default function CADToPDP() {
                   onClick={() => setResultsSectionCollapsed((v) => !v)}
                   className="flex w-full items-center justify-between px-3 pt-2 pb-1 text-left transition-colors hover:bg-accent/20"
                 >
-                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
+                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Your Generations</span>
                   {resultsSectionCollapsed ? (
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   ) : (
@@ -689,7 +701,7 @@ export default function CADToPDP() {
                   onClick={() => setResultsSectionCollapsed((v) => !v)}
                   className="flex w-full items-center justify-between px-3 pt-2 pb-1 text-left transition-colors hover:bg-accent/20"
                 >
-                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Results</span>
+                  <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Your Generations</span>
                   {resultsSectionCollapsed ? (
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   ) : (
@@ -1004,34 +1016,79 @@ export default function CADToPDP() {
                 >
                   {/* Scrollable thumbnail strip */}
                   <div className="flex-1 flex items-center gap-3 px-3 md:px-4 overflow-x-auto scrollbar-thin min-w-0">
-                    {screenshots.map((shot, i) => (
-                      <div key={shot.id} className="relative group flex-shrink-0">
+                    {screenshots.map((shot, i) => {
+                      const relatedJob = latestJobByScreenshotId.get(shot.id);
+                      const isShotGenerating = relatedJob?.status === "generating";
+                      const isShotCompleted = relatedJob?.status === "completed";
+                      const isShotFailed = relatedJob?.status === "failed";
+
+                      return (
+                        <div key={shot.id} className="relative group flex-shrink-0">
                         <button
                           onClick={() => setLightboxShot(shot)}
-                          className="w-16 h-16 border border-border overflow-hidden hover:border-formanova-hero-accent transition-colors"
+                          className={`relative w-16 h-16 overflow-hidden border transition-colors ${
+                            isShotGenerating
+                              ? "border-primary/50"
+                              : isShotCompleted
+                                ? "border-formanova-success/50"
+                                : isShotFailed
+                                  ? "border-destructive/50"
+                                  : "border-border hover:border-formanova-hero-accent"
+                          }`}
                           title={`Screenshot ${i + 1} — click to enlarge`}
                         >
-                          <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                          <img
+                            src={shot.dataUrl}
+                            alt={`Screenshot ${i + 1}`}
+                            className={`w-full h-full object-cover transition-all ${isShotGenerating ? "brightness-75" : ""}`}
+                          />
+                          {isShotGenerating && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45">
+                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-white/90">
+                                Generating
+                              </span>
+                            </div>
+                          )}
+                          {!isShotGenerating && (isShotCompleted || isShotFailed) && (
+                            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 px-1 py-0.5">
+                              <span
+                                className={`font-mono text-[7px] uppercase tracking-[0.12em] ${
+                                  isShotCompleted ? "text-formanova-success" : "text-destructive"
+                                }`}
+                              >
+                                {isShotCompleted ? "Ready" : "Failed"}
+                              </span>
+                            </div>
+                          )}
                         </button>
                         <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
-                            className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                            disabled={isShotGenerating}
+                            className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                             title="Remove"
                           >
                             <Trash2 className="w-2.5 h-2.5 text-foreground" />
                           </button>
                         </div>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                   {/* Generate CTA — pinned to the right of the strip */}
                   <div className="flex-shrink-0 flex items-center border-l border-border/60 bg-card">
                     <button
                       onClick={handleGenerate}
-                      className="flex items-center justify-center px-5 py-3 bg-primary text-primary-foreground font-mono text-[11px] tracking-[0.12em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all whitespace-nowrap h-full"
+                      disabled={hasRunningGenerations}
+                      className={`flex h-full items-center justify-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] transition-all whitespace-nowrap ${
+                        hasRunningGenerations
+                          ? "cursor-not-allowed bg-primary/60 text-primary-foreground/80"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99]"
+                      }`}
                     >
-                      Generate
+                      {hasRunningGenerations ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      <span>{hasRunningGenerations ? "Generating..." : "Generate"}</span>
                     </button>
                   </div>
                 </motion.div>

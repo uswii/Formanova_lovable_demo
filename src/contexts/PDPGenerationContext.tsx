@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -8,6 +8,7 @@ import { ToastAction } from '@/components/ui/toast';
 //            GET  /api/run/cad-to-pdp/status/{runId} → { status, result_url?, error? }
 const MOCK_RESULT_URL = '/cad-to-pdp/mock-pdp-result.png';
 const MOCK_DELAY_MS = 2_000;
+const PDP_PATH = '/cad-to-pdp';
 
 export interface PDPJob {
   id: string;
@@ -33,6 +34,29 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
   const abortRefs = useRef<Map<string, AbortController>>(new Map());
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Stable ref so async job callbacks always read the current pathname
+  const pathnameRef = useRef(location.pathname);
+  useEffect(() => { pathnameRef.current = location.pathname; }, [location.pathname]);
+
+  // When user navigates AWAY while jobs are running, show a single in-progress toast
+  const shownAwayToastRef = useRef(false);
+  const runningCount = jobs.filter(j => j.status === 'generating').length;
+
+  useEffect(() => {
+    const awayFromPDP = !location.pathname.startsWith(PDP_PATH);
+    if (awayFromPDP && runningCount > 0 && !shownAwayToastRef.current) {
+      shownAwayToastRef.current = true;
+      toast({
+        title: 'PDP image is generating',
+        description: "Keep browsing. Your generation won't be lost.",
+      });
+    }
+    if (!awayFromPDP || runningCount === 0) {
+      shownAwayToastRef.current = false;
+    }
+  }, [location.pathname, runningCount, toast]);
 
   useEffect(() => {
     const refs = abortRefs.current;
@@ -47,16 +71,6 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     const ac = new AbortController();
     abortRefs.current.set(job.id, ac);
 
-    toast({
-      title: 'Generating PDP image…',
-      description: 'This takes about a minute.',
-      action: (
-        <ToastAction altText="Keep browsing" onClick={() => {}}>
-          Keep browsing
-        </ToastAction>
-      ),
-    });
-
     try {
       // TODO: replace with real API call once spec is provided
       await new Promise<void>(resolve => {
@@ -67,21 +81,23 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
 
       patchJob(job.id, { status: 'completed', resultUrl: MOCK_RESULT_URL });
 
-      toast({
-        title: 'Your PDP image is ready',
-        action: (
-          <ToastAction
-            altText="View Results"
-            onClick={() => navigate('/cad-to-pdp')}
-          >
-            View Results
-          </ToastAction>
-        ),
-      });
+      // Only show "ready" toast if user has navigated away
+      if (!pathnameRef.current.startsWith(PDP_PATH)) {
+        toast({
+          title: 'PDP image ready',
+          action: (
+            <ToastAction altText="View Results" onClick={() => navigate(PDP_PATH)}>
+              View Results
+            </ToastAction>
+          ),
+        });
+      }
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
         patchJob(job.id, { status: 'failed', errorMessage: 'Request failed' });
-        toast({ variant: 'destructive', title: 'PDP generation failed', description: 'Try again from the workspace.' });
+        if (!pathnameRef.current.startsWith(PDP_PATH)) {
+          toast({ variant: 'destructive', title: 'PDP generation failed', description: 'Try again from the workspace.' });
+        }
       }
     } finally {
       abortRefs.current.delete(job.id);
