@@ -10,6 +10,7 @@ export const TOOL_COSTS: Record<string, number> = {
   // Photoshoot workflows — confirmed fallback: 10 credits each
   jewelry_photoshoots_generator: 10, // model-shot (UnifiedStudio default mode)
   Product_shot_pipeline: 10,         // product-shot (UnifiedStudio product-shot mode)
+  cad_render_v1: 10,                 // cad-to-pdp render, per screenshot
   cad_generation: 85,
   ring_full_pipeline: 85,
   ring_generate_v1: 85,

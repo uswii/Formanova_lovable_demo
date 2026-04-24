@@ -23,7 +23,7 @@ import { uploadToAzure } from "@/lib/microservices-api";
 import { TO_SINGULAR } from "@/lib/jewelry-utils";
 import { useCreditPreflight } from "@/hooks/use-credit-preflight";
 import { CreditPreflightModal } from "@/components/CreditPreflightModal";
-import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { performCreditPreflight } from "@/lib/credit-preflight";
 
 
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
@@ -66,7 +66,6 @@ export default function CADToPDP() {
   const { jobs: generationJobs, generate, regenerateJob } = usePDPGenerationContext();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const [costEstimate, setCostEstimate] = useState<number | null>(null);
-  const costEstimateAcRef = useRef<AbortController | null>(null);
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
@@ -98,23 +97,11 @@ export default function CADToPDP() {
 
   useEffect(() => {
     if (screenshots.length === 0) { setCostEstimate(null); return; }
-    costEstimateAcRef.current?.abort();
-    const ac = new AbortController();
-    costEstimateAcRef.current = ac;
-    authenticatedFetch('/api/credits/estimate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ac.signal,
-      body: JSON.stringify({ workflow_name: 'cad_render_v1', num_variations: screenshots.length }),
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data || ac.signal.aborted) return;
-        const cost = data.projected_max_hold ?? data.estimated_credits;
-        if (cost > 0) setCostEstimate(cost);
-      })
+    let cancelled = false;
+    performCreditPreflight('cad_render_v1', screenshots.length)
+      .then(result => { if (!cancelled) setCostEstimate(result.estimatedCredits); })
       .catch(() => {});
-    return () => { ac.abort(); };
+    return () => { cancelled = true; };
   }, [screenshots.length]);
 
   const selectedMeshNames = useMemo(
