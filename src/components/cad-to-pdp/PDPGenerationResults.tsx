@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Download, Sparkles, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
 import type { PDPJob as GenerationJob } from "@/contexts/PDPGenerationContext";
 
 interface Props {
@@ -55,7 +55,7 @@ function ResultCard({
       <div className="flex items-start gap-3">
         {/* Thumbnail — larger */}
         <div
-          className={`group relative flex-shrink-0 w-28 h-28 border border-border overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+          className={`group relative flex-shrink-0 w-28 h-28 border-[1.5px] border-primary/45 overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
           onClick={() => isCompleted && onPreview(job)}
           role={isCompleted ? "button" : undefined}
           tabIndex={isCompleted ? 0 : undefined}
@@ -118,10 +118,9 @@ function ResultCard({
 
           {/* Actions */}
           {showActionRow && (
-            <div className={`flex items-stretch gap-2 ${isCompleted ? "" : "w-full"}`}>
+            <div className={`grid gap-2 ${isCompleted ? "grid-cols-2" : "grid-cols-1"}`}>
               {isCompleted && (
                 <Btn
-                  icon={<Sparkles className="h-4 w-4" />}
                   label="Stylized Shot"
                   onClick={() => onStylize(job)}
                   emphasis="primary"
@@ -150,7 +149,7 @@ function Btn({
   emphasis = "default",
   size = "secondary",
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   onClick: () => void;
   emphasis?: "default" | "primary";
@@ -160,7 +159,7 @@ function Btn({
     <button
       onClick={onClick}
       title={label}
-      className={`flex items-center justify-center rounded-sm border font-mono uppercase transition-colors ${
+      className={`flex min-w-0 items-center justify-center rounded-sm border font-mono uppercase transition-colors ${
         size === "primary"
           ? "h-12 flex-1 gap-2.5 px-4 text-[10px] font-semibold tracking-[0.12em]"
           : "h-12 flex-1 gap-2 px-4 text-[10px] font-semibold tracking-[0.12em]"
@@ -170,7 +169,7 @@ function Btn({
           : "border-border/70 bg-muted/20 text-foreground hover:border-foreground/35 hover:bg-muted/35"
       }`}
     >
-      {icon}
+      {icon ? icon : null}
       <span className="whitespace-nowrap leading-none">{label}</span>
     </button>
   );

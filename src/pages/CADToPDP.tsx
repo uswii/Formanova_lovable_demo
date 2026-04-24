@@ -1156,14 +1156,14 @@ export default function CADToPDP() {
                     a.click();
                     a.remove();
                   }}
-                  className="flex h-10 items-center justify-center gap-2 rounded-sm border border-white/12 bg-white/8 px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md transition-colors hover:bg-white/14"
+                  className="flex h-10 items-center justify-center gap-2 rounded-sm border border-primary bg-primary px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Download
                 </button>
                 <button
                   onClick={() => setGenerationPreview(null)}
-                  className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/12 bg-white/8 text-white backdrop-blur-md transition-colors hover:bg-white/14"
+                  className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
                 >
                   <X className="h-4 w-4" />
                 </button>
