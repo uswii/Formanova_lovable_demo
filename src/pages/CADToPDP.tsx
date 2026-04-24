@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -25,6 +25,11 @@ interface WorkspacePopup {
   message: string;
 }
 
+interface GenerationPreview {
+  url: string;
+  downloadName: string;
+}
+
 export default function CADToPDP() {
   const [isMobile, setIsMobile] = useState(false);
   const [inWorkspace, setInWorkspace] = useState(false);
@@ -38,6 +43,7 @@ export default function CADToPDP() {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [lightboxShot, setLightboxShot] = useState<Screenshot | null>(null);
+  const [generationPreview, setGenerationPreview] = useState<GenerationPreview | null>(null);
   const [glbThumbnail, setGlbThumbnail] = useState<string | null>(null);
   const [workspacePopup, setWorkspacePopup] = useState<WorkspacePopup | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -46,7 +52,6 @@ export default function CADToPDP() {
 
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [dontShowFinalLookChecked, setDontShowFinalLookChecked] = useState(false);
-  const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
   const { jobs: generationJobs, generate, regenerateJob } = usePDPGenerationContext();
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
@@ -364,7 +369,11 @@ export default function CADToPDP() {
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
-    if (url) setGenPreviewUrl(url);
+    if (!url) return;
+    setGenerationPreview({
+      url,
+      downloadName: `pdp-result-${job.screenshotId}.jpg`,
+    });
   }, []);
 
   const handleDownloadPDPJob = useCallback((job: PDPJob) => {
@@ -983,13 +992,13 @@ export default function CADToPDP() {
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AnimatePresence>
-        {genPreviewUrl && (
+        {generationPreview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
-            onClick={() => setGenPreviewUrl(null)}
+            onClick={() => setGenerationPreview(null)}
           >
             <motion.div
               initial={{ scale: 0.93, opacity: 0 }}
@@ -999,13 +1008,29 @@ export default function CADToPDP() {
               className="relative max-w-[90vw] max-h-[90vh]"
               onClick={e => e.stopPropagation()}
             >
-              <img src={genPreviewUrl} alt="Generated result" className="max-w-full max-h-[90vh] object-contain border border-border" />
-              <button
-                onClick={() => setGenPreviewUrl(null)}
-                className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors"
-              >
-                <X className="w-4 h-4 text-foreground" />
-              </button>
+              <img src={generationPreview.url} alt="Generated result" className="max-w-full max-h-[90vh] object-contain border border-border" />
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = generationPreview.url;
+                    a.download = generationPreview.downloadName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  }}
+                  className="flex h-10 items-center justify-center gap-2 rounded-sm border border-border bg-card/92 px-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-lg backdrop-blur-sm transition-colors hover:border-foreground/30 hover:bg-card"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </button>
+                <button
+                  onClick={() => setGenerationPreview(null)}
+                  className="flex h-10 w-10 items-center justify-center rounded-sm border border-border bg-card/92 text-foreground shadow-lg backdrop-blur-sm transition-colors hover:border-foreground/30 hover:bg-card"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

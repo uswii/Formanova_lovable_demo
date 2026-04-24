@@ -40,6 +40,7 @@ function ResultCard({
   const isGenerating = job.status === "generating";
   const isFailed = job.status === "failed";
   const isCompleted = job.status === "completed";
+  const showActionRow = !isGenerating && (isCompleted || isFailed);
 
   return (
     <motion.div
@@ -80,19 +81,19 @@ function ResultCard({
         {/* Info */}
         <div className="flex-1 min-w-0 overflow-hidden pt-0.5">
           {/* Status row */}
-          <div className="flex items-center gap-1 mb-2">
-            {isCompleted && <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-formanova-success" />}
-            {isFailed && <AlertCircle className="w-3 h-3 flex-shrink-0 text-destructive" />}
-            <span className={`font-mono text-[9px] uppercase tracking-[0.12em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
+          <div className="mb-3 flex items-center gap-1.5">
+            {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-formanova-success" />}
+            {isFailed && <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-destructive" />}
+            <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.14em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
               {isGenerating ? "Generating…" : isCompleted ? "Completed" : "Failed"}
             </span>
           </div>
 
           {/* Indeterminate progress bar while generating */}
           {isGenerating && (
-            <div className="h-0.5 w-full bg-border/30 overflow-hidden mb-2">
+            <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-border/30">
               <motion.div
-                className="h-full bg-primary/60 w-1/2"
+                className="h-full w-1/2 rounded-full bg-primary/60"
                 initial={{ x: "-100%" }}
                 animate={{ x: "200%" }}
                 transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
@@ -101,18 +102,19 @@ function ResultCard({
           )}
 
           {/* Actions */}
-          {!isGenerating && (
-            <div className="flex items-center gap-1 flex-wrap">
+          {showActionRow && (
+            <div className={`grid gap-2 ${isCompleted ? "grid-cols-3" : "grid-cols-1"}`}>
               {isCompleted && (
                 <>
-                  <Btn icon={<Eye className="w-2.5 h-2.5" />} label="Preview" onClick={() => onPreview(job)} />
-                  <Btn icon={<Download className="w-2.5 h-2.5" />} label="Download" onClick={() => onDownload(job)} />
+                  <Btn icon={<Eye className="h-3.5 w-3.5" />} label="Preview" onClick={() => onPreview(job)} />
+                  <Btn icon={<Download className="h-3.5 w-3.5" />} label="Download" onClick={() => onDownload(job)} />
                 </>
               )}
               <Btn
-                icon={<RotateCcw className="w-2.5 h-2.5" />}
-                label={isFailed ? "Retry" : "Regen"}
+                icon={<RotateCcw className="h-3.5 w-3.5" />}
+                label={isFailed ? "Retry" : "Regenerate"}
                 onClick={() => onRegenerate(job)}
+                emphasis={isCompleted ? "default" : "primary"}
               />
             </div>
           )}
@@ -122,12 +124,26 @@ function ResultCard({
   );
 }
 
-function Btn({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
+function Btn({
+  icon,
+  label,
+  onClick,
+  emphasis = "default",
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  emphasis?: "default" | "primary";
+}) {
   return (
     <button
       onClick={onClick}
       title={label}
-      className="flex items-center gap-1 px-1.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] text-muted-foreground border border-border/50 hover:text-foreground hover:border-foreground/30 transition-colors"
+      className={`flex h-11 items-center justify-center gap-2 rounded-sm border px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+        emphasis === "primary"
+          ? "border-primary/60 bg-primary/12 text-primary hover:border-primary hover:bg-primary/18"
+          : "border-border/70 bg-muted/20 text-foreground hover:border-foreground/35 hover:bg-muted/35"
+      }`}
     >
       {icon}
       {label}
