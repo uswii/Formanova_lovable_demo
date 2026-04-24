@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Eye, Download, RotateCcw, X, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import type { GenerationJob } from "@/hooks/use-pdp-generation";
+import type { PDPJob as GenerationJob } from "@/contexts/PDPGenerationContext";
 
 function timeAgo(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);

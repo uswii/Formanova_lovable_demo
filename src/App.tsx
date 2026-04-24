@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { GenerationsContextProvider } from "@/contexts/GenerationsContext";
+import { PDPGenerationProvider } from "@/contexts/PDPGenerationContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
@@ -179,6 +180,7 @@ const App = () => (
           </DeferredDecorations>
           <BrowserRouter>
             <GenerationsContextProvider>
+              <PDPGenerationProvider>
               <PostHogPageView />
               <PostReloadHandler />
               <OnboardingRedirectHandler />
@@ -259,6 +261,7 @@ const App = () => (
                 </RouteErrorBoundary>
                 </main>
               </div>
+              </PDPGenerationProvider>
             </GenerationsContextProvider>
           </BrowserRouter>
         </TooltipProvider>

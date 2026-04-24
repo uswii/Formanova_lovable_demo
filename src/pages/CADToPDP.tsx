@@ -15,8 +15,8 @@ import PDPMeshPanel from "@/components/cad-to-pdp/PDPMeshPanel";
 import { PDPGenerationResults } from "@/components/cad-to-pdp/PDPGenerationResults";
 import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
 import { WorkspacePopupModal, LightboxModal, KeyboardShortcutsModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
-import { usePDPGeneration } from "@/hooks/use-pdp-generation";
-import type { GenerationJob } from "@/hooks/use-pdp-generation";
+import { usePDPGenerationContext } from "@/contexts/PDPGenerationContext";
+import type { PDPJob } from "@/contexts/PDPGenerationContext";
 
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
 
@@ -47,7 +47,7 @@ export default function CADToPDP() {
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [dontShowFinalLookChecked, setDontShowFinalLookChecked] = useState(false);
   const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
-  const { jobs: generationJobs, generate, regenerateJob, removeJob: removeGenerationJob } = usePDPGeneration();
+  const { jobs: generationJobs, generate, regenerateJob, removeJob: removePDPJob } = usePDPGenerationContext();
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
@@ -362,12 +362,12 @@ export default function CADToPDP() {
     generate(screenshots);
   }, [screenshots, generate]);
 
-  const handlePreviewGenerationJob = useCallback((job: GenerationJob) => {
+  const handlePreviewPDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
     if (url) setGenPreviewUrl(url);
   }, []);
 
-  const handleDownloadGenerationJob = useCallback((job: GenerationJob) => {
+  const handleDownloadPDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
     if (!url) return;
     const a = document.createElement("a");
@@ -585,10 +585,10 @@ export default function CADToPDP() {
                 </div>
                 <PDPGenerationResults
                   jobs={generationJobs}
-                  onPreview={handlePreviewGenerationJob}
-                  onDownload={handleDownloadGenerationJob}
+                  onPreview={handlePreviewPDPJob}
+                  onDownload={handleDownloadPDPJob}
                   onRegenerate={regenerateJob}
-                  onRemove={removeGenerationJob}
+                  onRemove={removePDPJob}
                 />
               </div>
             )}
@@ -613,10 +613,10 @@ export default function CADToPDP() {
                 </div>
                 <PDPGenerationResults
                   jobs={generationJobs}
-                  onPreview={handlePreviewGenerationJob}
-                  onDownload={handleDownloadGenerationJob}
+                  onPreview={handlePreviewPDPJob}
+                  onDownload={handleDownloadPDPJob}
                   onRegenerate={regenerateJob}
-                  onRemove={removeGenerationJob}
+                  onRemove={removePDPJob}
                 />
               </div>
             )}
