@@ -32,6 +32,15 @@ export default function ViewportDisplayMenu({ visible, open, onOpenChange, onSce
     return () => document.removeEventListener("mousedown", handler);
   }, [open, onOpenChange]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenChange(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onOpenChange]);
+
   if (!visible) return null;
 
   const toggle = (opt: typeof DISPLAY_OPTIONS[number]) => {

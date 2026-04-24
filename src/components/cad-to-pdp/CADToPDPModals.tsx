@@ -128,6 +128,13 @@ export function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModal
 export interface Screenshot {
   id: number;
   dataUrl: string;
+  uploadedUrl?: string | null;
+  uploadedAssetId?: string | null;
+  captureUri?: string | null;
+  maskDataUrl?: string | null;
+  maskUploadedUrl?: string | null;
+  maskAssetId?: string | null;
+  maskUri?: string | null;
 }
 
 interface WorkspacePopupProps {

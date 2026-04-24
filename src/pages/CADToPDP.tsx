@@ -21,6 +21,9 @@ import type { PDPJob } from "@/contexts/PDPGenerationContext";
 import { imageSourceToBlob, compressImageBlob } from "@/lib/image-compression";
 import { uploadToAzure } from "@/lib/microservices-api";
 import { TO_SINGULAR } from "@/lib/jewelry-utils";
+import { useCreditPreflight } from "@/hooks/use-credit-preflight";
+import { CreditPreflightModal } from "@/components/CreditPreflightModal";
+import { authenticatedFetch } from "@/lib/authenticated-fetch";
 
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
 
@@ -32,6 +35,12 @@ interface WorkspacePopup {
 interface GenerationPreview {
   url: string;
   downloadName: string;
+}
+
+interface UploadedGlbRef {
+  url: string;
+  assetId: string | null;
+  uri: string | null;
 }
 
 export default function CADToPDP() {
@@ -58,6 +67,9 @@ export default function CADToPDP() {
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
   const [dontShowFinalLookChecked, setDontShowFinalLookChecked] = useState(false);
   const { jobs: generationJobs, generate, regenerateJob } = usePDPGenerationContext();
+  const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
+  const [costEstimate, setCostEstimate] = useState<number | null>(null);
+  const costEstimateAcRef = useRef<AbortController | null>(null);
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
@@ -72,6 +84,7 @@ export default function CADToPDP() {
   interface UndoEntry { snapshot: CanvasSnapshot; materials: Record<string, string>; }
   const undoStack = useRef<UndoEntry[]>([]);
   const redoStack = useRef<UndoEntry[]>([]);
+  const uploadedGlbRef = useRef<UploadedGlbRef | null>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +98,27 @@ export default function CADToPDP() {
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (screenshots.length === 0) { setCostEstimate(null); return; }
+    costEstimateAcRef.current?.abort();
+    const ac = new AbortController();
+    costEstimateAcRef.current = ac;
+    authenticatedFetch('/api/credits/estimate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ac.signal,
+      body: JSON.stringify({ workflow_name: 'cad_render_v1', num_variations: screenshots.length }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || ac.signal.aborted) return;
+        const cost = data.projected_max_hold ?? data.estimated_credits;
+        if (cost > 0) setCostEstimate(cost);
+      })
+      .catch(() => {});
+    return () => { ac.abort(); };
+  }, [screenshots.length]);
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
@@ -106,6 +140,20 @@ export default function CADToPDP() {
 
   const showWorkspacePopup = useCallback((title: string, message: string) => {
     setWorkspacePopup({ title, message });
+  }, []);
+
+  const uploadDataAsset = useCallback(async (
+    dataUrl: string,
+    assetType: "generated_photo" | "generated_cad",
+    metadata?: Record<string, string>,
+    contentType = "image/png",
+  ) => {
+    const uploaded = await uploadToAzure(dataUrl, contentType, assetType, metadata);
+    return {
+      url: uploaded.sas_url || uploaded.https_url,
+      assetId: uploaded.asset_id ?? null,
+      uri: uploaded.uri,
+    };
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -189,11 +237,38 @@ export default function CADToPDP() {
     setMeshes([]);
     setAppliedMaterials({});
     setGlbThumbnail(null);
+    uploadedGlbRef.current = null;
     undoStack.current = [];
     redoStack.current = [];
     setUndoCount(0);
     setRedoCount(0);
-  }, [glbUrl, showWorkspacePopup]);
+
+    void (async () => {
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const uploaded = await uploadDataAsset(base64, "generated_cad", {
+          category: TO_SINGULAR.rings ?? "ring",
+          intended_use: "pdp",
+          filename: file.name,
+          source: "cad_to_pdp_glb",
+        }, file.type || "model/gltf-binary");
+        uploadedGlbRef.current = { url: uploaded.url, assetId: uploaded.assetId, uri: uploaded.uri ?? null };
+        console.log("[CADToPDP] GLB uploaded", {
+          glb_url: uploaded.url,
+          glb_asset_id: uploaded.assetId,
+          glb_uri: uploaded.uri,
+          filename: file.name,
+        });
+      } catch (error) {
+        console.warn("[CADToPDP] Failed to upload GLB for backend testing", error);
+      }
+    })();
+  }, [glbUrl, showWorkspacePopup, uploadDataAsset]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -228,6 +303,7 @@ export default function CADToPDP() {
     setMeshes([]);
     setAppliedMaterials({});
     setGlbThumbnail(null);
+    uploadedGlbRef.current = null;
     setIsModelLoading(false);
     undoStack.current = [];
     redoStack.current = [];
@@ -335,7 +411,52 @@ export default function CADToPDP() {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const dataUrl = captureViewportDataUrl();
-        if (dataUrl) setScreenshots((p) => [...p, { id: Date.now(), dataUrl }]);
+        const maskDataUrl = captureViewportMaskDataUrl();
+        if (dataUrl) {
+          const screenshotId = Date.now();
+          setScreenshots((prev) => [...prev, { id: screenshotId, dataUrl, maskDataUrl: maskDataUrl ?? null }]);
+          void (async () => {
+            try {
+              const [captureUpload, maskUpload] = await Promise.all([
+                uploadDataAsset(dataUrl, "generated_photo", {
+                  category: TO_SINGULAR.rings ?? "ring",
+                  intended_use: "pdp",
+                  source: "cad_to_pdp_capture",
+                  screenshot_id: String(screenshotId),
+                }),
+                maskDataUrl
+                  ? uploadDataAsset(maskDataUrl, "generated_photo", {
+                      category: TO_SINGULAR.rings ?? "ring",
+                      intended_use: "pdp",
+                      source: "cad_to_pdp_mask",
+                      screenshot_id: String(screenshotId),
+                      display_type: "mask",
+                    })
+                  : Promise.resolve(null),
+              ]);
+              setScreenshots((prev) => prev.map((shot) => shot.id === screenshotId ? {
+                ...shot,
+                uploadedUrl: captureUpload.url,
+                uploadedAssetId: captureUpload.assetId,
+                captureUri: captureUpload.uri ?? null,
+                maskUploadedUrl: maskUpload?.url ?? null,
+                maskAssetId: maskUpload?.assetId ?? null,
+                maskUri: maskUpload?.uri ?? null,
+              } : shot));
+              console.log("[CADToPDP] Screenshot uploaded", {
+                screenshot_id: screenshotId,
+                capture_url: captureUpload.url,
+                capture_asset_id: captureUpload.assetId,
+                capture_uri: captureUpload.uri,
+                mask_url: maskUpload?.url ?? null,
+                mask_asset_id: maskUpload?.assetId ?? null,
+                mask_uri: maskUpload?.uri ?? null,
+              });
+            } catch (error) {
+              console.warn("[CADToPDP] Failed to upload screenshot or mask for backend testing", error);
+            }
+          })();
+        }
         flushSync(() => {
           setShowViewportGizmo(true);
           if (prevSelection.length > 0) {
@@ -345,7 +466,7 @@ export default function CADToPDP() {
         invalidate();
       });
     });
-  }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl]);
+  }, [meshes, appliedMaterials, showWorkspacePopup, captureViewportDataUrl, captureViewportMaskDataUrl, uploadDataAsset]);
 
   const captureDebugMask = useCallback(() => {
     const canvas = viewportRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
@@ -381,10 +502,12 @@ export default function CADToPDP() {
     setLightboxShot((p) => (p?.id === id ? null : p));
   }, []);
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (screenshots.length === 0) return;
-    generate(screenshots);
-  }, [screenshots, generate]);
+    const approved = await checkCredits('cad_render_v1', screenshots.length);
+    if (!approved) return;
+    generate(screenshots, uploadedGlbRef.current?.uri ?? null);
+  }, [screenshots, generate, checkCredits]);
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
@@ -878,12 +1001,6 @@ export default function CADToPDP() {
                       <Camera className="w-5 h-5 flex-shrink-0" />
                       Capture
                     </button>
-                    <button
-                      onClick={captureDebugMask}
-                      className="pointer-events-auto px-4 py-2 bg-card/95 border border-border text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shadow-lg"
-                    >
-                      Mask Debug
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1065,15 +1182,22 @@ export default function CADToPDP() {
                   <div className="flex-shrink-0 flex items-center border-l border-border/60 bg-card">
                     <button
                       onClick={handleGenerate}
-                      disabled={hasRunningGenerations}
-                      className={`flex h-full items-center justify-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] transition-all whitespace-nowrap ${
-                        hasRunningGenerations
+                      disabled={hasRunningGenerations || preflightChecking}
+                      className={`flex h-full items-center justify-center gap-1.5 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] transition-all whitespace-nowrap ${
+                        hasRunningGenerations || preflightChecking
                           ? "cursor-not-allowed bg-primary/60 text-primary-foreground/80"
                           : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99]"
                       }`}
                     >
-                      {hasRunningGenerations ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                      <span>{hasRunningGenerations ? "Generating..." : "Generate"}</span>
+                      {(hasRunningGenerations || preflightChecking) && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
+                      )}
+                      <span>
+                        {hasRunningGenerations ? "Generating..." : preflightChecking ? "Checking..." : "Generate"}
+                      </span>
+                      {!hasRunningGenerations && !preflightChecking && costEstimate !== null && (
+                        <span className="opacity-60 normal-case text-[9px]">· {costEstimate} cr</span>
+                      )}
                     </button>
                   </div>
                 </motion.div>
@@ -1157,35 +1281,15 @@ export default function CADToPDP() {
           </motion.div>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {debugMaskPreviewUrl && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[220] flex items-center justify-center bg-black/85 backdrop-blur-sm"
-            onClick={() => setDebugMaskPreviewUrl(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.96, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              className="relative max-w-[92vw] max-h-[92vh]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img src={debugMaskPreviewUrl} alt="Debug mask preview" className="max-w-full max-h-[92vh] object-contain border border-border bg-white" />
-              <button
-                onClick={() => setDebugMaskPreviewUrl(null)}
-                className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors"
-              >
-                <X className="w-4 h-4 text-foreground" />
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
+      {showInsufficientModal && preflightResult && (
+        <CreditPreflightModal
+          open={showInsufficientModal}
+          onOpenChange={(open) => !open && dismissModal()}
+          estimatedCredits={preflightResult.estimatedCredits}
+          currentBalance={preflightResult.currentBalance}
+        />
+      )}
     </div>
   );
 }

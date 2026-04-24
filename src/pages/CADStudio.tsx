@@ -1,11 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, ImageIcon, ShoppingBag, BookOpen } from "lucide-react";
+import { ArrowRight, Layers, ImageIcon } from "lucide-react";
 
-import textToCadImg from "@/assets/cad-studio/text-to-cad-card.webp";
+import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
 import imageToCadImg from "@/assets/examples/cad-example-1.webp";
-import cadToPdpImg from "@/assets/cad-studio/product-shot-card.webp";
-import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
 
 const cadFeatures = [
   {
@@ -24,35 +22,19 @@ const cadFeatures = [
     icon: ImageIcon,
     image: imageToCadImg,
   },
-  {
-    title: "CAD to PDP",
-    description: "Turn your CAD model into a polished product detail page image.",
-    route: "/cad-to-pdp",
-    comingSoon: false,
-    icon: ShoppingBag,
-    image: cadToPdpImg,
-  },
-  {
-    title: "CAD to Catalog",
-    description: "Render your CAD model across multiple catalog-ready angles.",
-    route: "/cad-to-catalog",
-    comingSoon: false,
-    icon: BookOpen,
-    image: cadToCatalogImg,
-  },
 ];
 
 export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-[calc(100dvh-5rem)] bg-background flex flex-col items-center overflow-hidden px-4 sm:px-6 md:px-8 lg:px-10">
+    <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 overflow-x-hidden pt-4 md:pt-8 lg:pt-0">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-[8rem] uppercase tracking-wide text-center pt-3 sm:pt-4 md:pt-6 text-foreground leading-none mb-3 sm:mb-4 md:mb-5 flex-shrink-0"
+        className="font-display text-5xl md:text-6xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-8 lg:pt-6 text-foreground leading-none mb-6 md:mb-8"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
@@ -62,7 +44,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="w-full max-w-[1200px] flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 pb-3 sm:pb-4 md:pb-6"
+        className="w-full max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 lg:gap-6 pb-6 md:pb-10"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
@@ -71,7 +53,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[4/3] opacity-60 cursor-default"
               >
                 <img
                   src={feature.image}
@@ -110,7 +92,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflow-hidden cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[4/3] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               <img
                 src={feature.image}

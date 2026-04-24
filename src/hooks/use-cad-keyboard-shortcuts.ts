@@ -23,6 +23,13 @@ export interface ShortcutSection {
 /** The single source of truth for all CAD keyboard shortcuts. */
 export const SHORTCUT_SECTIONS: ShortcutSection[] = [
   {
+    title: "Panels",
+    shortcuts: [
+      { keys: ["?", "/", "Shift+/"], desc: "Toggle shortcuts panel" },
+      { keys: ["Esc"], desc: "Close open popup/menu" },
+    ],
+  },
+  {
     title: "Transform Modes",
     shortcuts: [
       { keys: ["G"], desc: "Move" },
@@ -201,8 +208,8 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
 
       // ── Single keys ──
 
-      // ? → Toggle shortcuts panel
-      if (e.key === "?") {
+      // ? or / → Toggle shortcuts panel
+      if (e.key === "?" || key === "/") {
         a.onToggleShortcutsPanel();
         return;
       }

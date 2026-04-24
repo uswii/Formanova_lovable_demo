@@ -18,7 +18,7 @@ export interface AzureUploadResponse {
 export async function uploadToAzure(
   base64: string,
   contentType: string = 'image/jpeg',
-  assetType?: 'jewelry_photo' | 'model_photo' | 'inspiration_photo',
+  assetType?: 'jewelry_photo' | 'model_photo' | 'inspiration_photo' | 'generated_photo' | 'generated_cad',
   metadata?: Record<string, string>,
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
@@ -73,7 +73,8 @@ export async function pollJobUntilComplete<T extends { status: string }>(
     }
     
     if (result.status === 'failed') {
-      throw new Error(`Job failed: ${(result as any).error || 'Unknown error'}`);
+      const failedResult = result as T & { error?: string };
+      throw new Error(`Job failed: ${failedResult.error || 'Unknown error'}`);
     }
     
     // Wait before next poll

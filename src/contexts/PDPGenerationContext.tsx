@@ -2,13 +2,20 @@ import React, { createContext, useContext, useRef, useState, useEffect, useCallb
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
-// TODO: remove once real API spec is provided — swap startJob to real polling
-// Real spec: POST /api/run/cad-to-pdp { screenshot_data_url, screenshot_id } → { run_id }
-//            GET  /api/run/cad-to-pdp/status/{runId} → { status, result_url?, error? }
-const MOCK_RESULT_URL = '/cad-to-pdp/mock-pdp-result.png';
-const MOCK_DELAY_MS = 2_000;
 const PDP_PATH = '/cad-to-pdp';
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLL_ATTEMPTS = 120; // ~5 minutes
+const MAX_TRANSIENT_404 = 5;
+const MAX_CONSECUTIVE_ERRORS = 5;
+
+interface ScreenshotPayload {
+  id: number;
+  dataUrl: string;
+  captureUri?: string | null;
+  maskUri?: string | null;
+}
 
 export interface PDPJob {
   id: string;
@@ -18,11 +25,15 @@ export interface PDPJob {
   resultUrl?: string;
   startedAt: number;
   errorMessage?: string;
+  glbUri?: string | null;
+  captureUri?: string | null;
+  maskUri?: string | null;
+  workflowId?: string | null;
 }
 
 interface PDPGenerationContextValue {
   jobs: PDPJob[];
-  generate: (screenshots: { id: number; dataUrl: string }[]) => void;
+  generate: (screenshots: ScreenshotPayload[], glbUri?: string | null) => void;
   regenerateJob: (job: PDPJob) => void;
   removeJob: (id: string) => void;
 }
@@ -36,11 +47,9 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Stable ref so async job callbacks always read the current pathname
   const pathnameRef = useRef(location.pathname);
   useEffect(() => { pathnameRef.current = location.pathname; }, [location.pathname]);
 
-  // When user navigates AWAY while jobs are running, show a single in-progress toast
   const shownAwayToastRef = useRef(false);
   const runningCount = jobs.filter(j => j.status === 'generating').length;
 
@@ -72,39 +81,136 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     abortRefs.current.set(job.id, ac);
 
     try {
-      // TODO: replace with real API call once spec is provided
-      await new Promise<void>(resolve => {
-        const t = setTimeout(resolve, MOCK_DELAY_MS);
-        ac.signal.addEventListener('abort', () => { clearTimeout(t); resolve(); }, { once: true });
-      });
-      if (ac.signal.aborted) return;
-
-      patchJob(job.id, { status: 'completed', resultUrl: MOCK_RESULT_URL });
-
-      // Only show "ready" toast if user has navigated away
-      if (!pathnameRef.current.startsWith(PDP_PATH)) {
-        toast({
-          title: 'PDP image ready',
-          action: (
-            <ToastAction altText="View Results" onClick={() => navigate(PDP_PATH)}>
-              View Results
-            </ToastAction>
-          ),
-        });
+      if (!job.glbUri) {
+        patchJob(job.id, { status: 'failed', errorMessage: 'Model upload is still in progress. Please wait and try again.' });
+        return;
       }
-    } catch (err) {
-      if ((err as Error)?.name !== 'AbortError') {
-        patchJob(job.id, { status: 'failed', errorMessage: 'Request failed' });
-        if (!pathnameRef.current.startsWith(PDP_PATH)) {
-          toast({ variant: 'destructive', title: 'PDP generation failed', description: 'Try again from the workspace.' });
+      if (!job.captureUri) {
+        patchJob(job.id, { status: 'failed', errorMessage: 'Screenshot upload is still in progress. Please wait and try again.' });
+        return;
+      }
+
+      const startRes = await authenticatedFetch('/api/temporal/run-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
+        body: JSON.stringify({
+          workflow_name: 'cad_render_v1',
+          payload: {
+            glb_artifact: { uri: job.glbUri },
+            images: [
+              { uri: job.captureUri },
+              ...(job.maskUri ? [{ uri: job.maskUri }] : []),
+            ],
+          },
+        }),
+      });
+
+      if (!startRes.ok) {
+        const errText = await startRes.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to start generation: ${errText}`);
+      }
+
+      const startData = await startRes.json();
+      const workflowId: string | undefined = startData?.workflow_id;
+      if (!workflowId) throw new Error('No workflow_id returned from server');
+
+      patchJob(job.id, { workflowId });
+
+      let transient404Count = 0;
+      let consecutiveErrors = 0;
+
+      for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+        if (ac.signal.aborted) return;
+        await new Promise<void>(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+        if (ac.signal.aborted) return;
+
+        let statusRes: Response;
+        try {
+          statusRes = await authenticatedFetch(`/api/temporal/status/${workflowId}`, { signal: ac.signal });
+        } catch (err) {
+          if ((err as Error)?.name === 'AbortError') return;
+          consecutiveErrors++;
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) throw new Error('Too many network errors while polling status');
+          continue;
         }
+
+        if (statusRes.status === 404) {
+          transient404Count++;
+          if (transient404Count >= MAX_TRANSIENT_404) throw new Error('Workflow not found on server');
+          continue;
+        }
+        transient404Count = 0;
+
+        if (!statusRes.ok) {
+          consecutiveErrors++;
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) throw new Error('Too many errors polling status');
+          continue;
+        }
+        consecutiveErrors = 0;
+
+        const statusData = await statusRes.json();
+        const state: string = statusData?.runtime?.state ?? statusData?.state ?? '';
+
+        if (state === 'budget_exhausted') {
+          patchJob(job.id, { status: 'failed', errorMessage: 'Insufficient credits for this generation.' });
+          return;
+        }
+
+        if (state === 'failed') {
+          const errMsg = statusData?.runtime?.error ?? statusData?.error ?? 'Generation failed on server';
+          throw new Error(errMsg);
+        }
+
+        if (state === 'completed') {
+          const resultRes = await authenticatedFetch(`/api/temporal/result/${workflowId}`, { signal: ac.signal });
+          if (!resultRes.ok) throw new Error('Failed to fetch generation result');
+          const resultData = await resultRes.json();
+
+          const imageUri: string | undefined =
+            resultData?.outputs?.image_artifact?.uri ??
+            resultData?.image_artifact?.uri ??
+            resultData?.result?.image_artifact?.uri;
+          if (!imageUri) throw new Error('No image URI in generation result');
+
+          const downloadRes = await authenticatedFetch(
+            `/api/azure/download-artifact?uri=${encodeURIComponent(imageUri)}`,
+            { signal: ac.signal },
+          );
+          if (!downloadRes.ok) throw new Error('Failed to download generated image');
+          const blob = await downloadRes.blob();
+          const resultUrl = URL.createObjectURL(blob);
+
+          patchJob(job.id, { status: 'completed', resultUrl });
+
+          if (!pathnameRef.current.startsWith(PDP_PATH)) {
+            toast({
+              title: 'PDP image ready',
+              action: (
+                <ToastAction altText="View Results" onClick={() => navigate(PDP_PATH)}>
+                  View Results
+                </ToastAction>
+              ),
+            });
+          }
+          return;
+        }
+      }
+
+      throw new Error('Generation timed out after 5 minutes');
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
+      const message = (err as Error)?.message ?? 'Request failed';
+      patchJob(job.id, { status: 'failed', errorMessage: message });
+      if (!pathnameRef.current.startsWith(PDP_PATH)) {
+        toast({ variant: 'destructive', title: 'PDP generation failed', description: 'Try again from the workspace.' });
       }
     } finally {
       abortRefs.current.delete(job.id);
     }
   }, [patchJob, toast, navigate]);
 
-  const generate = useCallback((screenshots: { id: number; dataUrl: string }[]) => {
+  const generate = useCallback((screenshots: ScreenshotPayload[], glbUri?: string | null) => {
     const now = Date.now();
     const newJobs: PDPJob[] = screenshots.map((shot, i) => ({
       id: `pdp-${now}-${i}`,
@@ -112,6 +218,9 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       sourceDataUrl: shot.dataUrl,
       status: 'generating' as const,
       startedAt: now,
+      glbUri: glbUri ?? null,
+      captureUri: shot.captureUri ?? null,
+      maskUri: shot.maskUri ?? null,
     }));
     setJobs(prev => [...newJobs, ...prev]);
     newJobs.forEach(job => { void startJob(job); });
@@ -125,6 +234,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       startedAt: Date.now(),
       resultUrl: undefined,
       errorMessage: undefined,
+      workflowId: undefined,
     };
     setJobs(prev => [newJob, ...prev]);
     void startJob(newJob);
