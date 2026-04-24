@@ -55,7 +55,7 @@ function ResultCard({
       <div className="flex items-start gap-3">
         {/* Thumbnail — larger */}
         <div
-          className={`group relative flex-shrink-0 w-20 h-20 border border-border overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+          className={`group relative flex-shrink-0 w-28 h-28 border border-border overflow-hidden bg-muted/20${isCompleted ? " cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
           onClick={() => isCompleted && onPreview(job)}
           role={isCompleted ? "button" : undefined}
           tabIndex={isCompleted ? 0 : undefined}
