@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, ImageIcon } from "lucide-react";
+import { ArrowRight, Layers, ImageIcon, Diamond } from "lucide-react";
 
 import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
 import imageToCadImg from "@/assets/examples/cad-example-1.webp";
+import cadToPdpImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
 
 const cadFeatures = [
   {
@@ -21,6 +22,14 @@ const cadFeatures = [
     comingSoon: false,
     icon: ImageIcon,
     image: imageToCadImg,
+  },
+  {
+    title: "CAD to PDP",
+    description: "Turn your 3D ring file into studio-ready product images.",
+    route: "/cad-to-pdp",
+    comingSoon: false,
+    icon: Diamond,
+    image: cadToPdpImg,
   },
 ];
 
