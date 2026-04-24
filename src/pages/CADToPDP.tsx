@@ -23,7 +23,7 @@ import { uploadToAzure } from "@/lib/microservices-api";
 import { TO_SINGULAR } from "@/lib/jewelry-utils";
 import { useCreditPreflight } from "@/hooks/use-credit-preflight";
 import { CreditPreflightModal } from "@/components/CreditPreflightModal";
-import { TOOL_COSTS } from "@/lib/credits-api";
+import { performCreditPreflight } from "@/lib/credit-preflight";
 
 
 const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
@@ -97,7 +97,11 @@ export default function CADToPDP() {
 
   useEffect(() => {
     if (screenshots.length === 0) { setCostEstimate(null); return; }
-    setCostEstimate((TOOL_COSTS['cad_render_v1'] ?? 10) * screenshots.length);
+    let cancelled = false;
+    performCreditPreflight('cad_render_v1', screenshots.length)
+      .then(result => { if (!cancelled) setCostEstimate(result.estimatedCredits); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [screenshots.length]);
 
   const selectedMeshNames = useMemo(
