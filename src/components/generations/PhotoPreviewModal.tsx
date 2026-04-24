@@ -32,6 +32,7 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose, assetId }: PhotoPrev
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
     const filename = lastPart || 'generation.jpg';
     const ext = filename.lastIndexOf('.') > 0 ? filename.slice(filename.lastIndexOf('.') + 1) : 'jpg';
+
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
     const res = await authenticatedFetch(imageUrl);
     const blob = await res.blob();

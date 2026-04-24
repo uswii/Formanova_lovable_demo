@@ -46,6 +46,18 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | nul
   });
 }
 
+export async function batchSettled<T>(
+  tasks: Array<() => Promise<T>>,
+  concurrency = 5,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = [];
+  for (let i = 0; i < tasks.length; i += concurrency) {
+    const batch = tasks.slice(i, i + concurrency).map((t) => t());
+    results.push(...(await Promise.allSettled(batch)));
+  }
+  return results;
+}
+
 export function getAssetWorkflowId(asset: UserAsset): string | null {
   return (
     asset.workflow_id ||
@@ -83,4 +95,23 @@ export function getAssetArtifactKeys(asset: UserAsset): string[] {
     getArtifactKey(asset.metadata?.artifact_url),
     getArtifactKey(asset.metadata?.url),
   ].filter((v): v is string => Boolean(v));
+}
+
+export function sortByCreatedDesc<T extends { created_at?: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Date.parse(b.created_at ?? '') - Date.parse(a.created_at ?? ''));
+}
+
+export function buildOrderedCadAssetNameMap(workflows: WorkflowSummary[], assets: UserAsset[]): Record<string, string> {
+  const cadWorkflows = sortByCreatedDesc(
+    workflows.filter(w => w.source_type === 'cad_text' && w.status === 'completed'),
+  );
+  const cadAssetNames = sortByCreatedDesc(assets)
+    .map(getAssetDisplayName)
+    .filter(Boolean);
+
+  return cadWorkflows.reduce<Record<string, string>>((acc, workflow, index) => {
+    const name = cadAssetNames[index];
+    if (name) acc[workflow.workflow_id] = name;
+    return acc;
+  }, {});
 }

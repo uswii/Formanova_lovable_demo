@@ -1,8 +1,9 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from '@/components/text-to-cad/CADCanvas';
-import type { MeshItemData } from '@/components/text-to-cad/types';
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { toast } from "sonner";
+import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
+import type { MeshItemData } from "@/components/text-to-cad/types";
 
-interface UndoEntry {
+export interface UndoEntry {
   label: string;
   meshes: MeshItemData[];
   canvasSnapshot: CanvasSnapshot | null;
@@ -22,33 +23,26 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
 
   const meshesRef = useRef<MeshItemData[]>(meshes);
+  meshesRef.current = meshes;
   const wireframeRef = useRef(false);
   const clipboardRef = useRef<string[]>([]);
   const pendingSelectRef = useRef<Set<string> | null>(null);
-  const numericUndoRef = useRef<{ snapshot: UndoEntry; timer: ReturnType<typeof setTimeout> } | null>(null);
   const preTransformSnapshotRef = useRef<UndoEntry | null>(null);
+  const numericUndoRef = useRef<{ snapshot: UndoEntry; timer: ReturnType<typeof setTimeout> } | null>(null);
   const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  meshesRef.current = meshes;
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
     [meshes]
   );
-
   const hiddenMeshNames = useMemo(
     () => new Set(meshes.filter((m) => !m.visible).map((m) => m.name)),
     [meshes]
   );
-
   const selectedNames = useMemo(
     () => meshes.filter((m) => m.selected).map((m) => m.name),
     [meshes]
   );
-
-  useEffect(() => {
-    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
-  }, [selectedMeshNames, canvasRef]);
 
   const pushUndoEntry = useCallback((label: string, entry: UndoEntry) => {
     setUndoStack((prev) => [...prev, entry]);
@@ -59,7 +53,7 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
     pushUndoEntry(label, { label, meshes: currentMeshes, canvasSnapshot: snap });
-  }, [pushUndoEntry, canvasRef]);
+  }, [canvasRef, pushUndoEntry]);
 
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
@@ -91,7 +85,7 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
     preTransformSnapshotRef.current = { label: `Transform (${transformMode})`, meshes: currentMeshes, canvasSnapshot: snap };
-  }, [transformMode, canvasRef]);
+  }, [canvasRef, transformMode]);
 
   const handleTransformEnd = useCallback(() => {
     if (preTransformSnapshotRef.current) {
@@ -99,7 +93,7 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
       preTransformSnapshotRef.current = null;
     }
     setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
-  }, [pushUndoEntry, canvasRef]);
+  }, [canvasRef, pushUndoEntry]);
 
   const handleNumericTransformChange = useCallback((axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
     if (!numericUndoRef.current) {
@@ -128,13 +122,23 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
     requestAnimationFrame(() => {
       setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
     });
-  }, [pushUndoEntry, canvasRef]);
+  }, [canvasRef, pushUndoEntry]);
 
   const showSelectionWarning = useCallback((msg: string) => {
     setSelectionWarning(msg);
     if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
     selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
   }, []);
+
+  useEffect(() => {
+    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
+  }, [canvasRef, selectedMeshNames]);
+
+  const handleApplyMaterial = useCallback((matId: string) => {
+    if (selectedNames.length === 0) { showSelectionWarning("Select meshes first, then apply a material"); return; }
+    pushUndo("Apply material");
+    canvasRef.current?.applyMaterial(matId, selectedNames);
+  }, [canvasRef, selectedNames, pushUndo, showSelectionWarning]);
 
   const handleSelectMesh = useCallback((name: string, multi: boolean) => {
     if (!name) {
@@ -161,52 +165,46 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
   }, []);
 
   const handleMeshAction = useCallback((action: string) => {
-    const isVisibilityAction = ['hide', 'show', 'show-all', 'isolate'].includes(action);
+    const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
     if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
     setMeshes((prev) => {
       switch (action) {
-        case 'hide': return prev.map((m) => m.selected ? { ...m, visible: false } : m);
-        case 'show': return prev.map((m) => m.selected ? { ...m, visible: true } : m);
-        case 'show-all': return prev.map((m) => ({ ...m, visible: true }));
-        case 'isolate': return prev.map((m) => ({ ...m, visible: m.selected }));
-        case 'select-all': return prev.map((m) => ({ ...m, selected: true }));
-        case 'select-none': return prev.map((m) => ({ ...m, selected: false }));
-        case 'select-invert': return prev.map((m) => ({ ...m, selected: !m.selected }));
+        case "hide": return prev.map((m) => m.selected ? { ...m, visible: false } : m);
+        case "show": return prev.map((m) => m.selected ? { ...m, visible: true } : m);
+        case "show-all": return prev.map((m) => ({ ...m, visible: true }));
+        case "isolate": return prev.map((m) => ({ ...m, visible: m.selected }));
+        case "select-all": return prev.map((m) => ({ ...m, selected: true }));
+        case "select-none": return prev.map((m) => ({ ...m, selected: false }));
+        case "select-invert": return prev.map((m) => ({ ...m, selected: !m.selected }));
         default: return prev;
       }
     });
   }, [pushUndo]);
 
-  const handleApplyMaterial = useCallback((matId: string) => {
-    if (selectedNames.length === 0) { showSelectionWarning('Select meshes first, then apply a material'); return; }
-    pushUndo('Apply material');
-    canvasRef.current?.applyMaterial(matId, selectedNames);
-  }, [selectedNames, pushUndo, showSelectionWarning, canvasRef]);
-
   const handleSceneAction = useCallback((action: string) => {
     const names = selectedNames;
     switch (action) {
-      case 'set-mode-translate': setTransformMode('translate'); break;
-      case 'set-mode-rotate': setTransformMode('rotate'); break;
-      case 'set-mode-scale': setTransformMode('scale'); break;
-      case 'reset-transform':
-        pushUndo('Reset transform');
+      case "set-mode-translate": setTransformMode("translate"); break;
+      case "set-mode-rotate": setTransformMode("rotate"); break;
+      case "set-mode-scale": setTransformMode("scale"); break;
+      case "reset-transform":
+        pushUndo("Reset transform");
         canvasRef.current?.resetTransform(names.length ? names : meshesRef.current.map((m) => m.name));
         break;
-      case 'apply-transform':
-        if (!names.length) { showSelectionWarning('Select meshes first'); return; }
-        pushUndo('Apply transform');
+      case "apply-transform":
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
+        pushUndo("Apply transform");
         canvasRef.current?.applyTransform(names);
         break;
-      case 'delete':
-        if (!names.length) { showSelectionWarning('Select meshes first'); return; }
-        pushUndo('Delete meshes');
+      case "delete":
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
+        pushUndo("Delete meshes");
         canvasRef.current?.deleteMeshes(names);
         setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
         break;
-      case 'duplicate': {
-        if (!names.length) { showSelectionWarning('Select meshes first'); return; }
-        pushUndo('Duplicate meshes');
+      case "duplicate": {
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
+        pushUndo("Duplicate meshes");
         const existingNames = new Set(meshesRef.current.map(m => m.name));
         const dupNames = new Set<string>();
         names.forEach(n => {
@@ -219,21 +217,21 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
         canvasRef.current?.duplicateMeshes(names);
         break;
       }
-      case 'flip-normals':
-        if (!names.length) { showSelectionWarning('Select meshes first'); return; }
-        pushUndo('Flip normals');
+      case "flip-normals":
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
+        pushUndo("Flip normals");
         canvasRef.current?.flipNormals(names);
         break;
-      case 'center-origin':
-        if (!names.length) { showSelectionWarning('Select meshes first'); return; }
-        pushUndo('Center origin');
+      case "center-origin":
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
+        pushUndo("Center origin");
         canvasRef.current?.centerOrigin(names);
         break;
-      case 'wireframe-on': canvasRef.current?.setWireframe(true); break;
-      case 'wireframe-off': canvasRef.current?.setWireframe(false); break;
+      case "wireframe-on": canvasRef.current?.setWireframe(true); break;
+      case "wireframe-off": canvasRef.current?.setWireframe(false); break;
       default: break;
     }
-  }, [selectedNames, pushUndo, showSelectionWarning, setTransformMode, canvasRef]);
+  }, [canvasRef, selectedNames, pushUndo, showSelectionWarning, setTransformMode]);
 
   const toggleWireframe = useCallback(() => {
     wireframeRef.current = !wireframeRef.current;
@@ -247,38 +245,41 @@ export function useCADMeshEditor({ canvasRef, transformMode, setTransformMode }:
 
   const handlePaste = useCallback(() => {
     if (!clipboardRef.current.length) return;
-    pushUndo('Paste meshes');
+    pushUndo("Paste meshes");
     canvasRef.current?.duplicateMeshes(clipboardRef.current);
-  }, [pushUndo, canvasRef]);
+  }, [canvasRef, pushUndo]);
 
   const handleCut = useCallback(() => {
     const names = meshesRef.current.filter(m => m.selected).map(m => m.name);
     if (!names.length) return;
     clipboardRef.current = names;
-    pushUndo('Cut meshes');
+    pushUndo("Cut meshes");
     canvasRef.current?.deleteMeshes(names);
     setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
-  }, [pushUndo, canvasRef]);
+  }, [canvasRef, pushUndo]);
 
   const resetMeshEditor = useCallback(() => {
     setMeshes([]);
     setUndoStack([]);
     setRedoStack([]);
-    setSelectionWarning(null);
-    setSelectedTransform(null);
   }, []);
 
   return {
     meshes, setMeshes,
-    selectedMeshNames, hiddenMeshNames, selectedNames,
     undoStack, redoStack,
-    selectedTransform,
-    selectionWarning,
-    pushUndo, handleUndo, handleRedo,
-    handleTransformStart, handleTransformEnd, handleNumericTransformChange,
-    handleSelectMesh, handleMeshesDetected, handleMeshAction, handleSceneAction,
+    selectedMeshNames, hiddenMeshNames, selectedNames,
+    meshesRef, wireframeRef,
+    selectedTransform, setSelectedTransform,
+    selectionWarning, setSelectionWarning,
+    pushUndo,
+    handleUndo, handleRedo,
+    handleTransformStart, handleTransformEnd,
+    handleNumericTransformChange,
+    handleSelectMesh, handleMeshesDetected,
+    handleMeshAction, handleSceneAction,
     handleApplyMaterial,
-    toggleWireframe, handleCopy, handlePaste, handleCut,
+    handleCopy, handlePaste, handleCut,
+    toggleWireframe,
     resetMeshEditor,
   };
 }

@@ -15,8 +15,14 @@ import {
 import { extractPhotoThumbnail, extractCadTextData, extractProductShotThumbnail } from '@/lib/generation-enrichment';
 import { fetchUserAssets, getAssetDisplayName } from '@/lib/assets-api';
 import {
-  loadCache, saveCache, preloadImage, withTimeout,
-  getAssetWorkflowId, getArtifactKey, getAssetArtifactKeys,
+  loadCache,
+  saveCache,
+  preloadImage,
+  withTimeout,
+  getAssetWorkflowId,
+  getArtifactKey,
+  getAssetArtifactKeys,
+  buildOrderedCadAssetNameMap,
   type CachePayload,
 } from '@/lib/generation-history-utils';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
@@ -54,7 +60,8 @@ export default function Generations() {
     byAssetId: Record<string, string>;
     byWorkflowId: Record<string, string>;
     byArtifactKey: Record<string, string>;
-  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {} });
+    byOrderedCadWorkflowId: Record<string, string>;
+  }>({ byAssetId: {}, byWorkflowId: {}, byArtifactKey: {}, byOrderedCadWorkflowId: {} });
 
   const resolveGeneratedAssetName = useCallback((workflow: WorkflowSummary): string | null => {
     const maps = generatedAssetNamesRef.current;
@@ -64,6 +71,7 @@ export default function Generations() {
       (workflow.output_asset_id ? maps.byAssetId[workflow.output_asset_id] : undefined) ||
       maps.byWorkflowId[workflow.workflow_id] ||
       (artifactKey ? maps.byArtifactKey[artifactKey] : undefined) ||
+      maps.byOrderedCadWorkflowId[workflow.workflow_id] ||
       null
     );
   }, []);
@@ -111,11 +119,13 @@ export default function Generations() {
         const assetNameMap: Record<string, string> = {};
         const workflowAssetNameMap: Record<string, string> = {};
         const artifactAssetNameMap: Record<string, string> = {};
+        let orderedCadWorkflowNameMap: Record<string, string> = {};
         try {
           const [photos, cads] = await Promise.all([
             fetchUserAssets('generated_photo', 0, 100),
             fetchUserAssets('generated_cad', 0, 100),
           ]);
+          orderedCadWorkflowNameMap = buildOrderedCadAssetNameMap(workflows, cads.items);
           [...photos.items, ...cads.items].forEach(a => {
             const name = getAssetDisplayName(a);
             if (!name) return;
@@ -132,6 +142,7 @@ export default function Generations() {
           byAssetId: assetNameMap,
           byWorkflowId: workflowAssetNameMap,
           byArtifactKey: artifactAssetNameMap,
+          byOrderedCadWorkflowId: orderedCadWorkflowNameMap,
         };
 
         // Re-apply enriched data + asset names

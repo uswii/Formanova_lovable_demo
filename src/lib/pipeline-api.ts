@@ -147,7 +147,7 @@ export const adminApi = {
   },
 };
 
-// ─── Tenant API (X-API-Key) ───────────────────────────────────────────────────
+// ─── Authenticated user API (JWT Bearer) ──────────────────────────────────────
 
 export const tenantApi = {
   getFinancials(): Promise<TenantFinancials> {

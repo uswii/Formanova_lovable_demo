@@ -8,7 +8,7 @@
  * Has NO state of its own — all values flow in as props from UnifiedStudio.
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gem, AlertTriangle } from 'lucide-react';
+import { Gem, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -24,6 +24,7 @@ interface StudioGeneratingStepProps {
   resolvedActiveModelUrl: string | null;
   generationError: string | null;
   handleStartOver: () => void;
+  onKeepBrowsing: () => void;
 }
 
 const PRODUCT_SHOT_MSGS = [
@@ -45,6 +46,7 @@ export function StudioGeneratingStep({
   resolvedActiveModelUrl,
   generationError,
   handleStartOver,
+  onKeepBrowsing,
 }: StudioGeneratingStepProps) {
   return (
     <motion.div
@@ -111,6 +113,14 @@ export function StudioGeneratingStep({
             <p className="font-mono text-[10px] italic text-muted-foreground mb-8">This can take up to 50 seconds</p>
           </>
         )}
+
+        <button
+          onClick={onKeepBrowsing}
+          className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground hover:text-foreground/70 transition-colors mb-6"
+        >
+          Keep browsing
+          <ArrowRight className="h-3 w-3 shrink-0" />
+        </button>
 
         <div className="flex gap-4">
           {jewelryImage && (

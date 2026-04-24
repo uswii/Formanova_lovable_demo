@@ -19,11 +19,6 @@ export const CAD_EDIT_RETURN_NODES = [
   'build_retry',
 ] as const;
 
-function resolveStateBackendUrl(): string | undefined {
-  const pipelineUrl = import.meta.env.VITE_PIPELINE_API_URL || '';
-  return pipelineUrl.startsWith('http') ? pipelineUrl : undefined;
-}
-
 export function buildCadGenerationStartBody(
   prompt: string,
   model?: string | null,
@@ -70,10 +65,7 @@ export function buildCadEditStartBody(
   description: string,
   sourceWorkflowId: string,
   model?: string | null,
-  token?: string | null,
-  userId?: string | null,
 ) {
-  const backendUrl = resolveStateBackendUrl();
   return {
     payload: {
       tier: resolveCadGenerationTier(model),
@@ -81,9 +73,6 @@ export function buildCadEditStartBody(
       description: description.trim(),
       ring_id: sourceWorkflowId,
       source_workflow_id: sourceWorkflowId,
-      ...(backendUrl ? { state_backend_url: backendUrl } : {}),
-      ...(token ? { state_backend_bearer_token: token } : {}),
-      ...(userId ? { state_on_behalf_of: userId } : {}),
     },
     return_nodes: [...CAD_EDIT_RETURN_NODES],
   };

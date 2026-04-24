@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
+import { GenerationsContextProvider } from "@/contexts/GenerationsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
@@ -177,26 +178,27 @@ const App = () => (
             </Suspense>
           </DeferredDecorations>
           <BrowserRouter>
-            <PostHogPageView />
-            <PostReloadHandler />
-            <OnboardingRedirectHandler />
-            <VersionBanner />
-            
-            <DeferredDecorations>
-              <Suspense fallback={null}>
-                <FloatingElements />
-                <ScrollProgressIndicator />
-                <ThemeDecorations />
-              </Suspense>
-            </DeferredDecorations>
-            <div className="min-h-screen flex flex-col relative z-10">
-              <Header />
-              <main className="flex-1">
-              <RouteErrorBoundary>
-              <ChunkErrorBoundary>
+            <GenerationsContextProvider>
+              <PostHogPageView />
+              <PostReloadHandler />
+              <OnboardingRedirectHandler />
+              <VersionBanner />
 
-                <Suspense fallback={<PageLoader />}>
-                <Routes>
+              <DeferredDecorations>
+                <Suspense fallback={null}>
+                  <FloatingElements />
+                  <ScrollProgressIndicator />
+                  <ThemeDecorations />
+                </Suspense>
+              </DeferredDecorations>
+              <div className="min-h-screen flex flex-col relative z-10">
+                <Header />
+                <main className="flex-1">
+                <RouteErrorBoundary>
+                <ChunkErrorBoundary>
+
+                  <Suspense fallback={<PageLoader />}>
+                  <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
                   <Route path="/feedback" element={<FeedbackRedirect />} />
@@ -252,11 +254,12 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-                </Suspense>
-              </ChunkErrorBoundary>
-              </RouteErrorBoundary>
-              </main>
-            </div>
+                  </Suspense>
+                </ChunkErrorBoundary>
+                </RouteErrorBoundary>
+                </main>
+              </div>
+            </GenerationsContextProvider>
           </BrowserRouter>
         </TooltipProvider>
         </CreditsProvider>
