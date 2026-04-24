@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera } from "lucide-react";
+import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Sparkles } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -12,10 +12,13 @@ import CADRuntimeErrorBoundary from "@/components/cad/CADRuntimeErrorBoundary";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
 import type { MeshItemData } from "@/components/text-to-cad/types";
 import PDPMeshPanel from "@/components/cad-to-pdp/PDPMeshPanel";
+import { PDPGenerationResults } from "@/components/cad-to-pdp/PDPGenerationResults";
 import { ViewportSideTools } from "@/components/text-to-cad/ViewportOverlays";
 import { WorkspacePopupModal, LightboxModal, KeyboardShortcutsModal, type Screenshot } from "@/components/cad-to-pdp/CADToPDPModals";
+import { usePDPGeneration } from "@/hooks/use-pdp-generation";
+import type { GenerationJob } from "@/hooks/use-pdp-generation";
 
-const HAS_SEEN_FINAL_LOOK_KEY = 'hasSeenFinalLookPreview';
+const DONT_SHOW_FINAL_LOOK_KEY = 'pdp_final_look_dont_show';
 
 interface WorkspacePopup {
   title: string;
@@ -42,6 +45,9 @@ export default function CADToPDP() {
   const [redoCount, setRedoCount] = useState(0);
 
   const [showFinalLookPreview, setShowFinalLookPreview] = useState(false);
+  const [dontShowFinalLookChecked, setDontShowFinalLookChecked] = useState(false);
+  const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
+  const { jobs: generationJobs, generate, regenerateJob, removeJob: removeGenerationJob } = usePDPGeneration();
   const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
   const [captureWarning, setCaptureWarning] = useState(false);
   const [showViewportGizmo, setShowViewportGizmo] = useState(true);
@@ -120,6 +126,7 @@ export default function CADToPDP() {
       if (mod) return;
       if (e.key === "?" || e.key === "/") { setShowShortcuts((s) => !s); return; }
       if (key === "escape") {
+        if (showFinalLookPreview) { closeFinalLookPreview(); return; }
         setShowShortcuts(false);
         setMeshes((p) => p.map((m) => ({ ...m, selected: false })));
         return;
@@ -131,7 +138,7 @@ export default function CADToPDP() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [inWorkspace, hasModel, isModelLoading, handleUndo, handleRedo]);
+  }, [inWorkspace, hasModel, isModelLoading, handleUndo, handleRedo, showFinalLookPreview, closeFinalLookPreview]);
 
   const loadFile = useCallback((file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
@@ -255,8 +262,7 @@ export default function CADToPDP() {
       selectedNames.forEach((name) => { next[name] = matId; });
       return next;
     });
-    if (!localStorage.getItem(HAS_SEEN_FINAL_LOOK_KEY)) {
-      localStorage.setItem(HAS_SEEN_FINAL_LOOK_KEY, 'true');
+    if (!localStorage.getItem(DONT_SHOW_FINAL_LOOK_KEY)) {
       setShowFinalLookPreview(true);
     }
   }, [selectedNames, appliedMaterials, showWorkspacePopup]);
@@ -341,6 +347,38 @@ export default function CADToPDP() {
   const removeScreenshot = useCallback((id: number) => {
     setScreenshots((p) => p.filter((s) => s.id !== id));
     setLightboxShot((p) => (p?.id === id ? null : p));
+  }, []);
+
+  const closeFinalLookPreview = useCallback(() => {
+    if (dontShowFinalLookChecked) localStorage.setItem(DONT_SHOW_FINAL_LOOK_KEY, 'true');
+    setShowFinalLookPreview(false);
+    setDontShowFinalLookChecked(false);
+  }, [dontShowFinalLookChecked]);
+
+  useEffect(() => {
+    if (showFinalLookPreview) setDontShowFinalLookChecked(false);
+  }, [showFinalLookPreview]);
+
+  const handleGenerate = useCallback(() => {
+    if (screenshots.length === 0) return;
+    generate(screenshots);
+  }, [screenshots, generate]);
+
+  const handlePreviewGenerationJob = useCallback((job: GenerationJob) => {
+    const url = job.resultUrl ?? job.sourceDataUrl;
+    if (url) setGenPreviewUrl(url);
+  }, []);
+
+  const handleDownloadGenerationJob = useCallback((job: GenerationJob) => {
+    const url = job.resultUrl ?? job.sourceDataUrl;
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pdp-result-${job.screenshotId}.jpg`;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }, []);
 
   // ── Full-page upload screen (first visit only) ──
@@ -429,15 +467,15 @@ export default function CADToPDP() {
       <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="min-h-[calc(100dvh-5rem)] md:h-full">
 
         {/* Left panel */}
-        <ResizablePanel id="pdp-left" order={1} defaultSize={isMobile ? 18 : 18} minSize={isMobile ? 14 : 14} maxSize={isMobile ? 24 : 28}>
-          <div className="flex flex-col bg-card md:border-r border-border h-full">
+        <ResizablePanel id="pdp-left" order={1} defaultSize={isMobile ? 30 : 18} minSize={isMobile ? 22 : 14} maxSize={isMobile ? 48 : 28}>
+          <div className="flex flex-col bg-card md:border-r border-border h-full overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">CAD to PDP</span>
                 {isMobile && hasModel && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border rounded-md hover:border-foreground/30 hover:text-foreground transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
                   >
                     <Upload className="w-3 h-3" />
                     Replace
@@ -446,54 +484,63 @@ export default function CADToPDP() {
               </div>
             </div>
 
-            <div className="px-3 py-3 flex-shrink-0">
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="px-3 py-3">
               {isMobile ? (
-                <div className="rounded-xl border border-border bg-muted/10 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-24 h-24 rounded-lg border border-border overflow-hidden bg-muted/20 flex-shrink-0">
+                /* Mobile: compact row when model loaded, full card when no model */
+                hasModel ? (
+                  <div className="flex items-center gap-3 border border-border bg-muted/10 px-3 py-2">
+                    <div className="relative w-12 h-12 border border-border overflow-hidden bg-muted/20 flex-shrink-0">
                       {isModelLoading ? (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/50" />
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
                         </div>
                       ) : glbThumbnail ? (
-                        <>
-                          <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
-                          <button
-                            onClick={clearModel}
-                            className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-card/90 border border-border rounded-sm hover:bg-destructive hover:border-destructive transition-colors"
-                            title="Remove model"
-                          >
-                            <X className="w-3 h-3 text-foreground" />
-                          </button>
-                        </>
+                        <img src={glbThumbnail} alt="Model preview" className="w-full h-full object-contain" />
                       ) : (
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors px-2"
-                        >
-                          <Diamond className="h-5 w-5 text-primary" />
-                          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground text-center">Upload</span>
-                        </button>
+                        <Diamond className="w-5 h-5 text-primary m-auto" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-xs tracking-[0.14em] uppercase text-foreground mb-1">Model</div>
-                      <div className="text-sm text-foreground/80 truncate">{fileName || "No file loaded"}</div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mt-1">
-                        {hasModel ? `${meshes.length} layers detected` : "GLB or GLTF"}
+                      <div className="text-xs text-foreground/80 truncate font-mono">{fileName}</div>
+                      <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
+                        {meshes.length} layers
                       </div>
-                      {!hasModel && (
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="mt-3 w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border rounded-md hover:border-foreground/30 hover:text-foreground transition-colors"
-                        >
-                          <Upload className="w-3 h-3" />
-                          Choose CAD File
-                        </button>
-                      )}
+                    </div>
+                    <button
+                      onClick={clearModel}
+                      className="w-5 h-5 flex-shrink-0 flex items-center justify-center text-muted-foreground/40 hover:text-destructive transition-colors"
+                      title="Remove model"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                <div className="border border-border bg-muted/10 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-16 h-16 border border-border overflow-hidden bg-muted/20 flex-shrink-0">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full h-full flex flex-col items-center justify-center gap-1 hover:bg-accent/30 transition-colors"
+                      >
+                        <Diamond className="h-5 w-5 text-primary" />
+                        <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-muted-foreground">Upload</span>
+                      </button>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1">No model loaded</div>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full flex items-center justify-center gap-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
+                      >
+                        <Upload className="w-3 h-3" />
+                        Choose CAD File
+                      </button>
                     </div>
                   </div>
                 </div>
+                )
               ) : (
                 <div className="relative w-full aspect-square border border-border overflow-hidden bg-muted/20">
                   {isModelLoading ? (
@@ -531,8 +578,25 @@ export default function CADToPDP() {
               )}
             </div>
 
+
+            {/* Mobile: results section */}
+            {isMobile && generationJobs.length > 0 && (
+              <div className="border-t border-border">
+                <div className="px-3 pt-2 pb-1">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">Results</span>
+                </div>
+                <PDPGenerationResults
+                  jobs={generationJobs}
+                  onPreview={handlePreviewGenerationJob}
+                  onDownload={handleDownloadGenerationJob}
+                  onRegenerate={regenerateJob}
+                  onRemove={removeGenerationJob}
+                />
+              </div>
+            )}
+
             {hasModel && !isMobile && (
-              <div className="px-3 pt-2 pb-3 flex-shrink-0">
+              <div className="px-3 pt-2 pb-2 flex-shrink-0">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full flex items-center justify-center gap-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground border border-border hover:border-foreground/30 hover:text-foreground transition-colors"
@@ -542,6 +606,24 @@ export default function CADToPDP() {
                 </button>
               </div>
             )}
+
+
+            {generationJobs.length > 0 && !isMobile && (
+              <div className="border-t border-border">
+                <div className="px-3 pt-2 pb-1">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">Results</span>
+                </div>
+                <PDPGenerationResults
+                  jobs={generationJobs}
+                  onPreview={handlePreviewGenerationJob}
+                  onDownload={handleDownloadGenerationJob}
+                  onRegenerate={regenerateJob}
+                  onRemove={removeGenerationJob}
+                />
+              </div>
+            )}
+
+            </div>{/* end scrollable body */}
 
             <input ref={fileInputRef} type="file" accept=".glb,.gltf" className="hidden" onChange={onInputChange} />
           </div>
@@ -717,6 +799,9 @@ export default function CADToPDP() {
               {/* Final Render popup — inside viewport, top-center */}
               <AnimatePresence>
                 {showFinalLookPreview && hasModel && !isModelLoading && (
+                  <>
+                    {/* Click-outside backdrop */}
+                    <div className="absolute inset-0 z-[59]" onClick={closeFinalLookPreview} />
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -726,7 +811,7 @@ export default function CADToPDP() {
                   >
                     <div className="pointer-events-auto relative w-full max-w-[560px] bg-card border border-border shadow-xl">
                       <button
-                        onClick={() => setShowFinalLookPreview(false)}
+                        onClick={closeFinalLookPreview}
                         className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent/60 transition-colors z-10"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -750,9 +835,21 @@ export default function CADToPDP() {
                             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">Final Render</span>
                           </div>
                         </div>
+                        <label className="flex items-center gap-2.5 mt-4 pt-3 border-t border-border/40">
+                          <input
+                            type="checkbox"
+                            checked={dontShowFinalLookChecked}
+                            onChange={e => setDontShowFinalLookChecked(e.target.checked)}
+                            className="w-4 h-4 border border-border bg-background accent-primary flex-shrink-0"
+                          />
+                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground select-none">
+                            Don't show again
+                          </span>
+                        </label>
                       </div>
                     </div>
                   </motion.div>
+                  </>
                 )}
               </AnimatePresence>
 
@@ -807,28 +904,42 @@ export default function CADToPDP() {
                   animate={{ height: 96, opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-shrink-0 bg-card border-t border-border flex items-center gap-3 px-3 md:px-4 overflow-x-auto scrollbar-thin"
+                  className="flex-shrink-0 bg-card border-t border-border flex items-stretch"
+                  style={{ overflow: "hidden" }}
                 >
-                  {screenshots.map((shot, i) => (
-                    <div key={shot.id} className="relative group flex-shrink-0">
-                      <button
-                        onClick={() => setLightboxShot(shot)}
-                        className="w-16 h-16 border border-border overflow-hidden hover:border-formanova-hero-accent transition-colors"
-                        title={`Screenshot ${i + 1} — click to enlarge`}
-                      >
-                        <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                      <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Scrollable thumbnail strip */}
+                  <div className="flex-1 flex items-center gap-3 px-3 md:px-4 overflow-x-auto scrollbar-thin min-w-0">
+                    {screenshots.map((shot, i) => (
+                      <div key={shot.id} className="relative group flex-shrink-0">
                         <button
-                          onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
-                          className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
-                          title="Remove"
+                          onClick={() => setLightboxShot(shot)}
+                          className="w-16 h-16 border border-border overflow-hidden hover:border-formanova-hero-accent transition-colors"
+                          title={`Screenshot ${i + 1} — click to enlarge`}
                         >
-                          <Trash2 className="w-2.5 h-2.5 text-foreground" />
+                          <img src={shot.dataUrl} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
                         </button>
+                        <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removeScreenshot(shot.id); }}
+                            className="w-4 h-4 flex items-center justify-center bg-card/90 border border-border hover:bg-destructive hover:border-destructive transition-colors"
+                            title="Remove"
+                          >
+                            <Trash2 className="w-2.5 h-2.5 text-foreground" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  {/* Generate CTA — pinned to the right of the strip */}
+                  <div className="flex-shrink-0 flex items-center px-3 md:px-5 border-l border-border/60 bg-card">
+                    <button
+                      onClick={handleGenerate}
+                      className="flex items-center gap-2 px-4 md:px-5 py-3 bg-primary text-primary-foreground font-display text-[10px] md:text-xs tracking-[0.15em] uppercase hover:bg-primary/90 active:scale-[0.99] transition-all shadow-sm whitespace-nowrap"
+                    >
+                      <Sparkles className="w-4 h-4 flex-shrink-0" />
+                      Generate
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -866,6 +977,34 @@ export default function CADToPDP() {
       <LightboxModal shot={lightboxShot} onClose={() => setLightboxShot(null)} onRemove={removeScreenshot} />
       <WorkspacePopupModal popup={workspacePopup} onClose={() => setWorkspacePopup(null)} />
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <AnimatePresence>
+        {genPreviewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            onClick={() => setGenPreviewUrl(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.93, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.93, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="relative max-w-[90vw] max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <img src={genPreviewUrl} alt="Generated result" className="max-w-full max-h-[90vh] object-contain border border-border" />
+              <button
+                onClick={() => setGenPreviewUrl(null)}
+                className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-card/90 border border-border hover:bg-accent/80 transition-colors"
+              >
+                <X className="w-4 h-4 text-foreground" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {debugMaskPreviewUrl && (
           <motion.div
