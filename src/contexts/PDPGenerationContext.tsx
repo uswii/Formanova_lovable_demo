@@ -122,12 +122,11 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       if (ac.signal.aborted) return;
 
       // Start workflow
-      const startRes = await authenticatedFetch('/api/temporal/run-state', {
+      const startRes = await authenticatedFetch('/api/run/cad_render_v1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
         body: JSON.stringify({
-          workflow_name: 'cad_render_v1',
           payload: {
             glb_artifact: { uri: glbUri },
             images: [
@@ -160,7 +159,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
 
         let statusRes: Response;
         try {
-          statusRes = await authenticatedFetch(`/api/temporal/status/${workflowId}`, { signal: ac.signal });
+          statusRes = await authenticatedFetch(`/api/status/${encodeURIComponent(workflowId)}`, { signal: ac.signal });
         } catch (err) {
           if ((err as Error)?.name === 'AbortError') return;
           consecutiveErrors++;
@@ -196,7 +195,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         }
 
         if (state === 'completed') {
-          const resultRes = await authenticatedFetch(`/api/temporal/result/${workflowId}`, { signal: ac.signal });
+          const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflowId)}`, { signal: ac.signal });
           if (!resultRes.ok) throw new Error('Failed to fetch generation result');
           const resultData = await resultRes.json();
 
