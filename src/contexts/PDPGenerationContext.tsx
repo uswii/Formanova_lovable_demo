@@ -182,14 +182,14 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         consecutiveErrors = 0;
 
         const statusData = await statusRes.json();
-        const state: string = statusData?.runtime?.state ?? statusData?.state ?? '';
+        const state: string = (statusData?.runtime?.state ?? statusData?.state ?? '').toLowerCase();
 
         if (state === 'budget_exhausted') {
           patchJob(job.id, { status: 'failed', errorMessage: 'Insufficient credits for this generation.' });
           return;
         }
 
-        if (state === 'failed') {
+        if (state === 'failed' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') {
           const errMsg = statusData?.runtime?.error ?? statusData?.error ?? 'Generation failed on server';
           throw new Error(errMsg);
         }
