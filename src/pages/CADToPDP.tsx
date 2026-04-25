@@ -1049,13 +1049,24 @@ export default function CADToPDP() {
                           />
                           {isShotGenerating && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45">
-                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              <div className="relative w-6 h-6">
+                                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: "1.8s" }} />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Diamond className="h-3.5 w-3.5 text-white" />
+                                </div>
+                              </div>
                               <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-white/90">
                                 Generating
                               </span>
                               <span className="font-mono text-[6px] text-white/50 normal-case tracking-wide">
                                 Keep browsing...
                               </span>
+                            </div>
+                          )}
+                          {/* Indeterminate progress bar along the bottom edge */}
+                          {isShotGenerating && (
+                            <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-white/10">
+                              <div className="h-full bg-primary animate-[progress-slide_1.6s_ease-in-out_infinite]" style={{ width: "40%" }} />
                             </div>
                           )}
                           {!isShotGenerating && (isShotCompleted || isShotFailed) && (
