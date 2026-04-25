@@ -1053,6 +1053,9 @@ export default function CADToPDP() {
                               <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-white/90">
                                 Generating
                               </span>
+                              <span className="font-mono text-[6px] text-white/50 normal-case tracking-wide">
+                                Keep browsing...
+                              </span>
                             </div>
                           )}
                           {!isShotGenerating && (isShotCompleted || isShotFailed) && (
@@ -1085,20 +1088,20 @@ export default function CADToPDP() {
                   <div className="flex-shrink-0 flex items-center border-l border-border/60 bg-card">
                     <button
                       onClick={handleGenerate}
-                      disabled={hasRunningGenerations || preflightChecking}
+                      disabled={preflightChecking}
                       className={`flex h-full items-center justify-center gap-1.5 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] transition-all whitespace-nowrap ${
-                        hasRunningGenerations || preflightChecking
+                        preflightChecking
                           ? "cursor-not-allowed bg-primary/60 text-primary-foreground/80"
                           : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99]"
                       }`}
                     >
-                      {(hasRunningGenerations || preflightChecking) && (
+                      {preflightChecking && (
                         <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
                       )}
                       <span>
-                        {hasRunningGenerations ? "Generating..." : preflightChecking ? "Checking..." : "Generate"}
+                        {preflightChecking ? "Checking..." : "Generate"}
                       </span>
-                      {!hasRunningGenerations && !preflightChecking && costEstimate !== null && (
+                      {!preflightChecking && costEstimate !== null && (
                         <span className="opacity-60 normal-case text-[9px]">· {costEstimate} cr</span>
                       )}
                     </button>
