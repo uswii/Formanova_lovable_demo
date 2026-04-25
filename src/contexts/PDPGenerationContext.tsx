@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { uploadToAzure } from '@/lib/microservices-api';
 
 const PDP_PATH = '/cad-to-pdp';
 const POLL_INTERVAL_MS = 2500;
@@ -89,31 +90,25 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      // Convert data URLs to blobs (raw fetch is allowed for data: URLs per AI_RULES)
-      const previewBlob = await fetch(job.sourceDataUrl).then(r => r.blob());
-      const maskBlob = await fetch(job.maskDataUrl).then(r => r.blob());
+      // Upload GLB, preview, and mask via existing /upload endpoint
+      const toBase64 = (dataUrl: string) => dataUrl.split(',')[1];
+      const fileToBase64 = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-      // Upload GLB + preview + mask together as multipart per spec
-      const formData = new FormData();
-      formData.append('glb_file', job.glbFile, job.glbFile.name || 'model.glb');
-      formData.append('preview_image', previewBlob, 'preview.png');
-      formData.append('mask_image', maskBlob, 'mask.png');
+      const [glbUpload, previewUpload, maskUpload] = await Promise.all([
+        uploadToAzure(await fileToBase64(job.glbFile), 'model/gltf-binary', 'generated_cad'),
+        uploadToAzure(toBase64(job.sourceDataUrl), 'image/png'),
+        uploadToAzure(toBase64(job.maskDataUrl), 'image/png'),
+      ]);
 
-      const uploadRes = await authenticatedFetch('/api/azure/upload-local-artifacts', {
-        method: 'POST',
-        body: formData,
-        signal: ac.signal,
-      });
-
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text().catch(() => 'Unknown error');
-        throw new Error(`Upload failed: ${errText}`);
-      }
-
-      const uploadData = await uploadRes.json();
-      const glbUri: string | undefined = uploadData?.glb_artifact?.uri;
-      const previewUri: string | undefined = uploadData?.images?.[0]?.uri;
-      const maskUri: string | undefined = uploadData?.images?.[1]?.uri;
+      const glbUri = glbUpload.uri;
+      const previewUri = previewUpload.uri;
+      const maskUri = maskUpload.uri;
 
       if (!glbUri) throw new Error('No GLB URI in upload response');
       if (!previewUri) throw new Error('No preview image URI in upload response');
