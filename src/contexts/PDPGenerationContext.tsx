@@ -12,12 +12,12 @@ const PDP_PATH = '/cad-to-pdp';
 
 const toB64 = (dataUrl: string) => dataUrl.split(',')[1] ?? '';
 
-function fileToBase64(file: File): Promise<string> {
+function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = reject;
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -39,13 +39,13 @@ export interface PDPJob {
   resultUrl?: string;
   startedAt: number;
   errorMessage?: string;
-  glbFile?: File | null;
+  glbBlob?: Blob | null;
   maskDataUrl?: string | null;
 }
 
 interface PDPGenerationContextValue {
   jobs: PDPJob[];
-  generate: (screenshots: ScreenshotPayload[], glbFile?: File | null) => void;
+  generate: (screenshots: ScreenshotPayload[], glbBlob?: Blob | null) => void;
   regenerateJob: (job: PDPJob) => void;
   removeJob: (id: string) => void;
 }
@@ -130,8 +130,8 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     });
   }, [patchJob, resolveAndPatch]);
 
-  const generate = useCallback((screenshots: ScreenshotPayload[], glbFile?: File | null) => {
-    if (!glbFile || screenshots.length === 0) return;
+  const generate = useCallback((screenshots: ScreenshotPayload[], glbBlob?: Blob | null) => {
+    if (!glbBlob || screenshots.length === 0) return;
 
     void (async () => {
       const now = Date.now();
@@ -144,7 +144,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         sourceDataUrl: shot.dataUrl,
         status: 'generating' as const,
         startedAt: now,
-        glbFile,
+        glbBlob,
         maskDataUrl: shot.maskDataUrl ?? null,
       }));
       setJobs(prev => [...newJobs, ...prev]);
@@ -152,7 +152,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       // Read GLB once as base64, sent inline in each angle payload (avoids nginx 413 on /upload)
       let glbBase64: string;
       try {
-        glbBase64 = await fileToBase64(glbFile);
+        glbBase64 = await blobToBase64(glbBlob);
       } catch (err) {
         const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
         newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: msg }));
@@ -184,14 +184,14 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       cancelledIds.current.delete(newJob.id);
       setJobs(prev => [newJob, ...prev]);
 
-      if (!job.glbFile || !job.maskDataUrl) {
+      if (!job.glbBlob || !job.maskDataUrl) {
         patchJob(newJob.id, { status: 'failed', errorMessage: 'Source data unavailable for regeneration.' });
         return;
       }
 
       let glbBase64: string;
       try {
-        glbBase64 = await fileToBase64(job.glbFile);
+        glbBase64 = await blobToBase64(job.glbBlob);
       } catch (err) {
         const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
         patchJob(newJob.id, { status: 'failed', errorMessage: msg });

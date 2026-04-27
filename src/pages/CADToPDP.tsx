@@ -415,7 +415,9 @@ export default function CADToPDP() {
     if (pendingScreenshots.length === 0) return;
     const approved = await checkCredits('cad_render_v1', pendingScreenshots.length);
     if (!approved) return;
-    generate(pendingScreenshots, glbFileRef.current);
+    // Export the scene with materials applied rather than the raw uploaded file
+    const glbBlob = canvasRef.current ? await canvasRef.current.exportSceneBlob() : null;
+    generate(pendingScreenshots, glbBlob);
   }, [pendingScreenshots, generate, checkCredits]);
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {
