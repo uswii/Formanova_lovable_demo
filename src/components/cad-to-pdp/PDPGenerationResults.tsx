@@ -87,7 +87,7 @@ function ResultCard({
             </div>
           )}
           {isFailed && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50" title={job.errorMessage}>
               <AlertCircle className="w-5 h-5 text-destructive" />
             </div>
           )}
@@ -96,12 +96,19 @@ function ResultCard({
         {/* Info */}
         <div className="flex h-28 flex-1 min-w-0 flex-col justify-center overflow-hidden">
           {/* Status row */}
-          <div className="mb-3 flex items-center justify-center gap-1.5">
-            {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-formanova-success" />}
-            {isFailed && <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-destructive" />}
-            <span className={`text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
-              {isGenerating ? "Generating…" : isCompleted ? "Completed" : "Failed"}
-            </span>
+          <div className="mb-3 flex flex-col items-center gap-1">
+            <div className="flex items-center justify-center gap-1.5">
+              {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-formanova-success" />}
+              {isFailed && <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-destructive" />}
+              <span className={`text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em]${isCompleted ? " text-formanova-success" : isFailed ? " text-destructive" : " text-muted-foreground"}`}>
+                {isGenerating ? "Generating…" : isCompleted ? "Completed" : "Failed"}
+              </span>
+            </div>
+            {isFailed && job.errorMessage && (
+              <span className="text-center font-mono text-[9px] text-destructive/70 leading-tight px-1">
+                {job.errorMessage}
+              </span>
+            )}
           </div>
 
           {/* Indeterminate progress bar while generating */}

@@ -21,6 +21,7 @@ import type { PDPJob } from "@/contexts/PDPGenerationContext";
 import { imageSourceToBlob, compressImageBlob } from "@/lib/image-compression";
 import { uploadToAzure } from "@/lib/microservices-api";
 import { TO_SINGULAR } from "@/lib/jewelry-utils";
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { useCreditPreflight } from "@/hooks/use-credit-preflight";
 import { CreditPreflightModal } from "@/components/CreditPreflightModal";
 import { performCreditPreflight } from "@/lib/credit-preflight";
@@ -95,14 +96,19 @@ export default function CADToPDP() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
+  const pendingScreenshots = useMemo(
+    () => screenshots.filter(s => !runningScreenshotIds.has(s.id)),
+    [screenshots, runningScreenshotIds]
+  );
+
   useEffect(() => {
-    if (screenshots.length === 0) { setCostEstimate(null); return; }
+    if (pendingScreenshots.length === 0) { setCostEstimate(null); return; }
     let cancelled = false;
-    performCreditPreflight('cad_render_v1', screenshots.length)
+    performCreditPreflight('cad_render_v1', pendingScreenshots.length)
       .then(result => { if (!cancelled) setCostEstimate(result.estimatedCredits); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [screenshots.length]);
+  }, [pendingScreenshots.length]);
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
@@ -406,11 +412,11 @@ export default function CADToPDP() {
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    if (screenshots.length === 0) return;
-    const approved = await checkCredits('cad_render_v1', screenshots.length);
+    if (pendingScreenshots.length === 0) return;
+    const approved = await checkCredits('cad_render_v1', pendingScreenshots.length);
     if (!approved) return;
-    generate(screenshots, glbFileRef.current);
-  }, [screenshots, generate, checkCredits]);
+    generate(pendingScreenshots, glbFileRef.current);
+  }, [pendingScreenshots, generate, checkCredits]);
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {
     const url = job.resultUrl ?? job.sourceDataUrl;
@@ -1031,16 +1037,16 @@ export default function CADToPDP() {
                         <div key={shot.id} className="relative group flex-shrink-0">
                         <button
                           onClick={() => setLightboxShot(shot)}
-                          className={`relative w-16 h-16 overflow-hidden border transition-colors ${
+                          className={`relative w-16 h-16 overflow-hidden border-2 transition-colors ${
                             isShotGenerating
-                              ? "border-primary/50"
+                              ? "border-primary"
                               : isShotCompleted
-                                ? "border-formanova-success/50"
+                                ? "border-formanova-success"
                                 : isShotFailed
-                                  ? "border-destructive/50"
-                                  : "border-border hover:border-formanova-hero-accent"
+                                  ? "border-destructive"
+                                  : "border-border/60 hover:border-primary"
                           }`}
-                          title={`Screenshot ${i + 1} — click to enlarge`}
+                          title={isShotFailed && relatedJob?.errorMessage ? relatedJob.errorMessage : `Screenshot ${i + 1} — click to enlarge`}
                         >
                           <img
                             src={shot.dataUrl}
@@ -1113,7 +1119,10 @@ export default function CADToPDP() {
                         {preflightChecking ? "Checking..." : "Generate"}
                       </span>
                       {!preflightChecking && costEstimate !== null && (
-                        <span className="opacity-60 normal-case text-[9px]">· {costEstimate} cr</span>
+                        <span className="flex items-center gap-1 opacity-70 normal-case text-[9px]">
+                          <img src={creditCoinIcon} alt="" className="h-3.5 w-3.5 object-contain" />
+                          {costEstimate}
+                        </span>
                       )}
                     </button>
                   </div>
