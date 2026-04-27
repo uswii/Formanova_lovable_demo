@@ -4,15 +4,29 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { uploadToAzure } from '@/lib/microservices-api';
+import { renderAngles } from '@/services/cad-render-poller';
+import type { CameraAngle } from '@/services/cad-render-api';
 
 const PDP_PATH = '/cad-to-pdp';
-const POLL_INTERVAL_MS = 2500;
-const MAX_POLL_ATTEMPTS = 120; // ~5 minutes
-const MAX_TRANSIENT_404 = 5;
-const MAX_CONSECUTIVE_ERRORS = 5;
+
+// ── Module-level utilities ────────────────────────────────────────────────────
+
+const toB64 = (dataUrl: string) => dataUrl.split(',')[1] ?? '';
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ScreenshotPayload {
   id: number;
+  viewName?: string;
   dataUrl: string;
   maskDataUrl?: string | null;
 }
@@ -20,6 +34,7 @@ interface ScreenshotPayload {
 export interface PDPJob {
   id: string;
   screenshotId: number;
+  viewName: string;
   sourceDataUrl: string;
   status: 'generating' | 'completed' | 'failed';
   resultUrl?: string;
@@ -27,7 +42,6 @@ export interface PDPJob {
   errorMessage?: string;
   glbFile?: File | null;
   maskDataUrl?: string | null;
-  workflowId?: string | null;
 }
 
 interface PDPGenerationContextValue {
@@ -39,9 +53,11 @@ interface PDPGenerationContextValue {
 
 const PDPGenerationContext = createContext<PDPGenerationContextValue | null>(null);
 
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export function PDPGenerationProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<PDPJob[]>([]);
-  const abortRefs = useRef<Map<string, AbortController>>(new Map());
+  const cancelledIds = useRef<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,214 +77,145 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         description: "Keep browsing. Your generation won't be lost.",
       });
     }
-    if (!awayFromPDP || runningCount === 0) {
-      shownAwayToastRef.current = false;
-    }
+    if (!awayFromPDP || runningCount === 0) shownAwayToastRef.current = false;
   }, [location.pathname, runningCount, toast]);
-
-  useEffect(() => {
-    const refs = abortRefs.current;
-    return () => { refs.forEach(ac => ac.abort()); };
-  }, []);
 
   const patchJob = useCallback((id: string, patch: Partial<PDPJob>) => {
     setJobs(prev => prev.map(j => j.id === id ? { ...j, ...patch } : j));
   }, []);
 
-  const startJob = useCallback(async (job: PDPJob) => {
-    const ac = new AbortController();
-    abortRefs.current.set(job.id, ac);
-
+  // Downloads the artifact proxy URL with auth and stores a blob URL in the job.
+  // The proxy URL requires a Bearer token so we cannot use it directly in <img src>.
+  const resolveAndPatch = useCallback(async (jobId: string, proxyUrl: string) => {
     try {
-      if (!job.glbFile) {
-        patchJob(job.id, { status: 'failed', errorMessage: 'No GLB file available for upload.' });
-        return;
-      }
-
-      if (!job.maskDataUrl) {
-        patchJob(job.id, { status: 'failed', errorMessage: 'Mask image not available. Please retake the screenshot.' });
-        return;
-      }
-
-      // Upload GLB, preview, and mask via existing /upload endpoint
-      const toBase64 = (dataUrl: string) => dataUrl.split(',')[1];
-      const fileToBase64 = (file: File): Promise<string> =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-      const [glbUpload, previewUpload, maskUpload] = await Promise.all([
-        uploadToAzure(await fileToBase64(job.glbFile), 'model/gltf-binary', 'generated_cad'),
-        uploadToAzure(toBase64(job.sourceDataUrl), 'image/png'),
-        uploadToAzure(toBase64(job.maskDataUrl), 'image/png'),
-      ]);
-
-      const glbUri = glbUpload.uri;
-      const previewUri = previewUpload.uri;
-      const maskUri = maskUpload.uri;
-
-      if (!glbUri) throw new Error('No GLB URI in upload response');
-      if (!previewUri) throw new Error('No preview image URI in upload response');
-      if (!maskUri) throw new Error('No mask image URI in upload response');
-
-      if (ac.signal.aborted) return;
-
-      // Start workflow
-      const startRes = await authenticatedFetch('/api/run/cad_render_v1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ac.signal,
-        body: JSON.stringify({
-          payload: {
-            glb_artifact: { uri: glbUri },
-            images: [
-              { uri: previewUri },
-              { uri: maskUri },
-            ],
-          },
-        }),
-      });
-
-      if (!startRes.ok) {
-        const errText = await startRes.text().catch(() => 'Unknown error');
-        throw new Error(`Failed to start generation: ${errText}`);
-      }
-
-      const startData = await startRes.json();
-      const workflowId: string | undefined = startData?.workflow_id;
-      if (!workflowId) throw new Error('No workflow_id returned from server');
-
-      patchJob(job.id, { workflowId });
-
-      // Poll status
-      let transient404Count = 0;
-      let consecutiveErrors = 0;
-
-      for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
-        if (ac.signal.aborted) return;
-        await new Promise<void>(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
-        if (ac.signal.aborted) return;
-
-        let statusRes: Response;
-        try {
-          statusRes = await authenticatedFetch(`/api/status/${encodeURIComponent(workflowId)}`, { signal: ac.signal });
-        } catch (err) {
-          if ((err as Error)?.name === 'AbortError') return;
-          consecutiveErrors++;
-          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) throw new Error('Too many network errors while polling status');
-          continue;
-        }
-
-        if (statusRes.status === 404) {
-          transient404Count++;
-          if (transient404Count >= MAX_TRANSIENT_404) throw new Error('Workflow not found on server');
-          continue;
-        }
-        transient404Count = 0;
-
-        if (!statusRes.ok) {
-          consecutiveErrors++;
-          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) throw new Error('Too many errors polling status');
-          continue;
-        }
-        consecutiveErrors = 0;
-
-        const statusData = await statusRes.json();
-        const state: string = (statusData?.runtime?.state ?? statusData?.state ?? '').toLowerCase();
-
-        if (state === 'budget_exhausted') {
-          patchJob(job.id, { status: 'failed', errorMessage: 'Insufficient credits for this generation.' });
-          return;
-        }
-
-        if (state === 'failed' || state === 'terminated' || state === 'cancelled' || state === 'timed_out' || state === 'timeout') {
-          const errMsg = statusData?.runtime?.error ?? statusData?.error ?? 'Generation failed on server';
-          throw new Error(errMsg);
-        }
-
-        if (state === 'completed') {
-          const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflowId)}`, { signal: ac.signal });
-          if (!resultRes.ok) throw new Error('Failed to fetch generation result');
-          const resultData = await resultRes.json();
-
-          const imageUri: string | undefined =
-            resultData?.outputs?.image_artifact?.uri ??
-            resultData?.image_artifact?.uri ??
-            resultData?.result?.image_artifact?.uri;
-          if (!imageUri) throw new Error('No image URI in generation result');
-
-          const downloadRes = await authenticatedFetch(
-            `/api/azure/download-artifact?uri=${encodeURIComponent(imageUri)}`,
-            { signal: ac.signal },
-          );
-          if (!downloadRes.ok) throw new Error('Failed to download generated image');
-          const blob = await downloadRes.blob();
-          const resultUrl = URL.createObjectURL(blob);
-
-          patchJob(job.id, { status: 'completed', resultUrl });
-
-          if (!pathnameRef.current.startsWith(PDP_PATH)) {
-            toast({
-              title: 'PDP image ready',
-              action: (
-                <ToastAction altText="View Results" onClick={() => navigate(PDP_PATH)}>
-                  View Results
-                </ToastAction>
-              ),
-            });
-          }
-          return;
-        }
-      }
-
-      throw new Error('Generation timed out after 5 minutes');
-    } catch (err) {
-      if ((err as Error)?.name === 'AbortError') return;
-      const message = (err as Error)?.message ?? 'Request failed';
-      patchJob(job.id, { status: 'failed', errorMessage: message });
+      const res = await authenticatedFetch(proxyUrl);
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      patchJob(jobId, { status: 'completed', resultUrl: URL.createObjectURL(blob) });
       if (!pathnameRef.current.startsWith(PDP_PATH)) {
-        toast({ variant: 'destructive', title: 'PDP generation failed', description: 'Try again from the workspace.' });
+        toast({
+          title: 'PDP image ready',
+          action: (
+            <ToastAction altText="View Results" onClick={() => navigate(PDP_PATH)}>
+              View Results
+            </ToastAction>
+          ),
+        });
       }
-    } finally {
-      abortRefs.current.delete(job.id);
+    } catch {
+      patchJob(jobId, { status: 'failed', errorMessage: 'Failed to download rendered image.' });
     }
   }, [patchJob, toast, navigate]);
 
+  // Uploads GLB once and runs renderAngles for the given batch.
+  // angle.viewName === job.id so callbacks can identify which job to patch.
+  const runBatch = useCallback(async (
+    newJobs: PDPJob[],
+    angles: CameraAngle[],
+  ) => {
+    await renderAngles({
+      angles,
+      cancelled: () => newJobs.every(j => cancelledIds.current.has(j.id)),
+      onResult: ({ angle, imageUrl }) => {
+        if (cancelledIds.current.has(angle.viewName)) return;
+        void resolveAndPatch(angle.viewName, imageUrl);
+      },
+      onError: ({ angle, finalState }) => {
+        if (cancelledIds.current.has(angle.viewName)) return;
+        const msg = finalState === 'budget_exhausted'
+          ? 'Insufficient credits for this generation.'
+          : 'Generation failed on server.';
+        patchJob(angle.viewName, { status: 'failed', errorMessage: msg });
+      },
+      onAllDone: () => {},
+    });
+  }, [patchJob, resolveAndPatch]);
+
   const generate = useCallback((screenshots: ScreenshotPayload[], glbFile?: File | null) => {
-    const now = Date.now();
-    const newJobs: PDPJob[] = screenshots.map((shot, i) => ({
-      id: `pdp-${now}-${i}`,
-      screenshotId: shot.id,
-      sourceDataUrl: shot.dataUrl,
-      status: 'generating' as const,
-      startedAt: now,
-      glbFile: glbFile ?? null,
-      maskDataUrl: shot.maskDataUrl ?? null,
-    }));
-    setJobs(prev => [...newJobs, ...prev]);
-    newJobs.forEach(job => { void startJob(job); });
-  }, [startJob]);
+    if (!glbFile || screenshots.length === 0) return;
+
+    void (async () => {
+      const now = Date.now();
+
+      // Create N job slots immediately — shown as empty thumbnails right away
+      const newJobs: PDPJob[] = screenshots.map((shot, i) => ({
+        id: `pdp-${now}-${i}`,
+        screenshotId: shot.id,
+        viewName: shot.viewName ?? `Shot ${shot.id}`,
+        sourceDataUrl: shot.dataUrl,
+        status: 'generating' as const,
+        startedAt: now,
+        glbFile,
+        maskDataUrl: shot.maskDataUrl ?? null,
+      }));
+      setJobs(prev => [...newJobs, ...prev]);
+
+      // Upload GLB once, shared across all angles
+      let glbUri: string;
+      try {
+        const base64 = await fileToBase64(glbFile);
+        const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
+        if (!upload.uri) throw new Error('No GLB URI returned from upload');
+        glbUri = upload.uri;
+      } catch {
+        newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: 'GLB upload failed.' }));
+        return;
+      }
+
+      // angle.viewName === job.id — used to match callbacks back to jobs
+      const angles: CameraAngle[] = newJobs.map((job, i) => ({
+        viewName: job.id,
+        glbArtifactUri: glbUri,
+        colorPreviewB64: toB64(screenshots[i].dataUrl),
+        binaryMaskB64: toB64(screenshots[i].maskDataUrl ?? ''),
+      }));
+
+      await runBatch(newJobs, angles);
+    })();
+  }, [patchJob, runBatch]);
 
   const regenerateJob = useCallback((job: PDPJob) => {
-    const newJob: PDPJob = {
-      ...job,
-      id: `pdp-${Date.now()}-regen`,
-      status: 'generating',
-      startedAt: Date.now(),
-      resultUrl: undefined,
-      errorMessage: undefined,
-      workflowId: undefined,
-    };
-    setJobs(prev => [newJob, ...prev]);
-    void startJob(newJob);
-  }, [startJob]);
+    void (async () => {
+      const newJob: PDPJob = {
+        ...job,
+        id: `pdp-${Date.now()}-regen`,
+        status: 'generating',
+        startedAt: Date.now(),
+        resultUrl: undefined,
+        errorMessage: undefined,
+      };
+      cancelledIds.current.delete(newJob.id);
+      setJobs(prev => [newJob, ...prev]);
+
+      if (!job.glbFile || !job.maskDataUrl) {
+        patchJob(newJob.id, { status: 'failed', errorMessage: 'Source data unavailable for regeneration.' });
+        return;
+      }
+
+      let glbUri: string;
+      try {
+        const base64 = await fileToBase64(job.glbFile);
+        const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
+        if (!upload.uri) throw new Error('No GLB URI returned from upload');
+        glbUri = upload.uri;
+      } catch {
+        patchJob(newJob.id, { status: 'failed', errorMessage: 'GLB upload failed.' });
+        return;
+      }
+
+      const angles: CameraAngle[] = [{
+        viewName: newJob.id,
+        glbArtifactUri: glbUri,
+        colorPreviewB64: toB64(job.sourceDataUrl),
+        binaryMaskB64: toB64(job.maskDataUrl),
+      }];
+
+      await runBatch([newJob], angles);
+    })();
+  }, [patchJob, runBatch]);
 
   const removeJob = useCallback((id: string) => {
-    abortRefs.current.get(id)?.abort();
-    abortRefs.current.delete(id);
+    cancelledIds.current.add(id);
     setJobs(prev => prev.filter(j => j.id !== id));
   }, []);
 
