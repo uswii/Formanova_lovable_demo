@@ -11,7 +11,7 @@ import type { CameraAngle, RuntimeStateResponse } from './cad-render-api';
 
 const angle: CameraAngle = {
   viewName: 'test-view',
-  glbBase64: 'base64glbdata',
+  glbArtifactUri: 'azure://bucket/test.glb',
   colorPreviewB64: 'base64color',
   binaryMaskB64: 'base64mask',
 };
@@ -41,8 +41,7 @@ describe('submitCadRenderAngle', () => {
     expect(opts.method).toBe('POST');
     const body = JSON.parse(opts.body);
     expect(body.payload.view_name).toBe('test-view');
-    expect(body.payload.glb_artifact.data).toBe('base64glbdata');
-    expect(body.payload.glb_artifact.mime_type).toBe('model/gltf-binary');
+    expect(body.payload.glb_artifact.uri).toBe('azure://bucket/test.glb');
     expect(body.return_nodes).toContain('render_image');
   });
 

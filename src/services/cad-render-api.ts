@@ -2,7 +2,7 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 export interface CameraAngle {
   viewName: string;
-  glbBase64: string;       // base64 GLB binary, no data: prefix — sent inline to avoid nginx 413
+  glbArtifactUri: string;  // azure:// URI from the GLB upload step
   colorPreviewB64: string; // base64 PNG, no data: prefix
   binaryMaskB64: string;   // base64 PNG, no data: prefix
 }
@@ -32,7 +32,7 @@ export async function submitCadRenderAngle(angle: CameraAngle): Promise<string> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       payload: {
-        glb_artifact: { data: angle.glbBase64, mime_type: 'model/gltf-binary' },
+        glb_artifact: { uri: angle.glbArtifactUri },
         images: [
           { data: angle.colorPreviewB64, mime_type: 'image/png' },
           { data: angle.binaryMaskB64,   mime_type: 'image/png' },

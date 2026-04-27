@@ -359,7 +359,7 @@ export default function CADToPDP() {
     });
     invalidate();
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(async () => {
         const dataUrl = captureViewportDataUrl();
         const maskDataUrl = captureViewportMaskDataUrl();
         if (dataUrl) {

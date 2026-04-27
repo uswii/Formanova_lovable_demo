@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { uploadToAzure } from '@/lib/microservices-api';
 import { renderAngles } from '@/services/cad-render-poller';
 import type { CameraAngle } from '@/services/cad-render-api';
 
@@ -166,9 +167,18 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
           patchJob(job.id, { status: 'failed', errorMessage: msg });
           continue;
         }
+        let glbArtifactUri: string;
+        try {
+          const uploaded = await uploadToAzure(glbBase64, 'model/gltf-binary', 'generated_cad');
+          glbArtifactUri = uploaded.uri;
+        } catch (err) {
+          const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
+          patchJob(job.id, { status: 'failed', errorMessage: msg });
+          continue;
+        }
         angles.push({
           viewName: job.id,
-          glbBase64,
+          glbArtifactUri,
           colorPreviewB64: toB64(shot.dataUrl),
           binaryMaskB64: toB64(shot.maskDataUrl ?? ''),
         });
@@ -205,9 +215,19 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
+      let glbArtifactUri: string;
+      try {
+        const uploaded = await uploadToAzure(glbBase64, 'model/gltf-binary', 'generated_cad');
+        glbArtifactUri = uploaded.uri;
+      } catch (err) {
+        const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
+        patchJob(newJob.id, { status: 'failed', errorMessage: msg });
+        return;
+      }
+
       const angles: CameraAngle[] = [{
         viewName: newJob.id,
-        glbBase64,
+        glbArtifactUri,
         colorPreviewB64: toB64(job.sourceDataUrl),
         binaryMaskB64: toB64(job.maskDataUrl),
       }];
