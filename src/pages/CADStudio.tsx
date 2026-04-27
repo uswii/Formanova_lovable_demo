@@ -30,7 +30,7 @@ const cadFeatures = [
     route: "/cad-to-pdp",
     comingSoon: false,
     icon: Diamond,
-    image: cadToPdpImg,
+    image: cadToCatalogImg,
   },
   {
     title: "CAD to Catalog",
@@ -38,7 +38,7 @@ const cadFeatures = [
     route: "/cad-to-catalog",
     comingSoon: false,
     icon: ImageIcon,
-    image: cadToCatalogImg,
+    image: cadToPdpImg,
   },
 ];
 
