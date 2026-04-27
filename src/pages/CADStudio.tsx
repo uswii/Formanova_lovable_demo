@@ -5,6 +5,7 @@ import { ArrowRight, Layers, ImageIcon, Diamond } from "lucide-react";
 import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
 import imageToCadImg from "@/assets/examples/cad-example-1.webp";
 import cadToPdpImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
+import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-ring.webp";
 
 const cadFeatures = [
   {
@@ -31,6 +32,14 @@ const cadFeatures = [
     icon: Diamond,
     image: cadToPdpImg,
   },
+  {
+    title: "CAD to Catalog",
+    description: "Transform your CAD designs into polished catalog-ready visuals.",
+    route: "/cad-to-catalog",
+    comingSoon: false,
+    icon: ImageIcon,
+    image: cadToCatalogImg,
+  },
 ];
 
 export default function CADStudio() {
@@ -43,7 +52,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-5xl md:text-6xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-8 lg:pt-6 text-foreground leading-none mb-6 md:mb-8"
+        className="font-display text-4xl md:text-5xl lg:text-8xl uppercase tracking-wide text-center pt-3 md:pt-5 lg:pt-4 text-foreground leading-none mb-4 md:mb-5"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
@@ -53,7 +62,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="w-full max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 lg:gap-6 pb-6 md:pb-10"
+        className="w-full max-w-[1200px] grid grid-cols-2 gap-3 md:gap-4 pb-4 md:pb-6"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
@@ -62,7 +71,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden aspect-[4/3] opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[16/9] opacity-60 cursor-default"
               >
                 <img
                   src={feature.image}
@@ -101,7 +110,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflow-hidden aspect-[4/3] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[16/9] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               <img
                 src={feature.image}
