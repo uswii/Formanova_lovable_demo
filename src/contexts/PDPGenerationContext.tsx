@@ -157,8 +157,10 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
         if (!upload.uri) throw new Error('No GLB URI returned from upload');
         glbUri = upload.uri;
-      } catch {
-        newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: 'GLB upload failed.' }));
+      } catch (err) {
+        const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
+        console.error('[PDPGeneration] GLB upload error:', err);
+        newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: msg }));
         return;
       }
 
@@ -198,8 +200,10 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
         if (!upload.uri) throw new Error('No GLB URI returned from upload');
         glbUri = upload.uri;
-      } catch {
-        patchJob(newJob.id, { status: 'failed', errorMessage: 'GLB upload failed.' });
+      } catch (err) {
+        const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
+        console.error('[PDPGeneration] GLB upload error (regen):', err);
+        patchJob(newJob.id, { status: 'failed', errorMessage: msg });
         return;
       }
 
