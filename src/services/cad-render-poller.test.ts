@@ -24,7 +24,7 @@ import { renderAngles } from './cad-render-poller';
 
 const angle: CameraAngle = {
   viewName: 'job-1',
-  glbArtifactUri: 'azure://bucket/model.glb',
+  glbBase64: 'base64glbdata',
   colorPreviewB64: 'base64color',
   binaryMaskB64: 'base64mask',
 };

@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { uploadToAzure } from '@/lib/microservices-api';
 import { renderAngles } from '@/services/cad-render-poller';
 import type { CameraAngle } from '@/services/cad-render-api';
 
@@ -150,16 +149,12 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       }));
       setJobs(prev => [...newJobs, ...prev]);
 
-      // Upload GLB once, shared across all angles
-      let glbUri: string;
+      // Read GLB once as base64, sent inline in each angle payload (avoids nginx 413 on /upload)
+      let glbBase64: string;
       try {
-        const base64 = await fileToBase64(glbFile);
-        const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
-        if (!upload.uri) throw new Error('No GLB URI returned from upload');
-        glbUri = upload.uri;
+        glbBase64 = await fileToBase64(glbFile);
       } catch (err) {
-        const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
-        console.error('[PDPGeneration] GLB upload error:', err);
+        const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
         newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: msg }));
         return;
       }
@@ -167,7 +162,7 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
       // angle.viewName === job.id — used to match callbacks back to jobs
       const angles: CameraAngle[] = newJobs.map((job, i) => ({
         viewName: job.id,
-        glbArtifactUri: glbUri,
+        glbBase64,
         colorPreviewB64: toB64(screenshots[i].dataUrl),
         binaryMaskB64: toB64(screenshots[i].maskDataUrl ?? ''),
       }));
@@ -194,22 +189,18 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      let glbUri: string;
+      let glbBase64: string;
       try {
-        const base64 = await fileToBase64(job.glbFile);
-        const upload = await uploadToAzure(base64, 'model/gltf-binary', 'generated_cad');
-        if (!upload.uri) throw new Error('No GLB URI returned from upload');
-        glbUri = upload.uri;
+        glbBase64 = await fileToBase64(job.glbFile);
       } catch (err) {
-        const msg = err instanceof Error ? `GLB upload failed: ${err.message}` : 'GLB upload failed.';
-        console.error('[PDPGeneration] GLB upload error (regen):', err);
+        const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
         patchJob(newJob.id, { status: 'failed', errorMessage: msg });
         return;
       }
 
       const angles: CameraAngle[] = [{
         viewName: newJob.id,
-        glbArtifactUri: glbUri,
+        glbBase64,
         colorPreviewB64: toB64(job.sourceDataUrl),
         binaryMaskB64: toB64(job.maskDataUrl),
       }];
