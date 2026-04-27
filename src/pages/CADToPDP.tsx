@@ -96,20 +96,6 @@ export default function CADToPDP() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
-  const pendingScreenshots = useMemo(
-    () => screenshots.filter(s => !runningScreenshotIds.has(s.id)),
-    [screenshots, runningScreenshotIds]
-  );
-
-  useEffect(() => {
-    if (pendingScreenshots.length === 0) { setCostEstimate(null); return; }
-    let cancelled = false;
-    performCreditPreflight('cad_render_v1', pendingScreenshots.length)
-      .then(result => { if (!cancelled) setCostEstimate(result.estimatedCredits); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [pendingScreenshots.length]);
-
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
     [meshes]
@@ -127,6 +113,20 @@ export default function CADToPDP() {
     [generationJobs]
   );
   const hasRunningGenerations = runningScreenshotIds.size > 0;
+
+  const pendingScreenshots = useMemo(
+    () => screenshots.filter(s => !runningScreenshotIds.has(s.id)),
+    [screenshots, runningScreenshotIds]
+  );
+
+  useEffect(() => {
+    if (pendingScreenshots.length === 0) { setCostEstimate(null); return; }
+    let cancelled = false;
+    performCreditPreflight('cad_render_v1', pendingScreenshots.length)
+      .then(result => { if (!cancelled) setCostEstimate(result.estimatedCredits); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [pendingScreenshots.length]);
 
   const showWorkspacePopup = useCallback((title: string, message: string) => {
     setWorkspacePopup({ title, message });
