@@ -587,7 +587,6 @@ export default function CADToPDP() {
                 onClick={() => setTopSectionCollapsed((v) => !v)}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-accent/20"
               >
-                <span className="font-display text-sm tracking-[0.18em] text-foreground uppercase">Thumbnail</span>
                 {topSectionCollapsed ? (
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 ) : (
