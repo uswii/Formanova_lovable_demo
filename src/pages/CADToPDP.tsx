@@ -364,7 +364,9 @@ export default function CADToPDP() {
         const maskDataUrl = captureViewportMaskDataUrl();
         if (dataUrl) {
           const screenshotId = Date.now();
-          setScreenshots((prev) => [...prev, { id: screenshotId, dataUrl, maskDataUrl: maskDataUrl ?? null }]);
+          // Capture the GLB with current materials so each screenshot carries its own material state
+          const glbBlob = canvasRef.current ? await canvasRef.current.exportSceneBlob().catch(() => null) : null;
+          setScreenshots((prev) => [...prev, { id: screenshotId, dataUrl, maskDataUrl: maskDataUrl ?? null, glbBlob }]);
         }
         flushSync(() => {
           setShowViewportGizmo(true);
@@ -415,9 +417,7 @@ export default function CADToPDP() {
     if (pendingScreenshots.length === 0) return;
     const approved = await checkCredits('cad_render_v1', pendingScreenshots.length);
     if (!approved) return;
-    // Export the scene with materials applied rather than the raw uploaded file
-    const glbBlob = canvasRef.current ? await canvasRef.current.exportSceneBlob() : null;
-    generate(pendingScreenshots, glbBlob);
+    generate(pendingScreenshots);
   }, [pendingScreenshots, generate, checkCredits]);
 
   const handlePreviewPDPJob = useCallback((job: PDPJob) => {

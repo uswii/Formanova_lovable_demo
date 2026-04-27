@@ -28,6 +28,7 @@ interface ScreenshotPayload {
   viewName?: string;
   dataUrl: string;
   maskDataUrl?: string | null;
+  glbBlob?: Blob | null;
 }
 
 export interface PDPJob {
@@ -45,7 +46,7 @@ export interface PDPJob {
 
 interface PDPGenerationContextValue {
   jobs: PDPJob[];
-  generate: (screenshots: ScreenshotPayload[], glbBlob?: Blob | null) => void;
+  generate: (screenshots: ScreenshotPayload[]) => void;
   regenerateJob: (job: PDPJob) => void;
   removeJob: (id: string) => void;
 }
@@ -130,13 +131,12 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
     });
   }, [patchJob, resolveAndPatch]);
 
-  const generate = useCallback((screenshots: ScreenshotPayload[], glbBlob?: Blob | null) => {
-    if (!glbBlob || screenshots.length === 0) return;
+  const generate = useCallback((screenshots: ScreenshotPayload[]) => {
+    if (screenshots.length === 0) return;
 
     void (async () => {
       const now = Date.now();
 
-      // Create N job slots immediately — shown as empty thumbnails right away
       const newJobs: PDPJob[] = screenshots.map((shot, i) => ({
         id: `pdp-${now}-${i}`,
         screenshotId: shot.id,
@@ -144,30 +144,37 @@ export function PDPGenerationProvider({ children }: { children: React.ReactNode 
         sourceDataUrl: shot.dataUrl,
         status: 'generating' as const,
         startedAt: now,
-        glbBlob,
+        glbBlob: shot.glbBlob ?? null,
         maskDataUrl: shot.maskDataUrl ?? null,
       }));
       setJobs(prev => [...newJobs, ...prev]);
 
-      // Read GLB once as base64, sent inline in each angle payload (avoids nginx 413 on /upload)
-      let glbBase64: string;
-      try {
-        glbBase64 = await blobToBase64(glbBlob);
-      } catch (err) {
-        const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
-        newJobs.forEach(j => patchJob(j.id, { status: 'failed', errorMessage: msg }));
-        return;
+      // Each angle uses the GLB blob captured at screenshot time (correct material state per shot)
+      const angles: CameraAngle[] = [];
+      for (let i = 0; i < newJobs.length; i++) {
+        const shot = screenshots[i];
+        const job = newJobs[i];
+        if (!shot.glbBlob) {
+          patchJob(job.id, { status: 'failed', errorMessage: 'No GLB captured for this screenshot.' });
+          continue;
+        }
+        let glbBase64: string;
+        try {
+          glbBase64 = await blobToBase64(shot.glbBlob);
+        } catch (err) {
+          const msg = err instanceof Error ? `GLB read failed: ${err.message}` : 'GLB read failed.';
+          patchJob(job.id, { status: 'failed', errorMessage: msg });
+          continue;
+        }
+        angles.push({
+          viewName: job.id,
+          glbBase64,
+          colorPreviewB64: toB64(shot.dataUrl),
+          binaryMaskB64: toB64(shot.maskDataUrl ?? ''),
+        });
       }
 
-      // angle.viewName === job.id — used to match callbacks back to jobs
-      const angles: CameraAngle[] = newJobs.map((job, i) => ({
-        viewName: job.id,
-        glbBase64,
-        colorPreviewB64: toB64(screenshots[i].dataUrl),
-        binaryMaskB64: toB64(screenshots[i].maskDataUrl ?? ''),
-      }));
-
-      await runBatch(newJobs, angles);
+      if (angles.length > 0) await runBatch(newJobs, angles);
     })();
   }, [patchJob, runBatch]);
 

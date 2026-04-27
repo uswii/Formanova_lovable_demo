@@ -128,6 +128,7 @@ export function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModal
 export interface Screenshot {
   id: number;
   dataUrl: string;
+  glbBlob?: Blob | null;
   uploadedUrl?: string | null;
   uploadedAssetId?: string | null;
   captureUri?: string | null;
