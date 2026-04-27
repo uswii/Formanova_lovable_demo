@@ -81,7 +81,7 @@ function extractImageUrls(value: unknown): string[] {
 
 function isRenderableUrl(value: string | null): boolean {
   if (!value) return false;
-  return value.startsWith('https://') || value.startsWith('http://');
+  return value.startsWith('https://') || value.startsWith('http://') || value.includes('/artifacts/');
 }
 
 function normalizeRenderableUrl(value: string | null): string | null {

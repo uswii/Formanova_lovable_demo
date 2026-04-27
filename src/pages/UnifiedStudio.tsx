@@ -364,6 +364,7 @@ export default function UnifiedStudio() {
     handleJewelryUpload,
     handleModelUpload,
     handleSelectLibraryModel,
+    isModelUploading,
   } = useStudioUpload({
     isProductShot,
     effectiveJewelryType,
@@ -571,6 +572,7 @@ export default function UnifiedStudio() {
             jewelryImage={jewelryImage}
             isValidating={isValidating}
             preflightChecking={preflightChecking}
+            isModelUploading={isModelUploading}
             customModelImage={customModelImage}
             selectedModel={selectedModel}
             isMyModelsEmptyState={isMyModelsEmptyState}
