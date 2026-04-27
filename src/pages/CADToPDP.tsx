@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download, ChevronUp, ChevronDown } from "lucide-react";
+import { Diamond, Gem, X, PanelRight, PanelRightClose, Upload, Loader2, Trash2, ArrowRight, Camera, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
@@ -1057,11 +1057,8 @@ export default function CADToPDP() {
                           />
                           {isShotGenerating && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45">
-                              <div className="relative w-6 h-6">
-                                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: "1.8s" }} />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <Diamond className="h-3.5 w-3.5 text-white" />
-                                </div>
+                              <div className="relative w-6 h-6 flex items-center justify-center">
+                                <Gem className="h-3.5 w-3.5 text-white animate-spin" />
                               </div>
                               <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-white/90">
                                 Generating
