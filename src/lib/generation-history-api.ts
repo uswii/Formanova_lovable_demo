@@ -9,7 +9,7 @@ const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'unknown';
+export type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'cad_sketch' | 'unknown';
 
 export interface WorkflowSummary {
   workflow_id: string;
@@ -147,6 +147,7 @@ export async function listMyWorkflows(
       product_shot: mapped.filter(w => w.source_type === 'product_shot').length,
       cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
       cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
+      cad_sketch: mapped.filter(w => w.source_type === 'cad_sketch').length,
       unknown: mapped.filter(w => w.source_type === 'unknown').length,
     });
   }
@@ -341,6 +342,9 @@ export function inferSourceType(name: string): SourceType {
     (lower.includes('ring') && lower.includes('generate'))
   )
     return 'cad_text';
+
+  // Sketch-to-CAD workflows
+  if (lower.includes('sketch')) return 'cad_sketch';
 
   // CAD render workflows
   if (lower.includes('cad') || lower.includes('render')) return 'cad_render';
