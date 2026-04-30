@@ -81,7 +81,7 @@ function extractImageUrls(value: unknown): string[] {
 
 function isRenderableUrl(value: string | null): boolean {
   if (!value) return false;
-  return value.startsWith('https://') || value.startsWith('http://');
+  return value.startsWith('https://') || value.startsWith('http://') || value.startsWith('data:image/');
 }
 
 function normalizeRenderableUrl(value: string | null): string | null {
@@ -305,7 +305,7 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
       .filter((value): value is string => Boolean(value)),
   );
   const inputImageUrls = [
-    ...findStringArray(detail.input_payload, ['input_image_urls', 'input_images']),
+    ...findStringArray(detail.input_payload, ['reference_images', 'input_image_urls', 'input_images']),
     ...['jewelry_image_url', 'input_image_url']
       .map((key) => findString(detail.input_payload, [key]))
       .filter((value): value is string => Boolean(value)),
