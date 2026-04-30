@@ -208,95 +208,98 @@ export default function ImagePromptScreen({
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSecondImageFile(f); e.target.value = ""; }}
         />
 
-        {/* Image drop zone — primary */}
+        {/* Image upload canvas — two cards side by side */}
         <div
           ref={dropZoneRef}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
-          className={`relative w-full border flex items-center justify-center transition-all duration-200 mb-3 ${
-            isDragging
-              ? "border-foreground/60 bg-foreground/5"
-              : "border-foreground/40 hover:border-foreground/60 hover:bg-foreground/5 bg-muted/10"
-          } ${!referenceImagePreviewUrl ? "cursor-pointer" : ""}`}
-          style={{ minHeight: 240 }}
+          className={`w-full mb-3 p-3 border transition-all duration-200 ${
+            isDragging ? "border-primary/60 bg-primary/5" : "border-border/30 bg-muted/5"
+          }`}
         >
-          {referenceImagePreviewUrl ? (
-            <>
-              <img
-                src={referenceImagePreviewUrl}
-                alt="Reference ring"
-                className="w-full object-contain p-3"
-                style={{ maxHeight: 320 }}
-              />
-              <button
-                onClick={(e) => { e.stopPropagation(); handleClearImage(); }}
-                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
-                aria-label="Remove image"
-              >
-                <X className="w-3 h-3 text-foreground/70" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
-                className="absolute top-2 right-10 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
-                aria-label="Expand image"
-              >
-                <Maximize2 className="w-3 h-3 text-foreground/70" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }}
-                className="absolute bottom-2 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
-              >
-                Change
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center text-center px-6 py-10">
-<div className="relative mx-auto w-20 h-20 mb-6">
-                <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
-                <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                  <Diamond className="h-9 w-9 text-primary" />
-                </div>
-              </div>
-              <p className="font-display text-lg tracking-[0.1em] text-foreground uppercase mb-1.5">
-                Drop your ring image or sketch here
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Drag &amp; drop · click to browse · paste (Ctrl+V)
-              </p>
-              <Button variant="outline" size="lg" className="gap-2 pointer-events-none">
-                <ImageIcon className="h-4 w-4" />
-                Browse ring files
-              </Button>
-            </div>
-          )}
-        </div>
+          <div className="grid grid-cols-2 gap-3">
 
-        {/* Side view slot — appears after primary image is uploaded */}
-        <AnimatePresence>
-          {referenceImagePreviewUrl && (
-            <motion.div
-              key="side-view-slot"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="mb-3"
+            {/* Primary card — front view */}
+            <div
+              onClick={() => !referenceImagePreviewUrl && imageInputRef.current?.click()}
+              className={`relative flex items-center justify-center transition-all duration-200 border-2 ${
+                referenceImagePreviewUrl
+                  ? "border-primary/70 bg-muted/10"
+                  : "border-primary cursor-pointer hover:bg-primary/5 bg-muted/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+              }`}
+              style={{ minHeight: 200 }}
+            >
+              {referenceImagePreviewUrl ? (
+                <>
+                  <img
+                    src={referenceImagePreviewUrl}
+                    alt="Front view reference"
+                    className="w-full object-contain p-2"
+                    style={{ maxHeight: 220 }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleClearImage(); }}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                    aria-label="Remove image"
+                  >
+                    <X className="w-3 h-3 text-foreground/70" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+                    className="absolute top-1.5 right-9 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                    aria-label="Expand image"
+                  >
+                    <Maximize2 className="w-3 h-3 text-foreground/70" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }}
+                    className="absolute bottom-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
+                  >
+                    Change
+                  </button>
+                  <span className="absolute bottom-1.5 right-2 font-mono text-[9px] uppercase tracking-[0.1em] text-primary/60">
+                    Front view
+                  </span>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-center px-4 py-8">
+                  <div className="relative mx-auto w-16 h-16 mb-4">
+                    <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                    <div className="absolute inset-0 rounded-full bg-primary/5 border-2 border-primary/30 flex items-center justify-center">
+                      <Diamond className="h-7 w-7 text-primary" />
+                    </div>
+                  </div>
+                  <p className="font-display text-sm tracking-[0.1em] text-foreground uppercase mb-1">
+                    Front view
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground/60 mb-3">
+                    Drop, paste or click
+                  </p>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-primary/70 border border-primary/30 px-2 py-0.5">
+                    Required
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Secondary card — side view */}
+            <div
+              onClick={() => secondImageInputRef.current?.click()}
+              className={`relative flex items-center justify-center transition-all duration-200 border border-dashed cursor-pointer ${
+                secondReferenceImagePreviewUrl
+                  ? "border-border/60 bg-muted/10"
+                  : "border-border/40 hover:border-border/70 bg-muted/5 hover:bg-muted/10"
+              }`}
+              style={{ minHeight: 200 }}
             >
               {secondReferenceImagePreviewUrl ? (
-                <div
-                  className="relative w-full border border-foreground/40 bg-muted/10 flex items-center justify-center"
-                  style={{ minHeight: 120 }}
-                >
-                  <span className="absolute top-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 z-10">
-                    Side view
-                  </span>
+                <>
                   <img
                     src={secondReferenceImagePreviewUrl}
                     alt="Side view reference"
-                    className="w-full object-contain p-3"
-                    style={{ maxHeight: 160 }}
+                    className="w-full object-contain p-2"
+                    style={{ maxHeight: 220 }}
                   />
                   <button
                     onClick={(e) => { e.stopPropagation(); handleClearSecondImage(); }}
@@ -307,27 +310,34 @@ export default function ImagePromptScreen({
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); secondImageInputRef.current?.click(); }}
-                    className="absolute bottom-2 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
+                    className="absolute bottom-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
                   >
                     Change
                   </button>
-                </div>
+                  <span className="absolute bottom-1.5 right-2 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40">
+                    Side view
+                  </span>
+                </>
               ) : (
-                <button
-                  onClick={() => secondImageInputRef.current?.click()}
-                  className="w-full border border-dashed border-foreground/20 hover:border-foreground/40 bg-muted/5 hover:bg-foreground/5 transition-all duration-200 py-3 flex items-center justify-center gap-2.5 cursor-pointer"
-                >
-                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50">
-                    + Add side view
+                <div className="flex flex-col items-center text-center px-4 py-8">
+                  <div className="w-16 h-16 mb-4 border border-dashed border-border/40 flex items-center justify-center">
+                    <ImageIcon className="h-7 w-7 text-muted-foreground/30" />
+                  </div>
+                  <p className="font-display text-sm tracking-[0.1em] text-muted-foreground/60 uppercase mb-1">
+                    Side view
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground/40 mb-3">
+                    Improves accuracy
+                  </p>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 border border-border/30 px-2 py-0.5">
+                    Optional
                   </span>
-                  <span className="font-mono text-[9px] text-muted-foreground/30 tracking-wide">
-                    Optional - improves accuracy
-                  </span>
-                </button>
+                </div>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+          </div>
+        </div>
 
         {/* Text prompt — secondary */}
         <div className={`relative mb-3 transition-opacity duration-200 ${referenceImagePreviewUrl ? "opacity-100" : "opacity-40"}`}>
