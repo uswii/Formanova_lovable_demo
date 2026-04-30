@@ -50,7 +50,7 @@ export const CAD_IMAGE_GENERATION_RETURN_NODES = [
 ] as const;
 
 export function buildImageCadStartBody(
-  referenceImageDataUri: string,
+  referenceImages: string[],
   prompt: string,
   model?: string | null,
 ) {
@@ -58,9 +58,7 @@ export function buildImageCadStartBody(
     payload: {
       tier: resolveCadGenerationTier(model),
       prompt: prompt.trim(),
-      reference_image: referenceImageDataUri,
-      max_attempts: 3,
-      skip_validation: false,
+      reference_images: referenceImages,
     },
     return_nodes: [...CAD_IMAGE_GENERATION_RETURN_NODES],
   };

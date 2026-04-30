@@ -79,6 +79,8 @@ export default function ImageToCAD() {
   const [editPrompt, setEditPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreviewUrl, setReferenceImagePreviewUrl] = useState<string | null>(null);
+  const [secondReferenceImage, setSecondReferenceImage] = useState<File | null>(null);
+  const [secondReferenceImagePreviewUrl, setSecondReferenceImagePreviewUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -254,6 +256,15 @@ export default function ImageToCAD() {
   const handleReferenceImageChange = useCallback((file: File | null, previewUrl: string | null) => {
     setReferenceImage(file);
     setReferenceImagePreviewUrl(previewUrl);
+    if (!file) {
+      setSecondReferenceImage(null);
+      setSecondReferenceImagePreviewUrl(null);
+    }
+  }, []);
+
+  const handleSecondReferenceImageChange = useCallback((file: File | null, previewUrl: string | null) => {
+    setSecondReferenceImage(file);
+    setSecondReferenceImagePreviewUrl(previewUrl);
   }, []);
 
   const simulateGeneration = useCallback(async () => {
@@ -302,7 +313,9 @@ export default function ImageToCAD() {
       let requestBody: object;
       if (hasImage) {
         const dataUri = await fileToDataUri(referenceImage!);
-        requestBody = buildImageCadStartBody(dataUri, prompt, model);
+        const secondDataUri = secondReferenceImage ? await fileToDataUri(secondReferenceImage) : null;
+        const refImages = secondDataUri ? [dataUri, secondDataUri] : [dataUri];
+        requestBody = buildImageCadStartBody(refImages, prompt, model);
       } else {
         requestBody = buildCadGenerationStartBody(prompt, model);
       }
@@ -389,7 +402,7 @@ export default function ImageToCAD() {
       setProgressStep("");
       setGenerationFailed(true);
     }
-  }, [prompt, model, referenceImage, isGenerating]);
+  }, [prompt, model, referenceImage, secondReferenceImage, isGenerating]);
 
   const runEditWithPrompt = useCallback(async (promptText: string, label: string) => {
     if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
@@ -724,6 +737,8 @@ export default function ImageToCAD() {
           onGenerate={simulateGeneration}
           referenceImagePreviewUrl={referenceImagePreviewUrl}
           onReferenceImageChange={handleReferenceImageChange}
+          secondReferenceImagePreviewUrl={secondReferenceImagePreviewUrl}
+          onSecondReferenceImageChange={handleSecondReferenceImageChange}
           onGlbUpload={showCadUpload ? (file) => { setWorkspaceActive(true); setHasModel(true); setIsModelLoading(true); setProgressStep("_loading"); const url = URL.createObjectURL(file); setGlbUrl(url); } : undefined}
           creditBlock={creditBlock ? (
             <InsufficientCreditsInline
@@ -774,6 +789,8 @@ export default function ImageToCAD() {
               pageTitle="Image to CAD"
               referenceImagePreviewUrl={referenceImagePreviewUrl}
               onClearReferenceImage={() => handleReferenceImageChange(null, null)}
+              secondReferenceImagePreviewUrl={secondReferenceImagePreviewUrl}
+              onSecondReferenceImageChange={handleSecondReferenceImageChange}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}

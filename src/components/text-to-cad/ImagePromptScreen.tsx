@@ -38,6 +38,8 @@ interface ImagePromptScreenProps {
   creditBlock?: React.ReactNode;
   referenceImagePreviewUrl: string | null;
   onReferenceImageChange: (file: File | null, previewUrl: string | null) => void;
+  secondReferenceImagePreviewUrl: string | null;
+  onSecondReferenceImageChange: (file: File | null, previewUrl: string | null) => void;
   onGlbUpload?: (file: File) => void;
 }
 
@@ -45,9 +47,11 @@ export default function ImagePromptScreen({
   model, prompt, setPrompt,
   isGenerating, onGenerate, creditBlock,
   referenceImagePreviewUrl, onReferenceImageChange,
+  secondReferenceImagePreviewUrl, onSecondReferenceImageChange,
   onGlbUpload,
 }: ImagePromptScreenProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const secondImageInputRef = useRef<HTMLInputElement>(null);
   const glbInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -76,6 +80,18 @@ export default function ImagePromptScreen({
     if (referenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(referenceImagePreviewUrl);
     onReferenceImageChange(null, null);
   }, [referenceImagePreviewUrl, onReferenceImageChange]);
+
+  const handleSecondImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    if (secondReferenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(secondReferenceImagePreviewUrl);
+    onSecondReferenceImageChange(file, url);
+  }, [secondReferenceImagePreviewUrl, onSecondReferenceImageChange]);
+
+  const handleClearSecondImage = useCallback(() => {
+    if (secondReferenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(secondReferenceImagePreviewUrl);
+    onSecondReferenceImageChange(null, null);
+  }, [secondReferenceImagePreviewUrl, onSecondReferenceImageChange]);
 
   const handleExampleClick = useCallback(async (example: typeof EXAMPLE_DESIGNS[0]) => {
     setPrompt(example.prompt);
@@ -179,11 +195,18 @@ export default function ImagePromptScreen({
             Generate 3D Ring
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Upload a photo or sketch of your design
+            Upload one or two angles for best results
           </p>
         </div>
 
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageInputChange} />
+        <input
+          ref={secondImageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSecondImageFile(f); e.target.value = ""; }}
+        />
 
         {/* Image drop zone — primary */}
         <div
@@ -250,6 +273,62 @@ export default function ImagePromptScreen({
           )}
         </div>
 
+        {/* Side view slot — appears after primary image is uploaded */}
+        <AnimatePresence>
+          {referenceImagePreviewUrl && (
+            <motion.div
+              key="side-view-slot"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="mb-3"
+            >
+              {secondReferenceImagePreviewUrl ? (
+                <div
+                  className="relative w-full border border-foreground/40 bg-muted/10 flex items-center justify-center"
+                  style={{ minHeight: 120 }}
+                >
+                  <span className="absolute top-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 z-10">
+                    Side view
+                  </span>
+                  <img
+                    src={secondReferenceImagePreviewUrl}
+                    alt="Side view reference"
+                    className="w-full object-contain p-3"
+                    style={{ maxHeight: 160 }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleClearSecondImage(); }}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                    aria-label="Remove side view"
+                  >
+                    <X className="w-3 h-3 text-foreground/70" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); secondImageInputRef.current?.click(); }}
+                    className="absolute bottom-2 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => secondImageInputRef.current?.click()}
+                  className="w-full border border-dashed border-foreground/20 hover:border-foreground/40 bg-muted/5 hover:bg-foreground/5 transition-all duration-200 py-3 flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50">
+                    + Add side view
+                  </span>
+                  <span className="font-mono text-[9px] text-muted-foreground/30 tracking-wide">
+                    Optional - improves accuracy
+                  </span>
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Text prompt — secondary */}
         <div className={`relative mb-3 transition-opacity duration-200 ${referenceImagePreviewUrl ? "opacity-100" : "opacity-40"}`}>
           <textarea
@@ -276,6 +355,10 @@ export default function ImagePromptScreen({
 
         {/* Generate button */}
         {!creditBlock && (
+          <>
+            <p className="font-mono text-[10px] text-muted-foreground/40 text-center tracking-wide mb-3">
+              Results are inspired by your reference - not an exact replica
+            </p>
           <button
             onClick={onGenerate}
             disabled={isGenerating || !canGenerate}
@@ -292,6 +375,7 @@ export default function ImagePromptScreen({
               </>
             )}
           </button>
+          </>
         )}
 
         {/* Example designs */}

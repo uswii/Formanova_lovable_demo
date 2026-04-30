@@ -28,6 +28,8 @@ interface LeftPanelProps {
   creditBlock?: React.ReactNode;
   referenceImagePreviewUrl?: string | null;
   onClearReferenceImage?: () => void;
+  secondReferenceImagePreviewUrl?: string | null;
+  onSecondReferenceImageChange?: (file: File | null, previewUrl: string | null) => void;
   pageTitle?: string;
 }
 
@@ -40,9 +42,12 @@ export default function LeftPanel({
   creditBlock,
   referenceImagePreviewUrl,
   onClearReferenceImage,
+  secondReferenceImagePreviewUrl,
+  onSecondReferenceImageChange,
   pageTitle,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const sideViewInputRef = useRef<HTMLInputElement>(null);
   const { cost: generationCost, loading: generationCostLoading } = useEstimatedCost({ workflowName: CAD_GENERATION_WORKFLOW, model });
   const { cost: editCost, loading: editCostLoading } = useEstimatedCost({ workflowName: CAD_EDIT_WORKFLOW, model });
   const [rebuildOpen, setRebuildOpen] = useState(false);
@@ -101,16 +106,18 @@ export default function LeftPanel({
       <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-6 scrollbar-thin min-w-0"
         style={{ scrollbarWidth: "thin" }}
       >
-        {/* Reference image — image-to-cad mode */}
+        {/* Reference images — image-to-cad mode */}
         {referenceImagePreviewUrl && (
           <section>
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Reference Image</h3>
-            <div className="relative border border-border bg-muted/10 overflow-hidden">
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Reference Images</h3>
+
+            {/* Front view */}
+            <div className="relative border border-border bg-muted/10 overflow-hidden mb-2">
               <img
                 src={referenceImagePreviewUrl}
-                alt="Reference design"
+                alt="Front view reference"
                 className="w-full object-contain cursor-pointer"
-                style={{ maxHeight: 180 }}
+                style={{ maxHeight: 160 }}
                 onClick={() => setImageLightboxOpen(true)}
               />
               <button
@@ -130,6 +137,72 @@ export default function LeftPanel({
                 </button>
               )}
             </div>
+
+            {/* Side view — pops in after front view is set */}
+            <input
+              ref={sideViewInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file || !onSecondReferenceImageChange) return;
+                const url = URL.createObjectURL(file);
+                if (secondReferenceImagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(secondReferenceImagePreviewUrl);
+                onSecondReferenceImageChange(file, url);
+                e.target.value = "";
+              }}
+            />
+            <AnimatePresence mode="wait">
+              {secondReferenceImagePreviewUrl ? (
+                <motion.div
+                  key="side-img"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="relative border border-border bg-muted/10 overflow-hidden">
+                    <span className="absolute top-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 z-10">
+                      Side view
+                    </span>
+                    <img
+                      src={secondReferenceImagePreviewUrl}
+                      alt="Side view reference"
+                      className="w-full object-contain"
+                      style={{ maxHeight: 120 }}
+                    />
+                    {onSecondReferenceImageChange && (
+                      <button
+                        onClick={() => onSecondReferenceImageChange(null, null)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                        aria-label="Remove side view"
+                      >
+                        <X className="w-3 h-3 text-foreground/70" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.button
+                  key="add-side"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => sideViewInputRef.current?.click()}
+                  className="w-full py-2 border border-dashed border-border/40 hover:border-border bg-muted/5 hover:bg-muted/20 transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                    + Side view
+                  </span>
+                  <span className="font-mono text-[8px] text-muted-foreground/25 tracking-wide">
+                    Optional
+                  </span>
+                </motion.button>
+              )}
+            </AnimatePresence>
           </section>
         )}
 
