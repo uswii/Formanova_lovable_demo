@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { azureUriToUrl } from '@/lib/azure-utils';
 import {
   AdminGenerationsApiError,
   getAdminGenerationDetail,
@@ -59,6 +60,7 @@ function extractImageUrls(value: unknown): string[] {
       if (
         node.startsWith('http://') ||
         node.startsWith('https://') ||
+        node.startsWith('azure://') ||
         node.includes('/artifacts/') ||
         /\.(png|jpg|jpeg|webp|gif|bmp|svg)(\?|$)/i.test(lower)
       ) {
@@ -81,12 +83,13 @@ function extractImageUrls(value: unknown): string[] {
 
 function isRenderableUrl(value: string | null): boolean {
   if (!value) return false;
-  return value.startsWith('https://') || value.startsWith('http://') || value.includes('/artifacts/');
+  return value.startsWith('https://') || value.startsWith('http://') || value.startsWith('azure://') || value.includes('/artifacts/');
 }
 
 function normalizeRenderableUrl(value: string | null): string | null {
   if (!value) return null;
-  return isRenderableUrl(value) ? value : null;
+  if (!isRenderableUrl(value)) return null;
+  return azureUriToUrl(value) || value;
 }
 
 function firstRenderableUrl(values: Array<string | null | undefined>): string | null {
@@ -330,6 +333,16 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
     detail.feedback?.category ??
     findText(detail.input_payload, ['category', 'jewelry_category', 'jewelry_type', 'product_category']) ??
     '-';
+  const referenceImage = inspirationImageUrl
+    ? { url: inspirationImageUrl, label: 'Inspiration Image' }
+    : modelImageUrl
+      ? { url: modelImageUrl, label: 'Model Image' }
+      : null;
+  const visualSummaryImages = [
+    { url: jewelryInputUrls[0] ?? null, label: 'Jewelry Input' },
+    ...(referenceImage ? [referenceImage] : []),
+    { url: outputImageUrl, label: 'Output Image' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -372,10 +385,9 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
             <MetaItem label="Complaint" value={detail.feedback ? 'Yes' : 'No'} />
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <ImagePreview url={jewelryInputUrls[0] ?? null} label="Jewelry Input" />
-            <ImagePreview url={inspirationImageUrl} label="Inspiration Image" />
-            <ImagePreview url={modelImageUrl} label="Model Image" />
-            <ImagePreview url={outputImageUrl} label="Output Image" />
+            {visualSummaryImages.map((image) => (
+              <ImagePreview key={`${image.label}-${image.url ?? 'missing'}`} url={image.url} label={image.label} />
+            ))}
           </div>
         </CardContent>
       </Card>
