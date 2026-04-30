@@ -228,7 +228,7 @@ export default function ImagePromptScreen({
             Generate 3D Ring
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Upload front and side view for best results
+            Upload your inspiration image to generate
           </p>
         </div>
 
@@ -412,7 +412,7 @@ export default function ImagePromptScreen({
         {/* Example designs */}
         <div className="mt-6">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
-            Inspirational designs
+            Examples
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {EXAMPLE_DESIGNS.map((ex, i) => (
