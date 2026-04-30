@@ -10,10 +10,20 @@ import { trackStudioModeSwitched } from '@/lib/posthog-events';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
+const JEWELRY_CATEGORIES = [
+  { id: 'necklace',  label: 'Necklaces' },
+  { id: 'earrings',  label: 'Earrings' },
+  { id: 'rings',     label: 'Rings' },
+  { id: 'bracelets', label: 'Bracelets' },
+  { id: 'watches',   label: 'Watches' },
+] as const;
+
 interface StudioHeaderProps {
   currentStep: StudioStep;
   isProductShot: boolean;
   jewelryImage: string | null;
+  effectiveJewelryType: string;
+  onCategorySwitch: (type: string) => void;
   setIsProductShot: (v: boolean) => void;
   setCurrentStep: (s: StudioStep) => void;
 }
@@ -22,6 +32,8 @@ export function StudioHeader({
   currentStep,
   isProductShot,
   jewelryImage,
+  effectiveJewelryType,
+  onCategorySwitch,
   setIsProductShot,
   setCurrentStep,
 }: StudioHeaderProps) {
@@ -62,6 +74,30 @@ export function StudioHeader({
           >
             Product Shot
           </button>
+        </div>
+      )}
+
+      {/* Jewelry type switcher — hidden on results step */}
+      {currentStep !== 'results' && (
+        <div className="w-full overflow-x-auto">
+          <div className="flex items-center gap-1.5 flex-nowrap justify-center min-w-max mx-auto px-1">
+            {JEWELRY_CATEGORIES.map(cat => {
+              const active = cat.id === effectiveJewelryType;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => !active && onCategorySwitch(cat.id)}
+                  className={`flex-none px-3 py-2.5 border font-mono text-[9px] tracking-[0.15em] uppercase whitespace-nowrap transition-colors min-h-[44px] flex items-center ${
+                    active
+                      ? 'border-formanova-hero-accent text-foreground'
+                      : 'border-border/25 text-muted-foreground/70 hover:border-border hover:text-foreground'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

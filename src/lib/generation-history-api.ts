@@ -30,6 +30,8 @@ export interface WorkflowSummary {
   ai_model?: string | null;
   /** Mode from workflow input (e.g. 'lite', 'standard', 'premium') — available in list response */
   mode?: string | null;
+  /** Jewelry category from workflow input payload (e.g. 'rings', 'earrings') — available in list response */
+  category?: string | null;
   /** Total credits spent on this generation — populated from /credits/audit endpoint */
   credits_spent?: number | null;
   /** UUID of the vault asset produced by this run, or null for failed/pre-vault runs */
@@ -137,6 +139,8 @@ export async function listMyWorkflows(
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
       mode: w.input?.mode ?? null,
+      // category lives inside input.payload for photo/pdp workflows
+      category: w.input?.payload?.category ?? w.input?.category ?? null,
       output_asset_id: extractOutputAssetId(w),
       output_asset_name: extractOutputAssetName(w),
     };

@@ -132,6 +132,7 @@ export function Header() {
   const navLinks: NavLink[] = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'Photo Studio' },
+    { path: '/generations', label: 'Generations' },
     {
       path: '/studio-cad',
       label: 'CAD Studio',

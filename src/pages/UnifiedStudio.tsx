@@ -24,8 +24,12 @@ import { StudioTestMenu } from '@/components/studio/StudioTestMenu';
 import { StudioGeneratingStep } from '@/components/studio/StudioGeneratingStep';
 import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
 import { StudioModelStep } from '@/components/studio/StudioModelStep';
+import { StudioPairingStep, type AssetModelAssignment } from '@/components/studio/StudioPairingStep';
 import { StudioHeader } from '@/components/studio/StudioHeader';
+import { LatestResultsPanel } from '@/components/studio/LatestResultsPanel';
 import { StudioUploadStep } from '@/components/studio/StudioUploadStep';
+import { StudioVaultUploadStep } from '@/components/studio/StudioVaultUploadStep';
+import { useBulkGeneration } from '@/hooks/useBulkGeneration';
 import { trackJewelryUploaded } from '@/lib/posthog-events';
 // ExampleGuidePanel removed — guide is inline
 
@@ -227,6 +231,23 @@ export default function UnifiedStudio() {
   } = useStudioOnboarding({ currentStep, isProductShot, user, initializing });
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
+  const activeBulkAssignment = useMemo<AssetModelAssignment | null>(() => {
+    if (selectedModel?.url) {
+      return {
+        url: selectedModel.url,
+        label: selectedModel.label,
+        presetModelId: selectedModel.id,
+      };
+    }
+    if (customModelImage) {
+      return {
+        url: customModelImage,
+        label: isProductShot ? 'Uploaded inspiration' : 'Uploaded model',
+        modelAssetId: modelAssetId ?? undefined,
+      };
+    }
+    return null;
+  }, [selectedModel, customModelImage, modelAssetId, isProductShot]);
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
   const resolvedActiveModelUrl = useAuthenticatedImage(activeModelUrl);
 
@@ -239,6 +260,10 @@ export default function UnifiedStudio() {
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
   const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
   const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
+
+  // Multi-select: vault assets chosen for bulk generation
+  const [selectedAssets, setSelectedAssets] = useState<Array<{ thumbnailUrl: string; assetId: string }>>([]);
+  const [bulkModelAssignments, setBulkModelAssignments] = useState<Record<string, AssetModelAssignment>>({});
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
@@ -425,6 +450,24 @@ export default function UnifiedStudio() {
     clearValidation,
   });
 
+  // Bulk generation — fires when 2+ vault assets are selected and user clicks Generate
+  const { isBulkGenerating, handleBulkGenerate } = useBulkGeneration({
+    selectedAssets,
+    assetModelPairs: selectedAssets
+      .map((asset) => {
+        const assignment = bulkModelAssignments[asset.assetId];
+        return assignment ? { asset, assignment } : null;
+      })
+      .filter((pair): pair is { asset: { thumbnailUrl: string; assetId: string }; assignment: AssetModelAssignment } => pair !== null),
+    selectedModel,
+    customModelImage,
+    modelAssetId,
+    isProductShot,
+    effectiveJewelryType,
+    checkCredits,
+    toast,
+  });
+
   // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
   useEffect(() => {
     const handler = (e: ClipboardEvent) => {
@@ -485,10 +528,49 @@ export default function UnifiedStudio() {
     setCustomModelImage(null);
     setCustomModelFile(null);
     setModelAssetId(null);
+    setBulkModelAssignments({});
     setValidationResult(null);
     resetGeneration(); // clears resultImages, workflowId, generationError, progress, etc.
     setCurrentStep('upload');
     clearValidation();
+  };
+
+  useEffect(() => {
+    setBulkModelAssignments((prev) => {
+      const next = Object.fromEntries(
+        selectedAssets
+          .map((asset) => [asset.assetId, prev[asset.assetId]])
+          .filter((entry): entry is [string, AssetModelAssignment] => !!entry[1]),
+      );
+
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (prevKeys.length === nextKeys.length && prevKeys.every((key) => prev[key] === next[key])) {
+        return prev;
+      }
+      return next;
+    });
+  }, [selectedAssets]);
+
+  const assignActiveModelToAsset = (assetId: string) => {
+    if (!activeBulkAssignment) return;
+    setBulkModelAssignments((prev) => ({ ...prev, [assetId]: activeBulkAssignment }));
+  };
+
+  const clearAssignedModelForAsset = (assetId: string) => {
+    setBulkModelAssignments((prev) => {
+      if (!prev[assetId]) return prev;
+      const next = { ...prev };
+      delete next[assetId];
+      return next;
+    });
+  };
+
+  const assignActiveModelToAll = () => {
+    if (!activeBulkAssignment) return;
+    setBulkModelAssignments(
+      Object.fromEntries(selectedAssets.map((asset) => [asset.assetId, activeBulkAssignment])),
+    );
   };
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
@@ -516,88 +598,167 @@ export default function UnifiedStudio() {
         currentStep={currentStep}
         isProductShot={isProductShot}
         jewelryImage={jewelryImage}
+        effectiveJewelryType={effectiveJewelryType}
+        onCategorySwitch={(type) => navigate(`/studio/${type}`, { state: { mode: isProductShot ? 'product-shot' : 'model-shot' } })}
         setIsProductShot={setIsProductShot}
         setCurrentStep={setCurrentStep}
       />
 
-      <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-8 relative z-10">
+      <div className="flex-1 overflow-y-auto relative z-10">
+      <div className="lg:flex lg:items-start lg:gap-6 px-2 md:px-4 pb-8">
+      <div className="flex-1 min-w-0">
 
         {/* ═══════════════════════════════════════════════════════════
-            STEP 1 — UPLOAD YOUR JEWELRY + FLAGGED IMAGE DIALOG
+            STEP 1 — UPLOAD YOUR JEWELRY + MY PRODUCTS LIBRARY
             ═══════════════════════════════════════════════════════════ */}
-        <StudioUploadStep
-          user={user}
-          isProductShot={isProductShot}
-          effectiveJewelryType={effectiveJewelryType}
-          exampleCategoryType={exampleCategoryType}
-          currentStep={currentStep}
-          jewelryImage={jewelryImage}
-          resolvedJewelryImage={resolvedJewelryImage}
-          jewelryAssetId={jewelryAssetId}
-          isValidating={isValidating}
-          validationResult={validationResult}
-          isFlagged={!!isFlagged}
-          canProceed={!!canProceed}
-          acceptableExample={acceptableExample}
-          showFlaggedDialog={showFlaggedDialog}
-          jewelryInputRef={jewelryInputRef}
-          setShowFlaggedDialog={setShowFlaggedDialog}
-          handleJewelryUpload={handleJewelryUpload}
-          handleNextStep={handleNextStep}
-          handleContinueAnyway={handleContinueAnyway}
-          clearStudioSession={clearStudioSession}
-          clearValidation={clearValidation}
-          setJewelryImage={setJewelryImage}
-          setJewelryFile={setJewelryFile}
-          setValidationResult={setValidationResult}
-          setJewelryUploadedUrl={setJewelryUploadedUrl}
-          setJewelrySasUrl={setJewelrySasUrl}
-          setJewelryAssetId={setJewelryAssetId}
-          setCurrentStep={setCurrentStep as (step: string) => void}
-          setOverrideJewelryType={setOverrideJewelryType}
-          validateImages={validateImages}
-        />
+        {currentStep === 'upload' && (
+          <StudioVaultUploadStep
+            exampleCategoryType={exampleCategoryType}
+            jewelryImage={jewelryImage}
+            selectedAssets={selectedAssets}
+            isValidating={isValidating}
+            validationResult={validationResult}
+            isFlagged={!!isFlagged}
+            canProceed={!!(jewelryImage && !isValidating) || selectedAssets.length > 0}
+            jewelryInputRef={jewelryInputRef}
+            onFileUpload={(file) => {
+              setSelectedAssets([]);
+              setBulkModelAssignments({});
+              handleJewelryUpload(file);
+            }}
+            onClearImage={() => {
+              setSelectedAssets([]);
+              setBulkModelAssignments({});
+              setJewelryImage(null);
+              setJewelryFile(null);
+              setJewelryUploadedUrl(null);
+              setJewelrySasUrl(null);
+              setJewelryAssetId(null);
+              setValidationResult(null);
+              clearValidation();
+            }}
+            onNextStep={handleNextStep}
+            onForceNextStep={handleContinueAnyway}
+            onProductSelect={(thumbnailUrl, assetId) => {
+              const isAlreadySelected = selectedAssets.some(a => a.assetId === assetId);
+              if (isAlreadySelected) {
+                const next = selectedAssets.filter(a => a.assetId !== assetId);
+                setSelectedAssets(next);
+                const first = next[0];
+                setJewelryImage(first?.thumbnailUrl ?? null);
+                setJewelryUploadedUrl(first?.thumbnailUrl ?? null);
+                setJewelryAssetId(first?.assetId ?? null);
+              } else {
+                setSelectedAssets(prev => [...prev, { thumbnailUrl, assetId }]);
+                if (selectedAssets.length === 0) {
+                  setJewelryImage(thumbnailUrl);
+                  setJewelryUploadedUrl(thumbnailUrl);
+                  setJewelryAssetId(assetId);
+                }
+                setValidationResult(null);
+                clearValidation();
+              }
+            }}
+            onSelectAll={(assets) => {
+              setSelectedAssets(assets);
+              const first = assets[0];
+              if (first) {
+                setJewelryImage(first.thumbnailUrl);
+                setJewelryUploadedUrl(first.thumbnailUrl);
+                setJewelryAssetId(first.assetId);
+              }
+              setValidationResult(null);
+              clearValidation();
+            }}
+            onCategoryChange={(cat) => navigate(`/studio/${cat}`, { state: { mode: isProductShot ? 'product-shot' : 'model-shot' } })}
+            isProductShot={isProductShot}
+          />
+        )}
 
         {/* ═══════════════════════════════════════════════════════════
             STEP 2 — CHOOSE YOUR MODEL (visible only after Next)
             ═══════════════════════════════════════════════════════════ */}
         {currentStep === 'model' && (
-          <StudioModelStep
-            step2Ref={step2Ref}
-            modelInputRef={modelInputRef}
-            isProductShot={isProductShot}
-            user={user}
-            activeModelUrl={activeModelUrl}
-            resolvedActiveModelUrl={resolvedActiveModelUrl}
-            jewelryImage={jewelryImage}
-            isValidating={isValidating}
-            preflightChecking={preflightChecking}
-            isModelUploading={isModelUploading}
-            customModelImage={customModelImage}
-            selectedModel={selectedModel}
-            isMyModelsEmptyState={isMyModelsEmptyState}
-            myModelsSearch={myModelsSearch}
-            mergedMyModels={mergedMyModels}
-            activePresetCategories={activePresetCategories}
-            formanovaCategory={formanovaCategory}
-            activePresetLoading={activePresetLoading}
-            activePresetError={activePresetError}
-            activePresetEmpty={activePresetEmpty}
-            presetModelsForCategory={presetModelsForCategory}
-            setModelGuideOpen={setModelGuideOpen}
-            setCurrentStep={setCurrentStep}
-            setSelectedModel={setSelectedModel}
-            setCustomModelImage={setCustomModelImage}
-            setCustomModelFile={setCustomModelFile}
-            setModelAssetId={setModelAssetId}
-            setMyModelsSearch={setMyModelsSearch}
-            setFormanovaCategory={setFormanovaCategory}
-            handleModelUpload={handleModelUpload}
-            handleGenerate={handleGenerate}
-            handleDeleteUserModel={handleDeleteUserModel}
-            handleRenameUserModel={handleRenameUserModel}
-            handleSelectLibraryModel={handleSelectLibraryModel}
-          />
+          selectedAssets.length > 1 ? (
+            <StudioPairingStep
+              step2Ref={step2Ref}
+              modelInputRef={modelInputRef}
+              isProductShot={isProductShot}
+              selectedAssets={selectedAssets}
+              activeAssignment={activeBulkAssignment}
+              assignments={bulkModelAssignments}
+              preflightChecking={preflightChecking}
+              isModelUploading={isModelUploading}
+              isBulkGenerating={isBulkGenerating}
+              isMyModelsEmptyState={isMyModelsEmptyState}
+              myModelsSearch={myModelsSearch}
+              customModelImage={customModelImage}
+              selectedModel={selectedModel}
+              mergedMyModels={mergedMyModels}
+              activePresetCategories={activePresetCategories}
+              formanovaCategory={formanovaCategory}
+              activePresetLoading={activePresetLoading}
+              activePresetError={activePresetError}
+              activePresetEmpty={activePresetEmpty}
+              presetModelsForCategory={presetModelsForCategory}
+              setModelGuideOpen={setModelGuideOpen}
+              setCurrentStep={setCurrentStep}
+              setSelectedModel={setSelectedModel}
+              setCustomModelImage={setCustomModelImage}
+              setCustomModelFile={setCustomModelFile}
+              setModelAssetId={setModelAssetId}
+              setMyModelsSearch={setMyModelsSearch}
+              setFormanovaCategory={setFormanovaCategory}
+              handleModelUpload={handleModelUpload}
+              handleBulkGenerate={handleBulkGenerate}
+              handleDeleteUserModel={handleDeleteUserModel}
+              handleRenameUserModel={handleRenameUserModel}
+              handleSelectLibraryModel={handleSelectLibraryModel}
+              onAssignAsset={assignActiveModelToAsset}
+              onClearAssignment={clearAssignedModelForAsset}
+              onApplyActiveToAll={assignActiveModelToAll}
+            />
+          ) : (
+            <StudioModelStep
+              step2Ref={step2Ref}
+              modelInputRef={modelInputRef}
+              isProductShot={isProductShot}
+              user={user}
+              activeModelUrl={activeModelUrl}
+              resolvedActiveModelUrl={resolvedActiveModelUrl}
+              jewelryImage={jewelryImage}
+              isValidating={isValidating}
+              preflightChecking={preflightChecking}
+              isModelUploading={isModelUploading}
+              customModelImage={customModelImage}
+              selectedModel={selectedModel}
+              isMyModelsEmptyState={isMyModelsEmptyState}
+              myModelsSearch={myModelsSearch}
+              mergedMyModels={mergedMyModels}
+              activePresetCategories={activePresetCategories}
+              formanovaCategory={formanovaCategory}
+              activePresetLoading={activePresetLoading}
+              activePresetError={activePresetError}
+              activePresetEmpty={activePresetEmpty}
+              presetModelsForCategory={presetModelsForCategory}
+              setModelGuideOpen={setModelGuideOpen}
+              setCurrentStep={setCurrentStep}
+              setSelectedModel={setSelectedModel}
+              setCustomModelImage={setCustomModelImage}
+              setCustomModelFile={setCustomModelFile}
+              setModelAssetId={setModelAssetId}
+              setMyModelsSearch={setMyModelsSearch}
+              setFormanovaCategory={setFormanovaCategory}
+              handleModelUpload={handleModelUpload}
+              handleGenerate={handleGenerate}
+              bulkCount={selectedAssets.length}
+              handleBulkGenerate={handleBulkGenerate}
+              isBulkGenerating={isBulkGenerating}
+              handleDeleteUserModel={handleDeleteUserModel}
+              handleRenameUserModel={handleRenameUserModel}
+              handleSelectLibraryModel={handleSelectLibraryModel}
+            />
+          )
         )}
 
         {/* ═══════════════════════════════════════════════════════════
@@ -643,7 +804,22 @@ export default function UnifiedStudio() {
             userEmail={user?.email}
           />
         )}
+
+      </div>{/* end flex-1 min-w-0 (step content) */}
+
+      {/* Desktop sidebar — sticky alongside the workspace */}
+      <div className="hidden lg:block self-start sticky top-2 w-64 xl:w-72 flex-shrink-0 max-h-[calc(100vh-8rem)] overflow-y-auto pt-4">
+        <LatestResultsPanel effectiveJewelryType={effectiveJewelryType} />
       </div>
+
+      </div>{/* end lg:flex wrapper */}
+
+      {/* Mobile collapsible — below all step content, hidden on lg+ */}
+      <div className="lg:hidden px-2 md:px-4 pb-4">
+        <LatestResultsPanel effectiveJewelryType={effectiveJewelryType} collapsible />
+      </div>
+
+      </div>{/* end scroll container */}
 
       {/* ── Model guide popup ── */}
       <UploadGuideModal

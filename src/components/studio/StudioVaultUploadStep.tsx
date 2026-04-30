@@ -166,6 +166,22 @@ function ProductCard({
   );
 }
 
+function SelectedThumb({ thumbnailUrl, onRemove }: { thumbnailUrl: string; onRemove: () => void }) {
+  const resolved = useAuthenticatedImage(thumbnailUrl);
+  return (
+    <div className="relative flex-none w-10 h-10 border border-[hsl(var(--formanova-hero-accent))] overflow-hidden group/thumb">
+      <img src={resolved ?? ''} alt="" className="w-full h-full object-cover" />
+      <button
+        onClick={onRemove}
+        className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+        aria-label="Remove"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 // ── Example images ────────────────────────────────────────────────────────────
 import necklaceAllowed1    from '@/assets/examples/necklace-allowed-1.jpg';
 import necklaceAllowed2    from '@/assets/examples/necklace-allowed-2.jpg';
@@ -321,7 +337,8 @@ function buildPageList(current: number, total: number): (number | '…')[] {
 export interface StudioVaultUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
-  activeProductAssetId: string | null;
+  /** All currently selected vault assets (multi-select). */
+  selectedAssets: Array<{ thumbnailUrl: string; assetId: string }>;
   isValidating: boolean;
   validationResult: ImageValidationResult | null;
   isFlagged: boolean;
@@ -332,7 +349,10 @@ export interface StudioVaultUploadStepProps {
   onNextStep: () => void;
   /** Bypasses the flag check — used by "Continue Anyway". */
   onForceNextStep: () => void;
+  /** Toggle one asset in/out of the selection; parent owns the array. */
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
+  /** Replace the full selection with all currently visible assets. */
+  onSelectAll?: (assets: Array<{ thumbnailUrl: string; assetId: string }>) => void;
   onCategoryChange?: (category: string) => void;
   isProductShot?: boolean;
 }
@@ -342,7 +362,7 @@ export interface StudioVaultUploadStepProps {
 export function StudioVaultUploadStep({
   exampleCategoryType,
   jewelryImage,
-  activeProductAssetId,
+  selectedAssets,
   isValidating,
   validationResult,
   isFlagged,
@@ -353,6 +373,7 @@ export function StudioVaultUploadStep({
   onNextStep,
   onForceNextStep,
   onProductSelect,
+  onSelectAll,
   onCategoryChange,
   isProductShot,
 }: StudioVaultUploadStepProps) {
@@ -371,6 +392,7 @@ export function StudioVaultUploadStep({
   }[exampleCategoryType] ?? { singular: 'jewelry', plural: 'jewelry' };
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
+  const selectedAssetIds = selectedAssets.map(a => a.assetId);
 
   const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
@@ -605,40 +627,75 @@ export function StudioVaultUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} flex flex-col border border-border/30`}>
-                {/* Search bar — lives inside the fixed-height container so it never shifts vertical alignment */}
-                <div className="flex-shrink-0 border-b border-border/20 px-2 py-1.5">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Search by name..."
-                      value={productSearch}
-                      onChange={e => setProductSearch(e.target.value)}
-                      className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
-                    />
+              <>
+                {/* Select all row — only when 2+ visible assets */}
+                {displayAssets.length >= 2 && onSelectAll && (
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-muted-foreground">
+                      {selectedAssets.length > 0 ? `${selectedAssets.length} selected` : 'Tap to select'}
+                    </span>
+                    <button
+                      onClick={() => onSelectAll(displayAssets.map(a => ({ thumbnailUrl: a.thumbnail_url, assetId: a.id })))}
+                      className="font-mono text-[9px] tracking-[0.15em] uppercase text-formanova-hero-accent hover:opacity-70 transition-opacity"
+                    >
+                      Select all visible
+                    </button>
+                  </div>
+                )}
+
+                <div className={`${CANVAS_H} flex flex-col border border-border/30`}>
+                  {/* Search bar */}
+                  <div className="flex-shrink-0 border-b border-border/20 px-2 py-1.5">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search by name..."
+                        value={productSearch}
+                        onChange={e => setProductSearch(e.target.value)}
+                        className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  {/* Scrollable grid */}
+                  <div className="flex-1 overflow-y-auto p-2">
+                    {searchActive && displayAssets.length === 0 ? (
+                      <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center py-8">
+                        No products match "{productSearch}"
+                      </p>
+                    ) : (
+                      <div className="columns-3 gap-2">
+                        {displayAssets.map((asset) => (
+                          <ProductCard
+                            key={asset.id}
+                            asset={asset}
+                            isSelected={selectedAssetIds.includes(asset.id)}
+                            onSelect={() => onProductSelect(asset.thumbnail_url, asset.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                {/* Scrollable grid */}
-                <div className="flex-1 overflow-y-auto p-2">
-                  {searchActive && displayAssets.length === 0 ? (
-                    <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center py-8">
-                      No products match "{productSearch}"
-                    </p>
-                  ) : (
-                    <div className="columns-3 gap-2">
-                      {displayAssets.map((asset) => (
-                        <ProductCard
-                          key={asset.id}
-                          asset={asset}
-                          isSelected={asset.id === activeProductAssetId}
-                          onSelect={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+
+                {/* Selected tray — shown when 2+ assets are selected */}
+                {selectedAssets.length >= 2 && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-2">
+                    {selectedAssets.slice(0, 5).map(a => (
+                      <SelectedThumb
+                        key={a.assetId}
+                        thumbnailUrl={a.thumbnailUrl}
+                        onRemove={() => onProductSelect(a.thumbnailUrl, a.assetId)}
+                      />
+                    ))}
+                    {selectedAssets.length > 5 && (
+                      <span className="flex-none font-mono text-[9px] text-muted-foreground">
+                        +{selectedAssets.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {!isLoading && !error && !searchActive && totalPages > 1 && (

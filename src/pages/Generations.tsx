@@ -33,6 +33,27 @@ import CADRuntimeErrorBoundary from '@/components/cad/CADRuntimeErrorBoundary';
 const PER_PAGE = 5;
 
 type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'cad_sketch';
+type ModeFilter = 'all' | 'model-shot' | 'product-shot';
+type CategoryFilter = 'all' | 'necklace' | 'earrings' | 'rings' | 'bracelets' | 'watches';
+
+const CATEGORY_LABELS: Record<CategoryFilter, string> = {
+  all: 'All',
+  necklace: 'Necklaces',
+  earrings: 'Earrings',
+  rings: 'Rings',
+  bracelets: 'Bracelets',
+  watches: 'Watches',
+};
+
+// Category values that map to each filter key (backend sends plural or singular)
+const CATEGORY_ALIASES: Record<CategoryFilter, string[]> = {
+  all: [],
+  necklace: ['necklace', 'necklaces'],
+  earrings: ['earring', 'earrings'],
+  rings: ['ring', 'rings'],
+  bracelets: ['bracelet', 'bracelets'],
+  watches: ['watch', 'watches'],
+};
 
 interface SectionState {
   workflows: WorkflowSummary[];
@@ -46,6 +67,8 @@ interface SectionState {
 export default function Generations() {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
   const [allWorkflows, setAllWorkflows] = useState<WorkflowSummary[]>([]);
   const [globalLoading, setGlobalLoading] = useState(true);
@@ -171,13 +194,13 @@ export default function Generations() {
   }, [resolveGeneratedAssetName, user]);
 
   // ── Pagination helper ─────────────────────────────────────────────
-    const getSection = useCallback(
-    (source: SourceType, page: number, requireImage = false): SectionState => {
+  const getSection = useCallback(
+    (source: SourceType, page: number, workflows: WorkflowSummary[], requireImage = false): SectionState => {
       const isCadSource = source === 'cad_text' || source === 'cad_sketch';
       const statusOk = isCadSource
         ? (w: WorkflowSummary) => w.status === 'completed' || w.status === 'failed'
         : (w: WorkflowSummary) => w.status === 'completed';
-      const filtered = allWorkflows.filter((w) => {
+      const filtered = workflows.filter((w) => {
         if (w.source_type !== source || !statusOk(w)) return false;
         // Skip photo/product_shot/cad_render cards that enriched but have no thumbnail
         if (requireImage && w.thumbnail_url === '') return false;
@@ -194,7 +217,7 @@ export default function Generations() {
         loading: globalLoading,
       };
     },
-    [allWorkflows, globalLoading],
+    [globalLoading],
   );
 
   // ── Step 2: Enrich workflows with throttled concurrency ──────────
@@ -329,12 +352,20 @@ export default function Generations() {
     return () => { cancelled = true; };
   }, [allWorkflows.length, globalLoading]);
 
-  const photoSection = getSection('photo', photoPage, true);
-  const productShotSection = getSection('product_shot', productShotPage, true);
-  const cadRenderSection = getSection('cad_render', cadRenderPage, true);
-  const cadTextSection = getSection('cad_text', cadTextPage);
+  // Apply category filter — CAD workflows rarely have a category so they show regardless
+  const categoryFiltered = categoryFilter === 'all'
+    ? allWorkflows
+    : allWorkflows.filter(w => {
+        if (!w.category) return false;
+        return CATEGORY_ALIASES[categoryFilter].includes(w.category);
+      });
+
+  const photoSection = getSection('photo', photoPage, categoryFiltered, true);
+  const productShotSection = getSection('product_shot', productShotPage, categoryFiltered, true);
+  const cadRenderSection = getSection('cad_render', cadRenderPage, allWorkflows, true);
+  const cadTextSection = getSection('cad_text', cadTextPage, allWorkflows);
   const imageToCadEnabled = isImageToCadEnabled(user?.email);
-  const cadSketchSection = imageToCadEnabled ? getSection('cad_sketch', cadSketchPage) : null;
+  const cadSketchSection = imageToCadEnabled ? getSection('cad_sketch', cadSketchPage, allWorkflows) : null;
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
@@ -343,7 +374,7 @@ export default function Generations() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 flex items-end justify-between"
+          className="mb-6 flex items-end justify-between"
         >
           <div>
             <Link
@@ -354,6 +385,57 @@ export default function Generations() {
               Dashboard
             </Link>
           </div>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mb-8 flex flex-col gap-2"
+        >
+          {/* Mode filter */}
+          <div className="flex items-center gap-2 overflow-x-auto flex-nowrap pb-1">
+            {(['all', 'model-shot', 'product-shot'] as ModeFilter[]).map((f) => {
+              const labels: Record<ModeFilter, string> = { all: 'All', 'model-shot': 'Model Shot', 'product-shot': 'Product Shot' };
+              const active = modeFilter === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setModeFilter(f)}
+                  className={`flex-none px-4 py-1.5 border font-mono text-[10px] tracking-[0.15em] uppercase whitespace-nowrap transition-colors ${
+                    active
+                      ? 'border-[hsl(var(--formanova-hero-accent))] text-foreground'
+                      : 'border-border/30 text-muted-foreground hover:border-border hover:text-foreground'
+                  }`}
+                >
+                  {labels[f]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Jewelry category filter — only meaningful for photo sections */}
+          {(modeFilter === 'all' || modeFilter === 'model-shot' || modeFilter === 'product-shot') && (
+            <div className="flex items-center gap-2 overflow-x-auto flex-nowrap pb-1">
+              {(Object.keys(CATEGORY_LABELS) as CategoryFilter[]).map((f) => {
+                const active = categoryFilter === f;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setCategoryFilter(f)}
+                    className={`flex-none px-4 py-1.5 border font-mono text-[10px] tracking-[0.15em] uppercase whitespace-nowrap transition-colors ${
+                      active
+                        ? 'border-[hsl(var(--formanova-hero-accent))] text-foreground'
+                        : 'border-border/20 text-muted-foreground/70 hover:border-border hover:text-foreground'
+                    }`}
+                  >
+                    {CATEGORY_LABELS[f]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
 
         {error && (
@@ -378,31 +460,35 @@ export default function Generations() {
 
         {!error && (
           <>
-            <WorkflowSection
-              title="Model Shot"
-              subtitle="Jewelry photo to on-model imagery"
-              icon={SectionIcons.photo}
-              workflows={photoSection.workflows}
-              loading={photoSection.loading}
-              currentPage={photoSection.page}
-              totalPages={photoSection.totalPages}
-              columns={5}
-              onPageChange={setPhotoPage}
-              onWorkflowClick={() => {}}
-            />
+            {(modeFilter === 'all' || modeFilter === 'model-shot') && (
+              <WorkflowSection
+                title="Model Shot"
+                subtitle="Jewelry photo to on-model imagery"
+                icon={SectionIcons.photo}
+                workflows={photoSection.workflows}
+                loading={photoSection.loading}
+                currentPage={photoSection.page}
+                totalPages={photoSection.totalPages}
+                columns={5}
+                onPageChange={setPhotoPage}
+                onWorkflowClick={() => {}}
+              />
+            )}
 
-            <WorkflowSection
-              title="Product Shot"
-              subtitle="AI-generated product photography"
-              icon={SectionIcons.productShot}
-              workflows={productShotSection.workflows}
-              loading={productShotSection.loading}
-              currentPage={productShotSection.page}
-              totalPages={productShotSection.totalPages}
-              columns={5}
-              onPageChange={setProductShotPage}
-              onWorkflowClick={() => {}}
-            />
+            {(modeFilter === 'all' || modeFilter === 'product-shot') && (
+              <WorkflowSection
+                title="Product Shot"
+                subtitle="AI-generated product photography"
+                icon={SectionIcons.productShot}
+                workflows={productShotSection.workflows}
+                loading={productShotSection.loading}
+                currentPage={productShotSection.page}
+                totalPages={productShotSection.totalPages}
+                columns={5}
+                onPageChange={setProductShotPage}
+                onWorkflowClick={() => {}}
+              />
+            )}
 
             <CADRuntimeErrorBoundary
               title="CAD Previews Unavailable"

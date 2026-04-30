@@ -82,6 +82,10 @@ interface StudioModelStepProps {
   setFormanovaCategory: (cat: string) => void;
   handleModelUpload: (file: File) => void;
   handleGenerate: () => void;
+  /** Number of vault assets selected for bulk generation. 0 or 1 = single path. */
+  bulkCount?: number;
+  handleBulkGenerate?: () => void;
+  isBulkGenerating?: boolean;
   handleDeleteUserModel: (id: string) => void;
   handleRenameUserModel: (id: string, newName: string) => void;
   handleSelectLibraryModel: (model: PresetModel) => void;
@@ -119,6 +123,9 @@ export function StudioModelStep({
   setFormanovaCategory,
   handleModelUpload,
   handleGenerate,
+  bulkCount = 0,
+  handleBulkGenerate,
+  isBulkGenerating = false,
   handleDeleteUserModel,
   handleRenameUserModel,
   handleSelectLibraryModel,
@@ -255,11 +262,11 @@ export function StudioModelStep({
             </Button>
             <Button
               size="lg"
-              onClick={handleGenerate}
-              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking || isModelUploading}
+              onClick={bulkCount > 1 ? handleBulkGenerate : handleGenerate}
+              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking || isModelUploading || isBulkGenerating}
               className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
             >
-              {isModelUploading ? 'Uploading…' : 'Generate Photoshoot'}
+              {isBulkGenerating ? 'Starting…' : isModelUploading ? 'Uploading…' : bulkCount > 1 ? `Generate ${bulkCount} Photoshoots` : 'Generate Photoshoot'}
               {preflightChecking || isModelUploading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (

@@ -87,6 +87,7 @@ vi.mock('@/hooks/useStudioUpload', () => ({
     handleJewelryUpload: vi.fn(),
     handleModelUpload: vi.fn(),
     handleSelectLibraryModel: vi.fn(),
+    isModelUploading: false,
   }),
 }));
 
@@ -105,7 +106,16 @@ vi.mock('@/hooks/useStudioGeneration', () => ({
     feedbackOpen: false,
     setFeedbackOpen: vi.fn(),
     handleGenerate: vi.fn(),
+    handleKeepBrowsing: vi.fn(),
+    resumeGeneration: vi.fn(),
     resetGeneration: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useBulkGeneration', () => ({
+  useBulkGeneration: () => ({
+    isBulkGenerating: false,
+    handleBulkGenerate: vi.fn(),
   }),
 }));
 
@@ -157,8 +167,16 @@ vi.mock('@/components/studio/StudioModelStep', () => ({
   StudioModelStep: () => <div data-testid="model-step" />,
 }));
 
+vi.mock('@/components/studio/StudioPairingStep', () => ({
+  StudioPairingStep: () => <div data-testid="pairing-step" />,
+}));
+
 vi.mock('@/components/studio/StudioVaultUploadStep', () => ({
   StudioVaultUploadStep: () => <div data-testid="alt-upload-step" />,
+}));
+
+vi.mock('@/components/studio/LatestResultsPanel', () => ({
+  LatestResultsPanel: () => null,
 }));
 
 vi.mock('@/components/studio/StudioUploadStep', () => ({
@@ -227,8 +245,7 @@ function renderStudio(path = '/studio/necklace') {
 describe('UnifiedStudio smoke tests', () => {
   it('renders Step 1 upload zone by default', () => {
     const c = renderStudio();
-    expect(c.textContent).toContain('Upload Your Jewelry');
-    expect(c.textContent).toContain('Step 1');
+    expect(c.querySelector('[data-testid="alt-upload-step"]')).not.toBeNull();
   });
 
   it('renders the step progress bar', () => {
@@ -241,6 +258,6 @@ describe('UnifiedStudio smoke tests', () => {
 
   it('does not crash for product-shot route', () => {
     const c = renderStudio('/studio/ring');
-    expect(c.textContent).toContain('Upload Your Jewelry');
+    expect(c.querySelector('[data-testid="alt-upload-step"]')).not.toBeNull();
   });
 });
