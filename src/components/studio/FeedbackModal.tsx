@@ -171,7 +171,7 @@ export function FeedbackModal({
             {hasImages && (
               <div className="flex gap-3">
                 <Thumbnail url={jewelryDisplayUrl} label="Jewelry input" />
-                <Thumbnail url={modelImageUrl} label="Model input" />
+                <Thumbnail url={modelImageUrl} label="Reference input" />
                 <Thumbnail url={resultImageUrl} label="Result" />
               </div>
             )}
