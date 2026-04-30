@@ -176,8 +176,8 @@ function BulkSelectedCanvas({
   const previewAssets = selectedAssets.slice(0, 9);
 
   return (
-    <div className={`relative border overflow-hidden bg-muted/20 border-border/30 p-4 md:p-5 ${CANVAS_H}`}>
-      <div className="flex items-start justify-between gap-4 mb-4">
+    <div className={`relative flex flex-col border overflow-hidden bg-muted/20 border-border/30 p-4 md:p-5 ${CANVAS_H}`}>
+      <div className="flex items-start justify-between gap-4 pb-4 border-b border-border/20">
         <div>
           <p className="font-display text-2xl md:text-3xl uppercase tracking-tight">
             {selectedAssets.length} Pieces Selected
@@ -191,26 +191,33 @@ function BulkSelectedCanvas({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {previewAssets.map((asset, index) => (
-          <div key={asset.assetId} className="relative aspect-square overflow-hidden border border-border/20 bg-background/70 group">
-            <ProductThumb src={asset.thumbnailUrl} alt={`Selected product ${index + 1}`} />
-            <button
-              onClick={() => onRemove(asset.thumbnailUrl, asset.assetId)}
-              className="absolute top-2 right-2 w-7 h-7 bg-background/85 backdrop-blur-sm border border-border/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
-              aria-label="Remove selected product"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
+      <div className="flex-1 min-h-0 pt-4">
+        <div className="grid h-full grid-cols-2 gap-3 overflow-y-auto pr-1 md:grid-cols-3">
+          {previewAssets.map((asset, index) => (
+            <div key={asset.assetId} className="relative aspect-square overflow-hidden border border-border/20 bg-background/70 group">
+              <ProductThumb src={asset.thumbnailUrl} alt={`Selected product ${index + 1}`} />
+              <button
+                onClick={() => onRemove(asset.thumbnailUrl, asset.assetId)}
+                className="absolute top-2 right-2 w-7 h-7 bg-background/85 backdrop-blur-sm border border-border/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                aria-label="Remove selected product"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {selectedAssets.length > previewAssets.length && (
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          +{selectedAssets.length - previewAssets.length} more selected
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-border/20">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          {selectedAssets.length > previewAssets.length
+            ? `Showing 9 of ${selectedAssets.length} selected`
+            : `${selectedAssets.length} ready for pairing`}
         </p>
-      )}
+        <p className="text-xs text-muted-foreground text-right">
+          Remove any outliers here before the pairing step.
+        </p>
+      </div>
     </div>
   );
 }
@@ -494,7 +501,7 @@ export function StudioVaultUploadStep({
 
   return (
     <>
-    <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
+    <div className="grid lg:grid-cols-3 gap-8 lg:gap-10 lg:items-start">
 
       {/* ══════════════════════════════════════════════════════════════
           LEFT — Upload Canvas  (2 / 3)
@@ -563,11 +570,14 @@ export function StudioVaultUploadStep({
           <div className="space-y-4">
             <BulkSelectedCanvas selectedAssets={selectedAssets} onRemove={onProductSelect} />
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex flex-col gap-3 border-t border-border/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Bulk selection stays editable here. Pair models in the next step.
+              </p>
               <Button size="lg" onClick={onNextStep} disabled={!canProceed}
                       className="gap-2.5 font-display text-base uppercase tracking-wide px-10
                                  bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                                 text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
+                                 text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60 self-start sm:self-auto">
                 Continue To Pairing <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -645,8 +655,8 @@ export function StudioVaultUploadStep({
             </p>
           </div>
           {!showGuide && (
-            <div className="mt-8 flex items-center gap-2 shrink-0">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="shrink-0 border border-border/20 bg-muted/10 px-3 py-2">
+              <span className="mr-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 All uploads
               </span>
               <Switch checked={showAll} onCheckedChange={setShowAll} />
@@ -676,7 +686,7 @@ export function StudioVaultUploadStep({
               <>
                 {/* Select all row — only when 2+ visible assets */}
                 {displayAssets.length >= 2 && onSelectAll && (
-                  <div className="flex items-center justify-between gap-3 mb-2 px-1">
+                  <div className="flex items-center justify-between gap-3 border border-border/20 bg-muted/10 px-3 py-3">
                     <div>
                       <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-muted-foreground">
                         {selectedAssets.length > 0 ? `${selectedAssets.length} selected` : 'Select pieces for bulk'}

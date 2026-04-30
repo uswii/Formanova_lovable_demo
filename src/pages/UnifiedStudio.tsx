@@ -605,7 +605,7 @@ export default function UnifiedStudio() {
       />
 
       <div className="flex-1 overflow-y-auto relative z-10">
-      <div className="lg:flex lg:items-start lg:gap-6 px-2 md:px-4 pb-8">
+      <div className="lg:flex lg:items-start lg:gap-6 px-2 md:px-4 pt-4 pb-8">
       <div className="flex-1 min-w-0">
 
         {/* ═══════════════════════════════════════════════════════════
@@ -808,7 +808,7 @@ export default function UnifiedStudio() {
       </div>{/* end flex-1 min-w-0 (step content) */}
 
       {/* Desktop sidebar — sticky alongside the workspace */}
-      <div className="hidden lg:block self-start sticky top-2 w-64 xl:w-72 flex-shrink-0 max-h-[calc(100vh-8rem)] overflow-y-auto pt-4">
+      <div className="hidden lg:block self-start sticky top-4 w-64 xl:w-72 flex-shrink-0 max-h-[calc(100vh-8rem)] overflow-y-auto">
         <LatestResultsPanel effectiveJewelryType={effectiveJewelryType} />
       </div>
 

@@ -9,19 +9,10 @@ import { PresetModelThumb } from '@/components/studio/PresetModelThumb';
 import { type PresetModel } from '@/lib/models-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
-
 const PAIRING_CANVAS_H = 'h-[500px] md:h-[640px]';
-
 interface PresetCategory { id: string; label: string; }
 export interface AssetModelPairingAsset { thumbnailUrl: string; assetId: string; }
-
-export interface AssetModelAssignment {
-  url: string;
-  label: string;
-  presetModelId?: string;
-  modelAssetId?: string;
-}
-
+export interface AssetModelAssignment { url: string; label: string; presetModelId?: string; modelAssetId?: string; }
 interface StudioPairingStepProps {
   step2Ref: React.RefObject<HTMLDivElement>;
   modelInputRef: React.RefObject<HTMLInputElement>;
@@ -60,7 +51,6 @@ interface StudioPairingStepProps {
   onClearAssignment: (assetId: string) => void;
   onApplyActiveToAll: () => void;
 }
-
 function PairingRow({
   asset,
   index,
@@ -93,7 +83,6 @@ function PairingRow({
           {index + 1}
         </div>
       </div>
-
       <button
         type="button"
         onClick={() => onAssignAsset(asset.assetId)}
@@ -210,7 +199,6 @@ export function StudioPairingStep({
 }: StudioPairingStepProps) {
   const completedCount = selectedAssets.filter((asset) => assignments[asset.assetId]).length;
   const activeResolvedUrl = useAuthenticatedImage(activeAssignment?.url ?? null);
-
   return (
     <motion.div
       ref={step2Ref}
@@ -227,7 +215,6 @@ export function StudioPairingStep({
           Pick one model, then click pieces on the left to stamp it in place. Drag and drop works too.
         </p>
       </div>
-
       <input
         ref={modelInputRef}
         type="file"
@@ -237,7 +224,7 @@ export function StudioPairingStep({
       />
       <div className="grid lg:grid-cols-3 gap-8 lg:gap-10 lg:items-start">
         <div className="lg:col-span-2 space-y-5">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/70">
                 Assignments
@@ -246,9 +233,9 @@ export function StudioPairingStep({
                 {completedCount} of {selectedAssets.length} ready to generate
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               {activeAssignment && (
-                <div className="hidden md:flex items-center gap-2 border border-border/20 bg-background/60 px-3 py-2 max-w-[240px]">
+                <div className="flex min-w-0 items-center gap-2 border border-border/20 bg-background/60 px-3 py-2 max-w-[260px]">
                   <div className="w-8 h-8 border border-border/20 overflow-hidden bg-muted/20 flex-shrink-0">
                     <img
                       src={activeResolvedUrl ?? undefined}
@@ -283,7 +270,7 @@ export function StudioPairingStep({
                 size="sm"
                 onClick={onApplyActiveToAll}
                 disabled={!activeAssignment}
-                className="gap-2 font-mono text-[10px] uppercase tracking-[0.14em]"
+                className="gap-2 font-mono text-[10px] uppercase tracking-[0.14em] ml-auto xl:ml-0"
               >
                 <CopyPlus className="h-3.5 w-3.5" />
                 Apply Active To All
@@ -306,7 +293,7 @@ export function StudioPairingStep({
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col gap-3 border-t border-border/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <Button
               variant="ghost"
               size="lg"
@@ -432,9 +419,8 @@ export function StudioPairingStep({
                   </>
                 )}
               </TabsContent>
-
-              <TabsContent value="formanova">
-                <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
+              <TabsContent value="formanova" className="flex-1 mt-0 min-h-0">
+                <div className="h-full overflow-y-auto pr-1">
                   <div className="columns-3 gap-2">
                     {activePresetCategories.map((cat) => (
                       <div key={cat.id} className="break-inside-avoid mb-2">
