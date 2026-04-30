@@ -9,7 +9,7 @@ const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'unknown';
+export type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'cad_sketch' | 'unknown';
 
 export interface WorkflowSummary {
   workflow_id: string;
@@ -297,6 +297,10 @@ export async function fetchWorkflowCreditAudit(
 /** Infer the source type from the workflow name */
 export function inferSourceType(name: string): SourceType {
   const lower = name.toLowerCase();
+
+  // Sketch-to-CAD workflows (sketch_generate_v1)
+  if (lower.includes('sketch_generate') || lower.includes('sketch-generate'))
+    return 'cad_sketch';
 
   // Text-to-CAD workflows (ring_full_pipeline, ring_generate, text_to_cad, etc.)
   if (

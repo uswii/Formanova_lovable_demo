@@ -69,7 +69,7 @@ function CreditsBadge({ credits }: { credits?: number | null }) {
   );
 }
 
-function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
+function CadTextCard({ workflow, index, loadRoute = '/text-to-cad' }: { workflow: WorkflowSummary; index: number; loadRoute?: string }) {
   const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -139,7 +139,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
       glb: workflow.glb_url,
       workflow_id: workflow.workflow_id,
     });
-    navigate(`/text-to-cad?${params.toString()}`);
+    navigate(`${loadRoute}?${params.toString()}`);
   };
 
   return (
@@ -363,6 +363,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 export function WorkflowCard({ workflow, index = 0, onClick: _onClick }: WorkflowCardProps) {
   if (workflow.source_type === 'cad_text') {
     return <CadTextCard workflow={workflow} index={index} />;
+  }
+
+  if (workflow.source_type === 'cad_sketch') {
+    return <CadTextCard workflow={workflow} index={index} loadRoute="/image-to-cad" />;
   }
 
   // photo and cad_render both use the new image-first card
