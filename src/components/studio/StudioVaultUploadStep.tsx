@@ -166,18 +166,51 @@ function ProductCard({
   );
 }
 
-function SelectedThumb({ thumbnailUrl, onRemove }: { thumbnailUrl: string; onRemove: () => void }) {
-  const resolved = useAuthenticatedImage(thumbnailUrl);
+function BulkSelectedCanvas({
+  selectedAssets,
+  onRemove,
+}: {
+  selectedAssets: Array<{ thumbnailUrl: string; assetId: string }>;
+  onRemove: (thumbnailUrl: string, assetId: string) => void;
+}) {
+  const previewAssets = selectedAssets.slice(0, 9);
+
   return (
-    <div className="relative flex-none w-10 h-10 border border-[hsl(var(--formanova-hero-accent))] overflow-hidden group/thumb">
-      <img src={resolved ?? ''} alt="" className="w-full h-full object-cover" />
-      <button
-        onClick={onRemove}
-        className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity"
-        aria-label="Remove"
-      >
-        <X className="h-3 w-3" />
-      </button>
+    <div className={`relative border overflow-hidden bg-muted/20 border-border/30 p-4 md:p-5 ${CANVAS_H}`}>
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <p className="font-display text-2xl md:text-3xl uppercase tracking-tight">
+            {selectedAssets.length} Pieces Selected
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Continue to pair each piece with its own model.
+          </p>
+        </div>
+        <div className="px-3 py-1.5 border border-[hsl(var(--formanova-hero-accent))/0.35] bg-[hsl(var(--formanova-hero-accent))/0.08] font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
+          Bulk Mode
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {previewAssets.map((asset, index) => (
+          <div key={asset.assetId} className="relative aspect-square overflow-hidden border border-border/20 bg-background/70 group">
+            <ProductThumb src={asset.thumbnailUrl} alt={`Selected product ${index + 1}`} />
+            <button
+              onClick={() => onRemove(asset.thumbnailUrl, asset.assetId)}
+              className="absolute top-2 right-2 w-7 h-7 bg-background/85 backdrop-blur-sm border border-border/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+              aria-label="Remove selected product"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {selectedAssets.length > previewAssets.length && (
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          +{selectedAssets.length - previewAssets.length} more selected
+        </p>
+      )}
     </div>
   );
 }
@@ -525,8 +558,21 @@ export function StudioVaultUploadStep({
           </div>
         )}
 
-        {/* Uploaded preview */}
-        {jewelryImage && (
+        {/* Bulk preview */}
+        {selectedAssets.length > 1 ? (
+          <div className="space-y-4">
+            <BulkSelectedCanvas selectedAssets={selectedAssets} onRemove={onProductSelect} />
+
+            <div className="flex items-center justify-end gap-3">
+              <Button size="lg" onClick={onNextStep} disabled={!canProceed}
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10
+                                 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
+                                 text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
+                Continue To Pairing <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : jewelryImage && (
           <div className="space-y-4">
             <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 border-border/30 ${CANVAS_H}`}>
               <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-full object-contain" />
@@ -601,7 +647,7 @@ export function StudioVaultUploadStep({
           {!showGuide && (
             <div className="mt-8 flex items-center gap-2 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Show all
+                All uploads
               </span>
               <Switch checked={showAll} onCheckedChange={setShowAll} />
             </div>
@@ -630,15 +676,20 @@ export function StudioVaultUploadStep({
               <>
                 {/* Select all row — only when 2+ visible assets */}
                 {displayAssets.length >= 2 && onSelectAll && (
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-muted-foreground">
-                      {selectedAssets.length > 0 ? `${selectedAssets.length} selected` : 'Tap to select'}
-                    </span>
+                  <div className="flex items-center justify-between gap-3 mb-2 px-1">
+                    <div>
+                      <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-muted-foreground">
+                        {selectedAssets.length > 0 ? `${selectedAssets.length} selected` : 'Select pieces for bulk'}
+                      </span>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Multi-select opens pairing on the next step.
+                      </p>
+                    </div>
                     <button
                       onClick={() => onSelectAll(displayAssets.map(a => ({ thumbnailUrl: a.thumbnail_url, assetId: a.id })))}
                       className="font-mono text-[9px] tracking-[0.15em] uppercase text-formanova-hero-accent hover:opacity-70 transition-opacity"
                     >
-                      Select all visible
+                      Select page
                     </button>
                   </div>
                 )}
@@ -679,22 +730,6 @@ export function StudioVaultUploadStep({
                 </div>
 
                 {/* Selected tray — shown when 2+ assets are selected */}
-                {selectedAssets.length >= 2 && (
-                  <div className="flex items-center gap-2 overflow-x-auto py-2">
-                    {selectedAssets.slice(0, 5).map(a => (
-                      <SelectedThumb
-                        key={a.assetId}
-                        thumbnailUrl={a.thumbnailUrl}
-                        onRemove={() => onProductSelect(a.thumbnailUrl, a.assetId)}
-                      />
-                    ))}
-                    {selectedAssets.length > 5 && (
-                      <span className="flex-none font-mono text-[9px] text-muted-foreground">
-                        +{selectedAssets.length - 5} more
-                      </span>
-                    )}
-                  </div>
-                )}
               </>
             )}
 

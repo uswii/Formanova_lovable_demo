@@ -10,6 +10,8 @@ import { type PresetModel } from '@/lib/models-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
+const PAIRING_CANVAS_H = 'h-[500px] md:h-[640px]';
+
 interface PresetCategory { id: string; label: string; }
 export interface AssetModelPairingAsset { thumbnailUrl: string; assetId: string; }
 
@@ -245,6 +247,24 @@ export function StudioPairingStep({
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {activeAssignment && (
+                <div className="hidden md:flex items-center gap-2 border border-border/20 bg-background/60 px-3 py-2 max-w-[240px]">
+                  <div className="w-8 h-8 border border-border/20 overflow-hidden bg-muted/20 flex-shrink-0">
+                    <img
+                      src={activeResolvedUrl ?? undefined}
+                      alt={activeAssignment.label}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Active
+                    </p>
+                    <p className="text-xs truncate">{activeAssignment.label}</p>
+                  </div>
+                </div>
+              )}
               {!isProductShot && (
                 <Button
                   type="button"
@@ -270,8 +290,8 @@ export function StudioPairingStep({
               </Button>
             </div>
           </div>
-          <div className="border border-border/30 bg-muted/5 min-h-[480px] md:min-h-[540px] p-4 md:p-5">
-            <div className="space-y-3">
+          <div className={`border border-border/30 bg-muted/5 p-4 md:p-5 overflow-y-auto ${PAIRING_CANVAS_H}`}>
+            <div className="space-y-3 pr-1">
               {selectedAssets.map((asset, index) => (
                 <PairingRow
                   key={asset.assetId}
@@ -286,24 +306,6 @@ export function StudioPairingStep({
               ))}
             </div>
           </div>
-          {activeAssignment && (
-            <div className="border border-border/20 bg-background/60 px-4 py-3 flex items-center gap-3">
-              <div className="w-12 h-12 border border-border/20 overflow-hidden bg-muted/20 flex-shrink-0">
-                <img
-                  src={activeResolvedUrl ?? undefined}
-                  alt={activeAssignment.label}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Active {isProductShot ? 'Inspiration' : 'Model'}
-                </p>
-                <p className="text-sm truncate">{activeAssignment.label}</p>
-              </div>
-            </div>
-          )}
           <div className="flex items-center justify-between pt-2">
             <Button
               variant="ghost"
@@ -332,7 +334,7 @@ export function StudioPairingStep({
           </div>
         </div>
         <div className="flex flex-col">
-          <div className="h-[480px] md:h-[540px] flex flex-col">
+          <div className={`flex flex-col ${PAIRING_CANVAS_H}`}>
             <Tabs defaultValue="formanova" className="w-full flex-1 flex flex-col min-h-0">
               <TabsList className="w-full grid grid-cols-2 mb-3 bg-muted/30 h-11 flex-shrink-0">
                 <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">

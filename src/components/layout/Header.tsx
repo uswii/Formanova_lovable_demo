@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, ScanEye, Gem, Check } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, ScanEye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useCredits } from '@/contexts/CreditsContext';
-import { useGenerations } from '@/contexts/GenerationsContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,70 +23,6 @@ export function isNavLinkActivePath(pathname: string, link: Pick<NavLink, 'path'
   return activePaths.some((path) => (
     pathname === path || pathname.startsWith(path + '/')
   ));
-}
-
-function GenerationIndicator() {
-  const { generations } = useGenerations();
-  const navigate = useNavigate();
-  const [showReady, setShowReady] = useState(false);
-  const prevRunningCount = useRef(0);
-
-  const runningGenerations = generations.filter(g => g.status === 'running');
-  const runningCount = runningGenerations.length;
-  const completedGenerations = generations.filter(g => g.status === 'completed');
-
-  // Show "Ready" flash when running count drops to zero and we have completed items
-  useEffect(() => {
-    if (prevRunningCount.current > 0 && runningCount === 0 && completedGenerations.length > 0) {
-      setShowReady(true);
-      const t = setTimeout(() => setShowReady(false), 3000);
-      return () => clearTimeout(t);
-    }
-    prevRunningCount.current = runningCount;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runningCount, completedGenerations.length]);
-
-  if (runningCount === 0 && !showReady) return null;
-
-  const mostRecent = runningGenerations[runningGenerations.length - 1]
-    ?? completedGenerations[completedGenerations.length - 1];
-
-  const handleClick = () => {
-    if (!mostRecent) return;
-    if (mostRecent.status === 'completed') {
-      navigate(`/studio/${mostRecent.jewelryType}`, {
-        state: { asyncResult: { workflowId: mostRecent.workflowId, resultImages: mostRecent.resultImages } },
-      });
-    } else {
-      navigate(`/studio/${mostRecent.jewelryType}`, {
-        state: { viewGenerating: mostRecent.workflowId },
-      });
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="flex items-center gap-1.5 mr-3"
-      aria-label={runningCount > 0 ? 'Generation in progress' : 'Generation ready'}
-    >
-      {runningCount > 0 ? (
-        <>
-          <Gem className="h-3.5 w-3.5 text-primary animate-spin flex-shrink-0" />
-          <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase hidden sm:inline">
-            {runningCount > 1 ? `${runningCount} Generating\u2026` : 'Generating\u2026'}
-          </span>
-        </>
-      ) : (
-        <>
-          <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-          <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase hidden sm:inline">
-            Ready
-          </span>
-        </>
-      )}
-    </button>
-  );
 }
 
 export function Header() {
@@ -185,7 +120,6 @@ export function Header() {
             {/* User Profile / Auth Button */}
             {user ? (
               <div className="flex items-center gap-3">
-                <GenerationIndicator />
                 {/* Credit pill - clickable */}
                 <div className="relative">
                   <Link
