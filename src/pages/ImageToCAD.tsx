@@ -3,7 +3,7 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, X } from "lucide-react";
+import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, X, Download } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
@@ -106,6 +106,11 @@ export default function ImageToCAD() {
   const [gemMode, setGemMode] = useState<GemMode>("simple");
   const [workspaceActive, setWorkspaceActive] = useState(false);
   const [progressDismissed, setProgressDismissed] = useState(false);
+  const [showResultPopup, setShowResultPopup] = useState(false);
+  const [dontShowResultPopup, setDontShowResultPopup] = useState(false);
+  const wasGeneratingRef = useRef(false);
+
+  const RESULT_POPUP_KEY = 'image-to-cad-result-popup-dismissed';
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
@@ -251,8 +256,11 @@ export default function ImageToCAD() {
 
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
-    toast.success("Ring generated successfully");
-  }, []);
+    if (wasGeneratingRef.current && !localStorage.getItem(RESULT_POPUP_KEY)) {
+      setShowResultPopup(true);
+    }
+    wasGeneratingRef.current = false;
+  }, [RESULT_POPUP_KEY]);
 
   const handleReferenceImageChange = useCallback((file: File | null, previewUrl: string | null) => {
     setReferenceImage(file);
@@ -302,6 +310,7 @@ export default function ImageToCAD() {
     }
 
     const cadGenStartTime = Date.now();
+    wasGeneratingRef.current = true;
     setWorkspaceActive(true);
     setIsGenerating(true);
     setGenerationFailed(false);
@@ -941,6 +950,66 @@ export default function ImageToCAD() {
                     </button>
                   </div>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Result popup — fires once after generation completes */}
+            <AnimatePresence>
+              {showResultPopup && (
+                <>
+                  <div
+                    className="absolute inset-0 z-[59]"
+                    onClick={() => {
+                      if (dontShowResultPopup) localStorage.setItem(RESULT_POPUP_KEY, '1');
+                      setShowResultPopup(false);
+                    }}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-12 left-0 right-0 flex justify-center z-[60] pointer-events-none px-4"
+                  >
+                    <div className="pointer-events-auto relative w-full max-w-[440px] bg-card border border-border shadow-xl">
+                      <button
+                        onClick={() => {
+                          if (dontShowResultPopup) localStorage.setItem(RESULT_POPUP_KEY, '1');
+                          setShowResultPopup(false);
+                        }}
+                        className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent/60 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="px-5 pt-4 pb-5">
+                        <p className="font-display text-base uppercase tracking-[0.12em] text-foreground mb-1.5">
+                          Ring Generated
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-4 pr-4">
+                          Your 3D model is ready. Results are inspired by your reference - proportions and details may vary.
+                        </p>
+                        <button
+                          onClick={() => { handleDownloadGlb(); }}
+                          className="w-full py-2.5 flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity mb-4"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download GLB
+                        </button>
+                        <label className="flex items-center justify-center gap-2.5 pt-3 border-t border-border/40 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={dontShowResultPopup}
+                            onChange={e => setDontShowResultPopup(e.target.checked)}
+                            className="w-4 h-4 border border-border bg-background accent-primary flex-shrink-0"
+                          />
+                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground select-none">
+                            Don't show again
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
 

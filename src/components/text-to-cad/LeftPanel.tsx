@@ -303,10 +303,15 @@ export default function LeftPanel({
         </section>
         )}
 
-        {/* Image mode — show prompt text before model loads (read-only, no header) */}
-        {isImageMode && !hasModel && prompt.trim() && (
+        {/* Image mode — show prompt text before model loads */}
+        {isImageMode && !hasModel && (
           <section>
-            <p className="font-body text-[13px] text-foreground/70 leading-relaxed">{prompt}</p>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Prompt</h3>
+            {prompt.trim() ? (
+              <p className="font-body text-[13px] text-foreground/70 leading-relaxed">{prompt}</p>
+            ) : (
+              <p className="font-body text-[13px] text-muted-foreground/40 italic">No description added</p>
+            )}
           </section>
         )}
 
