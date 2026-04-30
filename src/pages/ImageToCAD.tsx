@@ -105,6 +105,7 @@ export default function ImageToCAD() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gemMode, setGemMode] = useState<GemMode>("simple");
   const [workspaceActive, setWorkspaceActive] = useState(false);
+  const [progressDismissed, setProgressDismissed] = useState(false);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
@@ -304,6 +305,7 @@ export default function ImageToCAD() {
     setWorkspaceActive(true);
     setIsGenerating(true);
     setGenerationFailed(false);
+    setProgressDismissed(false);
     setRetryAttempt(0);
     setHasModel(false);
     setSourceWorkflowId(null);
@@ -942,7 +944,13 @@ export default function ImageToCAD() {
               )}
             </AnimatePresence>
 
-            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
+            <GenerationProgress
+              visible={(isGenerating || isModelLoading) && !progressDismissed}
+              currentStep={progressStep}
+              retryAttempt={retryAttempt}
+              onRetry={() => simulateGeneration()}
+              onKeepBrowsing={() => setProgressDismissed(true)}
+            />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}

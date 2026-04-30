@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Diamond } from "lucide-react";
+import { Diamond, ArrowRight } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
   generate_initial: "Generating design",
@@ -31,6 +31,7 @@ interface GenerationProgressProps {
   retryAttempt?: number;
   maxAttempts?: number;
   onRetry?: () => void;
+  onKeepBrowsing?: () => void;
 }
 
 export default function GenerationProgress({
@@ -39,6 +40,7 @@ export default function GenerationProgress({
   retryAttempt,
   maxAttempts = 3,
   onRetry,
+  onKeepBrowsing,
 }: GenerationProgressProps) {
   const [elapsed, setElapsed] = useState(0);
   const workflowStartRef = useRef(Date.now());
@@ -102,6 +104,15 @@ export default function GenerationProgress({
                 <span className="text-[11px] italic text-muted-foreground/40 text-center">
                   This may take more than 10 minutes
                 </span>
+                {onKeepBrowsing && (
+                  <button
+                    onClick={onKeepBrowsing}
+                    className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground hover:text-foreground/70 transition-colors mt-2"
+                  >
+                    Keep browsing
+                    <ArrowRight className="h-3 w-3 shrink-0" />
+                  </button>
+                )}
               </>
             )}
           </motion.div>
