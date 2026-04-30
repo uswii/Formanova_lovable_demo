@@ -304,19 +304,22 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
       .map((value) => normalizeRenderableUrl(value))
       .filter((value): value is string => Boolean(value)),
   );
-  const inputImageUrls = [
-    ...findStringArray(detail.input_payload, ['input_image_urls', 'input_images']),
+  const jewelryInputUrls = [
+    ...findStringArray(detail.input_payload, ['jewelry_image_urls', 'input_image_urls', 'input_images']),
     ...['jewelry_image_url', 'input_image_url']
       .map((key) => findString(detail.input_payload, [key]))
       .filter((value): value is string => Boolean(value)),
-    ...stepInputImageUrls,
   ]
     .map((value) => normalizeRenderableUrl(value))
     .filter((value): value is string => Boolean(value));
+  const inspirationImageUrl = firstRenderableUrl([
+    findString(detail.input_payload, ['inspiration_image_url']),
+    ...findStringArray(detail.input_payload, ['inspiration_image_urls']),
+    findString(detail.steps[0]?.input, ['inspiration_image_url']),
+  ]);
   const modelImageUrl = firstRenderableUrl([
     findString(detail.input_payload, ['model_image_url', 'model_url']),
     findString(detail.steps[0]?.input, ['model_image_url', 'model_url']),
-    stepInputImageUrls[1],
   ]);
   const outputImageUrl = firstRenderableUrl([
     detail.feedback?.output_image_url ?? null,
@@ -368,8 +371,9 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
             <MetaItem label="Plan" value={detail.is_paying ? 'Paying' : 'Free'} />
             <MetaItem label="Complaint" value={detail.feedback ? 'Yes' : 'No'} />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <ImagePreview url={inputImageUrls[0] ?? null} label="Input Image" />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <ImagePreview url={jewelryInputUrls[0] ?? null} label="Jewelry Input" />
+            <ImagePreview url={inspirationImageUrl} label="Inspiration Image" />
             <ImagePreview url={modelImageUrl} label="Model Image" />
             <ImagePreview url={outputImageUrl} label="Output Image" />
           </div>
