@@ -55,7 +55,7 @@ export default function LeftPanel({
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
   const [rebuildDesc, setRebuildDesc] = useState("");
   const [newPartDesc, setNewPartDesc] = useState("");
-  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,27 +66,27 @@ export default function LeftPanel({
 
   return (
     <div className="flex flex-col bg-card border-r border-border h-full min-w-0 overflow-hidden">
-      {/* Image lightbox */}
+      {/* Image lightbox — shared for front and side view */}
       <AnimatePresence>
-        {imageLightboxOpen && referenceImagePreviewUrl && (
+        {lightboxUrl && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setImageLightboxOpen(false)}
+            onClick={() => setLightboxUrl(null)}
           >
             <motion.img
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              src={referenceImagePreviewUrl}
+              src={lightboxUrl}
               alt="Reference design"
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
             <button
-              onClick={() => setImageLightboxOpen(false)}
+              onClick={() => setLightboxUrl(null)}
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
             >
               <X className="w-4 h-4 text-foreground/70" />
@@ -109,36 +109,8 @@ export default function LeftPanel({
         {/* Reference images — image-to-cad mode */}
         {referenceImagePreviewUrl && (
           <section>
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Reference Images</h3>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Inspiration Images</h3>
 
-            {/* Front view */}
-            <div className="relative border border-border bg-muted/10 overflow-hidden mb-2">
-              <img
-                src={referenceImagePreviewUrl}
-                alt="Front view reference"
-                className="w-full object-contain cursor-pointer"
-                style={{ maxHeight: 160 }}
-                onClick={() => setImageLightboxOpen(true)}
-              />
-              <button
-                onClick={() => setImageLightboxOpen(true)}
-                className="absolute top-1.5 right-8 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
-                aria-label="Expand image"
-              >
-                <Maximize2 className="w-3 h-3 text-foreground/70" />
-              </button>
-              {onClearReferenceImage && (
-                <button
-                  onClick={onClearReferenceImage}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
-                  aria-label="Remove image"
-                >
-                  <X className="w-3 h-3 text-foreground/70" />
-                </button>
-              )}
-            </div>
-
-            {/* Side view — pops in after front view is set */}
             <input
               ref={sideViewInputRef}
               type="file"
@@ -153,56 +125,99 @@ export default function LeftPanel({
                 e.target.value = "";
               }}
             />
-            <AnimatePresence mode="wait">
-              {secondReferenceImagePreviewUrl ? (
-                <motion.div
-                  key="side-img"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="relative border border-border bg-muted/10 overflow-hidden">
-                    <span className="absolute top-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 z-10">
-                      Side view
-                    </span>
+
+            {/* Always 2-col grid: front | side */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Front view */}
+              <div className="relative border border-primary/50 bg-muted/10 overflow-hidden" style={{ minHeight: 90 }}>
+                <img
+                  src={referenceImagePreviewUrl}
+                  alt="Front view reference"
+                  className="w-full object-contain cursor-pointer"
+                  style={{ maxHeight: 120 }}
+                  onClick={() => setLightboxUrl(referenceImagePreviewUrl)}
+                />
+                <span className="absolute bottom-1 left-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-primary/50">
+                  Front view
+                </span>
+                <div className="absolute top-1 right-1 flex gap-1">
+                  <button
+                    onClick={() => setLightboxUrl(referenceImagePreviewUrl)}
+                    className="w-5 h-5 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                    aria-label="Expand"
+                  >
+                    <Maximize2 className="w-2.5 h-2.5 text-foreground/70" />
+                  </button>
+                  {onClearReferenceImage && (
+                    <button
+                      onClick={onClearReferenceImage}
+                      className="w-5 h-5 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                      aria-label="Remove"
+                    >
+                      <X className="w-2.5 h-2.5 text-foreground/70" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Side view — image or add button */}
+              <AnimatePresence mode="wait">
+                {secondReferenceImagePreviewUrl ? (
+                  <motion.div
+                    key="side-img"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="relative border border-border/60 bg-muted/10 overflow-hidden"
+                    style={{ minHeight: 90 }}
+                  >
                     <img
                       src={secondReferenceImagePreviewUrl}
                       alt="Side view reference"
-                      className="w-full object-contain"
+                      className="w-full object-contain cursor-pointer"
                       style={{ maxHeight: 120 }}
+                      onClick={() => setLightboxUrl(secondReferenceImagePreviewUrl)}
                     />
-                    {onSecondReferenceImageChange && (
+                    <span className="absolute bottom-1 left-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40">
+                      Side view
+                    </span>
+                    <div className="absolute top-1 right-1 flex gap-1">
                       <button
-                        onClick={() => onSecondReferenceImageChange(null, null)}
-                        className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
-                        aria-label="Remove side view"
+                        onClick={() => setLightboxUrl(secondReferenceImagePreviewUrl)}
+                        className="w-5 h-5 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                        aria-label="Expand side view"
                       >
-                        <X className="w-3 h-3 text-foreground/70" />
+                        <Maximize2 className="w-2.5 h-2.5 text-foreground/70" />
                       </button>
-                    )}
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.button
-                  key="add-side"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  onClick={() => sideViewInputRef.current?.click()}
-                  className="w-full py-2 border border-dashed border-border/40 hover:border-border bg-muted/5 hover:bg-muted/20 transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 hover:text-muted-foreground transition-colors">
-                    + Side view
-                  </span>
-                  <span className="font-mono text-[8px] text-muted-foreground/25 tracking-wide">
-                    Optional
-                  </span>
-                </motion.button>
-              )}
-            </AnimatePresence>
+                      {onSecondReferenceImageChange && (
+                        <button
+                          onClick={() => onSecondReferenceImageChange(null, null)}
+                          className="w-5 h-5 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
+                          aria-label="Remove side view"
+                        >
+                          <X className="w-2.5 h-2.5 text-foreground/70" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="add-side"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => sideViewInputRef.current?.click()}
+                    className="border border-dashed border-border/40 hover:border-border bg-muted/5 hover:bg-muted/20 transition-all duration-150 flex flex-col items-center justify-center gap-1 cursor-pointer"
+                    style={{ minHeight: 90 }}
+                  >
+                    <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-muted-foreground/40">+ Side view</span>
+                    <span className="font-mono text-[7px] text-muted-foreground/25">Optional</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
           </section>
         )}
 
@@ -303,15 +318,11 @@ export default function LeftPanel({
         </section>
         )}
 
-        {/* Image mode — show prompt text before model loads */}
-        {isImageMode && !hasModel && (
+        {/* Image mode — show prompt text before model loads, only if a prompt was entered */}
+        {isImageMode && !hasModel && !!prompt.trim() && (
           <section>
             <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Prompt</h3>
-            {prompt.trim() ? (
-              <p className="font-body text-[13px] text-foreground/70 leading-relaxed">{prompt}</p>
-            ) : (
-              <p className="font-body text-[13px] text-muted-foreground/40 italic">No description added</p>
-            )}
+            <p className="font-body text-[13px] text-foreground/70 leading-relaxed">{prompt}</p>
           </section>
         )}
 

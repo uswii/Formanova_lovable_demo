@@ -21,7 +21,7 @@ const PER_PAGE = 5;
 const CACHE_KEY = 'formanova_gen_cache';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text';
+type SourceType = 'photo' | 'product_shot' | 'cad_render' | 'cad_text' | 'cad_sketch';
 
 interface SectionState {
   workflows: WorkflowSummary[];
@@ -90,6 +90,7 @@ export default function Generations() {
   const [productShotPage, setProductShotPage] = useState(1);
   const [cadRenderPage, setCadRenderPage] = useState(1);
   const [cadTextPage, setCadTextPage] = useState(1);
+  const [cadSketchPage, setCadSketchPage] = useState(1);
 
   // Track enriched IDs + their data for sessionStorage persistence
   const enrichedRef = useRef<Record<string, Partial<WorkflowSummary>>>({});
@@ -157,15 +158,16 @@ export default function Generations() {
   // ── Pagination helper ─────────────────────────────────────────────
     const getSection = useCallback(
     (source: SourceType, page: number, requireImage = false): SectionState => {
-      const statusOk = source === 'cad_text'
+      const isCadType = source === 'cad_text' || source === 'cad_sketch';
+      const statusOk = isCadType
         ? (w: WorkflowSummary) => w.status === 'completed' || w.status === 'failed'
         : (w: WorkflowSummary) => w.status === 'completed';
       const filtered = allWorkflows.filter((w) => {
         if (w.source_type !== source || !statusOk(w)) return false;
         // Skip photo/product_shot/cad_render cards that enriched but have no thumbnail
         if (requireImage && w.thumbnail_url === '') return false;
-        // Skip cad_text cards that finished enriching but have no GLB
-        if (source === 'cad_text' && w.screenshots !== undefined && !w.glb_url) return false;
+        // Skip cad cards that finished enriching but have no GLB
+        if (isCadType && w.screenshots !== undefined && !w.glb_url) return false;
         return true;
       });
       const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
@@ -186,7 +188,7 @@ export default function Generations() {
 
     const allUnenriched = allWorkflows.filter(
       w => w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id] &&
-           (w.status === 'completed' || (w.source_type === 'cad_text' && w.status === 'failed'))
+           (w.status === 'completed' || ((w.source_type === 'cad_text' || w.source_type === 'cad_sketch') && w.status === 'failed'))
     );
 
     if (allUnenriched.length === 0) return;
@@ -205,7 +207,7 @@ export default function Generations() {
         const batch = allUnenriched.slice(i, i + 3);
         const results = await Promise.allSettled(
           batch.map(async (wf) => {
-            if (wf.source_type === 'cad_text') {
+            if (wf.source_type === 'cad_text' || wf.source_type === 'cad_sketch') {
               // Use both details (for screenshots/metadata) and result (for sink-based GLB fallback)
               const [details, cadResult] = await Promise.all([
                 getWorkflowDetails(wf.workflow_id),
@@ -319,6 +321,7 @@ export default function Generations() {
   const productShotSection = getSection('product_shot', productShotPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
+  const cadSketchSection = getSection('cad_sketch', cadSketchPage);
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
@@ -396,7 +399,7 @@ export default function Generations() {
               <ScissorGLBGrid>
                 <WorkflowSection
                   title="Generate CAD Design"
-                  subtitle="AI-generated 3D models from photo or text"
+                  subtitle="AI-generated 3D models from text"
                   icon={SectionIcons.cadText}
                   workflows={cadTextSection.workflows}
                   loading={cadTextSection.loading}
@@ -405,6 +408,28 @@ export default function Generations() {
                   columns={3}
                   indexOffset={(cadTextPage - 1) * PER_PAGE}
                   onPageChange={setCadTextPage}
+                  onWorkflowClick={() => {}}
+                />
+              </ScissorGLBGrid>
+            </CADRuntimeErrorBoundary>
+
+            <CADRuntimeErrorBoundary
+              title="CAD Previews Unavailable"
+              description="The 3D preview grid hit a rendering problem. Your generation history is still available."
+              resetKeys={[cadSketchPage]}
+            >
+              <ScissorGLBGrid>
+                <WorkflowSection
+                  title="Sketch to CAD"
+                  subtitle="AI-generated 3D models from reference images"
+                  icon={SectionIcons.cadText}
+                  workflows={cadSketchSection.workflows}
+                  loading={cadSketchSection.loading}
+                  currentPage={cadSketchSection.page}
+                  totalPages={cadSketchSection.totalPages}
+                  columns={3}
+                  indexOffset={(cadSketchPage - 1) * PER_PAGE}
+                  onPageChange={setCadSketchPage}
                   onWorkflowClick={() => {}}
                 />
               </ScissorGLBGrid>

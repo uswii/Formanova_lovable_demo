@@ -4,11 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Diamond, X, Maximize2, ImageIcon } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
-import { useAuth } from "@/contexts/AuthContext";
-import { listMyWorkflows, fetchCadResult, type WorkflowSummary } from "@/lib/generation-history-api";
-import { WorkflowCard } from "@/components/generations/WorkflowCard";
-import { ScissorGLBGrid } from "@/components/generations/ScissorGLBGrid";
-import CADRuntimeErrorBoundary from "@/components/cad/CADRuntimeErrorBoundary";
 
 import cadExample1 from "@/assets/examples/cad-example-1.webp";
 import cadExample2 from "@/assets/examples/cad-example-2.webp";
@@ -156,34 +151,6 @@ export default function ImagePromptScreen({
   }, [handleImageFile]);
 
   const canGenerate = !!referenceImagePreviewUrl;
-
-  const { user } = useAuth();
-  const [historyItems, setHistoryItems] = useState<WorkflowSummary[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    setHistoryLoading(true);
-    (async () => {
-      try {
-        const all = await listMyWorkflows(40, 0);
-        const sketches = all.filter(w => w.source_type === 'cad_sketch').slice(0, 6);
-        if (cancelled || sketches.length === 0) { setHistoryLoading(false); return; }
-        setHistoryItems(sketches);
-        setHistoryLoading(false);
-        const enriched = await Promise.all(sketches.map(async w => {
-          const { glb_url } = await fetchCadResult(w.workflow_id);
-          const glb_filename = glb_url ? (glb_url.split('/').pop() ?? 'model.glb') : null;
-          return { ...w, glb_url: glb_url ?? null, glb_filename };
-        }));
-        if (!cancelled) setHistoryItems(enriched);
-      } catch {
-        if (!cancelled) setHistoryLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
 
   return (
     <div className="flex-1 flex items-center justify-center bg-background overflow-y-auto">
@@ -431,44 +398,6 @@ export default function ImagePromptScreen({
             ))}
           </div>
         </div>
-
-        {/* Generation history */}
-        {(historyLoading || historyItems.length > 0) && (
-          <div className="mt-8">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
-              Your generations
-            </h3>
-            {historyLoading && historyItems.length === 0 ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {[0, 1].map(i => (
-                  <div key={i} className="marta-frame p-4">
-                    <div className="w-full aspect-[4/3] bg-muted/30 animate-pulse mb-3" />
-                    <div className="h-8 bg-muted/20 animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <CADRuntimeErrorBoundary>
-                <ScissorGLBGrid>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="grid gap-3 md:grid-cols-2"
-                  >
-                    {historyItems.map((w, i) => (
-                      <WorkflowCard
-                        key={w.workflow_id}
-                        workflow={w}
-                        index={i + 1}
-                        onClick={() => {}}
-                      />
-                    ))}
-                  </motion.div>
-                </ScissorGLBGrid>
-              </CADRuntimeErrorBoundary>
-            )}
-          </div>
-        )}
 
         {/* Upload GLB — gated */}
         {onGlbUpload && (
