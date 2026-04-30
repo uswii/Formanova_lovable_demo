@@ -252,12 +252,6 @@ export default function ImagePromptScreen({
                   >
                     <Maximize2 className="w-3 h-3 text-foreground/70" />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }}
-                    className="absolute bottom-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
-                  >
-                    Change
-                  </button>
                   <span className="absolute bottom-1.5 right-2 font-mono text-[9px] uppercase tracking-[0.1em] text-primary/60">
                     Front view
                   </span>
@@ -307,12 +301,6 @@ export default function ImagePromptScreen({
                     aria-label="Remove side view"
                   >
                     <X className="w-3 h-3 text-foreground/70" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); secondImageInputRef.current?.click(); }}
-                    className="absolute bottom-1.5 left-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 hover:text-foreground transition-colors bg-card/70 px-1.5 py-0.5 cursor-pointer"
-                  >
-                    Change
                   </button>
                   <span className="absolute bottom-1.5 right-2 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40">
                     Side view
