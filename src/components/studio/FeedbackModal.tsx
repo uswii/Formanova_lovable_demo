@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { submitFeedback, type FeedbackCategory } from '@/lib/feedback-api';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { azureUriToUrl } from '@/lib/azure-utils';
 import { trackFeedbackSubmitted } from '@/lib/posthog-events';
 
 // ─── Profanity filter ─────────────────────────────────────────────────────────
@@ -77,6 +78,7 @@ export function FeedbackModal({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const normalizedReferenceUrl = modelImageUrl ? (azureUriToUrl(modelImageUrl) || modelImageUrl) : null;
 
   const handleClose = () => {
     if (submitting) return;
@@ -105,7 +107,7 @@ export function FeedbackModal({
 
     const inputUrls: string[] = [];
     if (jewelryImageUrl) inputUrls.push(jewelryImageUrl);
-    if (modelImageUrl) inputUrls.push(modelImageUrl);
+    if (normalizedReferenceUrl) inputUrls.push(normalizedReferenceUrl);
 
     setSubmitting(true);
     setError(null);
@@ -171,7 +173,7 @@ export function FeedbackModal({
             {hasImages && (
               <div className="flex gap-3">
                 <Thumbnail url={jewelryDisplayUrl} label="Jewelry input" />
-                <Thumbnail url={modelImageUrl} label="Reference input" />
+                <Thumbnail url={normalizedReferenceUrl} label="Reference input" />
                 <Thumbnail url={resultImageUrl} label="Result" />
               </div>
             )}
