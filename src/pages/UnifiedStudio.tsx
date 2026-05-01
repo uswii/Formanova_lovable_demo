@@ -364,6 +364,7 @@ export default function UnifiedStudio() {
     handleJewelryUpload,
     handleModelUpload,
     handleSelectLibraryModel,
+    isModelUploading,
   } = useStudioUpload({
     isProductShot,
     effectiveJewelryType,
@@ -571,6 +572,7 @@ export default function UnifiedStudio() {
             jewelryImage={jewelryImage}
             isValidating={isValidating}
             preflightChecking={preflightChecking}
+            isModelUploading={isModelUploading}
             customModelImage={customModelImage}
             selectedModel={selectedModel}
             isMyModelsEmptyState={isMyModelsEmptyState}
@@ -632,13 +634,13 @@ export default function UnifiedStudio() {
             setCurrentStep={setCurrentStep}
             handleGenerate={handleGenerate}
             handleStartOver={handleStartOver}
-            user={user}
             feedbackOpen={feedbackOpen}
             setFeedbackOpen={setFeedbackOpen}
             jewelryUploadedUrl={jewelryUploadedUrl}
             jewelrySasUrl={jewelrySasUrl}
             jewelryImage={jewelryImage}
             activeModelUrl={activeModelUrl}
+            userEmail={user?.email}
           />
         )}
       </div>

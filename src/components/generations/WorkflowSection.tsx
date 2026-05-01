@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box } from 'lucide-react';
+import { Box, ImageIcon } from 'lucide-react';
 import { PeopleIcon } from '@/components/icons/PeopleIcon';
 import { RingIcon } from '@/components/icons/RingIcon';
 import { WorkflowCard } from './WorkflowCard';
@@ -129,4 +129,5 @@ export const SectionIcons = {
   productShot: <RingIcon className="h-4 w-4" />,
   cadRender: <Box className="h-4 w-4" />,
   cadText: <RingIcon className="h-4 w-4" />,
+  cadSketch: <ImageIcon className="h-4 w-4" />,
 };

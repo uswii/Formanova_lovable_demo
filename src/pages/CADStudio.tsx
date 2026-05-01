@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Layers, ImageIcon } from "lucide-react";
 
-import textToCadImg from "@/assets/text-to-cad-thumb.jpg";
-import imageToCadImg from "@/assets/examples/cad-example-1.webp";
+import textToCadImg from "@/assets/text-to-cad-thumb.webp";
+import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
 
 const cadFeatures = [
   {
@@ -15,12 +15,12 @@ const cadFeatures = [
     image: textToCadImg,
   },
   {
-    title: "Image to CAD",
-    description: "Upload a photo or sketch and generate a 3D ring from your design.",
-    route: "/image-to-cad",
-    comingSoon: false,
+    title: "CAD to Catalog",
+    description: "Turn your 3D CAD models into polished catalog-ready images.",
+    route: "/cad-to-catalog",
+    comingSoon: true,
     icon: ImageIcon,
-    image: imageToCadImg,
+    image: cadToCatalogImg,
   },
 ];
 

@@ -39,7 +39,7 @@
  *       setLocalPendingModels, fetchMyModels,
  *     });
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
@@ -89,6 +89,7 @@ export function useStudioUpload({
   setLocalPendingModels,
   fetchMyModels,
 }: UseStudioUploadOptions) {
+  const [isModelUploading, setIsModelUploading] = useState(false);
 
   const handleJewelryUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -168,6 +169,7 @@ export function useStudioUpload({
     const localPreviewUrl = URL.createObjectURL(normalized);
     setCustomModelImage(localPreviewUrl);
     setSelectedModel(null);
+    setIsModelUploading(true);
 
     // Upload to Azure immediately so the model registers in My Models vault
     try {
@@ -184,6 +186,7 @@ export function useStudioUpload({
       setCustomModelImage(stableUrl);
       setModelAssetId(azResult.asset_id ?? null);
       setCustomModelFile(null);
+      setIsModelUploading(false);
       trackModelSelected({
         category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
         model_type: 'custom_upload',
@@ -202,6 +205,7 @@ export function useStudioUpload({
     } catch (e) {
       setCustomModelImage(null);
       setCustomModelFile(null);
+      setIsModelUploading(false);
       toast({ variant: 'destructive', title: 'Upload failed', description: 'Model image could not be uploaded. Please re-select the file.' });
       console.warn('[handleModelUpload] Azure upload failed:', e);
     }
@@ -232,5 +236,6 @@ export function useStudioUpload({
     handleJewelryUpload,
     handleModelUpload,
     handleSelectLibraryModel,
+    isModelUploading,
   };
 }

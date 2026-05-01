@@ -40,7 +40,6 @@ Create a `.env` file in the root:
 
 ```env
 VITE_PIPELINE_API_URL=https://formanova.ai/api
-VITE_PIPELINE_API_KEY=<your_tenant_api_key>
 VITE_PIPELINE_ADMIN_SECRET=<your_admin_secret>
 ```
 
@@ -71,4 +70,4 @@ All routes are protected and require authentication.
 `src/lib/pipeline-api.ts` handles all backend communication:
 
 - **Admin endpoints** (`X-Admin-Secret`) — `/admin/users`, `/admin/tenants`, `/admin/workflows`
-- **Tenant endpoints** (`X-API-Key`) — balance, top-up, audit, workflow history
+- **Authenticated user endpoints** (`Authorization: Bearer <JWT>`) — balance, top-up, audit, workflow history

@@ -60,6 +60,7 @@ interface StudioModelStepProps {
   jewelryImage: string | null;
   isValidating: boolean;
   preflightChecking: boolean;
+  isModelUploading: boolean;
   customModelImage: string | null;
   selectedModel: PresetModel | null;
   isMyModelsEmptyState: boolean;
@@ -96,6 +97,7 @@ export function StudioModelStep({
   jewelryImage,
   isValidating,
   preflightChecking,
+  isModelUploading,
   customModelImage,
   selectedModel,
   isMyModelsEmptyState,
@@ -254,11 +256,11 @@ export function StudioModelStep({
             <Button
               size="lg"
               onClick={handleGenerate}
-              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
+              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking || isModelUploading}
               className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
             >
-              Generate Photoshoot
-              {preflightChecking ? (
+              {isModelUploading ? 'Uploading…' : 'Generate Photoshoot'}
+              {preflightChecking || isModelUploading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">

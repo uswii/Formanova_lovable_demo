@@ -250,7 +250,9 @@ function DetailSheet({ item, open, onClose, onUpdated }: DetailSheetProps) {
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Images</p>
             <div className="flex flex-wrap gap-4">
               <ImageThumbnail url={item.input_image_urls?.[0] ?? null} label="Jewelry" />
-              <ImageThumbnail url={item.input_image_urls?.[1] ?? null} label="Model" />
+              {item.input_image_urls?.[1] ? (
+                <ImageThumbnail url={item.input_image_urls[1]} label="Reference" />
+              ) : null}
               <ImageThumbnail url={item.output_image_url} label="Output" />
 
               {item.revised_output_url ? (

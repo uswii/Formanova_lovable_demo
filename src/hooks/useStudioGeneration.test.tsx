@@ -77,7 +77,7 @@ function baseOptions() {
     activeModelUrl: 'https://example.com/model.jpg',
     jewelryUploadedUrl: 'https://example.com/jewelry.jpg',
     jewelryAssetId: null,
-    selectedModel: { id: 'model-1', url: 'https://example.com/model.jpg', name: 'Model 1', metadata: {} },
+    selectedModel: { id: 'model-1', url: 'https://example.com/model.jpg', name: 'Model 1', label: 'Model 1', metadata: {} },
     customModelImage: null,
     modelAssetId: null,
     validationResult: null,

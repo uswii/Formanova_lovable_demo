@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { azureUriToUrl } from "@/lib/azure-utils";
 
 /**
  * Returns a renderable URL for an image src.
@@ -15,21 +16,23 @@ export function useAuthenticatedImage(url: string | null | undefined): string | 
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!url) {
+    const resolvedUrl = azureUriToUrl(url);
+
+    if (!resolvedUrl) {
       setBlobUrl(null);
       return;
     }
 
     // Pass through when URL is not an artifacts path
-    if (!url.includes("/artifacts/")) {
-      setBlobUrl(url);
+    if (!resolvedUrl.includes("/artifacts/")) {
+      setBlobUrl(resolvedUrl);
       return;
     }
 
     let objectUrl: string | null = null;
     let cancelled = false;
 
-    authenticatedFetch(url)
+    authenticatedFetch(resolvedUrl)
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status}`);
         return res.blob();

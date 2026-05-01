@@ -65,18 +65,16 @@ describe('CAD workflow request bodies', () => {
     expect(body.payload).not.toHaveProperty('state_backend_url');
   });
 
-  it('builds the ring edit start body with auth fields when provided', () => {
-    const body = buildCadEditStartBody(' add gems ', 'json-source-456', null, 'jwt-token-123', 'user-uuid-456');
-    expect(body.payload).toMatchObject({
-      state_backend_bearer_token: 'jwt-token-123',
-      state_on_behalf_of: 'user-uuid-456',
-    });
+  it('does not put auth or OBO fields in the ring edit payload when extra args are passed', () => {
+    const body = buildCadEditStartBody(' add gems ', 'json-source-456', null);
+    expect(body.payload).not.toHaveProperty('state_backend_bearer_token');
+    expect(body.payload).not.toHaveProperty('state_on_behalf_of');
     expect(body.payload).not.toHaveProperty('backend_api_key');
   });
 
   it('omits state_backend_url when VITE_PIPELINE_API_URL is a relative path', () => {
     // import.meta.env.VITE_PIPELINE_API_URL is '' in test env
-    const body = buildCadEditStartBody('desc', 'json-source-789', null, null, null);
+    const body = buildCadEditStartBody('desc', 'json-source-789', null);
     expect(body.payload).not.toHaveProperty('state_backend_url');
   });
 });
