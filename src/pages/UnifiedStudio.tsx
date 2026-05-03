@@ -379,8 +379,6 @@ export default function UnifiedStudio() {
     refreshCredits,
     toast,
     setCurrentStep,
-    setJewelryUploadedUrl,
-    setJewelrySasUrl,
     setJewelryAssetId,
     clearStudioSession,
   });
