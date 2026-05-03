@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { classifyWorkflow, type SourceType } from '@/lib/workflow-classifier';
 
 const ADMIN_GENERATIONS_BASE = '/api/admin/generations';
 
@@ -41,6 +42,8 @@ export interface AdminGenerationsListParams {
 export interface AdminGenerationListItem {
   workflow_id: string;
   workflow_name: string;
+  source_type: SourceType;
+  source_label: string;
   status: AdminGenerationStatus;
   created_at: string;
   finished_at: string | null;
@@ -80,6 +83,8 @@ export interface AdminGenerationFeedback {
 export interface AdminGenerationDetail {
   workflow_id: string;
   workflow_name: string;
+  source_type: SourceType;
+  source_label: string;
   status: AdminGenerationStatus;
   user_email: string;
   user_type: AdminGenerationUserType | null;
@@ -164,9 +169,13 @@ function findStringArray(value: unknown, keys: string[]): string[] {
 }
 
 function normalizeListItem(item: any): AdminGenerationListItem {
+  const workflowName = item.workflow_name ?? item.name ?? '';
+  const workflowMeta = classifyWorkflow(workflowName);
   return {
     workflow_id: item.workflow_id ?? item.id ?? '',
-    workflow_name: item.workflow_name ?? item.name ?? '',
+    workflow_name: workflowName,
+    source_type: workflowMeta.sourceType,
+    source_label: workflowMeta.label,
     status: item.status ?? 'unknown',
     created_at: item.created_at ?? '',
     finished_at: item.finished_at ?? null,
@@ -261,10 +270,14 @@ export async function getAdminGenerationDetail(workflowId: string): Promise<Admi
   const response = await adminGenerationsFetch(`${ADMIN_GENERATIONS_BASE}/${encodeURIComponent(workflowId)}`);
   const data = await response.json();
   const payload = data.data ?? data;
+  const workflowName = payload.workflow_name ?? payload.name ?? '';
+  const workflowMeta = classifyWorkflow(workflowName);
 
   return {
     workflow_id: payload.workflow_id ?? payload.id ?? workflowId,
-    workflow_name: payload.workflow_name ?? payload.name ?? '',
+    workflow_name: workflowName,
+    source_type: workflowMeta.sourceType,
+    source_label: workflowMeta.label,
     status: payload.status ?? 'unknown',
     user_email: payload.user_email ?? payload.email ?? '',
     user_type: payload.user_type ?? null,

@@ -61,7 +61,6 @@ import {
 } from '@/lib/posthog-events';
 import { useGenerations } from '@/contexts/GenerationsContext';
 import type { PresetModel } from '@/lib/models-api';
-import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import type { useToast } from '@/hooks/use-toast';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -76,14 +75,11 @@ interface UseStudioGenerationOptions {
   selectedModel: PresetModel | null;
   customModelImage: string | null;
   modelAssetId: string | null;
-  validationResult: ImageValidationResult | null;
   checkCredits: (tool: string) => Promise<boolean>;
-  refreshCredits: () => void;
   toast: ReturnType<typeof useToast>['toast'];
   setCurrentStep: (step: StudioStep) => void;
   setJewelryAssetId: (id: string | null) => void;
   clearStudioSession: () => void;
-  clearValidation: () => void;
 }
 
 export function useStudioGeneration({
@@ -96,14 +92,11 @@ export function useStudioGeneration({
   selectedModel,
   customModelImage,
   modelAssetId,
-  validationResult,
   checkCredits,
-  refreshCredits,
   toast,
   setCurrentStep,
   setJewelryAssetId,
   clearStudioSession,
-  clearValidation,
 }: UseStudioGenerationOptions) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rotatingMsgIdx, setRotatingMsgIdx] = useState(0);
@@ -137,7 +130,7 @@ export function useStudioGeneration({
       trackGenerationComplete({
         source: 'unified-studio',
         category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-        upload_type: validationResult?.category ?? null,
+        upload_type: null,
         duration_ms: Date.now() - (myGeneration.startedAt ?? Date.now()),
         is_first_ever: consumeFirstGeneration(),
       });
@@ -152,7 +145,7 @@ export function useStudioGeneration({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Deps excluded: workflowId, clearGeneration, setResultImages, setCurrentStep, clearStudioSession,
-    // effectiveJewelryType, validationResult. All are stable refs, setters, or hook-level constants
+    // effectiveJewelryType. All are stable refs, setters, or hook-level constants
     // that don't change identity between renders.
     // Regression to watch: if workflowId changes while in flight (user submits a second generation),
     // myGeneration becomes undefined and the effect is a no-op — safe because the new generation
@@ -175,6 +168,7 @@ export function useStudioGeneration({
       return;
     }
 
+    clearStudioSession();
     setIsSubmitting(true);
     setGenerationError(null);
     hasNavigatedAway.current = false;
@@ -256,6 +250,7 @@ export function useStudioGeneration({
     isSubmitting, jewelryImage, activeModelUrl, isProductShot, effectiveJewelryType,
     jewelryUploadedUrl, jewelryAssetId, selectedModel, customModelImage, modelAssetId,
     checkCredits, toast, setCurrentStep, setJewelryAssetId, trackGeneration,
+    clearStudioSession,
   ]);
 
   const handleKeepBrowsing = useCallback(() => {

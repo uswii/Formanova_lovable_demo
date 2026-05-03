@@ -18,7 +18,6 @@ import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
-import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { getAssetDisplayName, renameAsset } from '@/lib/assets-api';
@@ -322,16 +321,11 @@ export interface StudioVaultUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
   activeProductAssetId: string | null;
-  isValidating: boolean;
-  validationResult: ImageValidationResult | null;
-  isFlagged: boolean;
   canProceed: boolean;
   jewelryInputRef: React.RefObject<HTMLInputElement>;
   onFileUpload: (file: File) => void;
   onClearImage: () => void;
   onNextStep: () => void;
-  /** Bypasses the flag check — used by "Continue Anyway". */
-  onForceNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
   onCategoryChange?: (category: string) => void;
   isProductShot?: boolean;
@@ -343,15 +337,11 @@ export function StudioVaultUploadStep({
   exampleCategoryType,
   jewelryImage,
   activeProductAssetId,
-  isValidating,
-  validationResult,
-  isFlagged,
   canProceed,
   jewelryInputRef,
   onFileUpload,
   onClearImage,
   onNextStep,
-  onForceNextStep,
   onProductSelect,
   onCategoryChange,
   isProductShot,
@@ -372,17 +362,12 @@ export function StudioVaultUploadStep({
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
 
-  const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
   const [showAll, setShowAll] = useState(false);
   const [productSearch, setProductSearch] = useState('');
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
-
-  React.useEffect(() => {
-    setFlagAcknowledged(false);
-  }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
@@ -430,12 +415,6 @@ export function StudioVaultUploadStep({
     { label: 'Bracelets', value: 'bracelet' },
     { label: 'Watches', value: 'watch' },
   ];
-
-  const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
-
-  // Necklace worn example looks better as the 3rd image
-  const popupWornExample = exampleCategoryType === 'necklace' ? examples.allowed[2] : examples.allowed[0];
-
 
   return (
     <>
@@ -531,18 +510,6 @@ export function StudioVaultUploadStep({
                 <X className="h-3.5 w-3.5" />
               </button>
 
-              {isValidating && (
-                <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                  <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
-                </div>
-              )}
-              {!isValidating && validationResult && !isFlagged && (
-                <div className="absolute top-3 left-3 px-2.5 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20">
-                  <Check className="h-3 w-3 text-primary" />
-                  <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
-                </div>
-              )}
             </div>
 
             {/* Action area — normal Next button */}
@@ -551,9 +518,7 @@ export function StudioVaultUploadStep({
                       className="gap-2.5 font-display text-base uppercase tracking-wide px-10
                                  bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
                                  text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
-                {isValidating
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
-                  : <>Next <ArrowRight className="h-4 w-4" /></>}
+                Next <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -716,64 +681,6 @@ export function StudioVaultUploadStep({
           {/* Guide content */}
           <div className="px-6 pb-6">
             <UploadGuidePanel examples={examples} categoryType={exampleCategoryType} isProductShot={isProductShot} />
-          </div>
-        </div>
-      </div>
-    )}
-
-    {showFlagWarning && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-        <div className="bg-background border border-border/30 shadow-2xl max-w-md w-full mx-4 p-6 flex flex-col gap-5">
-
-          {/* Visual comparison — user's photo vs a worn example */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* User's image */}
-            <div className="flex flex-col gap-1.5">
-              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
-                {jewelryImage && (
-                  <img src={resolvedJewelryImage ?? undefined} alt="Your photo" className="w-full h-full object-contain" />
-                )}
-              </div>
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
-                Your photo
-              </span>
-            </div>
-
-            {/* Worn example */}
-            <div className="flex flex-col gap-1.5">
-              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
-                <img src={popupWornExample} alt="Works better" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
-                Works better
-              </span>
-            </div>
-          </div>
-
-          {/* Soft one-liner */}
-          <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            If you wear your jewelry and submit a photo of it, the result will be even better!
-          </p>
-
-          {/* Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onClearImage}
-              className="font-mono text-[10px] uppercase tracking-widest"
-            >
-              Upload Again
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => { setFlagAcknowledged(true); onForceNextStep(); }}
-              className="font-mono text-[10px] uppercase tracking-widest
-                         bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                         text-background hover:opacity-90 transition-opacity border-0"
-            >
-              Continue Anyway
-            </Button>
           </div>
         </div>
       </div>

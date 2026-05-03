@@ -42,15 +42,6 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 // ── hooks ──────────────────────────────────────────────────────────────────
-vi.mock('@/hooks/use-image-validation', () => ({
-  useImageValidation: () => ({
-    isValidating: false,
-    results: [],
-    validateImages: vi.fn(),
-    clearValidation: vi.fn(),
-  }),
-}));
-
 vi.mock('@/hooks/use-credit-preflight', () => ({
   useCreditPreflight: () => ({
     checkCredits: vi.fn(),
@@ -87,6 +78,7 @@ vi.mock('@/hooks/useStudioUpload', () => ({
     handleJewelryUpload: vi.fn(),
     handleModelUpload: vi.fn(),
     handleSelectLibraryModel: vi.fn(),
+    isModelUploading: false,
   }),
 }));
 
@@ -105,6 +97,8 @@ vi.mock('@/hooks/useStudioGeneration', () => ({
     feedbackOpen: false,
     setFeedbackOpen: vi.fn(),
     handleGenerate: vi.fn(),
+    handleKeepBrowsing: vi.fn(),
+    resumeGeneration: vi.fn(),
     resetGeneration: vi.fn(),
   }),
 }));

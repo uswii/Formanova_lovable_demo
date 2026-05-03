@@ -27,8 +27,10 @@ import {
   listAdminGenerations,
   type AdminGenerationListItem,
 } from '@/lib/admin-generations-api';
+import { matchesAdminGenerationSearch } from '@/lib/admin-generations-search';
 
 const PAGE_SIZE = 20;
+const SEARCH_FETCH_LIMIT = 500;
 const STATUS_OPTIONS = ['queued', 'running', 'completed', 'failed', 'cancelled'] as const;
 const USER_TYPE_OPTIONS = [
   'jewelry_brand',
@@ -117,19 +119,21 @@ export default function AdminGenerationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const status = searchParams.get('status') ?? '';
-  const workflowName = searchParams.get('workflow_name') ?? '';
+  const search = searchParams.get('search') ?? searchParams.get('workflow_name') ?? '';
   const hasFeedback = searchParams.get('has_feedback') ?? '';
   const userType = searchParams.get('user_type') ?? '';
   const isPaying = searchParams.get('is_paying') ?? '';
   const offset = Number(searchParams.get('offset') ?? '0') || 0;
+  const hasSearch = search.trim().length > 0;
+  const backendLimit = hasSearch ? SEARCH_FETCH_LIMIT : PAGE_SIZE;
+  const backendOffset = hasSearch ? 0 : offset;
 
   const query = useQuery({
-    queryKey: ['admin-generations', { status, workflowName, hasFeedback, userType, isPaying, offset }],
+    queryKey: ['admin-generations', { status, search, hasFeedback, userType, isPaying, backendOffset, backendLimit }],
     queryFn: () => listAdminGenerations({
-      limit: PAGE_SIZE,
-      offset,
+      limit: backendLimit,
+      offset: backendOffset,
       status: status || undefined,
-      workflow_name: workflowName || undefined,
       has_feedback: hasFeedback === '' ? undefined : hasFeedback === 'true',
       user_type: userType || undefined,
       is_paying: isPaying === '' ? undefined : isPaying === 'true',
@@ -137,8 +141,17 @@ export default function AdminGenerationsPage() {
     retry: false,
   });
 
-  const items = query.data?.items ?? [];
-  const total = query.data?.total ?? 0;
+  const serverItems = query.data?.items ?? [];
+  const filteredItems = useMemo(
+    () => (hasSearch
+      ? serverItems.filter((item) => matchesAdminGenerationSearch(item, search))
+      : serverItems),
+    [hasSearch, search, serverItems],
+  );
+  const items = hasSearch
+    ? filteredItems.slice(offset, offset + PAGE_SIZE)
+    : filteredItems;
+  const total = hasSearch ? filteredItems.length : (query.data?.total ?? 0);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const error = query.error instanceof AdminGenerationsApiError ? query.error : null;
@@ -147,6 +160,7 @@ export default function AdminGenerationsPage() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    if (key === 'search') next.delete('workflow_name');
     next.delete('offset');
     setSearchParams(next);
   }
@@ -164,8 +178,8 @@ export default function AdminGenerationsPage() {
   }
 
   const hasFilters = useMemo(
-    () => Boolean(status || workflowName || hasFeedback || userType || isPaying),
-    [status, workflowName, hasFeedback, userType, isPaying],
+    () => Boolean(status || search || hasFeedback || userType || isPaying),
+    [status, search, hasFeedback, userType, isPaying],
   );
 
   function openDetail(item: AdminGenerationListItem) {
@@ -178,10 +192,10 @@ export default function AdminGenerationsPage() {
 
         <div className="mb-5 flex flex-wrap gap-2">
           <Input
-            value={workflowName}
-            onChange={(event) => updateParam('workflow_name', event.target.value.trim())}
-            placeholder="Filter by workflow"
-            className="h-9 w-full shrink-0 text-sm sm:w-56"
+            value={search}
+            onChange={(event) => updateParam('search', event.target.value)}
+            placeholder="Search workflow, ID, or email"
+            className="h-9 w-full shrink-0 text-sm sm:w-64"
           />
 
           <Select value={status || 'all'} onValueChange={(value) => updateParam('status', value === 'all' ? '' : value)}>
@@ -302,7 +316,7 @@ export default function AdminGenerationsPage() {
                         {item.feedback_id ? (
                           <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
                             <MessageSquareWarning className="h-4 w-4" />
-                            <span className="font-mono text-[10px] uppercase tracking-widest">Flagged</span>
+                            <span className="font-mono text-[10px] uppercase tracking-widest">Has Complaint</span>
                           </span>
                         ) : (
                           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">-</span>
