@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { fetchPresetModels, fetchPresetInspirations, type PresetModel, type PresetModelsResponse, type PresetInspirationsResponse } from '@/lib/models-api';
 import { useQuery } from '@tanstack/react-query';
-import { updateAssetMetadata } from '@/lib/assets-api';
-import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -26,7 +24,6 @@ import { StudioResultsStep } from '@/components/studio/StudioResultsStep';
 import { StudioModelStep } from '@/components/studio/StudioModelStep';
 import { StudioHeader } from '@/components/studio/StudioHeader';
 import { StudioUploadStep } from '@/components/studio/StudioUploadStep';
-import { trackJewelryUploaded } from '@/lib/posthog-events';
 // ExampleGuidePanel removed — guide is inline
 
 import { ACCEPTABLE_EXAMPLES } from '@/lib/studio-examples';
@@ -50,7 +47,6 @@ interface StudioSession {
   jewelryType: string;
   jewelryUploadedUrl: string;
   jewelryAssetId: string | null;
-  validationResult: ImageValidationResult | null;
   selectedModelId: string | null;
   customModelImage: string | null;
   modelAssetId: string | null;
@@ -96,7 +92,6 @@ export default function UnifiedStudio() {
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
-  const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
 
   // ── Studio onboarding popup + model guide (gated) ────────────────────────
@@ -230,12 +225,8 @@ export default function UnifiedStudio() {
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
   const resolvedActiveModelUrl = useAuthenticatedImage(activeModelUrl);
 
-  // Validation hook (isValidating + clearValidation used inline; validateImages passed to useStudioUpload)
-  const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
-
   // Upload state -- declared here (before session restore effects) so setters are initialized
   // before any effect runs. Passed as setter options into useStudioUpload below.
-  const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
   const [jewelrySasUrl, setJewelrySasUrl] = useState<string | null>(null);
   const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
@@ -282,7 +273,6 @@ export default function UnifiedStudio() {
     setJewelryImage(azureUriToUrl(session.jewelryUploadedUrl));
     setJewelryUploadedUrl(session.jewelryUploadedUrl);
     if (session.jewelryAssetId) setJewelryAssetId(session.jewelryAssetId);
-    if (session.validationResult) setValidationResult(session.validationResult);
     if (session.customModelImage) setCustomModelImage(session.customModelImage);
     if (session.modelAssetId) setModelAssetId(session.modelAssetId);
     // Preset model selection is restored after backend preset data loads.
@@ -300,12 +290,11 @@ export default function UnifiedStudio() {
       jewelryType,
       jewelryUploadedUrl,
       jewelryAssetId,
-      validationResult,
       selectedModelId: selectedModel?.id ?? null,
       customModelImage,
       modelAssetId,
     });
-  }, [jewelryUploadedUrl, jewelryAssetId, validationResult, selectedModel, customModelImage, modelAssetId]);
+  }, [jewelryUploadedUrl, jewelryAssetId, selectedModel, customModelImage, modelAssetId]);
 
   // ─── Second-pass model restore when API data loads ────────────────
   useEffect(() => {
@@ -344,11 +333,9 @@ export default function UnifiedStudio() {
   } = useStudioUpload({
     isProductShot,
     effectiveJewelryType,
-    validateImages,
     toast,
     setJewelryImage,
     setJewelryFile,
-    setValidationResult,
     setJewelryUploadedUrl,
     setJewelrySasUrl,
     setJewelryAssetId,
@@ -389,14 +376,12 @@ export default function UnifiedStudio() {
     selectedModel,
     customModelImage,
     modelAssetId,
-    validationResult,
     checkCredits,
     refreshCredits,
     toast,
     setCurrentStep,
     setJewelryAssetId,
     clearStudioSession,
-    clearValidation,
   });
 
   // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
@@ -422,29 +407,7 @@ export default function UnifiedStudio() {
     return () => document.removeEventListener('paste', handler);
   }, [jewelryImage, handleJewelryUpload, handleModelUpload, currentStep, activeModelUrl]);
 
-  // Auto-advance to Step 2 on valid upload
   const handleNextStep = () => {
-    if (isFlagged) {
-      setShowFlaggedDialog(true);
-      return;
-    }
-    setCurrentStep('model');
-  };
-
-  const handleContinueAnyway = () => {
-    // Path B: user chose to proceed despite validation warning.
-    // validationResult state IS safe to read here — validation finished before this dialog appeared.
-    if (validationResult) {
-      trackJewelryUploaded({
-        category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-        upload_type: validationResult.category,
-        was_flagged: true,
-      });
-    }
-    if (jewelryAssetId) {
-      updateAssetMetadata(jewelryAssetId, { user_override: 'true' }).catch(() => {});
-    }
-    setShowFlaggedDialog(false);
     setCurrentStep('model');
   };
 
@@ -459,16 +422,13 @@ export default function UnifiedStudio() {
     setCustomModelImage(null);
     setCustomModelFile(null);
     setModelAssetId(null);
-    setValidationResult(null);
     resetGeneration(); // clears resultImages, workflowId, generationError, progress, etc.
     setCurrentStep('upload');
-    clearValidation();
   };
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
-  const isFlagged = validationResult && !validationResult.is_acceptable;
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || ACCEPTABLE_EXAMPLES['necklace'];
-  const canProceed = jewelryImage && !isValidating;
+  const canProceed = !!jewelryImage;
 
   // handleDeleteUserModel and handleRenameUserModel come from useStudioModels above.
 
@@ -508,28 +468,19 @@ export default function UnifiedStudio() {
           jewelryImage={jewelryImage}
           resolvedJewelryImage={resolvedJewelryImage}
           jewelryAssetId={jewelryAssetId}
-          isValidating={isValidating}
-          validationResult={validationResult}
-          isFlagged={!!isFlagged}
-          canProceed={!!canProceed}
+          canProceed={canProceed}
           acceptableExample={acceptableExample}
-          showFlaggedDialog={showFlaggedDialog}
           jewelryInputRef={jewelryInputRef}
-          setShowFlaggedDialog={setShowFlaggedDialog}
           handleJewelryUpload={handleJewelryUpload}
           handleNextStep={handleNextStep}
-          handleContinueAnyway={handleContinueAnyway}
           clearStudioSession={clearStudioSession}
-          clearValidation={clearValidation}
           setJewelryImage={setJewelryImage}
           setJewelryFile={setJewelryFile}
-          setValidationResult={setValidationResult}
           setJewelryUploadedUrl={setJewelryUploadedUrl}
           setJewelrySasUrl={setJewelrySasUrl}
           setJewelryAssetId={setJewelryAssetId}
           setCurrentStep={setCurrentStep}
           setOverrideJewelryType={setOverrideJewelryType}
-          validateImages={validateImages}
         />
 
         {/* ═══════════════════════════════════════════════════════════
@@ -544,7 +495,6 @@ export default function UnifiedStudio() {
             activeModelUrl={activeModelUrl}
             resolvedActiveModelUrl={resolvedActiveModelUrl}
             jewelryImage={jewelryImage}
-            isValidating={isValidating}
             preflightChecking={preflightChecking}
             customModelImage={customModelImage}
             selectedModel={selectedModel}

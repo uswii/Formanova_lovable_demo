@@ -32,23 +32,11 @@ import {
   Image as ImageIcon,
   X,
   Check,
-  Loader2,
-  RefreshCw,
   ArrowRight,
-  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { StudioVaultUploadStep } from '@/components/studio/StudioVaultUploadStep';
-import { CATEGORY_EXAMPLES, LABEL_NAMES } from '@/lib/studio-examples';
-import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import type { ImageValidationResult } from '@/hooks/use-image-validation';
+import { CATEGORY_EXAMPLES } from '@/lib/studio-examples';
 import type { AuthUser } from '@/lib/auth-api';
 
 interface StudioUploadStepProps {
@@ -60,28 +48,19 @@ interface StudioUploadStepProps {
   jewelryImage: string | null;
   resolvedJewelryImage: string | null;
   jewelryAssetId: string | null;
-  isValidating: boolean;
-  validationResult: ImageValidationResult | null;
-  isFlagged: boolean;
   canProceed: boolean;
   acceptableExample: string;
-  showFlaggedDialog: boolean;
   jewelryInputRef: React.RefObject<HTMLInputElement>;
-  setShowFlaggedDialog: (open: boolean) => void;
   handleJewelryUpload: (file: File) => void;
   handleNextStep: () => void;
-  handleContinueAnyway: () => void;
   clearStudioSession: () => void;
-  clearValidation: () => void;
   setJewelryImage: (url: string | null) => void;
   setJewelryFile: (file: File | null) => void;
-  setValidationResult: (result: ImageValidationResult | null) => void;
   setJewelryUploadedUrl: (url: string | null) => void;
   setJewelrySasUrl: (url: string | null) => void;
   setJewelryAssetId: (id: string | null) => void;
   setCurrentStep: (step: string) => void;
   setOverrideJewelryType: (cat: string) => void;
-  validateImages: (files: File[], category: string, metadata?: Record<string, string>) => Promise<any>;
 }
 
 export function StudioUploadStep({
@@ -93,28 +72,19 @@ export function StudioUploadStep({
   jewelryImage,
   resolvedJewelryImage,
   jewelryAssetId,
-  isValidating,
-  validationResult,
-  isFlagged,
   canProceed,
   acceptableExample,
-  showFlaggedDialog,
   jewelryInputRef,
-  setShowFlaggedDialog,
   handleJewelryUpload,
   handleNextStep,
-  handleContinueAnyway,
   clearStudioSession,
-  clearValidation,
   setJewelryImage,
   setJewelryFile,
-  setValidationResult,
   setJewelryUploadedUrl,
   setJewelrySasUrl,
   setJewelryAssetId,
   setCurrentStep,
   setOverrideJewelryType,
-  validateImages,
 }: StudioUploadStepProps) {
   return (
     <>
@@ -133,24 +103,18 @@ export function StudioUploadStep({
               exampleCategoryType={exampleCategoryType}
               jewelryImage={jewelryImage}
               activeProductAssetId={jewelryAssetId}
-              isValidating={isValidating}
-              validationResult={validationResult}
-              isFlagged={!!isFlagged}
-              canProceed={!!canProceed}
+              canProceed={canProceed}
               jewelryInputRef={jewelryInputRef}
               onFileUpload={handleJewelryUpload}
               onClearImage={() => {
                 clearStudioSession();
                 setJewelryImage(null);
                 setJewelryFile(null);
-                setValidationResult(null);
                 setJewelryUploadedUrl(null);
                 setJewelryAssetId(null);
-                clearValidation();
                 if ((currentStep as string) === 'model') setCurrentStep('upload');
               }}
               onNextStep={handleNextStep}
-              onForceNextStep={handleContinueAnyway}
               onCategoryChange={(cat) => setOverrideJewelryType(cat)}
               isProductShot={isProductShot}
               onProductSelect={(thumbnailUrl, assetId) => {
@@ -158,26 +122,6 @@ export function StudioUploadStep({
                 setJewelryUploadedUrl(thumbnailUrl);
                 setJewelryAssetId(assetId);
                 setJewelryFile(null);
-                setValidationResult(null);
-                clearValidation();
-                if (!isProductShot) {
-                  // On-model only: validate the selected product image
-                  authenticatedFetch(thumbnailUrl)
-                    .then(r => r.blob())
-                    .then(blob => {
-                      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
-                      return validateImages([file], effectiveJewelryType);
-                    })
-                    .then(result => {
-                      if (result && result.results.length > 0) {
-                        setValidationResult(result.results[0]);
-                        if (result.results[0].uploaded_url) {
-                          setJewelryUploadedUrl(result.results[0].uploaded_url);
-                        }
-                      }
-                    })
-                    .catch(e => console.warn('[ProductSelect] Validation failed:', e));
-                }
               }}
             />
           ) : (
@@ -234,24 +178,11 @@ export function StudioUploadStep({
                     <img src={resolvedJewelryImage ?? undefined} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                     <button
-                      onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                      onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); setJewelryAssetId(null); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                       className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
-
-                    {isValidating && (
-                      <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 rounded-sm">
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                        <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
-                      </div>
-                    )}
-                    {!isValidating && validationResult && !isFlagged && (
-                      <div className="absolute top-3 left-3 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-sm">
-                        <Check className="h-3 w-3 text-primary" />
-                        <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
-                      </div>
-                    )}
                   </div>
 
                 </div>
@@ -266,17 +197,8 @@ export function StudioUploadStep({
                     disabled={!canProceed}
                     className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:from-[hsl(var(--formanova-hero-accent))] disabled:to-[hsl(var(--formanova-glow))]"
                   >
-                    {isValidating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Validating…
-                      </>
-                    ) : (
-                      <>
-                        Next
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
+                    Next
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
@@ -339,63 +261,6 @@ export function StudioUploadStep({
         </motion.div>
       )}
 
-      {/* ═══ Flagged Image Dialog ═══ */}
-      <Dialog open={showFlaggedDialog} onOpenChange={setShowFlaggedDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="flex items-center gap-3 text-destructive text-lg">
-              <AlertTriangle className="h-5 w-5 shrink-0" />
-              <span>Image May Not Be Suitable</span>
-            </DialogTitle>
-            <DialogDescription>
-              We detected this image as <strong>{LABEL_NAMES[validationResult?.category || ''] || validationResult?.category}</strong>.
-              For best results, upload jewelry <strong>worn on a person or mannequin</strong>. Results with this image may not be accurate.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-4 my-2">
-            {/* User's flagged image */}
-            <div className="space-y-2">
-              <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
-              <div className="relative border-2 border-destructive/40 overflow-hidden aspect-[3/4] bg-muted/30 rounded-sm">
-                {jewelryImage && <img src={resolvedJewelryImage ?? undefined} alt="Flagged" className="w-full h-full object-cover" />}
-                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                  <X className="h-4 w-4 text-destructive-foreground" />
-                </div>
-              </div>
-            </div>
-            {/* Acceptable example */}
-            <div className="space-y-2">
-              <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable format</p>
-              <div className="relative border-2 border-primary/40 overflow-hidden aspect-[3/4] bg-muted/30 rounded-sm">
-                <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
-                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                  <Check className="h-4 w-4 text-primary-foreground" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
-            <Button
-              variant="outline"
-              onClick={() => { setShowFlaggedDialog(false); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelrySasUrl(null); clearValidation(); }}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Go Back & Re-upload
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleContinueAnyway}
-              className="text-muted-foreground"
-            >
-              Continue Anyway
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

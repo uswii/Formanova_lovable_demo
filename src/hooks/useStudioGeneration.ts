@@ -64,7 +64,6 @@ import {
   consumeFirstGeneration,
 } from '@/lib/posthog-events';
 import type { PresetModel } from '@/lib/models-api';
-import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import type { useToast } from '@/hooks/use-toast';
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
@@ -79,14 +78,12 @@ interface UseStudioGenerationOptions {
   selectedModel: PresetModel | null;
   customModelImage: string | null;
   modelAssetId: string | null;
-  validationResult: ImageValidationResult | null;
   checkCredits: (tool: string) => Promise<boolean>;
   refreshCredits: () => void;
   toast: ReturnType<typeof useToast>['toast'];
   setCurrentStep: (step: StudioStep) => void;
   setJewelryAssetId: (id: string | null) => void;
   clearStudioSession: () => void;
-  clearValidation: () => void;
 }
 
 function extractResultImages(result: PhotoshootResultResponse): string[] {
@@ -122,14 +119,12 @@ export function useStudioGeneration({
   selectedModel,
   customModelImage,
   modelAssetId,
-  validationResult,
   checkCredits,
   refreshCredits,
   toast,
   setCurrentStep,
   setJewelryAssetId,
   clearStudioSession,
-  clearValidation,
 }: UseStudioGenerationOptions) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -310,7 +305,7 @@ export function useStudioGeneration({
         trackGenerationComplete({
           source: 'unified-studio',
           category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType,
-          upload_type: validationResult?.category ?? null,
+          upload_type: null,
           duration_ms: Date.now() - _genStartTime,
           is_first_ever: consumeFirstGeneration(),
         });
@@ -331,7 +326,7 @@ export function useStudioGeneration({
   }, [
     isGenerating, jewelryImage, activeModelUrl, isProductShot, effectiveJewelryType,
     jewelryUploadedUrl, jewelryAssetId, selectedModel, customModelImage, modelAssetId,
-    validationResult, checkCredits, refreshCredits, toast, setCurrentStep, setJewelryAssetId,
+    checkCredits, refreshCredits, toast, setCurrentStep, setJewelryAssetId,
     clearStudioSession,
   ]);
 

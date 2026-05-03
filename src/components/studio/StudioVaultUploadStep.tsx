@@ -10,7 +10,7 @@
 
 import React, { useState } from 'react';
 import {
-  Check, X, Diamond, Upload, ArrowRight, Loader2,
+  X, Diamond, ArrowRight,
   ChevronLeft, ChevronRight, ImageIcon, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import { Switch } from '@/components/ui/switch';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { trackMyProductsCategoryFiltered } from '@/lib/posthog-events';
-import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
@@ -190,16 +189,11 @@ export interface StudioVaultUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
   activeProductAssetId: string | null;
-  isValidating: boolean;
-  validationResult: ImageValidationResult | null;
-  isFlagged: boolean;
   canProceed: boolean;
   jewelryInputRef: React.RefObject<HTMLInputElement>;
   onFileUpload: (file: File) => void;
   onClearImage: () => void;
   onNextStep: () => void;
-  /** Bypasses the flag check — used by "Continue Anyway". */
-  onForceNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
   onCategoryChange?: (category: string) => void;
   isProductShot?: boolean;
@@ -211,15 +205,11 @@ export function StudioVaultUploadStep({
   exampleCategoryType,
   jewelryImage,
   activeProductAssetId,
-  isValidating,
-  validationResult,
-  isFlagged,
   canProceed,
   jewelryInputRef,
   onFileUpload,
   onClearImage,
   onNextStep,
-  onForceNextStep,
   onProductSelect,
   onCategoryChange,
   isProductShot,
@@ -240,16 +230,11 @@ export function StudioVaultUploadStep({
 
   const urlCategory = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
 
-  const [flagAcknowledged, setFlagAcknowledged] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory);
   const [showAll, setShowAll] = useState(false);
 
   const resolvedJewelryImage = useAuthenticatedImage(jewelryImage);
-
-  React.useEffect(() => {
-    setFlagAcknowledged(false);
-  }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
   const activeCategory = selectedCategory ?? undefined;
@@ -288,8 +273,6 @@ export function StudioVaultUploadStep({
     { label: 'Bracelets', value: 'bracelet' },
     { label: 'Watches', value: 'watch' },
   ];
-
-  const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
   // Necklace worn example looks better as the 3rd image
   const popupWornExample = exampleCategoryType === 'necklace' ? examples.allowed[2] : examples.allowed[0];
@@ -389,18 +372,6 @@ export function StudioVaultUploadStep({
                 <X className="h-3.5 w-3.5" />
               </button>
 
-              {isValidating && (
-                <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                  <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
-                </div>
-              )}
-              {!isValidating && validationResult && !isFlagged && (
-                <div className="absolute top-3 left-3 px-2.5 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20">
-                  <Check className="h-3 w-3 text-primary" />
-                  <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
-                </div>
-              )}
             </div>
 
             {/* Action area — normal Next button */}
@@ -409,9 +380,7 @@ export function StudioVaultUploadStep({
                       className="gap-2.5 font-display text-base uppercase tracking-wide px-10
                                  bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
                                  text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
-                {isValidating
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
-                  : <>Next <ArrowRight className="h-4 w-4" /></>}
+                Next <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>

@@ -309,10 +309,12 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
     ...['jewelry_image_url', 'input_image_url']
       .map((key) => findString(detail.input_payload, [key]))
       .filter((value): value is string => Boolean(value)),
+    ...extractImageUrls(detail.input_payload),
     ...stepInputImageUrls,
   ]
     .map((value) => normalizeRenderableUrl(value))
-    .filter((value): value is string => Boolean(value));
+    .filter((value): value is string => Boolean(value))
+    .filter((value, index, arr) => arr.indexOf(value) === index);
   const modelImageUrl = firstRenderableUrl([
     findString(detail.input_payload, ['model_image_url', 'model_url']),
     findString(detail.steps[0]?.input, ['model_image_url', 'model_url']),

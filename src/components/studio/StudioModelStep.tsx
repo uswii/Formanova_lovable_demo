@@ -58,7 +58,6 @@ interface StudioModelStepProps {
   activeModelUrl: string | null;
   resolvedActiveModelUrl: string | null;
   jewelryImage: string | null;
-  isValidating: boolean;
   preflightChecking: boolean;
   customModelImage: string | null;
   selectedModel: PresetModel | null;
@@ -94,7 +93,6 @@ export function StudioModelStep({
   activeModelUrl,
   resolvedActiveModelUrl,
   jewelryImage,
-  isValidating,
   preflightChecking,
   customModelImage,
   selectedModel,
@@ -254,7 +252,7 @@ export function StudioModelStep({
             <Button
               size="lg"
               onClick={handleGenerate}
-              disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
+              disabled={!jewelryImage || !activeModelUrl || preflightChecking}
               className="gap-2.5 font-display text-lg uppercase tracking-wide bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
             >
               Generate Photoshoot
