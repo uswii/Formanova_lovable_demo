@@ -42,15 +42,6 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 // ── hooks ──────────────────────────────────────────────────────────────────
-vi.mock('@/hooks/use-image-validation', () => ({
-  useImageValidation: () => ({
-    isValidating: false,
-    results: [],
-    validateImages: vi.fn(),
-    clearValidation: vi.fn(),
-  }),
-}));
-
 vi.mock('@/hooks/use-credit-preflight', () => ({
   useCreditPreflight: () => ({
     checkCredits: vi.fn(),

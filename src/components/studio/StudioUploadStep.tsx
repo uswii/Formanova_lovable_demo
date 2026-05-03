@@ -12,8 +12,7 @@
  * ---------------
  * - The Step 1 upload zone (drop zone or image preview) when currentStep === 'upload'
  * - The StudioVaultUploadStep layout
- * - The Upload Guide sidebar (Accepted / Not Accepted examples)
- * - The Flagged Image Dialog (always rendered, controlled by showFlaggedDialog prop)
+ * - The Upload Guide sidebar
  *
  * HOW TO USE
  * ----------
@@ -49,7 +48,6 @@ interface StudioUploadStepProps {
   resolvedJewelryImage: string | null;
   jewelryAssetId: string | null;
   canProceed: boolean;
-  acceptableExample: string;
   jewelryInputRef: React.RefObject<HTMLInputElement>;
   handleJewelryUpload: (file: File) => void;
   handleNextStep: () => void;
@@ -73,7 +71,6 @@ export function StudioUploadStep({
   resolvedJewelryImage,
   jewelryAssetId,
   canProceed,
-  acceptableExample,
   jewelryInputRef,
   handleJewelryUpload,
   handleNextStep,

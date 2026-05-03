@@ -274,10 +274,6 @@ export function StudioVaultUploadStep({
     { label: 'Watches', value: 'watch' },
   ];
 
-  // Necklace worn example looks better as the 3rd image
-  const popupWornExample = exampleCategoryType === 'necklace' ? examples.allowed[2] : examples.allowed[0];
-
-
   return (
     <>
     <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
@@ -557,64 +553,7 @@ export function StudioVaultUploadStep({
         </div>
       </div>
     )}
-
-    {showFlagWarning && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-        <div className="bg-background border border-border/30 shadow-2xl max-w-md w-full mx-4 p-6 flex flex-col gap-5">
-
-          {/* Visual comparison — user's photo vs a worn example */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* User's image */}
-            <div className="flex flex-col gap-1.5">
-              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
-                {jewelryImage && (
-                  <img src={resolvedJewelryImage ?? undefined} alt="Your photo" className="w-full h-full object-contain" />
-                )}
-              </div>
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
-                Your photo
-              </span>
-            </div>
-
-            {/* Worn example */}
-            <div className="flex flex-col gap-1.5">
-              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
-                <img src={popupWornExample} alt="Works better" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
-                Works better
-              </span>
-            </div>
-          </div>
-
-          {/* Soft one-liner */}
-          <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            If you wear your jewelry and submit a photo of it, the result will be even better!
-          </p>
-
-          {/* Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onClearImage}
-              className="font-mono text-[10px] uppercase tracking-widest"
-            >
-              Upload Again
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => { setFlagAcknowledged(true); onForceNextStep(); }}
-              className="font-mono text-[10px] uppercase tracking-widest
-                         bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                         text-background hover:opacity-90 transition-opacity border-0"
-            >
-              Continue Anyway
-            </Button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   );
 }
+

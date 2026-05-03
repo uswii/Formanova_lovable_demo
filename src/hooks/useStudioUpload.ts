@@ -13,7 +13,6 @@
  * WHAT IT MANAGES
  * ---------------
  * - handleJewelryUpload: normalise -> preview -> compress -> upload to Azure
- *   -> validate (model-shot) or skip validation (product-shot)
  * - handleModelUpload: normalise -> preview -> compress -> upload to Azure
  *   -> push to My Models optimistic list -> re-fetch
  * - handleSelectLibraryModel: select a preset model, clear custom model state

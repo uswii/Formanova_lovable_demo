@@ -26,7 +26,6 @@ import { StudioHeader } from '@/components/studio/StudioHeader';
 import { StudioUploadStep } from '@/components/studio/StudioUploadStep';
 // ExampleGuidePanel removed — guide is inline
 
-import { ACCEPTABLE_EXAMPLES } from '@/lib/studio-examples';
 
 const CATEGORY_TYPE_MAP: Record<string, string> = {
   necklace: 'necklace', necklaces: 'necklace',
@@ -427,7 +426,6 @@ export default function UnifiedStudio() {
   };
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
-  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || ACCEPTABLE_EXAMPLES['necklace'];
   const canProceed = !!jewelryImage;
 
   // handleDeleteUserModel and handleRenameUserModel come from useStudioModels above.
@@ -457,7 +455,7 @@ export default function UnifiedStudio() {
       <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-8 relative z-10">
 
         {/* ═══════════════════════════════════════════════════════════
-            STEP 1 — UPLOAD YOUR JEWELRY + FLAGGED IMAGE DIALOG
+            STEP 1 — UPLOAD YOUR JEWELRY
             ═══════════════════════════════════════════════════════════ */}
         <StudioUploadStep
           user={user}
@@ -469,7 +467,6 @@ export default function UnifiedStudio() {
           resolvedJewelryImage={resolvedJewelryImage}
           jewelryAssetId={jewelryAssetId}
           canProceed={canProceed}
-          acceptableExample={acceptableExample}
           jewelryInputRef={jewelryInputRef}
           handleJewelryUpload={handleJewelryUpload}
           handleNextStep={handleNextStep}
