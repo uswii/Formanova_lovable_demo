@@ -82,6 +82,8 @@ interface UseStudioGenerationOptions {
   refreshCredits: () => void;
   toast: ReturnType<typeof useToast>['toast'];
   setCurrentStep: (step: StudioStep) => void;
+  setJewelryUploadedUrl: (url: string | null) => void;
+  setJewelrySasUrl: (url: string | null) => void;
   setJewelryAssetId: (id: string | null) => void;
   clearStudioSession: () => void;
 }
@@ -123,6 +125,8 @@ export function useStudioGeneration({
   refreshCredits,
   toast,
   setCurrentStep,
+  setJewelryUploadedUrl,
+  setJewelrySasUrl,
   setJewelryAssetId,
   clearStudioSession,
 }: UseStudioGenerationOptions) {
@@ -186,6 +190,8 @@ export function useStudioGeneration({
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[effectiveJewelryType] ?? effectiveJewelryType });
         jewelryUrl = azResult.sas_url || azResult.https_url;
+        setJewelryUploadedUrl(jewelryUrl);
+        setJewelrySasUrl(azResult.sas_url ?? null);
         setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
       }
@@ -326,7 +332,8 @@ export function useStudioGeneration({
   }, [
     isGenerating, jewelryImage, activeModelUrl, isProductShot, effectiveJewelryType,
     jewelryUploadedUrl, jewelryAssetId, selectedModel, customModelImage, modelAssetId,
-    checkCredits, refreshCredits, toast, setCurrentStep, setJewelryAssetId,
+    checkCredits, refreshCredits, toast, setCurrentStep, setJewelryUploadedUrl,
+    setJewelrySasUrl, setJewelryAssetId,
     clearStudioSession,
   ]);
 
