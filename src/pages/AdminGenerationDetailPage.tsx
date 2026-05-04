@@ -17,7 +17,8 @@ import {
   getAdminGenerationDetail,
   type AdminGenerationDetail,
 } from '@/lib/admin-generations-api';
-import { inferSourceType, fetchCadResult } from '@/lib/generation-history-api';
+import { inferSourceType } from '@/lib/generation-history-api';
+import type { AdminGenerationStep } from '@/lib/admin-generations-api';
 import { ScissorGLBGrid, GLBPreviewSlot } from '@/components/generations/ScissorGLBGrid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,39 @@ function findText(value: unknown, keys: string[]): string | null {
     }
   }
 
+  return null;
+}
+
+function extractGlbFromSteps(steps: AdminGenerationStep[]): string | null {
+  function deepFindGlbUri(node: unknown): string | null {
+    if (typeof node === 'string' && node.includes('.glb')) {
+      if (node.startsWith('azure://') || node.startsWith('https://') || node.includes('/artifacts/')) return node;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) { const f = deepFindGlbUri(item); if (f) return f; }
+    } else if (node && typeof node === 'object') {
+      for (const v of Object.values(node as Record<string, unknown>)) {
+        const f = deepFindGlbUri(v); if (f) return f;
+      }
+    }
+    return null;
+  }
+
+  for (const step of steps) {
+    const out = step.output as Record<string, unknown> | null;
+    if (!out) continue;
+    const glbArtUri = (out.glb_artifact as any)?.uri ?? (out.original_glb_artifact as any)?.uri;
+    if (typeof glbArtUri === 'string') return azureUriToUrl(glbArtUri) || glbArtUri;
+    const glbPath = out.glb_path;
+    if (glbPath) {
+      const p = typeof glbPath === 'string' ? glbPath : (glbPath as any)?.uri;
+      if (typeof p === 'string') return azureUriToUrl(p) || p;
+    }
+  }
+  for (const step of steps) {
+    const uri = deepFindGlbUri(step.output);
+    if (uri) return azureUriToUrl(uri) || uri;
+  }
   return null;
 }
 
@@ -298,11 +332,12 @@ function InvalidRequestState({ message }: { message: string }) {
   );
 }
 
-function DetailContent({ detail, cadGlbUrl }: { detail: AdminGenerationDetail; cadGlbUrl: string | null }) {
+function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
   const isCadText = inferSourceType(detail.workflow_name) === 'cad_text';
   const textPrompt = isCadText
     ? findText(detail.input_payload, ['prompt', 'description', 'ring_description', 'text_input', 'input_text', 'text', 'query'])
     : null;
+  const cadGlbUrl = isCadText ? extractGlbFromSteps(detail.steps) : null;
 
   const stepOutputImageUrls = detail.steps.flatMap((step) =>
     extractImageUrls(step.output)
@@ -504,19 +539,6 @@ export default function AdminGenerationDetailPage() {
     retry: false,
   });
 
-  const isCadTextWorkflow = query.data
-    ? inferSourceType(query.data.workflow_name) === 'cad_text'
-    : false;
-
-  const cadGlbQuery = useQuery({
-    queryKey: ['admin-cad-result', workflowId],
-    queryFn: () => fetchCadResult(workflowId),
-    enabled: Boolean(workflowId) && isCadTextWorkflow,
-    retry: false,
-  });
-
-  const cadGlbUrl = cadGlbQuery.data?.glb_url ?? null;
-
   const error = query.error instanceof AdminGenerationsApiError ? query.error : null;
   const backTarget = `/admin/generations${location.search || ''}`;
 
@@ -556,7 +578,7 @@ export default function AdminGenerationDetailPage() {
             </CardContent>
           </Card>
         ) : query.data ? (
-          <DetailContent detail={query.data} cadGlbUrl={cadGlbUrl} />
+          <DetailContent detail={query.data} />
         ) : (
           <NotFoundState />
         )}
