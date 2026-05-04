@@ -17,6 +17,8 @@ import {
   getAdminGenerationDetail,
   type AdminGenerationDetail,
 } from '@/lib/admin-generations-api';
+import { inferSourceType, fetchCadResult } from '@/lib/generation-history-api';
+import { ScissorGLBGrid, GLBPreviewSlot } from '@/components/generations/ScissorGLBGrid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -296,12 +298,12 @@ function InvalidRequestState({ message }: { message: string }) {
   );
 }
 
-function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
-  const stepInputImageUrls = detail.steps.flatMap((step) =>
-    extractImageUrls(step.input)
-      .map((value) => normalizeRenderableUrl(value))
-      .filter((value): value is string => Boolean(value)),
-  );
+function DetailContent({ detail, cadGlbUrl }: { detail: AdminGenerationDetail; cadGlbUrl: string | null }) {
+  const isCadText = inferSourceType(detail.workflow_name) === 'cad_text';
+  const textPrompt = isCadText
+    ? findText(detail.input_payload, ['prompt', 'description', 'ring_description', 'text_input', 'input_text', 'text', 'query'])
+    : null;
+
   const stepOutputImageUrls = detail.steps.flatMap((step) =>
     extractImageUrls(step.output)
       .map((value) => normalizeRenderableUrl(value))
@@ -384,11 +386,44 @@ function DetailContent({ detail }: { detail: AdminGenerationDetail }) {
             <MetaItem label="Plan" value={detail.is_paying ? 'Paying' : 'Free'} />
             <MetaItem label="Complaint" value={detail.feedback ? 'Yes' : 'No'} />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {visualSummaryImages.map((image) => (
-              <ImagePreview key={`${image.label}-${image.url ?? 'missing'}`} url={image.url} label={image.label} />
-            ))}
-          </div>
+
+          {isCadText ? (
+            <div className="space-y-4">
+              {textPrompt && (
+                <div className="space-y-2">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Text Prompt (Input)</p>
+                  <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
+                    <p className="text-sm leading-relaxed">{textPrompt}</p>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">3D Preview (Output)</p>
+                {cadGlbUrl ? (
+                  <ScissorGLBGrid>
+                    <GLBPreviewSlot
+                      id={detail.workflow_id}
+                      glbUrl={cadGlbUrl}
+                      className="w-full aspect-[4/3] rounded-md border border-border bg-muted/20"
+                    />
+                  </ScissorGLBGrid>
+                ) : (
+                  <div className="flex h-48 items-center justify-center rounded-md border border-border bg-muted/20">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
+                      <ImageOff className="h-6 w-6" />
+                      <span className="font-mono text-[10px] uppercase tracking-widest">No 3D output</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {visualSummaryImages.map((image) => (
+                <ImagePreview key={`${image.label}-${image.url ?? 'missing'}`} url={image.url} label={image.label} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -469,6 +504,19 @@ export default function AdminGenerationDetailPage() {
     retry: false,
   });
 
+  const isCadTextWorkflow = query.data
+    ? inferSourceType(query.data.workflow_name) === 'cad_text'
+    : false;
+
+  const cadGlbQuery = useQuery({
+    queryKey: ['admin-cad-result', workflowId],
+    queryFn: () => fetchCadResult(workflowId),
+    enabled: Boolean(workflowId) && isCadTextWorkflow,
+    retry: false,
+  });
+
+  const cadGlbUrl = cadGlbQuery.data?.glb_url ?? null;
+
   const error = query.error instanceof AdminGenerationsApiError ? query.error : null;
   const backTarget = `/admin/generations${location.search || ''}`;
 
@@ -508,7 +556,7 @@ export default function AdminGenerationDetailPage() {
             </CardContent>
           </Card>
         ) : query.data ? (
-          <DetailContent detail={query.data} />
+          <DetailContent detail={query.data} cadGlbUrl={cadGlbUrl} />
         ) : (
           <NotFoundState />
         )}
